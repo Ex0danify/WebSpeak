@@ -1,0 +1,77 @@
+/*
+ * WebSpeak design tokens. Source of truth: docs/design/palette.md
+ *
+ * Two layers:
+ *   1. --ws-*      semantic values that switch with the theme (light / dark / system)
+ *   2. --color-*   Tailwind theme entries that point at the --ws-* values
+ *
+ * Components use utilities such as bg-surface-1, text-fg-muted, border-line or
+ * bg-accent and never need a dark: variant, because the values swap here.
+ * Never hardcode a hex value in a component.
+ */
+
+/* Tailwind's default palette is removed so only these names exist. */
+@theme inline {
+  --color-*: initial;
+  --color-transparent: transparent;
+  --color-current: currentColor;
+
+  --color-surface-0: var(--ws-surface-0);
+  --color-surface-1: var(--ws-surface-1);
+  --color-surface-2: var(--ws-surface-2);
+  --color-fg: var(--ws-fg);
+  --color-fg-muted: var(--ws-fg-muted);
+  --color-line: var(--ws-line);
+  --color-accent: var(--ws-accent);
+  --color-accent-fg: var(--ws-accent-fg);
+  --color-success: var(--ws-success);
+  --color-warning: var(--ws-warning);
+  --color-danger: var(--ws-danger);
+}
+
+/* Light (default) */
+:root {
+  --ws-surface-0: #f2f6f9;
+  --ws-surface-1: #ffffff;
+  --ws-surface-2: #e6eef4;
+  --ws-fg: #101c26;
+  --ws-fg-muted: #556a7a;
+  --ws-line: #d3dfe8;
+  --ws-accent: #065682;
+  --ws-accent-fg: #ffffff;
+  --ws-success: #25794a;
+  --ws-warning: #96590a;
+  --ws-danger: #b83c37;
+}
+
+/* Dark, explicit choice */
+:root[data-theme="dark"] {
+  --ws-surface-0: #0b141c;
+  --ws-surface-1: #0f1a24;
+  --ws-surface-2: #172633;
+  --ws-fg: #e5eef5;
+  --ws-fg-muted: #8fa6b8;
+  --ws-line: #243746;
+  --ws-accent: #6fb8ec;
+  --ws-accent-fg: #04202f;
+  --ws-success: #6ddc8b;
+  --ws-warning: #e5b567;
+  --ws-danger: #f0837c;
+}
+
+/* Dark, system preference (data-theme="system" or no attribute) */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]):not([data-theme="dark"]) {
+    --ws-surface-0: #0b141c;
+    --ws-surface-1: #0f1a24;
+    --ws-surface-2: #172633;
+    --ws-fg: #e5eef5;
+    --ws-fg-muted: #8fa6b8;
+    --ws-line: #243746;
+    --ws-accent: #6fb8ec;
+    --ws-accent-fg: #04202f;
+    --ws-success: #6ddc8b;
+    --ws-warning: #e5b567;
+    --ws-danger: #f0837c;
+  }
+}

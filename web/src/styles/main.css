@@ -1,0 +1,13 @@
+/*
+ * WebSpeak styling entry point (Tailwind CSS v4).
+ *
+ * Preflight (Tailwind's reset) is intentionally NOT imported yet. The existing
+ * scoped styles in the views rely on browser defaults. Add
+ *   @import "tailwindcss/preflight.css" layer(base);
+ * once the views are migrated to the ui/ components.
+ */
+@layer theme, base, components, utilities;
+
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/utilities.css" layer(utilities);
+@import "./tokens.css";

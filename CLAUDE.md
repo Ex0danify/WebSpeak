@@ -23,6 +23,10 @@ Browser (playback)    ← WebSocket ← Node.js server (Opus relay) ← TeamSpea
 web/                         # Vue 3 + Vite frontend (SPA)
   src/composables/useVoiceWebSocket.ts  # Mic capture, VOX/PTT, playback, WS client
   src/views/WebClient.vue               # Connect form + channel/member tree
+  src/styles/main.css                   # Tailwind v4 entry (no preflight yet)
+  src/styles/tokens.css                 # Design tokens: light/dark/system, Tailwind theme names
+  src/components/ui/                    # Standardized components (cva variants + cn())
+  src/lib/utils.ts                      # cn() = clsx + tailwind-merge
 src/
   index.ts                    # Entry point, config loading, server startup
   config.ts                   # AppConfig interface + load/save
@@ -72,6 +76,12 @@ Uses TS6 WebQuery HTTP API (`http://tsHost:tsQueryPort/1/channellist`) with `x-a
 }
 ```
 
+## Frontend Styling
+- Tailwind CSS v4 via `@tailwindcss/vite`. Palette and rules: `docs/design/palette.md`, tokens in `web/src/styles/tokens.css`.
+- Tailwind's default colors are removed. Only semantic names exist: `surface-0/1/2`, `fg`, `fg-muted`, `line`, `accent`, `accent-fg`, `success`, `warning`, `danger`. Themes swap the values, so do not use `dark:` variants and do not hardcode hex in components.
+- New UI goes in `web/src/components/ui/` as a Vue component plus a `cva` variants file (see `Button.vue` / `button.ts`), merged with `cn()`. Use the `@/` alias for imports.
+- Migration in progress: the existing views still use scoped CSS and the legacy `--surface-*` / `--accent` variables at the bottom of `WebClient.vue`. Preflight is not imported yet; enable it in `main.css` once the views are migrated.
+
 ## Build & Deploy
 ```bash
 npm install && cd web && npm install && npx vite build && cd .. && npx tsc
@@ -84,7 +94,7 @@ node dist/index.js
 - No secrets in source; config.json is gitignored
 
 ## Known Limitations
-- Browser must be Chrome/Edge 94+ (WebCodecs AudioDecoder)
+- Browser must be Chrome/Edge 111+ (WebCodecs AudioDecoder needs 94+, Tailwind v4 CSS needs 111+)
 - HTTPS required (self-signed cert OK, generated in `certs/`)
 - Max 32 concurrent users (TS3 license limit)
 - `tsApiKey` required for channel list; voice works without it
