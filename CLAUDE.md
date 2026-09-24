@@ -77,9 +77,10 @@ Uses TS6 WebQuery HTTP API (`http://tsHost:tsQueryPort/1/channellist`) with `x-a
 ```
 
 ## Frontend Styling
-- Tailwind CSS v4 via `@tailwindcss/vite`. Palette and rules: `docs/design/palette.md`, tokens in `web/src/styles/tokens.css`.
-- Tailwind's default colors are removed. Only semantic names exist: `surface-0/1/2`, `fg`, `fg-muted`, `line`, `accent`, `accent-fg`, `success`, `warning`, `danger`. Themes swap the values, so do not use `dark:` variants and do not hardcode hex in components.
-- New UI goes in `web/src/components/ui/` as a Vue component plus a `cva` variants file (see `Button.vue` / `button.ts`), merged with `cn()`. Use the `@/` alias for imports.
+- Tailwind CSS v4 via `@tailwindcss/vite`. Design docs: `docs/design/` (`README.md` foundations, `palette.md`, `components-mock.html` is the approved visual reference to build components against). Tokens in `web/src/styles/tokens.css`.
+- Tailwind's default colors are removed. Only semantic names exist: `surface-0/1/2`, `fg`, `fg-muted`, `line`, `line-strong`, `accent`, `accent-fg`, `success`, `warning`, `danger`. Themes swap the values, so do not use `dark:` variants and do not hardcode hex in components.
+- New UI goes in `web/src/components/ui/` as a Vue component plus a `cva` variants file (see `Button.vue` / `button.ts`), merged with `cn()`. Use the `@/` alias for imports. Font is Inter (`font-sans`), mono is IBM Plex Mono (`font-mono`), radii are `rounded-sm/md/lg` = 6/8/12 px, shadows are `shadow-sm` and `shadow-lg` only.
+- Redesign work follows `docs/design/redesign-plan.md`: one step per commit, tick the step's checkbox in the same commit, run the gates it defines.
 - Migration in progress: the existing views still use scoped CSS and the legacy `--surface-*` / `--accent` variables at the bottom of `WebClient.vue`. Preflight is not imported yet; enable it in `main.css` once the views are migrated.
 
 ## Build & Deploy

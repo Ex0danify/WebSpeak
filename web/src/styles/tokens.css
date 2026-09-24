@@ -22,11 +22,36 @@
   --color-fg: var(--ws-fg);
   --color-fg-muted: var(--ws-fg-muted);
   --color-line: var(--ws-line);
+  --color-line-strong: var(--ws-line-strong);
   --color-accent: var(--ws-accent);
   --color-accent-fg: var(--ws-accent-fg);
   --color-success: var(--ws-success);
   --color-warning: var(--ws-warning);
   --color-danger: var(--ws-danger);
+}
+
+/*
+ * Type, shape, elevation and motion. Constants, so a plain @theme block.
+ * Decided from docs/design/components-mock.html (Inter, Balanced corners).
+ */
+@theme {
+  /* Inter first; CJK and system fallbacks for zh-CN, ja and ru users. */
+  --font-sans: "Inter Variable", "Inter", system-ui, -apple-system, "Segoe UI", "PingFang SC",
+    "Hiragino Sans", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+
+  /* rounded-sm: menu rows, kbd. rounded-md: buttons, inputs, tabs. rounded-lg: cards, dialogs, menus. */
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+
+  /* shadow-sm: raised control. shadow-lg: floating layer (menu, dialog, toast, tooltip). */
+  --shadow-*: initial;
+  --shadow-sm: 0 1px 2px rgb(8 28 44 / 0.08);
+  --shadow-lg: 0 10px 28px -8px rgb(8 28 44 / 0.28), 0 2px 6px rgb(8 28 44 / 0.1);
+
+  /* Short and functional. Add motion-reduce:transition-none where a transition moves things. */
+  --default-transition-duration: 120ms;
 }
 
 /* Light (default) */
@@ -42,6 +67,8 @@
   --ws-success: #25794a;
   --ws-warning: #96590a;
   --ws-danger: #b83c37;
+  /* Input and control borders need 3:1 (WCAG 1.4.11); --ws-line is decorative only. Recomputes per theme. */
+  --ws-line-strong: color-mix(in srgb, var(--ws-fg-muted) 80%, var(--ws-surface-1));
 }
 
 /* Dark, explicit choice */

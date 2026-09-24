@@ -1,3 +1,6 @@
+import "@fontsource-variable/inter/wght.css";
+import "@fontsource/ibm-plex-mono/400.css";
+import "@fontsource/ibm-plex-mono/500.css";
 import "./styles/main.css";
 import { createApp } from "vue";
 import { createPinia } from "pinia";

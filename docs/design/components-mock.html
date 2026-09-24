@@ -1,0 +1,403 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- Design reference mock. Static prototype, not app code. See docs/design/README.md -->
+<title>WebSpeak Components</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap">
+<style>
+:root {
+  --s0: #f2f6f9; --s1: #ffffff; --s2: #e6eef4; --fg: #101c26; --mute: #556a7a; --line: #d3dfe8;
+  --acc: #065682; --accfg: #ffffff; --ok: #25794a; --warn: #96590a; --dang: #b83c37;
+  --font: "Inter", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, monospace;
+  --r-sm: 6px; --r-ctl: 8px; --r-card: 12px;
+  --sh-1: 0 1px 2px rgb(8 28 44 / .08);
+  --sh-2: 0 10px 28px -8px rgb(8 28 44 / .28), 0 2px 6px rgb(8 28 44 / .1);
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --s0: #0b141c; --s1: #0f1a24; --s2: #172633; --fg: #e5eef5; --mute: #8fa6b8; --line: #243746;
+    --acc: #6fb8ec; --accfg: #04202f; --ok: #6ddc8b; --warn: #e5b567; --dang: #f0837c; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --s0: #0b141c; --s1: #0f1a24; --s2: #172633; --fg: #e5eef5; --mute: #8fa6b8; --line: #243746;
+  --acc: #6fb8ec; --accfg: #04202f; --ok: #6ddc8b; --warn: #e5b567; --dang: #f0837c; color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--s0); color: var(--fg); font: 400 14px/20px var(--font); padding-inline: 16px; padding-block: 0 64px; }
+button, input, select { font: inherit; color: inherit; }
+button { cursor: pointer; }
+h1, h2, h3, p { margin: 0; }
+:focus-visible { outline: 2px solid var(--acc); outline-offset: 2px; }
+.i { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+.lbl { font: 500 11px/16px var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--mute); }
+.strong-line { --line-strong: color-mix(in srgb, var(--mute) 80%, var(--s1)); }
+
+/* page chrome */
+.bar { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--s0); border-bottom: 1px solid var(--line); margin-inline: -16px; padding: 12px 16px; }
+.bar-in { max-width: 1120px; margin-inline: auto; display: flex; flex-wrap: wrap; gap: 12px 24px; align-items: center; justify-content: space-between; }
+.bar h1 { font-size: 16px; line-height: 24px; font-weight: 700; }
+.ctl { display: flex; flex-wrap: wrap; gap: 8px 20px; }
+.ctl > div { display: flex; align-items: center; gap: 8px; }
+.seg { display: inline-flex; background: var(--s2); border-radius: var(--r-ctl); padding: 2px; gap: 2px; }
+.seg button { border: 0; background: transparent; color: var(--mute); height: 28px; padding: 0 12px; border-radius: calc(var(--r-ctl) - 2px); font-weight: 500; font-size: 13px; }
+.seg button[aria-pressed="true"], .seg button[aria-selected="true"] { background: var(--s1); color: var(--fg); box-shadow: var(--sh-1); }
+main { max-width: 1120px; margin-inline: auto; padding-top: 24px; display: grid; gap: 20px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 480px), 1fr)); align-items: start; }
+.sec { background: var(--s1); border: 1px solid var(--line); border-radius: var(--r-card); padding: 20px; display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.sec.wide { grid-column: 1 / -1; }
+.sec-h { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; }
+.sec-h h2 { font-size: 16px; line-height: 24px; font-weight: 600; }
+.row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.stack { display: flex; flex-direction: column; gap: 14px; }
+
+/* type scale */
+.ts { display: grid; grid-template-columns: 200px 1fr; gap: 10px 20px; align-items: baseline; }
+.ts .spec { font: 400 12px var(--mono); color: var(--mute); }
+.t-display { font-size: 28px; line-height: 32px; font-weight: 700; letter-spacing: -.01em; }
+.t-title { font-size: 18px; line-height: 26px; font-weight: 600; }
+.t-body { font-size: 14px; line-height: 20px; }
+.t-small { font-size: 12px; line-height: 16px; color: var(--mute); }
+.t-mono { font: 400 13px var(--mono); }
+@media (max-width: 520px) { .ts { grid-template-columns: 1fr; gap: 2px; } .ts .spec { margin-top: 10px; } }
+
+/* button */
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 40px; padding: 0 16px; border-radius: var(--r-ctl); border: 1px solid transparent; font-weight: 600; font-size: 14px; white-space: nowrap; transition: background-color .12s, border-color .12s; }
+.btn.sm { height: 32px; padding: 0 12px; font-size: 13px; }
+.btn.lg { height: 48px; padding: 0 22px; font-size: 16px; }
+.btn.ico { width: 40px; padding: 0; }
+.btn.sm.ico { width: 32px; }
+.btn.primary { background: var(--acc); color: var(--accfg); }
+.btn.primary:hover { background: color-mix(in srgb, var(--acc) 88%, var(--fg)); }
+.btn.secondary { background: var(--s2); color: var(--fg); }
+.btn.secondary:hover { background: color-mix(in srgb, var(--s2) 90%, var(--fg)); }
+.btn.outline { border-color: var(--line-strong, var(--line)); background: transparent; color: var(--fg); }
+.btn.outline:hover { background: var(--s2); }
+.btn.ghost { background: transparent; color: var(--fg); }
+.btn.ghost:hover { background: var(--s2); }
+.btn.danger { background: var(--dang); color: var(--s1); }
+.btn.danger:hover { background: color-mix(in srgb, var(--dang) 88%, var(--fg)); }
+.btn:disabled { opacity: .5; cursor: not-allowed; }
+.btn[aria-pressed="true"].tgl { background: color-mix(in srgb, var(--dang) 14%, var(--s1)); color: var(--dang); border-color: color-mix(in srgb, var(--dang) 45%, transparent); }
+
+/* form */
+.field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.field > label, .field > .fl { font-weight: 500; font-size: 13px; }
+.in, .sel select { height: 40px; width: 100%; padding: 0 12px; border-radius: var(--r-ctl); border: 1px solid var(--line-strong); background: var(--s1); color: var(--fg); }
+.in::placeholder { color: var(--mute); }
+.in:focus, .sel select:focus { outline: none; border-color: var(--acc); box-shadow: 0 0 0 3px color-mix(in srgb, var(--acc) 26%, transparent); }
+.in.bad { border-color: var(--dang); }
+.hint { font-size: 12px; line-height: 16px; color: var(--mute); }
+.hint.bad { color: var(--dang); display: flex; gap: 6px; align-items: center; }
+.hint .i { width: 14px; height: 14px; }
+.sel { position: relative; }
+.sel select { appearance: none; padding-right: 36px; }
+.sel .i { position: absolute; right: 12px; top: 11px; pointer-events: none; color: var(--mute); }
+.search { position: relative; }
+.search .i { position: absolute; left: 12px; top: 11px; color: var(--mute); }
+.search .in { padding-left: 38px; }
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+@media (max-width: 520px) { .two { grid-template-columns: 1fr; } }
+.chk { display: flex; gap: 10px; align-items: center; font-size: 14px; }
+.chk input { width: 18px; height: 18px; margin: 0; accent-color: var(--acc); }
+.swrow { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.swrow p { color: var(--mute); font-size: 12px; line-height: 16px; }
+.sw { width: 40px; height: 24px; border-radius: 99px; border: 0; background: var(--line-strong); position: relative; padding: 0; flex: none; transition: background-color .15s; }
+.sw::after { content: ""; position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; border-radius: 50%; background: var(--s1); box-shadow: var(--sh-1); transition: transform .15s; }
+.sw[aria-checked="true"] { background: var(--acc); }
+.sw[aria-checked="true"]::after { transform: translateX(16px); background: var(--accfg); }
+input[type="range"] { accent-color: var(--acc); width: 100%; margin: 0; }
+
+/* chips */
+.chip { display: inline-flex; align-items: center; gap: 6px; height: 24px; padding: 0 10px; border-radius: 99px; font-weight: 500; font-size: 12px; background: var(--s2); color: var(--fg); white-space: nowrap; }
+.chip .dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.chip .i { width: 13px; height: 13px; }
+.chip.ok { background: color-mix(in srgb, var(--ok) 13%, var(--s1)); color: var(--ok); }
+.chip.warn { background: color-mix(in srgb, var(--warn) 13%, var(--s1)); color: var(--warn); }
+.chip.dang { background: color-mix(in srgb, var(--dang) 13%, var(--s1)); color: var(--dang); }
+.chip.acc { background: color-mix(in srgb, var(--acc) 13%, var(--s1)); color: var(--acc); }
+.count { min-width: 20px; height: 20px; padding: 0 6px; border-radius: 99px; background: var(--acc); color: var(--accfg); font: 600 11px/20px var(--font); text-align: center; }
+
+/* tabs */
+.tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--line); }
+.tabs button { border: 0; background: transparent; color: var(--mute); height: 40px; padding: 0 14px; font-weight: 500; position: relative; display: inline-flex; gap: 8px; align-items: center; }
+.tabs button[aria-selected="true"] { color: var(--fg); }
+.tabs button[aria-selected="true"]::after { content: ""; position: absolute; left: 10px; right: 10px; bottom: -1px; height: 2px; background: var(--acc); border-radius: 2px; }
+
+/* menu, tooltip, toast */
+.menu { width: 232px; background: var(--s1); border: 1px solid var(--line); border-radius: var(--r-card); box-shadow: var(--sh-2); padding: 6px; display: flex; flex-direction: column; }
+.mi { display: flex; align-items: center; gap: 10px; height: 34px; padding: 0 10px; border-radius: var(--r-sm); border: 0; background: transparent; text-align: left; width: 100%; }
+.mi:hover, .mi.hot { background: var(--s2); }
+.mi .k { margin-left: auto; font: 400 11px var(--mono); color: var(--mute); }
+.mi.dang { color: var(--dang); }
+.mi .i { color: var(--mute); }
+.mi.dang .i { color: var(--dang); }
+.msep { height: 1px; background: var(--line); margin: 6px -6px; }
+.tipwrap { position: relative; display: inline-flex; padding-bottom: 44px; }
+.tip { position: absolute; top: 46px; left: 50%; transform: translateX(-50%); background: var(--fg); color: var(--s1); padding: 6px 10px; border-radius: var(--r-sm); font-size: 12px; line-height: 16px; white-space: nowrap; box-shadow: var(--sh-2); }
+.tip::before { content: ""; position: absolute; top: -4px; left: 50%; width: 8px; height: 8px; background: var(--fg); transform: translateX(-50%) rotate(45deg); }
+.tip kbd { font: 500 11px var(--mono); opacity: .75; margin-left: 6px; }
+.toast { display: flex; gap: 12px; align-items: flex-start; background: var(--s1); border: 1px solid var(--line); border-radius: var(--r-card); box-shadow: var(--sh-2); padding: 12px 14px; }
+.toast .ic { width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; flex: none; }
+.toast .ic.ok { background: color-mix(in srgb, var(--ok) 15%, var(--s1)); color: var(--ok); }
+.toast .ic.dang { background: color-mix(in srgb, var(--dang) 15%, var(--s1)); color: var(--dang); }
+.toast b { display: block; font-weight: 600; }
+.toast span { color: var(--mute); font-size: 13px; line-height: 18px; }
+.toast .btn { margin-left: auto; align-self: center; }
+.pair { display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start; }
+
+/* channel tree */
+.tree { background: var(--s0); border: 1px solid var(--line); border-radius: var(--r-card); padding: 8px; display: flex; flex-direction: column; gap: 2px; }
+.srv { display: flex; align-items: center; justify-content: space-between; padding: 6px 8px 8px; }
+.srv b { font-weight: 600; }
+.ch { display: flex; align-items: center; gap: 8px; height: 32px; padding: 0 8px; border-radius: var(--r-sm); color: var(--mute); border: 0; background: transparent; width: 100%; text-align: left; }
+.ch:hover { background: var(--s2); color: var(--fg); }
+.ch.on { background: var(--s2); color: var(--fg); font-weight: 600; }
+.ch .n { margin-left: auto; font-size: 12px; color: var(--mute); font-weight: 400; }
+.mem { display: flex; align-items: center; gap: 10px; height: 34px; padding: 0 8px 0 30px; }
+.av { width: 24px; height: 24px; border-radius: 50%; background: var(--s2); color: var(--fg); display: grid; place-items: center; font-size: 11px; font-weight: 600; flex: none; }
+.mem.talk .av { box-shadow: 0 0 0 2px var(--s0), 0 0 0 4px var(--ok); }
+.mem .st { margin-left: auto; color: var(--dang); display: flex; }
+.mem .st .i { width: 15px; height: 15px; }
+.mem.mute { color: var(--mute); }
+.mem .nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* chat */
+.chat { display: flex; flex-direction: column; gap: 10px; }
+.msg { display: flex; gap: 10px; }
+.msg .body { min-width: 0; }
+.msg .meta { font-size: 12px; color: var(--mute); }
+.msg .meta b { color: var(--fg); font-weight: 600; margin-right: 6px; }
+.msg.me .bubble { background: color-mix(in srgb, var(--acc) 13%, var(--s1)); }
+.bubble { background: var(--s2); border-radius: var(--r-card); padding: 8px 12px; margin-top: 2px; width: fit-content; max-width: 100%; overflow-wrap: anywhere; }
+.compose { display: flex; gap: 8px; }
+
+/* dialog */
+.scrim { background: color-mix(in srgb, #04101a 55%, var(--s0)); border-radius: var(--r-card); padding: 28px 16px; display: grid; place-items: center; }
+.dlg { width: min(100%, 400px); background: var(--s1); border: 1px solid var(--line); border-radius: var(--r-card); box-shadow: var(--sh-2); padding: 20px; display: flex; flex-direction: column; gap: 16px; }
+.dlg h3 { font-size: 18px; line-height: 26px; font-weight: 600; }
+.dlg p { color: var(--mute); }
+.dlg .act { display: flex; justify-content: flex-end; gap: 8px; }
+
+/* audio dock */
+.dock { background: var(--s0); border: 1px solid var(--line); border-radius: var(--r-card); padding: 12px; display: flex; flex-wrap: wrap; gap: 12px 20px; align-items: center; }
+.dock .grp { display: flex; gap: 8px; align-items: center; }
+.ptt { min-width: 176px; }
+.ptt.live { background: var(--ok); color: var(--s1); }
+.lvl { display: flex; align-items: center; gap: 10px; flex: 1 1 200px; min-width: 160px; }
+.meter { flex: 1; height: 8px; border-radius: 4px; background: var(--s2); position: relative; overflow: hidden; }
+.meter i { position: absolute; inset: 0 auto 0 0; width: 56%; border-radius: 4px; background: linear-gradient(90deg, var(--ok) 0 70%, var(--warn) 92%); transition: width .1s; }
+.meter i.hot { width: 78%; }
+.lvl .v { font: 400 12px var(--mono); color: var(--mute); width: 52px; text-align: right; }
+.vol { display: flex; align-items: center; gap: 8px; width: 160px; color: var(--mute); }
+
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-mic" viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></symbol>
+  <symbol id="i-micoff" viewBox="0 0 24 24"><path d="M15 9.3V6a3 3 0 0 0-5.6-1.5M9 9v2a3 3 0 0 0 4.6 2.5M5 11a7 7 0 0 0 11.2 5.6M19 11a7 7 0 0 1-.6 2.8M12 18v3M3 3l18 18"/></symbol>
+  <symbol id="i-head" viewBox="0 0 24 24"><path d="M4 15v-3a8 8 0 0 1 16 0v3"/><rect x="3" y="14" width="4" height="7" rx="1.5"/><rect x="17" y="14" width="4" height="7" rx="1.5"/></symbol>
+  <symbol id="i-set" viewBox="0 0 24 24"><path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2"/><circle cx="8" cy="17" r="2"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-hash" viewBox="0 0 24 24"><path d="M5 9h14M5 15h14M10 4 8 20M16 4l-2 16"/></symbol>
+  <symbol id="i-down" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12 5 5 9-10"/></symbol>
+  <symbol id="i-vol" viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9z"/><path d="M16.5 8.5a5 5 0 0 1 0 7"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6"/><path d="m20 20-4.2-4.2"/></symbol>
+  <symbol id="i-send" viewBox="0 0 24 24"><path d="M4 12 20 4l-6 16-3-7z"/></symbol>
+  <symbol id="i-alert" viewBox="0 0 24 24"><path d="M12 4 2.5 20h19z"/><path d="M12 10v4M12 17h.01"/></symbol>
+  <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></symbol>
+  <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 20a8 8 0 0 1 16 0"/></symbol>
+  <symbol id="i-move" viewBox="0 0 24 24"><path d="M4 12h14M13 6l6 6-6 6"/></symbol>
+</svg>
+
+<div class="bar"><div class="bar-in">
+  <h1>WebSpeak components</h1>
+  <div class="ctl">
+    <div><span class="lbl">Theme</span><div class="seg" data-g="theme"><button type="button" data-v="system">System</button><button type="button" data-v="light">Light</button><button type="button" data-v="dark">Dark</button></div></div>
+    <div><span class="lbl">Type</span><div class="seg" data-g="font"><button type="button" data-v="inter">Inter</button><button type="button" data-v="geist">Geist</button><button type="button" data-v="plex">Plex</button></div></div>
+    <div><span class="lbl">Corners</span><div class="seg" data-g="radius"><button type="button" data-v="sharp">Sharp</button><button type="button" data-v="balanced">Balanced</button><button type="button" data-v="soft">Soft</button></div></div>
+  </div>
+</div></div>
+
+<main class="strong-line">
+  <section class="sec wide">
+    <div class="sec-h"><h2>Type scale</h2><span class="lbl">14 px base</span></div>
+    <div class="ts">
+      <span class="spec">Display · 28/32 · 700</span><span class="t-display">Raid Night</span>
+      <span class="spec">Title · 18/26 · 600</span><span class="t-title">Switch channel</span>
+      <span class="spec">Body · 14/20 · 400</span><span class="t-body">Pull in two minutes, check your buffs and mute anything that pings.</span>
+      <span class="spec">Small · 12/16 · 400</span><span class="t-small">Kestrel joined 4 minutes ago · 3 people in channel</span>
+      <span class="spec">Data · mono 13</span><span class="t-mono">41 ms · 48 kHz · Opus 64 kbps · 0.2% loss</span>
+    </div>
+  </section>
+
+  <section class="sec">
+    <div class="sec-h"><h2>Button</h2><span class="lbl">5 variants · 3 sizes</span></div>
+    <div class="row">
+      <button class="btn primary" type="button">Join channel</button>
+      <button class="btn secondary" type="button">Cancel</button>
+      <button class="btn outline" type="button">Settings</button>
+      <button class="btn ghost" type="button">Skip</button>
+      <button class="btn danger" type="button">Leave</button>
+    </div>
+    <div class="row">
+      <button class="btn primary sm" type="button">Small</button>
+      <button class="btn primary" type="button">Medium</button>
+      <button class="btn primary lg" type="button">Large</button>
+      <button class="btn primary" type="button" disabled>Disabled</button>
+    </div>
+    <div class="row">
+      <button class="btn primary" type="button"><svg class="i"><use href="#i-plus"/></svg>New channel</button>
+      <button class="btn outline ico" type="button" aria-label="Settings"><svg class="i"><use href="#i-set"/></svg></button>
+      <button class="btn ghost ico" type="button" aria-label="Close"><svg class="i"><use href="#i-x"/></svg></button>
+      <button class="btn secondary ico tgl" type="button" aria-pressed="false" aria-label="Mute microphone" data-tgl="mic"><svg class="i"><use href="#i-mic"/></svg></button>
+      <button class="btn secondary ico tgl" type="button" aria-pressed="true" aria-label="Deafen" data-tgl="head"><svg class="i"><use href="#i-head"/></svg></button>
+    </div>
+  </section>
+
+  <section class="sec">
+    <div class="sec-h"><h2>Inputs</h2><span class="lbl">field · select · switch</span></div>
+    <div class="two">
+      <div class="field"><label for="nick">Nickname</label><input class="in" id="nick" value="Kestrel" autocomplete="off"><span class="hint">Shown to everyone in the channel.</span></div>
+      <div class="field"><label for="srv">Server address</label><input class="in bad" id="srv" value="ts.example" aria-invalid="true"><span class="hint bad"><svg class="i"><use href="#i-alert"/></svg>Could not reach this server.</span></div>
+    </div>
+    <div class="two">
+      <div class="field"><label for="mic">Microphone</label><div class="sel"><select id="mic"><option>Blue Yeti (default)</option><option>Headset mic</option></select><svg class="i"><use href="#i-down"/></svg></div></div>
+      <div class="field"><label for="q">Search channels</label><div class="search"><svg class="i"><use href="#i-search"/></svg><input class="in" id="q" placeholder="Find a channel"></div></div>
+    </div>
+    <div class="swrow"><div><b style="font-weight:500">Noise suppression</b><p>Filters keyboard and fan noise from your mic.</p></div><button class="sw" type="button" role="switch" aria-checked="true" aria-label="Noise suppression"></button></div>
+    <div class="swrow"><div><b style="font-weight:500">Push to talk</b><p>Hold Space to transmit.</p></div><button class="sw" type="button" role="switch" aria-checked="false" aria-label="Push to talk"></button></div>
+    <label class="chk"><input type="checkbox" checked> Remember my nickname on this device</label>
+  </section>
+
+  <section class="sec">
+    <div class="sec-h"><h2>Chip and tabs</h2><span class="lbl">status · navigation</span></div>
+    <div class="row">
+      <span class="chip ok"><span class="dot"></span>Connected · 41 ms</span>
+      <span class="chip warn"><svg class="i"><use href="#i-alert"/></svg>Unstable</span>
+      <span class="chip dang"><svg class="i"><use href="#i-micoff"/></svg>Muted</span>
+      <span class="chip acc">Push to talk</span>
+      <span class="chip">Moderator</span>
+    </div>
+    <div class="tabs" role="tablist" data-tabs>
+      <button type="button" role="tab" aria-selected="true">Voice</button>
+      <button type="button" role="tab" aria-selected="false">Chat <span class="count">3</span></button>
+      <button type="button" role="tab" aria-selected="false">Settings</button>
+    </div>
+    <div class="row"><span class="lbl">Segmented</span><div class="seg" data-tabs><button type="button" aria-selected="true">Members</button><button type="button" aria-selected="false">Files</button><button type="button" aria-selected="false">Log</button></div></div>
+  </section>
+
+  <section class="sec">
+    <div class="sec-h"><h2>Menu, tooltip, toast</h2><span class="lbl">floating layer</span></div>
+    <div class="pair">
+      <div class="menu" role="menu">
+        <button class="mi hot" type="button" role="menuitem"><svg class="i"><use href="#i-move"/></svg>Move to my channel</button>
+        <button class="mi" type="button" role="menuitem"><svg class="i"><use href="#i-micoff"/></svg>Mute for me<span class="k">M</span></button>
+        <button class="mi" type="button" role="menuitem"><svg class="i"><use href="#i-user"/></svg>View profile</button>
+        <div class="msep"></div>
+        <button class="mi dang" type="button" role="menuitem"><svg class="i"><use href="#i-x"/></svg>Kick from channel</button>
+      </div>
+      <div class="tipwrap"><button class="btn outline" type="button"><svg class="i"><use href="#i-mic"/></svg>Mic</button><span class="tip" role="tooltip">Mute microphone<kbd>M</kbd></span></div>
+    </div>
+    <div class="toast"><span class="ic ok"><svg class="i"><use href="#i-check"/></svg></span><div><b>Connected to Raid Night</b><span>Voice is live at 41 ms.</span></div></div>
+    <div class="toast"><span class="ic dang"><svg class="i"><use href="#i-alert"/></svg></span><div><b>Microphone blocked</b><span>Allow mic access in your browser.</span></div><button class="btn outline sm" type="button">Retry</button></div>
+  </section>
+
+  <section class="sec">
+    <div class="sec-h"><h2>Channel tree</h2><span class="lbl">row · member · speaking</span></div>
+    <div class="tree">
+      <div class="srv"><b>Raid Squad</b><span class="chip ok"><span class="dot"></span>41 ms</span></div>
+      <button class="ch" type="button"><svg class="i"><use href="#i-hash"/></svg>Lobby<span class="n">2</span></button>
+      <button class="ch on" type="button"><svg class="i"><use href="#i-hash"/></svg>Raid Night<span class="n">4</span></button>
+      <div class="mem talk"><span class="av">K</span><span class="nm">Kestrel</span></div>
+      <div class="mem"><span class="av">O</span><span class="nm">Odin</span></div>
+      <div class="mem mute"><span class="av">M</span><span class="nm">Mara</span><span class="st"><svg class="i"><use href="#i-micoff"/></svg></span></div>
+      <div class="mem"><span class="av">Y</span><span class="nm">You</span><span class="chip acc" style="margin-left:auto">PTT</span></div>
+      <button class="ch" type="button"><svg class="i"><use href="#i-lock"/></svg>Strategy<span class="n">0</span></button>
+      <button class="ch" type="button"><svg class="i"><use href="#i-hash"/></svg>AFK<span class="n">1</span></button>
+    </div>
+  </section>
+
+  <section class="sec">
+    <div class="sec-h"><h2>Chat</h2><span class="lbl">message · composer</span></div>
+    <div class="chat">
+      <div class="msg"><span class="av">O</span><div class="body"><div class="meta"><b>Odin</b>20:14</div><div class="bubble">Pull in two minutes, check your buffs.</div></div></div>
+      <div class="msg me"><span class="av">Y</span><div class="body"><div class="meta"><b>You</b>20:15</div><div class="bubble">Ready. Switching to push-to-talk now.</div></div></div>
+      <div class="compose"><input class="in" aria-label="Message" placeholder="Message Raid Night"><button class="btn primary ico" type="button" aria-label="Send"><svg class="i"><use href="#i-send"/></svg></button></div>
+    </div>
+  </section>
+
+  <section class="sec">
+    <div class="sec-h"><h2>Dialog</h2><span class="lbl">modal</span></div>
+    <div class="scrim"><div class="dlg" role="dialog" aria-label="Leave channel">
+      <h3>Leave Raid Night?</h3>
+      <p>You will stop hearing the 3 people in this channel. You can rejoin at any time.</p>
+      <div class="act"><button class="btn secondary" type="button">Stay</button><button class="btn danger" type="button">Leave channel</button></div>
+    </div></div>
+  </section>
+
+  <section class="sec wide">
+    <div class="sec-h"><h2>Audio dock</h2><span class="lbl">the always-visible control strip</span></div>
+    <div class="dock">
+      <div class="grp">
+        <button class="btn secondary ico tgl" type="button" aria-pressed="false" aria-label="Mute microphone" data-tgl="mic"><svg class="i"><use href="#i-mic"/></svg></button>
+        <button class="btn secondary ico tgl" type="button" aria-pressed="false" aria-label="Deafen" data-tgl="head"><svg class="i"><use href="#i-head"/></svg></button>
+      </div>
+      <button class="btn primary lg ptt" type="button" id="ptt"><svg class="i"><use href="#i-mic"/></svg><span id="pttl">Hold to talk</span></button>
+      <div class="lvl"><span class="lbl">Input</span><span class="meter"><i id="mtr"></i></span><span class="v" id="mv">-18 dB</span></div>
+      <div class="vol"><svg class="i"><use href="#i-vol"/></svg><input type="range" min="0" max="100" value="70" aria-label="Output volume"></div>
+      <button class="btn outline ico" type="button" aria-label="Audio settings"><svg class="i"><use href="#i-set"/></svg></button>
+    </div>
+  </section>
+</main>
+
+<script>
+const PAL = {
+  light: { "--s0": "#f2f6f9", "--s1": "#ffffff", "--s2": "#e6eef4", "--fg": "#101c26", "--mute": "#556a7a", "--line": "#d3dfe8", "--acc": "#065682", "--accfg": "#ffffff", "--ok": "#25794a", "--warn": "#96590a", "--dang": "#b83c37" },
+  dark: { "--s0": "#0b141c", "--s1": "#0f1a24", "--s2": "#172633", "--fg": "#e5eef5", "--mute": "#8fa6b8", "--line": "#243746", "--acc": "#6fb8ec", "--accfg": "#04202f", "--ok": "#6ddc8b", "--warn": "#e5b567", "--dang": "#f0837c" },
+};
+const FONTS = { inter: '"Inter", system-ui, sans-serif', geist: '"Geist", system-ui, sans-serif', plex: '"IBM Plex Sans", system-ui, sans-serif' };
+const RADII = { sharp: ["3px", "4px", "6px"], balanced: ["6px", "8px", "12px"], soft: ["8px", "12px", "18px"] };
+const state = { theme: "system", font: "inter", radius: "balanced" };
+try { Object.assign(state, JSON.parse(localStorage.getItem("ws-comp") || "{}")); } catch (e) {}
+const root = document.documentElement;
+
+function apply() {
+  for (const k of Object.keys(PAL.light)) root.style.removeProperty(k);
+  root.style.removeProperty("color-scheme");
+  if (state.theme !== "system") {
+    for (const [k, v] of Object.entries(PAL[state.theme])) root.style.setProperty(k, v);
+    root.style.setProperty("color-scheme", state.theme);
+  }
+  root.style.setProperty("--font", FONTS[state.font] || FONTS.inter);
+  const r = RADII[state.radius] || RADII.balanced;
+  root.style.setProperty("--r-sm", r[0]); root.style.setProperty("--r-ctl", r[1]); root.style.setProperty("--r-card", r[2]);
+  document.querySelectorAll("[data-g]").forEach(g => g.querySelectorAll("button").forEach(b => b.setAttribute("aria-pressed", String(state[g.dataset.g] === b.dataset.v))));
+  try { localStorage.setItem("ws-comp", JSON.stringify(state)); } catch (e) {}
+}
+document.querySelectorAll("[data-g]").forEach(g => g.addEventListener("click", e => {
+  const b = e.target.closest("button"); if (!b) return;
+  state[g.dataset.g] = b.dataset.v; apply();
+}));
+document.querySelectorAll("[data-tabs]").forEach(t => t.addEventListener("click", e => {
+  const b = e.target.closest("button"); if (!b) return;
+  t.querySelectorAll("button").forEach(x => x.setAttribute("aria-selected", String(x === b)));
+}));
+document.querySelectorAll(".sw").forEach(s => s.addEventListener("click", () => s.setAttribute("aria-checked", String(s.getAttribute("aria-checked") !== "true"))));
+document.querySelectorAll("[data-tgl]").forEach(b => b.addEventListener("click", () => {
+  const on = b.getAttribute("aria-pressed") !== "true";
+  document.querySelectorAll('[data-tgl="' + b.dataset.tgl + '"]').forEach(x => x.setAttribute("aria-pressed", String(on)));
+}));
+const ptt = document.getElementById("ptt"), pl = document.getElementById("pttl"), mt = document.getElementById("mtr"), mv = document.getElementById("mv");
+const live = on => { ptt.classList.toggle("live", on); pl.textContent = on ? "Transmitting" : "Hold to talk"; mt.classList.toggle("hot", on); mv.textContent = on ? "-9 dB" : "-18 dB"; };
+ptt.addEventListener("pointerdown", () => live(true));
+["pointerup", "pointerleave", "pointercancel", "blur"].forEach(ev => ptt.addEventListener(ev, () => live(false)));
+ptt.addEventListener("keydown", e => { if (e.key === " " || e.key === "Enter") { live(true); } });
+ptt.addEventListener("keyup", () => live(false));
+apply();
+</script>

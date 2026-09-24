@@ -12,7 +12,8 @@ Status: chosen direction "Signal Blue", built on the base color `#065682`. Imple
 | `surface-2` | `#e6eef4` | `#172633` | Hover, selected row, inputs |
 | `fg` | `#101c26` | `#e5eef5` | Primary text |
 | `fg-muted` | `#556a7a` | `#8fa6b8` | Secondary text, icons |
-| `line` | `#d3dfe8` | `#243746` | Borders, dividers |
+| `line` | `#d3dfe8` | `#243746` | Dividers and card edges (decorative) |
+| `line-strong` | derived | derived | Input, outline button and switch borders. 80% `fg-muted` mixed into `surface-1`, about 3.7:1 light and 4.9:1 dark |
 | `accent` | `#065682` | `#6fb8ec` | Primary actions, links, focus ring, selection |
 | `accent-fg` | `#ffffff` | `#04202f` | Text on `accent` |
 | `success` | `#25794a` | `#6ddc8b` | Connected, speaking |
@@ -43,7 +44,7 @@ Status: chosen direction "Signal Blue", built on the base color `#065682`. Imple
 | `danger` | 5.6 | 6.9 |
 
 `fg-muted` on `surface-2` is 4.8 (light) and 6.1 (dark). `line` is a decorative 1.4:1 border and must
-not carry meaning on its own.
+not carry meaning on its own; anything that marks a control's edge uses `line-strong` (WCAG 1.4.11).
 
 ## Alternatives considered
 
@@ -53,4 +54,4 @@ not carry meaning on its own.
 
 ## Not decided yet
 
-Typeface (the CSS names Inter but never loads it), radius scale, spacing scale, elevation and motion.
+See `README.md` for type, shape, elevation and motion.
