@@ -7,3 +7,4 @@ config.json
 .env
 webspeak-update.tar.gz
 claude.pem
+.idea
