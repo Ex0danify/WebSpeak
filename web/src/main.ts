@@ -1,6 +1,10 @@
+import "@fontsource-variable/inter/wght.css";
+import "@fontsource/ibm-plex-mono/400.css";
+import "@fontsource/ibm-plex-mono/500.css";
+import "./styles/main.css";
 import { createApp } from "vue";
 import { createPinia } from "pinia";
-import { createRouter, createWebHistory } from "vue-router";
+import { createRouter, createWebHistory, type RouteRecordRaw } from "vue-router";
 import App from "./App.vue";
 import WebClient from "./views/WebClient.vue";
 import AdminView from "./views/AdminView.vue";
@@ -26,12 +30,17 @@ function applyUiScale(): void {
 applyUiScale();
 window.addEventListener("resize", applyUiScale, { passive: true });
 
-const routes = [
+const routes: RouteRecordRaw[] = [
   { path: "/", name: "webclient", component: WebClient },
   { path: "/join", name: "join", component: WebClient },
   { path: "/demo", name: "demo", component: DemoView },
   { path: "/admin/:pathMatch(.*)*", name: "admin", component: AdminView },
 ];
+
+// Dev-only component gallery; the branch is removed from production builds.
+if (import.meta.env.DEV) {
+  routes.push({ path: "/__ui", name: "ui-gallery", component: () => import("./views/UiGallery.vue") });
+}
 
 const router = createRouter({
   history: createWebHistory(),
