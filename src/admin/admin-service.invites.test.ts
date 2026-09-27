@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { DatabaseSync } from "node:sqlite";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { settingsInput, useAdminService } from "../../test/helpers/admin-service.js";
 import { TeamSpeakProbeError } from "../server/teamspeak-probe.js";
 import { AdminInputError } from "./admin-service.js";
@@ -17,46 +17,69 @@ function rejection(action: () => unknown): AdminInputError {
   throw new Error("expected the action to throw");
 }
 
-describe("testConnection with an injected probe", () => {
-  const result = { ok: true as const, protocol: "ts6" as const, latencyMs: 31, serverName: "My TS", requiresPassword: true };
+describe("testConnection with an injected probe and host ping", () => {
+  const ping = { ok: true, latencyMs: 4, packetLossPercent: 0, attempts: 4, successfulAttempts: 4, samples: [4, 4, 4, 4] };
+  const hostPing = { ok: true, latencyMs: 4, packetLossPercent: 0, attempts: 4, successfulAttempts: 4 };
+  beforeEach(() => {
+    ctx.ping.mockResolvedValue(ping);
+  });
 
-  it("returns the probe result without the protocol and records the result and an audit entry", async () => {
-    ctx.probe.mockResolvedValue(result);
+  it("returns the handshake's round trip with the host ping, and records the result and an audit entry", async () => {
+    ctx.probe.mockResolvedValue({ ok: true, latencyMs: 31 });
     const service = ctx.create();
-    expect(await service.testConnection("ts.example.org:9988", "pw", true)).toEqual({ ok: true, latencyMs: 31, serverName: "My TS", requiresPassword: true, checkType: "protocol", passwordVerified: true });
-    expect(ctx.probe).toHaveBeenCalledWith({ host: "ts.example.org", port: 9988 }, "pw", ctx.logger);
-    expect(service.database.getSettings()).toMatchObject({ detectedProtocol: "ts6", lastTestLatencyMs: 31, lastTestError: null });
-    expect(service.database.recentAudit()[0]?.event).toBe("CONNECTION_TEST_SUCCEEDED");
+    expect(await service.testConnection("ts.example.org:9988", true)).toEqual({ ok: true, latencyMs: 31, hostPing });
+    expect(ctx.probe).toHaveBeenCalledWith({ host: "ts.example.org", port: 9988 });
+    expect(ctx.ping).toHaveBeenCalledWith("ts.example.org");
+    expect(service.database.getSettings()).toMatchObject({ detectedProtocol: null, lastTestLatencyMs: 31, lastTestError: null });
+    expect(service.database.recentAudit()[0]).toMatchObject({ event: "CONNECTION_TEST_SUCCEEDED" });
   });
 
   it("records nothing when persistResult is false", async () => {
-    ctx.probe.mockResolvedValue(result);
+    ctx.probe.mockResolvedValue({ ok: true, latencyMs: 31 });
     const service = ctx.create();
-    await service.testConnection("ts.example.org", "", false);
-    expect(service.database.getSettings()).toMatchObject({ detectedProtocol: null, lastTestAt: null });
+    await service.testConnection("ts.example.org", false);
+    expect(service.database.getSettings()).toMatchObject({ lastTestAt: null, lastTestLatencyMs: null });
     expect(service.database.recentAudit()).toEqual([]);
   });
 
-  it("rethrows a probe error unchanged and records its code", async () => {
-    const failure = new TeamSpeakProbeError("INVALID_PASSWORD", "wrong password");
-    ctx.probe.mockRejectedValue(failure);
+  it("reports a failed handshake as ok false with its code, next to the host ping, and records the code", async () => {
+    ctx.probe.mockRejectedValue(new TeamSpeakProbeError("NO_ANSWER", "silent"));
     const service = ctx.create();
-    await expect(service.testConnection("ts.example.org", "", true)).rejects.toBe(failure);
-    expect(service.database.getSettings()).toMatchObject({ detectedProtocol: null, lastTestError: "INVALID_PASSWORD" });
-    expect(service.database.recentAudit()[0]?.event).toBe("CONNECTION_TEST_FAILED");
+    expect(await service.testConnection("ts.example.org", true)).toEqual({ ok: false, latencyMs: null, errorCode: "NO_ANSWER", hostPing });
+    expect(service.database.getSettings()).toMatchObject({ lastTestLatencyMs: null, lastTestError: "NO_ANSWER" });
+    expect(service.database.recentAudit()[0]).toMatchObject({ event: "CONNECTION_TEST_FAILED" });
   });
 
-  it("wraps an unexpected error as INTERNAL_ERROR with a fixed message", async () => {
+  it("does not fail the test because the host ignores ping", async () => {
+    ctx.probe.mockResolvedValue({ ok: true, latencyMs: 31 });
+    ctx.ping.mockResolvedValue({ ok: false, latencyMs: null, packetLossPercent: 100, attempts: 4, successfulAttempts: 0, samples: [], errorCode: "UNREACHABLE" });
+    const result = await ctx.create().testConnection("ts.example.org", true);
+    expect(result).toEqual({ ok: true, latencyMs: 31, hostPing: { ok: false, latencyMs: null, packetLossPercent: 100, attempts: 4, successfulAttempts: 0, errorCode: "UNREACHABLE" } });
+  });
+
+  it("runs the probe and the ping side by side, so a dead host costs the longer of the two, not their sum", async () => {
+    const started: string[] = [];
+    ctx.probe.mockImplementation(async () => { started.push("probe"); return new Promise(() => undefined); });
+    ctx.ping.mockImplementation(async () => { started.push("ping"); return ping; });
+    void ctx.create().testConnection("ts.example.org", false);
+    await new Promise((resolve) => setImmediate(resolve));
+    expect(started).toEqual(["probe", "ping"]);
+  });
+
+  it("wraps an unexpected error as INTERNAL_ERROR with a fixed message and records it", async () => {
     const cause = new Error("socket exploded with details");
     ctx.probe.mockRejectedValue(cause);
-    const error = await ctx.create().testConnection("ts.example.org", "", true).catch((thrown: unknown) => thrown as TeamSpeakProbeError);
+    const service = ctx.create();
+    const error = await service.testConnection("ts.example.org", true).catch((thrown: unknown) => thrown as TeamSpeakProbeError);
     expect(error).toBeInstanceOf(TeamSpeakProbeError);
     expect(error).toMatchObject({ code: "INTERNAL_ERROR", message: "Connection test failed", cause });
+    expect(service.database.getSettings()).toMatchObject({ lastTestError: "INTERNAL_ERROR" });
   });
 
-  it("rejects an invalid target before probing", async () => {
-    await expect(ctx.create().testConnection("bad target:::", "", true)).rejects.toMatchObject({ code: "INVALID_TARGET" });
+  it("rejects an invalid target before probing or pinging", async () => {
+    await expect(ctx.create().testConnection("bad target:::", true)).rejects.toMatchObject({ code: "INVALID_TARGET" });
     expect(ctx.probe).not.toHaveBeenCalled();
+    expect(ctx.ping).not.toHaveBeenCalled();
   });
 });
 

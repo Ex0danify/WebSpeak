@@ -17,9 +17,9 @@ export class JoinRateLimiter {
     if (!current || now - current.startedAt >= WINDOW_MS) {
       this.prune(now);
       while (this.peers.size >= this.maxTrackedPeers) {
-        const oldest = this.peers.keys().next().value;
-        if (!oldest) break;
-        this.peers.delete(oldest);
+        const weakest = this.weakestPeer();
+        if (weakest === undefined) break;
+        this.peers.delete(weakest);
       }
       this.peers.set(peer, { startedAt: now, requests: 1 });
       return true;
@@ -27,6 +27,19 @@ export class JoinRateLimiter {
     if (current.requests >= MAX_REQUESTS) return false;
     current.requests += 1;
     return true;
+  }
+
+  /** The peer with the fewest requests, the oldest of them on a tie, so a peer at its limit outlives a flood of new peers. */
+  private weakestPeer(): string | undefined {
+    let weakest: string | undefined;
+    let fewest = Infinity;
+    for (const [peer, window] of this.peers) {
+      if (window.requests < fewest) {
+        weakest = peer;
+        fewest = window.requests;
+      }
+    }
+    return weakest;
   }
 
   private prune(now: number): void {

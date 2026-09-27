@@ -129,41 +129,48 @@ describe("PUT /server", () => {
 
 describe("POST /server/test", () => {
   const post = (admin: AdminApi, body: Record<string, unknown> = { target: "ts.example.org:9988" }) => admin.post("server/test", body);
+  const hostPing = { ok: true, latencyMs: 3, packetLossPercent: 0, attempts: 4, successfulAttempts: 4 };
 
-  it("returns the probe's result without its protocol, and calls it with the parsed target", async () => {
+  it("answers with the handshake's round trip and the host ping, and probes the parsed target", async () => {
     const { gateway, admin } = await start();
     const response = await post(admin);
-    expect(await json(response)).toEqual({ ok: true, latencyMs: 12, serverName: "Fake TeamSpeak", requiresPassword: false, checkType: "protocol", passwordVerified: true });
-    expect(gateway.probe).toHaveBeenCalledWith({ host: "ts.example.org", port: 9988 }, "", expect.anything());
+    expect(await json(response)).toEqual({ ok: true, latencyMs: 12, hostPing });
+    expect(gateway.probe).toHaveBeenCalledWith({ host: "ts.example.org", port: 9988 });
+    expect(gateway.ping).toHaveBeenCalledWith("ts.example.org");
   });
 
-  it("tests with the typed password, else the stored one, and none after passwordAction remove", async () => {
+  it("does not use the server password: the request needs none and the handshake is not given one", async () => {
     const { gateway, admin } = await start();
     await admin.put("server", settingsInput({ passwordAction: "replace", serverPassword: "stored" }));
-    const passwordOfLastCall = () => gateway.probe.mock.lastCall![1];
-    await post(admin);
-    expect(passwordOfLastCall()).toBe("stored");
-    await post(admin, { target: "ts.example.org:9988", serverPassword: "typed" });
-    expect(passwordOfLastCall()).toBe("typed");
-    await post(admin, { target: "ts.example.org:9988", serverPassword: "typed", passwordAction: "remove" });
-    expect(passwordOfLastCall()).toBe("");
-    await post(admin, { target: "ts.example.org:9988", serverPassword: "p".repeat(600) });
-    expect(passwordOfLastCall()).toBe("p".repeat(512));
+    await post(admin, { target: "ts.example.org:9988", serverPassword: "typed", passwordAction: "replace" });
+    expect(JSON.stringify(gateway.probe.mock.calls)).not.toMatch(/stored|typed/);
+    expect(gateway.probe.mock.lastCall).toEqual([{ host: "ts.example.org", port: 9988 }]);
   });
 
-  it("answers a probe failure with 400 and its code, and any other error as INTERNAL_ERROR", async () => {
+  it("answers a silent port with ok false and its code, and still reports the host ping (a live host, a dead server)", async () => {
     const { gateway, admin } = await start();
-    gateway.probe.mockRejectedValueOnce(new TeamSpeakProbeError("PASSWORD_REQUIRED", "needs one"));
-    expect(await post(admin).then(async (r) => [r.status, await json(r)])).toEqual([400, { ok: false, code: "PASSWORD_REQUIRED" }]);
+    gateway.probe.mockRejectedValueOnce(new TeamSpeakProbeError("NO_ANSWER", "silent"));
+    expect(await post(admin).then(async (r) => [r.status, await json(r)])).toEqual([200, { ok: false, latencyMs: null, errorCode: "NO_ANSWER", hostPing }]);
+  });
+
+  it("passes when the port answers although the host does not answer ping (ICMP blocked)", async () => {
+    const { gateway, admin } = await start();
+    gateway.ping.mockResolvedValueOnce({ ok: false, latencyMs: null, packetLossPercent: 100, attempts: 4, successfulAttempts: 0, samples: [], errorCode: "TIMEOUT" });
+    expect(await json(await post(admin))).toMatchObject({ ok: true, latencyMs: 12, hostPing: { ok: false, packetLossPercent: 100, errorCode: "TIMEOUT" } });
+  });
+
+  it("answers any other error as 400 INTERNAL_ERROR", async () => {
+    const { gateway, admin } = await start();
     gateway.probe.mockRejectedValueOnce(new Error("boom"));
     expect(await post(admin).then(async (r) => [r.status, await json(r)])).toEqual([400, { ok: false, code: "INTERNAL_ERROR" }]);
   });
 
-  it("refuses a missing or invalid target without calling the probe", async () => {
+  it("refuses a missing or invalid target without probing", async () => {
     const { gateway, admin } = await start();
     expect(await post(admin, {}).then(async (r) => [r.status, (await json(r)).code])).toEqual([400, "INVALID_REQUEST"]);
     expect(await post(admin, { target: "not a target:::" }).then(async (r) => [r.status, (await json(r)).code])).toEqual([400, "INVALID_TARGET"]);
     expect(gateway.probe).not.toHaveBeenCalled();
+    expect(gateway.ping).not.toHaveBeenCalled();
   });
 
   it("records the result, shows it in the overview, and forgets it when the target changes", async () => {
@@ -171,9 +178,9 @@ describe("POST /server/test", () => {
     expect((await json(await admin.get("overview"))).teamSpeak).toMatchObject({ status: "unknown", lastTestAt: null });
     await post(admin);
     expect((await json(await admin.get("overview"))).teamSpeak).toMatchObject({ status: "reachable", latencyMs: 12, lastError: null });
-    gateway.probe.mockRejectedValueOnce(new TeamSpeakProbeError("TIMEOUT", "slow"));
+    gateway.probe.mockRejectedValueOnce(new TeamSpeakProbeError("NO_ANSWER", "silent"));
     await post(admin);
-    expect((await json(await admin.get("overview"))).teamSpeak).toMatchObject({ status: "unreachable", lastError: "TIMEOUT" });
+    expect((await json(await admin.get("overview"))).teamSpeak).toMatchObject({ status: "unreachable", lastError: "NO_ANSWER" });
     expect(audit(gateway).slice(0, 2)).toEqual(["CONNECTION_TEST_FAILED", "CONNECTION_TEST_SUCCEEDED"]);
     await admin.put("server", settingsInput({ target: "other.example.org:9987" }));
     expect((await json(await admin.get("overview"))).teamSpeak).toMatchObject({ target: "other.example.org:9987", status: "unknown", lastTestAt: null, lastError: null });

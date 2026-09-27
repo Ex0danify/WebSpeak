@@ -336,7 +336,8 @@ export function clientConnectionFailureCode(error: WebSpeakError, serverPassword
  */
 export function normalizeTeamSpeakKickedReason(reasonMsg: unknown, reasonId?: unknown): WebSpeakError {
   const text = typeof reasonMsg === "string" ? reasonMsg.trim() : "";
-  const numericReasonId = typeof reasonId === "number" ? reasonId : Number(reasonId);
+  const hasReasonId = reasonId !== null && reasonId !== undefined && reasonId !== "";
+  const numericReasonId = !hasReasonId ? Number.NaN : typeof reasonId === "number" ? reasonId : Number(reasonId);
   const isBan = /\bban(ned)?\b|blacklist|you may retry in/i.test(text) || numericReasonId === 5;
   const diagnostics: TeamSpeakErrorDiagnostics = { name: isBan ? "TeamSpeakBan" : "TeamSpeakKick" };
   if (text) diagnostics.serverMessage = text;

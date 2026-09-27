@@ -144,27 +144,37 @@ describe("JSON body limit", () => {
 });
 
 describe("error responses of the API", () => {
-  it("F13: an unknown API path, an oversize body and a malformed body are Express's HTML error pages", async () => {
-    const gateway = await gateways.start();
-    const unknown = await gateway.request("/api/nope");
-    const oversize = await gateway.request("/api/join-ticket", { method: "POST", headers: JSON_HEADERS, body: JSON.stringify({ pad: "x".repeat(101 * 1024) }) });
-    const malformed = await gateway.request("/api/join-ticket", { method: "POST", headers: JSON_HEADERS, body: "{oops" });
-    expect([unknown.status, oversize.status, malformed.status]).toEqual([404, 413, 400]);
-    for (const response of [unknown, oversize, malformed]) expect(response.headers.get("content-type")).toContain("text/html");
-  });
-
-  it.fails("F13: an unknown API path answers with a JSON error body", async () => {
+  it("F13: an unknown API path answers 404 with a JSON error body", async () => {
     const gateway = await gateways.start();
     const response = await gateway.request("/api/nope");
+    expect(response.status).toBe(404);
     expect(response.headers.get("content-type")).toContain("application/json");
+    expect(await response.json()).toEqual({ ok: false, code: "NOT_FOUND" });
   });
 
-  it.fails("F13: a malformed JSON body answers with a JSON error that shows no server path", async () => {
+  it("F13: an unknown path below /api with another method answers the same JSON 404", async () => {
+    const gateway = await gateways.start();
+    const response = await gateway.request("/api/nope/deeper", { method: "POST", headers: JSON_HEADERS, body: "{}" });
+    expect(response.status).toBe(404);
+    expect(await response.json()).toEqual({ ok: false, code: "NOT_FOUND" });
+  });
+
+  it("F13: a malformed JSON body answers 400 with a JSON error that shows no server path", async () => {
     const gateway = await gateways.start();
     const response = await gateway.request("/api/join-ticket", { method: "POST", headers: JSON_HEADERS, body: "{oops" });
     const text = await response.text();
+    expect(response.status).toBe(400);
     expect(response.headers.get("content-type")).toContain("application/json");
+    expect(JSON.parse(text)).toEqual({ ok: false, code: "INVALID_JSON" });
     expect(text).not.toContain("node_modules");
+  });
+
+  it("F13: a body over the 100 kB limit answers 413 with a JSON error", async () => {
+    const gateway = await gateways.start();
+    const response = await gateway.request("/api/join-ticket", { method: "POST", headers: JSON_HEADERS, body: JSON.stringify({ pad: "x".repeat(101 * 1024) }) });
+    expect(response.status).toBe(413);
+    expect(response.headers.get("content-type")).toContain("application/json");
+    expect(await response.json()).toEqual({ ok: false, code: "PAYLOAD_TOO_LARGE" });
   });
 
   it("answers an unknown admin path without a session with 401 JSON, not a 404", async () => {

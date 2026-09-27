@@ -210,9 +210,16 @@ describe("normalizeTeamSpeakKickedReason", () => {
     expect(normalizeTeamSpeakKickedReason(42, undefined).diagnostics.serverMessage).toBeUndefined();
   });
 
-  // F7: Number(null) is 0, so a null reason id (the SDK gave none) is logged as id=0.
-  it.fails("F7: does not invent reason id 0 when none was given", () => {
+  // F7: a missing reason id (null, undefined or an empty string) is not read as id 0.
+  it("F7: does not invent reason id 0 when none was given", () => {
     expect(normalizeTeamSpeakKickedReason("x", null).diagnostics.id).toBeUndefined();
+    expect(normalizeTeamSpeakKickedReason("x", "").diagnostics.id).toBeUndefined();
+    expect(normalizeTeamSpeakKickedReason("x").diagnostics.id).toBeUndefined();
+  });
+
+  it("F7: a real reason id 0 is kept", () => {
+    expect(normalizeTeamSpeakKickedReason("x", 0).diagnostics.id).toBe("0");
+    expect(normalizeTeamSpeakKickedReason("x", "0").diagnostics.id).toBe("0");
   });
 });
 

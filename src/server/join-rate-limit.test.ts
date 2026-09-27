@@ -43,13 +43,29 @@ describe("JoinRateLimiter", () => {
     expect(limiter.allow("peer", WINDOW_MS)).toBe(true);
   });
 
-  it("bounds the tracked peers by evicting the oldest one", () => {
+  it("bounds the tracked peers by evicting the oldest one among those with the fewest requests", () => {
     const limiter = new JoinRateLimiter(2);
     for (let i = 0; i < MAX_REQUESTS; i += 1) limiter.allow("old", 0);
-    expect(limiter.allow("old", 0)).toBe(false);
     limiter.allow("second", 1);
-    limiter.allow("third", 2); // evicts "old"
-    expect(limiter.allow("old", 3)).toBe(true);
+    limiter.allow("third", 2); // evicts "second": the fewest requests, so "old" keeps its count
+    expect(limiter.allow("old", 3)).toBe(false);
+    expect(limiter.allow("second", 3)).toBe(true);
+  });
+
+  it("F5: a peer at its limit stays limited while many new peers arrive", () => {
+    const limiter = new JoinRateLimiter();
+    for (let i = 0; i < MAX_REQUESTS; i += 1) limiter.allow("busy", 0);
+    for (let i = 0; i < 5000; i += 1) limiter.allow(`flood-${i}`, 1 + i);
+    expect(limiter.allow("busy", 6000)).toBe(false);
+  });
+
+  it("evicts a peer at its limit only when every tracked peer is at its limit, the oldest first", () => {
+    const limiter = new JoinRateLimiter(2);
+    for (let i = 0; i < MAX_REQUESTS; i += 1) limiter.allow("first", 0);
+    for (let i = 0; i < MAX_REQUESTS; i += 1) limiter.allow("second", 1);
+    limiter.allow("third", 2);
+    expect(limiter.allow("first", 3)).toBe(true);
+    expect(limiter.allow("second", 3)).toBe(false);
   });
 
   it("drops expired peers before evicting live ones", () => {

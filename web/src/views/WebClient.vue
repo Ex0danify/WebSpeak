@@ -2,7 +2,7 @@
   <div :class="['web-client', `language-${language}`]">
     <!-- Connection / welcome screen -->
     <section v-if="!voiceState.connected && !voiceState.reconnecting && !voiceState.reconnectFailed" class="join-page">
-      <header class="join-header">
+      <header class="join-header" role="banner">
         <div class="brand-lockup">
           <img class="brand-mark" src="/网站图标.jpg" alt="WebSpeak" />
           <div>
@@ -80,7 +80,7 @@
         </div>
       </main>
 
-      <footer class="join-footer">
+      <footer class="join-footer" role="contentinfo">
         <span>WebSpeak</span><span class="footer-separator">·</span><span>{{ t('teamSpeakClient') }}</span><span class="footer-spacer"></span><button type="button" class="clear-local-button" @click="clearBrowserData">{{ t('clearLocalData') }}</button><span class="footer-separator">·</span><span>{{ t('browserSupport') }}</span>
       </footer>
 
@@ -95,6 +95,7 @@
     <!-- Connected application shell -->
     <div v-else :class="['app-shell', `mobile-view-${mobileSection}`]">
       <main class="workspace">
+        <h1 v-if="!isMobileViewport || (mobileSection !== 'channels' && mobileSection !== 'more')" class="sr-only">{{ t('voiceSpace') }}</h1>
         <header class="workspace-header">
           <div class="breadcrumbs"><span class="mobile-brand">TeamSpeak <em>Web</em></span><span class="crumb-muted">{{ t('serverBreadcrumb') }}</span><Icon name="chevron-right" :size="14" /><strong>{{ currentChannelName }}</strong></div>
           <div class="workspace-actions">
@@ -223,22 +224,22 @@
                 <button type="button" class="whisper-ptt-button" :class="{ active: whisperPttActive || whisperActive }" :aria-pressed="whisperPttActive || whisperActive" @pointerdown.prevent="onWhisperPttDown" @pointerup.prevent="onWhisperPttUp" @pointercancel.prevent="onWhisperPttUp" @lostpointercapture="onWhisperPttUp"><Icon name="mic" :size="18" /> {{ whisperPttActive || whisperActive ? t('releaseWhisper') : t('whisperHoldToTalk') }}</button>
               </div>
               <div class="mobile-voice-controls">
-                <button type="button" class="mobile-voice-toggle" :class="{ muted: microphoneMuted }" :aria-pressed="!microphoneMuted" @click="toggleMicrophone"><Icon :name="microphoneMuted ? 'mic-off' : 'mic'" :size="18" /><span>{{ microphoneMuted ? t('unmuteMic') : t('muteMic') }}</span></button>
-                <button type="button" class="mobile-voice-settings" @click="settingsOpen = true"><Icon name="settings" :size="17" /><span>{{ t('audioSettings') }}</span></button>
+                <button type="button" class="mobile-voice-toggle" :class="{ muted: microphoneMuted }" :aria-pressed="!microphoneMuted" :aria-label="microphoneMuted ? t('unmuteMic') : t('muteMic')" @click="toggleMicrophone"><Icon :name="microphoneMuted ? 'mic-off' : 'mic'" :size="18" /><span>{{ microphoneMuted ? t('unmuteMic') : t('muteMic') }}</span></button>
+                <button type="button" class="mobile-voice-settings" :aria-label="t('audioSettings')" @click="settingsOpen = true"><Icon name="settings" :size="17" /><span>{{ t('audioSettings') }}</span></button>
               </div>
             </section>
 
             <section :class="['chat-panel', { 'mobile-section-hidden': mobileSection !== 'chat' }]">
               <div class="chat-tabs" role="tablist" :aria-label="t('chatTabs')">
-                <button type="button" :class="{ active: chatTab === 'channel' }" @click="chatTab = 'channel'"><Icon name="hash" :size="15" /> {{ currentChannelName }}</button>
-                <button type="button" :class="{ active: chatTab === 'server' }" @click="chatTab = 'server'"><Icon name="server" :size="15" /> {{ t('serverChat') }}</button>
-                <button v-for="conversation in privateConversations" :key="conversation.id" type="button" :class="{ active: chatTab === 'private' && privateClientId === conversation.id }" @click="openPrivateChat(conversation.id)"><Icon name="message" :size="15" /> {{ conversation.name }}</button>
-                <button type="button" :class="{ active: chatTab === 'events' }" @click="chatTab = 'events'"><Icon name="bell" :size="15" /> {{ t('eventLog') }}</button>
+                <button type="button" role="tab" :id="chatTabId('channel')" :aria-selected="chatTab === 'channel'" :aria-controls="chatPanelId" :class="{ active: chatTab === 'channel' }" @click="chatTab = 'channel'"><Icon name="hash" :size="15" /> {{ currentChannelName }}</button>
+                <button type="button" role="tab" :id="chatTabId('server')" :aria-selected="chatTab === 'server'" :aria-controls="chatPanelId" :class="{ active: chatTab === 'server' }" @click="chatTab = 'server'"><Icon name="server" :size="15" /> {{ t('serverChat') }}</button>
+                <button v-for="conversation in privateConversations" :key="conversation.id" type="button" role="tab" :id="chatTabId(`private-${conversation.id}`)" :aria-selected="chatTab === 'private' && privateClientId === conversation.id" :aria-controls="chatPanelId" :class="{ active: chatTab === 'private' && privateClientId === conversation.id }" @click="openPrivateChat(conversation.id)"><Icon name="message" :size="15" /> {{ conversation.name }}</button>
+                <button type="button" role="tab" :id="chatTabId('events')" :aria-selected="chatTab === 'events'" :aria-controls="chatPanelId" :class="{ active: chatTab === 'events' }" @click="chatTab = 'events'"><Icon name="bell" :size="15" /> {{ t('eventLog') }}</button>
               </div>
               <div class="section-heading chat-heading"><div><span class="section-kicker">{{ chatTabLabel }}</span><h2><Icon :name="chatTab === 'server' ? 'server' : chatTab === 'events' ? 'bell' : chatTab === 'private' ? 'message' : 'hash'" :size="20" /> {{ chatTitle }}</h2></div><span class="section-counter">{{ chatTab === 'events' ? t('eventCount', { count: serverEvents.length }) : t('messageCount', { count: visibleChatMessages.length }) }}</span></div>
-              <div ref="chatListEl" class="message-list">
+              <div ref="chatListEl" class="message-list" role="tabpanel" :id="chatPanelId" :aria-labelledby="activeChatTabId">
                 <div v-if="chatTab === 'events'">
-                  <article v-for="event in serverEvents" :key="event.id" class="event-row"><time>{{ formatTime(event.timestamp) }}</time><span>{{ event.message }}</span></article>
+                  <article v-for="event in serverEvents" :key="event.id" class="event-row"><time>{{ formatTime(event.timestamp) }}</time><span>{{ eventText(event) }}</span></article>
                   <div v-if="!serverEvents.length" class="chat-empty"><div class="chat-empty-icon"><Icon name="bell" :size="24" /></div><strong>{{ t('noEvents') }}</strong><span>{{ t('noEventsLead') }}</span></div>
                 </div>
                 <div v-else-if="!visibleChatMessages.length" class="chat-empty"><div class="chat-empty-icon"><Icon name="message" :size="24" /></div><strong>{{ chatTab === 'private' ? t('privateChatStart') : t('chatStart') }}</strong><span>{{ chatTab === 'private' ? t('privateChatStartLead') : t('chatStartLead') }}</span></div>
@@ -259,7 +260,8 @@
 
       </main>
 
-      <aside :class="['member-panel', { 'mobile-section-visible': mobileSection === 'channels' }]">
+      <div :class="['member-panel', { 'mobile-section-visible': mobileSection === 'channels' }]" :role="isMobileViewport && mobileSection === 'channels' ? 'main' : 'complementary'">
+        <h1 v-if="isMobileViewport && mobileSection === 'channels'" class="sr-only">{{ t('voiceSpace') }}</h1>
         <div class="member-panel-heading"><div><span class="section-kicker">{{ t('people') }}</span><h2>{{ t('people') }}</h2></div><Button variant="outline" size="sm" :class="`gap-1.5 font-normal hover:border-warning/30 hover:bg-warning-soft hover:text-warning max-[740px]:h-[34px] ${away ? 'border-warning/30 bg-warning-soft text-warning' : 'border-line bg-surface-0 text-fg-muted'}`" @click="toggleAway"><span :class="['size-[7px] rounded-full', away ? 'bg-warning' : 'bg-success']" aria-hidden="true"></span>{{ away ? t('away') : t('available') }}</Button></div>
         <Input v-model="memberQuery" class="mt-[18px] shrink-0 max-[740px]:mt-3.5 [&>span]:h-8 max-[740px]:[&>span]:h-11" input-class="h-8 border-transparent bg-surface-2 text-[13.75px] max-[740px]:h-11 max-[740px]:text-[15px]" :placeholder="t('searchMembers')" :aria-label="t('searchMembers')"><template #leading><Icon name="search" :size="15" /></template></Input>
         <div class="member-tree">
@@ -273,8 +275,8 @@
               <div v-for="member in channelItem.members" :key="`${channelItem.id}-${member.id}`" :class="['member-row group/row', { dragging: draggedMember?.id === member.id }]" :draggable="!member.isSelf" @dragstart="onMemberDragStart(member, $event)" @dragend="onMemberDragEnd" @pointerdown="onMemberPointerDown(member, $event)" @pointermove="onMemberPointerMove($event)" @pointerup="onMemberPointerUp($event)" @pointercancel="onMemberPointerCancel($event)" @contextmenu.prevent="openMemberMenu(member, $event)">
                 <span class="relative shrink-0"><Avatar :name="member.nickname" :src="member.avatar || undefined" :speaking="isSpeaking(member)" surface="surface-1" class="size-[33px] text-[10px] text-accent-fg group-hover/row:[--avatar-gap:var(--color-surface-2)] group-focus-within/row:[--avatar-gap:var(--color-surface-2)] max-[740px]:size-10 max-[740px]:text-xs" :style="avatarStyle(member.nickname, member.isSelf)" /><span class="absolute -bottom-0.5 -right-0.5 size-[9px] rounded-full border-2 border-surface-1 bg-success max-[740px]:size-2.5" aria-hidden="true"></span></span>
                 <div class="member-copy"><strong>{{ memberDisplayName(member) }}</strong><span>{{ member.away ? t('away') : isSpeaking(member) ? t('speaking') : member.isSelf ? t('yourDevice') : t('memberOnline') }}</span></div>
-                <div class="member-flags" :aria-label="t('memberStates')"><span v-if="member.away" :title="t('away')" :aria-label="t('away')"><Icon name="clock" :size="13" /></span><span v-if="member.inputMuted" :title="t('inputMuted')" :aria-label="t('inputMuted')"><Icon name="mic-off" :size="13" /></span><span v-if="member.outputMuted" :title="t('outputMuted')" :aria-label="t('outputMuted')"><Icon name="volume-off" :size="13" /></span><span v-if="member.channelCommander" :title="t('channelCommander')" :aria-label="t('channelCommander')"><Icon name="shield" :size="13" /></span></div>
-                <div class="member-volume"><Icon :name="(volumes[member.id] ?? 1) === 0 ? 'volume-off' : 'volume'" :size="14" /><Slider class="w-[45px]" :min="0" :max="400" :model-value="Math.round((volumes[member.id] ?? 1) * 100)" :value-text="`${Math.round((volumes[member.id] ?? 1) * 100)}%`" :aria-label="t('memberVolume')" @update:model-value="setVolume(member.id, $event / 100)" /></div>
+                <div class="member-flags" role="group" :aria-label="t('memberStates')"><span v-if="member.away" role="img" :title="t('away')" :aria-label="t('away')"><Icon name="clock" :size="13" /></span><span v-if="member.inputMuted" role="img" :title="t('inputMuted')" :aria-label="t('inputMuted')"><Icon name="mic-off" :size="13" /></span><span v-if="member.outputMuted" role="img" :title="t('outputMuted')" :aria-label="t('outputMuted')"><Icon name="volume-off" :size="13" /></span><span v-if="member.channelCommander" role="img" :title="t('channelCommander')" :aria-label="t('channelCommander')"><Icon name="shield" :size="13" /></span></div>
+                <div class="member-volume" :data-member-id="member.id"><Icon :name="(volumes[member.id] ?? 1) === 0 ? 'volume-off' : 'volume'" :size="14" /><Slider class="w-[45px]" :min="0" :max="400" :model-value="Math.round((volumes[member.id] ?? 1) * 100)" :value-text="`${Math.round((volumes[member.id] ?? 1) * 100)}%`" :aria-label="t('memberVolume')" @update:model-value="setVolume(member.id, $event / 100)" /></div>
                 <button v-if="isMobileViewport && !member.isSelf" type="button" class="member-action-button" :aria-label="t('moreMemberOptions')" @click.stop="openMemberActions(member)"><Icon name="more" :size="18" /></button>
               </div>
             </div>
@@ -305,9 +307,10 @@
             <Tooltip :text="accompanimentActive ? t('stopAccompaniment') : t('startAccompaniment')"><Button variant="ghost" size="sm" icon-only class="size-[34px] text-fg-muted hover:bg-accent-soft hover:text-accent aria-pressed:border-accent/40 aria-pressed:bg-accent-soft aria-pressed:text-accent" :aria-label="accompanimentActive ? t('stopAccompaniment') : t('startAccompaniment')" :pressed="accompanimentActive" @click="toggleAccompaniment"><Icon name="music" /></Button></Tooltip>
           </div>
         </div>
-      </aside>
+      </div>
 
-      <section v-if="mobileSection === 'more'" class="mobile-more-panel">
+      <section v-if="mobileSection === 'more'" class="mobile-more-panel" role="main">
+        <h1 class="sr-only">{{ t('voiceSpace') }}</h1>
         <span class="section-kicker">{{ t('mobileMore') }}</span>
         <h2>{{ t('mobileMore') }}</h2>
         <Button variant="outline" :class="microphoneMuted ? `${moreActionClass} text-danger` : moreActionClass" @click="toggleMicrophone"><Icon :name="microphoneMuted ? 'mic-off' : 'mic'" :size="18" /> {{ microphoneMuted ? t('unmuteMic') : t('muteMic') }}</Button>
@@ -329,7 +332,7 @@
       </nav>
     </div>
 
-    <Menu :open="Boolean(memberMenu)" :label="memberMenu?.member.nickname" :close-label="t('close')" @update:open="(value) => { if (!value) memberMenu = null; }">
+    <Menu :open="Boolean(memberMenu)" :label="memberMenu?.member.nickname" :close-label="t('close')" @update:open="(value) => { if (!value) memberMenu = null; }" @close-auto-focus="onMemberMenuCloseAutoFocus">
       <template #trigger><span class="fixed size-0" :style="memberMenuStyle" aria-hidden="true"></span></template>
       <template v-if="memberMenu">
         <MenuLabel class="normal-case tracking-normal text-fg">{{ memberMenu.member.nickname }}</MenuLabel>
@@ -477,13 +480,14 @@ import { Tooltip } from "@/components/ui/tooltip";
 import { toast as raiseToast } from "@/lib/use-toast";
 import LanguageSwitcher from "../components/LanguageSwitcher.vue";
 import PasswordDialog from "../components/PasswordDialog.vue";
-import { useVoiceWebSocket, type ChannelInfo, type ChannelMember, type ChatMessage, type LatencyProbeResult, type ScreenShareOutputSettings, type ScreenShareStream } from "../composables/useVoiceWebSocket.js";
+import { useVoiceWebSocket, type ChannelInfo, type ChannelMember, type ChatMessage, type LatencyProbeResult, type ScreenShareOutputSettings, type ScreenShareStream, type ServerEvent } from "../composables/useVoiceWebSocket.js";
 import { clearLocalData as clearStoredLocalData, isLocalPersistenceAvailable, listFavorites, listRecentServers, loadLocalPreferences, loadStoredIdentity, recordRecentServer, removeFavorite, removeStoredIdentity, saveFavorite, saveLocalPreferences, saveStoredIdentity, type FavoriteServer, type RecentServer } from "../services/local-persistence.js";
-import { applyTheme, getStoredTheme, isDarkTheme, nextTheme, saveTheme, type ThemeMode } from "../services/theme.js";
+import { applyTheme, getStoredTheme, isDarkTheme, nextTheme, saveTheme, watchSystemDark, type ThemeMode } from "../services/theme.js";
 import { combineTeamSpeakTarget, DEFAULT_TEAM_SPEAK_PORT, isValidTeamSpeakPort, splitTeamSpeakTarget } from "../services/teamspeak-target.js";
 import { isLanguage, useI18n } from "../i18n/use-i18n.js";
 import { avatarInitial, formatTime as formatTimestamp, median, microphoneErrorMessage, serverKey } from "../lib/format.js";
 import { localizeAudioNotice, localizeMessage, visibleErrorCode } from "../lib/messages.js";
+import { readStorage, writeStorage, removeStorage } from "@/lib/safe-storage";
 
 // Sizing for the join header actions. Labels wrap (de and ru are long) and hide on
 // narrow screens, where the buttons shrink to squares.
@@ -578,13 +582,13 @@ const query = new URLSearchParams(location.search);
 const initialChannel = query.get("channel") ?? "";
 const inviteToken = query.get("invite") ?? "";
 const initialTarget = initialServerTarget();
-const nickname = ref(localStorage.getItem("webspeak:nickname") ?? "");
+const nickname = ref(readStorage("webspeak:nickname") ?? "");
 const channel = ref(initialChannel);
 const serverHost = ref(initialTarget.address);
 const serverPort = ref(initialTarget.port);
 const serverPassword = ref("");
 const accessMode = ref<"fixed" | "open">("fixed");
-const rememberIdentity = ref(localStorage.getItem("webspeak:remember-identity") !== "0");
+const rememberIdentity = ref(readStorage("webspeak:remember-identity") !== "0");
 const favoriteServers = ref<FavoriteServer[]>([]);
 const recentServers = ref<RecentServer[]>([]);
 const initialized = ref(false);
@@ -622,9 +626,9 @@ const screenShareResolutionOptions: Array<{ value: ScreenShareResolutionPreset; 
   { value: "1080p", width: 1920, height: 1080, label: "screenShareResolution1080p" },
 ];
 const screenShareFrameRateOptions = [5, 10, 15, 24, 30, 60];
-const storedScreenShareResolution = localStorage.getItem("webspeak:screen-share-resolution") as ScreenShareResolutionPreset | null;
+const storedScreenShareResolution = readStorage("webspeak:screen-share-resolution") as ScreenShareResolutionPreset | null;
 const screenShareResolutionPreset = ref<ScreenShareResolutionPreset>(screenShareResolutionOptions.some((option) => option.value === storedScreenShareResolution) ? storedScreenShareResolution! : "1080p");
-const storedScreenShareFrameRate = Number(localStorage.getItem("webspeak:screen-share-framerate"));
+const storedScreenShareFrameRate = Number(readStorage("webspeak:screen-share-framerate"));
 const screenShareFrameRate = ref(screenShareFrameRateOptions.includes(storedScreenShareFrameRate) ? storedScreenShareFrameRate : 15);
 const screenShareSettingsOpen = ref(false);
 function setScreenVideoElement(element: unknown): void {
@@ -658,8 +662,11 @@ let performanceMonitorGeneration = 0;
 const { language, loadLanguage, setLanguage, t } = useI18n();
 loadLanguage();
 const themeMode = ref<ThemeMode>(getStoredTheme());
-const themeIcon = computed(() => isDarkTheme(themeMode.value) ? "sun" : "moon");
-const themeLabel = computed(() => isDarkTheme(themeMode.value) ? t("switchToLightTheme") : t("switchToDarkTheme"));
+// The operating system's setting, kept reactive so the button follows it while the theme is System (F26).
+const prefersDark = ref(isDarkTheme("system"));
+let stopWatchingSystemDark: (() => void) | null = null;
+const themeIcon = computed(() => isDarkTheme(themeMode.value, prefersDark.value) ? "sun" : "moon");
+const themeLabel = computed(() => isDarkTheme(themeMode.value, prefersDark.value) ? t("switchToLightTheme") : t("switchToDarkTheme"));
 const localizedWelcomeText = computed(() => {
   const customText = {
     zh: welcomeTextZh.value,
@@ -687,6 +694,24 @@ function localizedAudioNotice(code: string, message: string) {
   return localizeAudioNotice(code, message, language.value);
 }
 
+// F24: the gateway used to write the event log itself, in Chinese, and the client showed `message`
+// as it is. A gateway that sends `nickname` or `channelName` lets the sentence be built here with
+// t() instead, in the page's own language; an older gateway sends neither, and `message` is shown
+// unchanged (English and German among the entries showed no bug of their own before this).
+function eventText(event: ServerEvent): string {
+  switch (event.kind) {
+    case "connection": return t("eventConnected");
+    case "joined": return event.nickname ? t("eventMemberJoined", { nickname: event.nickname }) : event.message;
+    case "left": return event.nickname ? t("eventMemberLeft", { nickname: event.nickname }) : event.message;
+    case "moved": return event.nickname ? t("eventMemberMoved", { nickname: event.nickname }) : event.message;
+    case "poke": return event.nickname ? `${event.nickname} ${t("pokedYou")}` : event.message;
+    case "channelCreated": return event.channelName ? t("eventChannelCreated", { channel: event.channelName }) : event.message;
+    case "channelRenamed": return event.channelName ? t("eventChannelRenamed", { channel: event.channelName }) : event.message;
+    case "channelDeleted": return event.channelName ? t("eventChannelDeleted", { channel: event.channelName }) : event.message;
+    default: return event.message;
+  }
+}
+
 function formatTime(timestamp: number) {
   return formatTimestamp(timestamp, language.value);
 }
@@ -697,7 +722,7 @@ function persistLanguage() {
 }
 
 function cycleTheme() {
-  themeMode.value = nextTheme(themeMode.value);
+  themeMode.value = nextTheme(themeMode.value, prefersDark.value);
   saveTheme(themeMode.value);
   void saveLocalPreferences({ schemaVersion: 1, theme: themeMode.value });
 }
@@ -785,6 +810,8 @@ const currentChannel = computed<TreeChannel | undefined>(() => {
   if (fromSelf) return fromSelf;
   return channelTree.value.find((item) => item.name === channel.value) ?? channelTree.value[0];
 });
+/** The channel the member list says you are in right now, whoever moved you there (F22). */
+const ownChannelId = computed(() => channelTree.value.find((item) => item.members.some((member) => member.id === voiceState.tsClientId))?.id ?? "");
 const currentChannelName = computed(() => (currentChannel.value?.name ?? channel.value) || t("voiceLobby"));
 const currentChannelDescription = computed(() => currentChannel.value?.description ?? "");
 const screenShareErrorText = computed(() => {
@@ -857,6 +884,11 @@ const privateConversations = computed(() => {
     const existing = conversations.get(message.conversationId);
     conversations.set(message.conversationId, { id, name: member?.nickname ?? existing?.name ?? message.invokerName, lastMessage: Math.max(existing?.lastMessage ?? 0, message.timestamp) });
   }
+  // The chat just opened from the member menu has no message yet: list it under the member's name (F25).
+  if (privateClientId.value && !conversations.has(String(privateClientId.value))) {
+    const member = members.find((candidate) => candidate.id === privateClientId.value);
+    if (member) conversations.set(String(privateClientId.value), { id: privateClientId.value, name: member.nickname, lastMessage: 0 });
+  }
   return [...conversations.values()].sort((a, b) => b.lastMessage - a.lastMessage);
 });
 
@@ -869,6 +901,9 @@ const visibleChatMessages = computed(() => {
 });
 
 const chatTabLabel = computed(() => chatTab.value === "channel" ? t("textChannel") : chatTab.value === "server" ? t("serverChat") : chatTab.value === "private" ? t("privateMessage") : t("eventLog"));
+const chatPanelId = "chat-tabpanel";
+const chatTabId = (key: string) => `chat-tab-${key}`;
+const activeChatTabId = computed(() => chatTabId(chatTab.value === "private" ? `private-${privateClientId.value}` : chatTab.value));
 const chatTitle = computed(() => chatTab.value === "channel" ? t("channelChat", { channel: currentChannelName.value }) : chatTab.value === "server" ? t("serverChat") : chatTab.value === "events" ? t("eventLog") : privateConversations.value.find((conversation) => conversation.id === privateClientId.value)?.name ?? t("privateMessage"));
 const chatPlaceholder = computed(() => chatTab.value === "private" ? t("privateMessagePlaceholder") : chatTab.value === "server" ? t("serverMessagePlaceholder") : t("sendMessagePlaceholder"));
 const visiblePokes = computed(() => pokeNotifications.slice(-3));
@@ -902,6 +937,13 @@ watch(channelTree, (list) => {
       ?? "";
   }
 }, { deep: true });
+// F22: a move made by someone else changes the member list, not selectedChannelId, so the
+// highlight, the voice cards and the channel chat stayed on the channel you used to be in. Follow
+// the member list instead: once your own channel is known, keep selectedChannelId matched to it.
+// The very first assignment is left to the watcher above, which also honours the channel you typed.
+watch(ownChannelId, (id, previous) => {
+  if (id && previous) selectedChannelId.value = id;
+});
 watch([() => chatMessages.length, chatTab, privateClientId], () => nextTick(scrollChatToEnd));
 watch(() => chatMessages.length, (length, previousLength) => {
   const latest = chatMessages[length - 1];
@@ -961,7 +1003,7 @@ watch(screenShareViewing, (viewing) => {
   if (!viewing && document.fullscreenElement === screenSharePlayerEl.value) void document.exitFullscreen().catch(() => undefined);
 });
 watch(rememberIdentity, (remember) => {
-  localStorage.setItem("webspeak:remember-identity", remember ? "1" : "0");
+  writeStorage("webspeak:remember-identity", remember ? "1" : "0");
   if (!remember) {
     identityMaterial.value = "";
     void removeStoredIdentity();
@@ -1055,17 +1097,19 @@ let viewportChangeHandler: (() => void) | undefined;
 let fullscreenChangeHandler: (() => void) | undefined;
 
 onMounted(() => {
+  prefersDark.value = isDarkTheme("system");
+  stopWatchingSystemDark = watchSystemDark((dark) => { prefersDark.value = dark; });
   browserError.value = checkSupport() ?? "";
   void loadPublicConfig();
   void loadLocalPreferences().then((preferences) => {
-    if (!localStorage.getItem("webspeak:language") && isLanguage(preferences.language)) language.value = preferences.language;
-    if (!localStorage.getItem("webspeak:theme") && (preferences.theme === "system" || preferences.theme === "light" || preferences.theme === "dark")) {
+    if (!readStorage("webspeak:language") && isLanguage(preferences.language)) language.value = preferences.language;
+    if (!readStorage("webspeak:theme") && (preferences.theme === "system" || preferences.theme === "light" || preferences.theme === "dark")) {
       themeMode.value = preferences.theme;
       applyTheme(themeMode.value);
     }
   });
   void loadStoredIdentity().then((stored) => {
-    if (stored && localStorage.getItem("webspeak:remember-identity") === "1") {
+    if (stored && readStorage("webspeak:remember-identity") !== "0") {
       identityMaterial.value = stored.privateMaterial;
       rememberIdentity.value = true;
     }
@@ -1088,6 +1132,8 @@ onMounted(() => {
   document.addEventListener("fullscreenchange", fullscreenChangeHandler);
 });
 onUnmounted(() => {
+  stopWatchingSystemDark?.();
+  stopWatchingSystemDark = null;
   stopPerformanceMonitoring();
   disconnect();
   if (deviceChangeHandler) navigator.mediaDevices?.removeEventListener("devicechange", deviceChangeHandler);
@@ -1099,7 +1145,7 @@ function doConnect() {
   if (!canJoin.value || voiceState.connecting) return;
   clearError();
   nickname.value = nickname.value.trim();
-  localStorage.setItem("webspeak:nickname", nickname.value);
+  writeStorage("webspeak:nickname", nickname.value);
   void saveLocalPreferences({ schemaVersion: 1, lastNickname: nickname.value });
   if (accessMode.value === "open") {
     serverHost.value = serverHost.value.trim();
@@ -1218,7 +1264,7 @@ async function toggleFavorite(): Promise<void> {
 async function clearBrowserData(): Promise<void> {
   if (!window.confirm(t("clearLocalDataConfirm"))) return;
   await clearStoredLocalData();
-  for (const key of ["webspeak:nickname", "webspeak:language", "webspeak:theme", "webspeak:input-device", "webspeak:output-device", "webspeak:remember-identity"]) localStorage.removeItem(key);
+  for (const key of ["webspeak:nickname", "webspeak:language", "webspeak:theme", "webspeak:input-device", "webspeak:output-device", "webspeak:remember-identity"]) removeStorage(key);
   themeMode.value = "system";
   applyTheme(themeMode.value);
   identityMaterial.value = "";
@@ -1289,15 +1335,34 @@ function openPrivateChat(clientId: number): void {
   nextTick(scrollChatToEnd);
 }
 
+// The desktop menu's trigger is a hidden zero-size span placed at the click point (F34), which
+// cannot take the keyboard focus back when the menu closes: Reka's default then leaves the focus
+// on the document. Remember which member's row opened it and, on close, give the focus to that
+// row's own volume slider instead (F47); it exists for every row a menu can open on, whether the
+// menu was opened with a right click or with Shift+F10 on the slider itself.
+let memberMenuOpenerId: number | null = null;
+
 function openMemberMenu(member: ChannelMember, event: Event): void {
   if (member.isSelf) return;
   const point = event instanceof MouseEvent ? event : undefined;
+  memberMenuOpenerId = member.id;
   memberMenu.value = { member, x: point?.clientX ?? 20, y: point?.clientY ?? 20 };
 }
 
 function openMemberActions(member: ChannelMember): void {
   if (member.isSelf) return;
+  memberMenuOpenerId = member.id;
   memberMenu.value = { member, x: 0, y: 0 };
+}
+
+function onMemberMenuCloseAutoFocus(event: Event): void {
+  const id = memberMenuOpenerId;
+  memberMenuOpenerId = null;
+  if (id === null) return;
+  const slider = document.querySelector<HTMLElement>(`.member-volume[data-member-id="${id}"] [role="slider"]`);
+  if (!slider) return;
+  event.preventDefault();
+  slider.focus();
 }
 
 async function moveMemberDirect(member: ChannelMember, targetChannelId: string): Promise<void> {
@@ -1563,8 +1628,8 @@ async function startScreenShareWithSettings(): Promise<void> {
     ...(preset?.width && preset.height ? { maxWidth: preset.width, maxHeight: preset.height } : {}),
     maxFrameRate: screenShareFrameRate.value,
   };
-  localStorage.setItem("webspeak:screen-share-resolution", screenShareResolutionPreset.value);
-  localStorage.setItem("webspeak:screen-share-framerate", String(screenShareFrameRate.value));
+  writeStorage("webspeak:screen-share-resolution", screenShareResolutionPreset.value);
+  writeStorage("webspeak:screen-share-framerate", String(screenShareFrameRate.value));
   screenShareSettingsOpen.value = false;
   await startScreenShare(true, settings);
 }
@@ -1780,8 +1845,9 @@ function stopWhisperTalk(): void {
 .local-servers { display: grid; gap: 8px; margin: 1px 0 5px; }
 .local-server-group { display: flex; flex-wrap: wrap; align-items: center; gap: 5px; }
 .local-server-group > span { width: 100%; color: var(--ws-fg-muted); font-size: 10px; font-weight: 700; }
-.clear-local-button { padding: 0; color: var(--ws-fg-muted); background: transparent; border: 0; font-size: 10px; cursor: pointer; }
+.clear-local-button { padding: 0; transition-property: color; color: var(--ws-fg-muted); background: transparent; border: 0; font-size: 10px; cursor: pointer; }
 .clear-local-button:hover { color: var(--ws-danger); text-decoration: underline; }
+.clear-local-button:focus-visible { outline: 2px solid var(--ws-accent); outline-offset: 2px; border-radius: 2px; }
 
 /* Increase connected-view typography by 25% while keeping the layout compact. */
 .app-shell .breadcrumbs { font-size: 15px; }

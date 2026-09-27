@@ -70,7 +70,7 @@
   --ws-line: #d3dfe8;
   --ws-accent: #065682;
   --ws-accent-fg: #ffffff;
-  --ws-success: #25794a;
+  --ws-success: #237347;
   --ws-warning: #96590a;
   --ws-danger: #b83c37;
   /* Input and control borders need 3:1 (WCAG 1.4.11); --ws-line is decorative only. Recomputes per theme. */

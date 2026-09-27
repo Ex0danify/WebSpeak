@@ -90,10 +90,16 @@ describe("encryptSecret / decryptSecret", () => {
     expect(decryptSecret("", Buffer.alloc(1))).toBe("");
   });
 
-  // F6: encryptSecret writes 16 byte tags, but decryptSecret never pins authTagLength, so Node accepts a truncated one.
-  it.fails("F6: rejects an authentication tag shorter than 16 bytes", () => {
+  // F6: encryptSecret writes 16 byte tags and decryptSecret pins authTagLength, so a truncated one is refused.
+  it("F6: rejects an authentication tag shorter than 16 bytes", () => {
     const p = parts(encryptSecret("hunter2", key));
     p[2] = Buffer.from(p[2], "base64url").subarray(0, 4).toString("base64url");
+    expect(() => decryptSecret(p.join(":"), key)).toThrow();
+  });
+
+  it("F6: rejects an authentication tag longer than 16 bytes", () => {
+    const p = parts(encryptSecret("hunter2", key));
+    p[2] = Buffer.concat([Buffer.from(p[2], "base64url"), Buffer.alloc(4)]).toString("base64url");
     expect(() => decryptSecret(p.join(":"), key)).toThrow();
   });
 });

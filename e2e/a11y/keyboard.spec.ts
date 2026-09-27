@@ -44,18 +44,10 @@ for (const [name, screen] of Object.entries(screens)) {
     });
 
     test("every stop shows a focus ring", async ({ page }) => {
-      test.fail(name === "join", "F46: Clear local data has no ring");
       await screen.open(page);
       const { stops } = await tabRound(page);
       const bare = stops.filter((stop) => stop.ring === "none").map((stop) => `${stop.tag} "${stop.label}"`);
       expect(bare, "stops with no ring").toEqual([]);
-    });
-
-    test("F46 pinned: the stops with no ring", async ({ page }) => {
-      await screen.open(page);
-      const { stops } = await tabRound(page);
-      const bare = stops.filter((stop) => stop.ring === "none").map((stop) => `${stop.tag} "${stop.label}"`);
-      expect(bare).toEqual(name === "join" ? ['button "Clear local data"'] : []);
     });
   });
 }
@@ -119,8 +111,7 @@ test.describe("dialogs", () => {
 });
 
 test.describe("menus", () => {
-  test("Esc closes the member menu and the focus is not lost", async ({ page }, { project }) => {
-    test.fail(project.name === "desktop", "F47: the menu returns the focus to a row that cannot take it");
+  test("Esc closes the member menu and the focus is not lost", async ({ page }) => {
     await joinRoom(page);
     const menu = await openMemberMenu(page, "Alex Rivera");
     await page.keyboard.press("Escape");
@@ -128,16 +119,21 @@ test.describe("menus", () => {
     expect(await describeFocus(page), "the focus is lost when the menu closes").not.toBeNull();
   });
 
-  test("F47 pinned: the desktop menu opens with Shift+F10 on a row's slider, and Esc leaves the focus on the document", async ({ page }, { project }) => {
+  // The desktop menu's trigger is a hidden span at the click point, which cannot take the focus
+  // back (bug F47: closing left the focus on the document). It now goes to the row's own volume
+  // slider, whether the menu was opened with a right click or, as here, with Shift+F10 on the
+  // slider itself.
+  test("Esc after opening the menu with Shift+F10 on a row's slider returns the focus to it (F47)", async ({ page }, { project }) => {
     test.skip(project.name !== "desktop", "the phone's menu belongs to a button that takes the focus back");
     await joinRoom(page);
-    await memberRow(page, "Alex Rivera").getByRole("slider").focus();
+    const slider = memberRow(page, "Alex Rivera").getByRole("slider");
+    await slider.focus();
     await page.keyboard.press("Shift+F10");
     const menu = page.getByRole("menu");
     await expect(menu).toBeVisible();
     await page.keyboard.press("Escape");
     await expect(menu).toBeHidden();
-    expect(await describeFocus(page)).toBeNull();
+    await expect(slider).toBeFocused();
   });
 
   test("Esc closes the language menu and gives the focus back to its button", async ({ page }) => {

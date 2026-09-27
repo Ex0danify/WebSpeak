@@ -98,26 +98,12 @@ const ratioOf = (theme: Record<string, string>, foreground: string, background: 
 
 for (const [themeName, theme] of Object.entries(themes)) {
   describe(`${themeName} theme`, () => {
-    // F52 is the one pair below its floor today; it has its own tests below.
-    const held = pairs.filter(([foreground, background]) => !(themeName === "light" && foreground === "success" && background === "success-soft"));
-    it.each(held)("%s on %s is at least %d:1", (foreground, background, minimum) => {
+    it.each(pairs)("%s on %s is at least %d:1", (foreground, background, minimum) => {
       const ratio = ratioOf(theme, foreground, background);
       expect(ratio, `${foreground} on ${background}: ${ratio.toFixed(3)}`).toBeGreaterThanOrEqual(minimum);
     });
   });
 }
-
-// F52: the success chip and the success toast set --ws-success text on the 13% success tint. In the
-// light theme that is 4.497:1, three thousandths under the 4.5 that text needs.
-describe("F52 success text on its soft tint (light theme)", () => {
-  it.fails("is at least 4.5:1", () => {
-    expect(ratioOf(themes.light, "success", "success-soft")).toBeGreaterThanOrEqual(4.5);
-  });
-
-  it("pinned: is 4.497:1", () => {
-    expect(ratioOf(themes.light, "success", "success-soft")).toBeCloseTo(4.497, 3);
-  });
-});
 
 describe("the system theme", () => {
   it("is the dark theme, value for value", () => {

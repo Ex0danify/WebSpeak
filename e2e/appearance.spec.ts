@@ -78,8 +78,7 @@ test.describe("theme", () => {
     await expect(themeButton(page)).toHaveAccessibleName("Switch to light theme");
   });
 
-  // With the setting on System the button's label is worked out once, from the operating system as
-  // it was then (bug F26).
+  // With the setting on System the button follows the operating system (F26).
   async function systemThenOsGoesDark(page: Page, nickname: string) {
     await page.emulateMedia({ colorScheme: "light" });
     await join(page, nickname);
@@ -91,17 +90,32 @@ test.describe("theme", () => {
     await expect.poll(() => pageBackground(page)).not.toBe(light);
   }
 
-  test("F26: after the operating system goes dark the button still says it switches to dark, and switches to light", async ({ page }) => {
-    await systemThenOsGoesDark(page, "theme-stale-pin");
+  test("the button follows the operating system while the setting is System, both ways (F26)", async ({ page }) => {
+    await systemThenOsGoesDark(page, "theme-follow");
+    await expect(themeButton(page)).toHaveAccessibleName("Switch to light theme");
+    await page.emulateMedia({ colorScheme: "light" });
     await expect(themeButton(page)).toHaveAccessibleName("Switch to dark theme");
-    await themeButton(page).click();
-    expect(await dataTheme(page)).toBe("light");
+    await page.emulateMedia({ colorScheme: "dark" });
+    await expect(themeButton(page)).toHaveAccessibleName("Switch to light theme");
   });
 
-  test("the button follows the operating system while the setting is System (bug F26)", async ({ page }) => {
-    test.fail();
-    await systemThenOsGoesDark(page, "theme-stale-mark");
-    await expect(themeButton(page)).toHaveAccessibleName("Switch to light theme", { timeout: 1500 });
+  test("a click after the operating system went dark switches to light (F26)", async ({ page }) => {
+    await systemThenOsGoesDark(page, "theme-click");
+    await expect(themeButton(page)).toHaveAccessibleName("Switch to light theme");
+    await themeButton(page).click();
+    expect(await dataTheme(page)).toBe("light");
+    await expect(themeButton(page)).toHaveAccessibleName("Switch to dark theme");
+  });
+
+  test("a chosen theme ignores later changes of the operating system (F26)", async ({ page }) => {
+    await page.emulateMedia({ colorScheme: "light" });
+    await join(page, "theme-chosen");
+    await showThemeButton(page);
+    await themeButton(page).click();
+    expect(await dataTheme(page)).toBe("dark");
+    await page.emulateMedia({ colorScheme: "dark" });
+    await page.emulateMedia({ colorScheme: "light" });
+    await expect(themeButton(page)).toHaveAccessibleName("Switch to light theme");
   });
 });
 
@@ -146,20 +160,22 @@ test.describe("language", () => {
     expect(await page.evaluate(() => localStorage.getItem("webspeak:language"))).toBe("de");
   });
 
-  // index.html says lang="zh-CN" and nothing changes it when the language does (bug F27).
-  test("F27: the page keeps lang zh-CN whatever language it is shown in", async ({ page }) => {
+  test("the html lang attribute follows the language of the page (F27)", async ({ page }) => {
     await page.goto("/");
     await pickLanguage(page, "en", "Deutsch");
     await expect(page.getByRole("button", { name: text("de", "enterVoice") })).toBeVisible();
-    expect(await page.evaluate(() => document.documentElement.lang)).toBe("zh-CN");
+    await expect.poll(() => page.evaluate(() => document.documentElement.lang)).toBe("de");
+    for (const { code, option } of [LANGUAGES[0], LANGUAGES[3], LANGUAGES[4], LANGUAGES[1]]) {
+      await pickLanguage(page, await page.evaluate(() => localStorage.getItem("webspeak:language") ?? "en"), option);
+      await expect.poll(() => page.evaluate(() => document.documentElement.lang)).toBe(code === "zh" ? "zh-CN" : code);
+    }
   });
 
-  test("the html lang attribute follows the language of the page (bug F27)", async ({ page }) => {
-    test.fail();
+  test("the html lang attribute is set at startup from the stored language (F27)", async ({ page }) => {
+    await page.addInitScript(() => localStorage.setItem("webspeak:language", "ja"));
     await page.goto("/");
-    await pickLanguage(page, "en", "Deutsch");
-    await expect(page.getByRole("button", { name: text("de", "enterVoice") })).toBeVisible();
-    await expect.poll(() => page.evaluate(() => document.documentElement.lang), { timeout: 1500 }).toBe("de");
+    await expect(page.getByRole("button", { name: text("ja", "enterVoice") })).toBeVisible();
+    expect(await page.evaluate(() => document.documentElement.lang)).toBe("ja");
   });
 });
 

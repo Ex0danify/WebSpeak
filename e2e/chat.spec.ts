@@ -13,8 +13,8 @@ async function openChat(page: Page): Promise<void> {
   if (await tab.isVisible()) await tab.click();
 }
 
-/** The tab of the chat panel: a button of its own, not a role=tab. */
-const chatTab = (page: Page, name: string | RegExp): Locator => page.getByRole("button", { name, exact: typeof name === "string" });
+/** One tab of the chat panel (channel, server, a private conversation, or the event log). */
+const chatTab = (page: Page, name: string | RegExp): Locator => page.getByRole("tab", { name, exact: typeof name === "string" });
 
 /** One message: its sender, and the text. Nothing else in the page is an article with both. */
 const message = (page: Page, sender: string, text: string | RegExp): Locator =>
@@ -141,7 +141,7 @@ test.describe("private chat", () => {
     await expect(message(page, "You", "just between us")).toBeHidden();
   });
 
-  // A private chat that was just opened has no message yet, and the title is taken from the messages.
+  // A private chat that was just opened has no message yet, and the title is taken from the member list.
   async function openEmptyPrivateChat(page: Page, script: Script, isMobile: boolean, nickname: string) {
     script.member(`${nickname}-other`);
     await join(page, nickname);
@@ -150,16 +150,11 @@ test.describe("private chat", () => {
     await expect(page.getByText("This is the beginning of the private chat")).toBeVisible();
   }
 
-  test("F25: a private chat that has no message yet is titled with the general name, not the person's", async ({ page, script, isMobile }) => {
-    await openEmptyPrivateChat(page, script, isMobile, "pm-title-pinned");
-    await expect(page.getByRole("heading", { name: "Private message" })).toBeVisible();
-    await expect(page.getByRole("heading", { name: "pm-title-pinned-other" })).toBeHidden();
-  });
-
-  test("a private chat is titled with the person from the moment it opens (bug F25)", async ({ page, script, isMobile }) => {
-    test.fail();
+  test("a private chat is titled with the person from the moment it opens, with a tab of its own (F25)", async ({ page, script, isMobile }) => {
     await openEmptyPrivateChat(page, script, isMobile, "pm-title-marker");
-    await expect(page.getByRole("heading", { name: "pm-title-marker-other" })).toBeVisible({ timeout: 1500 });
+    await expect(page.getByRole("heading", { name: "pm-title-marker-other" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Private message" })).toBeHidden();
+    await expect(chatTab(page, "pm-title-marker-other")).toBeVisible();
   });
 
   test("a private message from someone opens a tab of its own, apart from the channel", async ({ page, gateway, script }) => {
@@ -197,24 +192,30 @@ test.describe("event log", () => {
     if (!isMobile) await expect(page.getByText("3 events")).toBeVisible();
   });
 
-  // The gateway writes the text of each entry itself, in Chinese, and the client shows it as it is.
-  test("F24: the entries are in Chinese whatever language the page speaks", async ({ page, script }) => {
-    await join(page, "evt-zh-self");
-    await openChat(page);
-    await chatTab(page, "Event log").click();
-    const visitor = script.member("evt-zh-visitor");
-    await expect(entries(page).filter({ hasText: "evt-zh-visitor 加入了服务器" })).toHaveCount(1);
-    visitor.leave();
-    await expect(entries(page).filter({ hasText: "evt-zh-visitor 离开了服务器" })).toHaveCount(1);
-    await expect(entries(page).first()).toContainText("已连接到服务器");
-  });
-
-  test("the entries follow the language of the page (bug F24)", async ({ page }) => {
-    test.fail();
+  // The gateway now sends the kind and the nickname; the client builds the sentence itself with
+  // t(), in the page's own language (F24). `message`, the Chinese text the gateway also sends,
+  // stays only as a fallback for an older gateway and is never shown while a translation exists.
+  test("F24: the entries follow the language of the page", async ({ page, script }) => {
     await join(page, "evt-en-self");
     await openChat(page);
     await chatTab(page, "Event log").click();
     await expect(entries(page)).toHaveCount(1);
-    await expect(entries(page).first()).not.toContainText(/[\u4e00-\u9fff]/, { timeout: 1500 });
+    await expect(entries(page).first()).toContainText("Connected to the server");
+    await expect(entries(page).first()).not.toContainText(/[\u4e00-\u9fff]/);
+
+    const visitor = script.member("evt-en-visitor");
+    await expect(entries(page).filter({ hasText: "evt-en-visitor joined the server" })).toHaveCount(1);
+    visitor.leave();
+    await expect(entries(page).filter({ hasText: "evt-en-visitor left the server" })).toHaveCount(1);
+  });
+
+  test("F24: a member who changes channel is announced too, with a translated sentence", async ({ page, script, gateway }) => {
+    const visitor = script.member("evt-en-mover");
+    await join(page, "evt-en-mover-self");
+    await openChat(page);
+    await chatTab(page, "Event log").click();
+    const roomB = [...gateway.ts.channels.values()].find((channel) => channel.name === "Room B")!.id;
+    visitor.moveTo(roomB);
+    await expect(entries(page).filter({ hasText: "evt-en-mover moved to another channel" })).toHaveCount(1);
   });
 });

@@ -115,21 +115,18 @@ test.describe("Popover", () => {
     await expect(trigger(page)).toBeFocused();
   });
 
-  test("F35: Tab past the last control of the panel wraps to its first", async ({ page }) => {
+  test("Tab past the last control of the panel leaves it, as the Popover doc comment says, and closes it like a click outside would (F35)", async ({ page }) => {
     await trigger(page).click();
     await panel(page).getByRole("button", { name: "Done" }).focus();
     await page.keyboard.press("Tab");
-    await expect(panel(page).getByRole("slider", { name: "Volume" })).toBeFocused();
-    await page.keyboard.press("Shift+Tab");
-    await expect(panel(page).getByRole("button", { name: "Done" })).toBeFocused();
+    await expect(panel(page)).toBeHidden();
   });
 
-  test("Tab can leave the panel, as the Popover doc comment says (bug F35)", async ({ page }) => {
-    test.fail();
+  test("Shift+Tab back from the first control of the panel leaves and closes it too (F35)", async ({ page }) => {
     await trigger(page).click();
-    await panel(page).getByRole("button", { name: "Done" }).focus();
-    await page.keyboard.press("Tab");
-    await expect.poll(() => focusIsIn(panel(page)), { timeout: 1500 }).toBe(false);
+    await panel(page).getByRole("slider", { name: "Volume" }).focus();
+    await page.keyboard.press("Shift+Tab");
+    await expect(panel(page)).toBeHidden();
   });
 
   test("Done and a click outside close it", async ({ page }) => {

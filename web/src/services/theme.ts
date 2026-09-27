@@ -1,9 +1,11 @@
+import { readStorage, writeStorage } from "../lib/safe-storage.js";
+
 export type ThemeMode = "system" | "light" | "dark";
 
 const THEME_KEY = "webspeak:theme";
 
 export function getStoredTheme(): ThemeMode {
-  const value = typeof localStorage === "undefined" ? "" : localStorage.getItem(THEME_KEY);
+  const value = readStorage(THEME_KEY);
   return value === "light" || value === "dark" || value === "system" ? value : "system";
 }
 
@@ -13,20 +15,38 @@ export function applyTheme(theme: ThemeMode): void {
 }
 
 export function saveTheme(theme: ThemeMode): void {
-  if (typeof localStorage !== "undefined") localStorage.setItem(THEME_KEY, theme);
   applyTheme(theme);
+  writeStorage(THEME_KEY, theme);
 }
 
-export function isDarkTheme(theme: ThemeMode): boolean {
-  if (theme === "dark") return true;
-  if (theme === "light") return false;
+const DARK_QUERY = "(prefers-color-scheme: dark)";
+
+function systemPrefersDark(): boolean {
   return typeof window !== "undefined" && typeof window.matchMedia === "function"
-    ? window.matchMedia("(prefers-color-scheme: dark)").matches
+    ? window.matchMedia(DARK_QUERY).matches
     : false;
 }
 
-export function nextTheme(theme: ThemeMode): ThemeMode {
-  return isDarkTheme(theme) ? "light" : "dark";
+/** Whether the theme shows dark. `systemDark` is the operating system's setting when the caller keeps it
+ *  reactive (see `watchSystemDark`); without it the setting is read from `matchMedia` at call time. */
+export function isDarkTheme(theme: ThemeMode, systemDark?: boolean): boolean {
+  if (theme === "dark") return true;
+  if (theme === "light") return false;
+  return systemDark ?? systemPrefersDark();
+}
+
+export function nextTheme(theme: ThemeMode, systemDark?: boolean): ThemeMode {
+  return isDarkTheme(theme, systemDark) ? "light" : "dark";
+}
+
+/** Calls `onChange` with the operating system's dark setting each time it changes. Returns the function
+ *  that removes the listener (call it when the owner goes away). */
+export function watchSystemDark(onChange: (dark: boolean) => void): () => void {
+  if (typeof window === "undefined" || typeof window.matchMedia !== "function") return () => {};
+  const query = window.matchMedia(DARK_QUERY);
+  const listener = (event: MediaQueryListEvent) => onChange(event.matches);
+  query.addEventListener?.("change", listener);
+  return () => query.removeEventListener?.("change", listener);
 }
 
 applyTheme(getStoredTheme());

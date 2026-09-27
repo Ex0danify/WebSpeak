@@ -261,8 +261,8 @@ describe("ending a share", () => {
   });
 });
 
-// F18: every session sees every move on the server, and `reconcileScreenShareAfterClientMove` compares the
-// destination of whoever moved with the channel of the share, without checking that the mover is the
+// F18: every session sees every move on the server, and `reconcileScreenShareAfterClientMove` used to compare
+// the destination of whoever moved with the channel of the share, without checking that the mover is the
 // sharer or the viewer. The tests below move somebody else.
 describe("someone else changing channel", () => {
   async function shareWithViewer(gateway: Gateway) {
@@ -277,16 +277,7 @@ describe("someone else changing channel", () => {
     return ((await session.socket.waitForMessage("screenShareList", { after })).streams as Stream[]).map((stream) => stream.streamId);
   };
 
-  it("F18: ends the share of a sharer who stayed put, with the reason owner-moved-channel", async () => {
-    const gateway = await gateways.start();
-    const { owner, viewer, bystander, stream } = await shareWithViewer(gateway);
-    const mark = await markOf(owner);
-    await ask(bystander, "switchChannel", { channelId: "3" });
-    expect(await owner.socket.waitForMessage("screenShareStopped", { after: mark })).toMatchObject({ streamId: stream.streamId, reason: "owner-moved-channel" });
-    expect(await listed(viewer)).toEqual([]);
-  });
-
-  it.fails("F18: leaves the share of a sharer who stayed put running, with its viewer", async () => {
+  it("F18: leaves the share of a sharer who stayed put running, with its viewer", async () => {
     const gateway = await gateways.start();
     const { owner, viewer, bystander, stream } = await shareWithViewer(gateway);
     await ask(bystander, "switchChannel", { channelId: "3" });
@@ -296,7 +287,7 @@ describe("someone else changing channel", () => {
     expect(await listed(viewer)).toEqual([stream.streamId]);
   });
 
-  it.fails("F18: a viewer who changes channel leaves the share, and the share keeps running for the sharer", async () => {
+  it("F18: a viewer who changes channel leaves the share, and the share keeps running for the sharer", async () => {
     const gateway = await gateways.start();
     const { owner, viewer, stream } = await shareWithViewer(gateway);
     const mark = await markOf(owner);

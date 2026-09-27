@@ -81,8 +81,9 @@ test.describe("channel tree", () => {
     await expect.poll(() => headingColor(page, "Lobby")).not.toBe(current);
   });
 
-  // Someone else (an administrator dragging you) moves you: the list shows you in the new channel, but
-  // the view keeps the channel you last clicked or joined as "current" (bug F22).
+  // Someone else (an administrator dragging you) moves you: the list shows you in the new channel,
+  // and the view now follows (F22): the highlight, the voice cards and the channel chat tab move
+  // with it.
   async function beMovedByAnother(page: Page, gateway: Gateway, script: Script, nickname: string) {
     const other = script.channel(`${nickname}-other`);
     script.member(`${nickname}-lobby-mate`);
@@ -95,18 +96,23 @@ test.describe("channel tree", () => {
     return { before, otherName: `${nickname}-other` };
   }
 
-  test("F22: after someone else moves you, the highlight and the channel chat tab stay on the old channel", async ({ page, gateway, script, isMobile }) => {
-    const { before } = await beMovedByAnother(page, gateway, script, "tree-moved-pinned");
-    // Nothing to wait for: the list above already shows the move, and the highlight is computed from the same state.
-    expect(await headingColor(page, "Lobby")).toBe(before);
-    if (!isMobile) await expect(page.getByRole("button", { name: "Lobby", exact: true })).toBeVisible();
-  });
-
-  test("the highlight follows a move someone else made (bug F22)", async ({ page, gateway, script }) => {
-    test.fail();
+  test("F22: the highlight follows a move someone else made", async ({ page, gateway, script }) => {
     const { before, otherName } = await beMovedByAnother(page, gateway, script, "tree-moved-marker");
     await expect.poll(() => headingColor(page, otherName), { timeout: 2000 }).toBe(before);
     await expect.poll(() => headingColor(page, "Lobby"), { timeout: 2000 }).not.toBe(before);
+  });
+
+  test("F22: the channel chat tab and the voice card count follow a move someone else made", async ({ page, gateway, script, isMobile }) => {
+    const { otherName } = await beMovedByAnother(page, gateway, script, "tree-moved-chat");
+    // The chat tab strip's channel tab is named after the current channel.
+    if (!isMobile) {
+      await expect(page.getByRole("tab", { name: otherName, exact: true })).toBeVisible();
+      await expect(page.getByRole("tab", { name: "Lobby", exact: true })).toBeHidden();
+      await expect(page.getByText("1 online")).toBeVisible();
+    }
+    const chatTab = page.getByRole("tab", { name: "Chat" });
+    if (await chatTab.isVisible()) await chatTab.click();
+    await expect(page.getByRole("heading", { name: `${otherName} chat` })).toBeVisible();
   });
 });
 

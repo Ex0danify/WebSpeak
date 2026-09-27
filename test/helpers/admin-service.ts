@@ -27,13 +27,14 @@ export function settingsInput(overrides: Partial<AdminSettingsInput> = {}): Admi
   };
 }
 
-/** An `AdminService` on a temporary database with a fixed master secret and a stub probe. */
+/** An `AdminService` on a temporary database with a fixed master secret, a stub probe and a stub host ping. */
 export function useAdminService() {
   const database = useDatabaseFixture();
   const context = {
     database,
     logger: stubLogger(),
     probe: vi.fn(),
+    ping: vi.fn(),
     legacyConfigPath: () => join(database.dir, "config.json"),
     writeLegacyConfig(config: unknown): void {
       database.open(); // makes sure the directory exists
@@ -42,7 +43,7 @@ export function useAdminService() {
     /** Opens the database and builds a service on it. `secret` defaults to the fixed test secret. */
     create(secret: Buffer = MASTER_SECRET): AdminService {
       const db = database.open();
-      return new AdminService(db, secret, context.logger, context.legacyConfigPath(), context.probe as never, "9.9.9");
+      return new AdminService(db, secret, context.logger, context.legacyConfigPath(), context.probe as never, "9.9.9", context.ping as never);
     },
   };
   return context;

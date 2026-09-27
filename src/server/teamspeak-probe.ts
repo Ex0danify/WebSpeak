@@ -1,28 +1,36 @@
-import type { Logger } from "../logger.js";
-import { normalizeTeamSpeakError, type WebSpeakErrorCode } from "../errors.js";
+import { randomBytes } from "node:crypto";
+import { lookup } from "node:dns/promises";
+import { createSocket, type Socket } from "node:dgram";
+import { isIP } from "node:net";
+import { INIT_VERSION } from "@echosixhiya/teamspeak-client/handshake";
 import type { TeamSpeakTarget } from "../domain/teamspeak-target.js";
-import { TSClient } from "./ts-client.js";
-import type { TeamSpeakProtocol } from "./teamspeak-adapter.js";
 
+/**
+ * What the admin console's "Test connection" can tell about the voice port.
+ *
+ * NO_ANSWER: the port stayed silent (nothing listens, a firewall drops the packets, or the
+ * server process is down). PROTOCOL_NEGOTIATION_FAILED: something answered, but not with the
+ * TeamSpeak handshake (a different service on that port).
+ */
 export type ProbeErrorCode =
-  | "INVALID_NICKNAME"
   | "HOST_NOT_FOUND"
   | "UNREACHABLE"
   | "CONNECTION_REFUSED"
-  | "CONNECTION_RESET"
-  | "TIMEOUT"
-  | "PASSWORD_REQUIRED"
-  | "INVALID_PASSWORD"
+  | "NO_ANSWER"
   | "PROTOCOL_NEGOTIATION_FAILED"
-  | "SERVER_REJECTED"
   | "INTERNAL_ERROR";
 
 export interface TeamSpeakProbeResult {
   ok: true;
-  protocol: TeamSpeakProtocol | null;
+  /** Round trip of the handshake packet, in milliseconds. */
   latencyMs: number;
-  serverName: string | null;
-  requiresPassword: boolean;
+}
+
+export interface TeamSpeakProbeOptions {
+  /** Packets sent before the port counts as silent. Default 3. */
+  attempts?: number;
+  /** How long each packet waits for its answer. Default 1000 ms. */
+  attemptTimeoutMs?: number;
 }
 
 export class TeamSpeakProbeError extends Error {
@@ -32,111 +40,143 @@ export class TeamSpeakProbeError extends Error {
   }
 }
 
-interface ProbeAdapter {
-  connect(): Promise<void>;
-  disconnect(): Promise<void>;
-  readonly protocol?: TeamSpeakProtocol | null;
-  getProtocol?(): TeamSpeakProtocol | null;
-  execCommandWithResponse?(command: string, timeoutMs?: number): Promise<Record<string, string>[]>;
-  readonly client?: {
-    execCommandWithResponse(command: string, timeoutMs?: number): Promise<Record<string, string>[]>;
-  };
+// The first packet of the TeamSpeak connection handshake ("Init1", step 0), as the client SDK
+// sends it before anything else. The server answers with step 1 and holds no state for the
+// sender until the later steps (which are never sent here), so nothing shows up in a channel.
+// Layout of a client packet: MAC "TS3INIT1" (8), packet id (2), client id (2), type (1), then
+// version (4), step (1), timestamp (4), four random bytes (4), zero padding (8).
+const INIT1_MAC = Buffer.from("TS3INIT1");
+const INIT1_TYPE = 0x08;
+const INIT1_PACKET_ID = 101;
+const CLIENT_HEADER_LENGTH = 13;
+const SERVER_HEADER_LENGTH = 11;
+const STEP_0_LENGTH = 21;
+const STEP_1_LENGTH = 21;
+
+export function buildInitPacket(random: Buffer): Buffer {
+  const packet = Buffer.alloc(CLIENT_HEADER_LENGTH + STEP_0_LENGTH);
+  INIT1_MAC.copy(packet, 0);
+  packet.writeUInt16BE(INIT1_PACKET_ID, 8);
+  packet.writeUInt16BE(0, 10);
+  packet[12] = INIT1_TYPE;
+  const data = CLIENT_HEADER_LENGTH;
+  packet.writeUInt32BE(INIT_VERSION, data);
+  packet[data + 4] = 0;
+  packet.writeUInt32BE(Math.floor(Date.now() / 1000) >>> 0, data + 5);
+  random.copy(packet, data + 9, 0, 4);
+  return packet;
 }
 
-export type ProbeAdapterFactory = (input: {
-  target: TeamSpeakTarget;
-  password: string;
-  logger: Logger;
-}) => ProbeAdapter;
+/**
+ * The answer to step 0 is step 1: an Init1 packet whose data is the step byte 1, sixteen random
+ * bytes and the client's four random bytes in reverse order. Returns the client's random bytes
+ * (as hex) it echoes, or null when the datagram is not that answer.
+ */
+export function readInitAnswer(datagram: Buffer): string | null {
+  if (datagram.length < SERVER_HEADER_LENGTH + STEP_1_LENGTH) return null;
+  if ((datagram[10] & 0x0f) !== INIT1_TYPE) return null;
+  const data = datagram.subarray(SERVER_HEADER_LENGTH);
+  if (data[0] !== 1) return null;
+  return Buffer.from(data.subarray(17, 21)).reverse().toString("hex");
+}
 
-export async function probeTeamSpeak(
-  target: TeamSpeakTarget,
-  password: string,
-  logger: Logger,
-  factory: ProbeAdapterFactory = ({ target: probeTarget, password: probePassword, logger: probeLogger }) =>
-    (() => {
-      const client = new TSClient({ target: probeTarget, nickname: "WebSpeak Probe", serverPassword: probePassword }, probeLogger);
-      return {
-        connect: () => client.connect(),
-        disconnect: () => client.disconnect(),
-        getProtocol: () => client.getProtocol(),
-        execCommandWithResponse: (command: string, timeoutMs?: number) => client.execCommandWithResponse(command, timeoutMs),
-      };
-    })(),
-): Promise<TeamSpeakProbeResult> {
-  const startedAt = Date.now();
-  const adapter = factory({ target, password, logger: logger.child({ component: "teamspeak-probe" }) });
+/**
+ * Checks that something answers the TeamSpeak protocol on the voice port (UDP) of `target`, by
+ * sending the first handshake packet and waiting for the server's reply. It does not log in, so
+ * it never creates a client and cannot check the server password. Resolves with the round trip or
+ * throws a `TeamSpeakProbeError`.
+ */
+export async function probeTeamSpeak(target: TeamSpeakTarget, options: TeamSpeakProbeOptions = {}): Promise<TeamSpeakProbeResult> {
+  const attempts = Math.max(1, Math.min(8, Math.floor(options.attempts ?? 3)));
+  const attemptTimeoutMs = Math.max(50, Math.min(5_000, Math.floor(options.attemptTimeoutMs ?? 1_000)));
+  const { address, family } = await resolveHost(target.host);
+  const socket = createSocket(family === 6 ? "udp6" : "udp4");
   try {
-    await adapter.connect();
-    let serverName: string | null = null;
-    try {
-      const execute = adapter.execCommandWithResponse?.bind(adapter) ?? adapter.client?.execCommandWithResponse.bind(adapter.client);
-      if (!execute) throw new Error("Probe adapter does not support commands");
-      const rows = await execute("serverinfo", 3000);
-      const first = rows[0] ?? {};
-      serverName = first.virtualserver_name ?? first.server_name ?? first.name ?? null;
-    } catch {
-      // A connected server can restrict serverinfo; reachability is still proven.
-    }
-    return {
-      ok: true,
-      protocol: adapter.protocol ?? adapter.getProtocol?.() ?? null,
-      latencyMs: Math.max(0, Date.now() - startedAt),
-      serverName,
-      requiresPassword: Boolean(password),
-    };
+    await new Promise<void>((resolve, reject) => {
+      socket.once("error", reject);
+      socket.connect(target.port, address, () => {
+        socket.off("error", reject);
+        resolve();
+      });
+    });
+    return await exchange(socket, attempts, attemptTimeoutMs);
   } catch (error: unknown) {
-    throw toProbeError(error, password);
+    throw toProbeError(error);
   } finally {
     try {
-      await adapter.disconnect();
-    } catch (error: unknown) {
-      logger.warn({ err: extractErrorText(error) }, "TeamSpeak probe cleanup failed");
+      socket.close();
+    } catch {
+      // Already closed.
     }
   }
 }
 
-export function toProbeError(error: unknown, password = ""): TeamSpeakProbeError {
-  if (error instanceof TeamSpeakProbeError) return error;
-  const normalized = normalizeTeamSpeakError(error);
-  const raw = `${extractErrorText(error)} ${extractErrorText(normalized.cause)}`.toLocaleLowerCase();
-  if (/enotfound|eai_again|getaddrinfo|host not found/.test(raw)) {
-    return new TeamSpeakProbeError("HOST_NOT_FOUND", "TeamSpeak host was not found", error);
-  }
-  // 探测只回答「该地址是否可用」，因此把网关能细分的拒绝原因收敛到既有探测码，
-  // 具体原因由连接/重连路径向浏览器上报。
-  // The probe only answers "can this address be used at all", so the richer
-  // rejection reasons the gateway can now name are bucketed into the existing
-  // probe codes; the exact reason is reported by the connect/reconnect path.
-  const mapping: Record<WebSpeakErrorCode, ProbeErrorCode> = {
-    invalid_target: "INTERNAL_ERROR",
-    invalid_nickname: "INVALID_NICKNAME",
-    nickname_in_use: "INVALID_NICKNAME",
-    invalid_parameter_size: "INVALID_NICKNAME",
-    unreachable: "UNREACHABLE",
-    host_not_found: "HOST_NOT_FOUND",
-    connection_refused: "CONNECTION_REFUSED",
-    connection_reset: "CONNECTION_RESET",
-    timeout: "TIMEOUT",
-    authentication_failed: password.trim() ? "INVALID_PASSWORD" : "PASSWORD_REQUIRED",
-    channel_password_required: "PASSWORD_REQUIRED",
-    identity_security_level_too_low: "SERVER_REJECTED",
-    identity_limit_reached: "SERVER_REJECTED",
-    client_version_outdated: "SERVER_REJECTED",
-    flooding: "SERVER_REJECTED",
-    banned: "SERVER_REJECTED",
-    kicked: "SERVER_REJECTED",
-    server_shutting_down: "SERVER_REJECTED",
-    connection_initialisation_failed: "SERVER_REJECTED",
-    protocol_negotiation_failed: "PROTOCOL_NEGOTIATION_FAILED",
-    server_full: "SERVER_REJECTED",
-    unknown: "SERVER_REJECTED",
-  };
-  return new TeamSpeakProbeError(mapping[normalized.code] ?? "INTERNAL_ERROR", normalized.message, error);
+function exchange(socket: Socket, attempts: number, attemptTimeoutMs: number): Promise<TeamSpeakProbeResult> {
+  return new Promise((resolve, reject) => {
+    const sentAt = new Map<string, number>();
+    let sent = 0;
+    let receivedOther = false;
+    let timer: NodeJS.Timeout | undefined;
+    const done = (finish: () => void): void => {
+      clearTimeout(timer);
+      socket.removeAllListeners("message");
+      socket.removeAllListeners("error");
+      socket.on("error", () => undefined);
+      finish();
+    };
+    const sendNext = (): void => {
+      if (sent >= attempts) {
+        done(() => reject(receivedOther
+          ? new TeamSpeakProbeError("PROTOCOL_NEGOTIATION_FAILED", "Something answered on the voice port, but not with the TeamSpeak handshake")
+          : new TeamSpeakProbeError("NO_ANSWER", "Nothing answered on the voice port")));
+        return;
+      }
+      sent += 1;
+      // A fresh random per packet tells which one an answer belongs to, so a late answer to
+      // an earlier packet still counts and its round trip is measured from that packet.
+      const random = randomBytes(4);
+      sentAt.set(Buffer.from(random).toString("hex"), Date.now());
+      timer = setTimeout(sendNext, attemptTimeoutMs);
+      socket.send(buildInitPacket(random), (error) => {
+        if (error) done(() => reject(error));
+      });
+    };
+    socket.on("message", (datagram) => {
+      const echoed = readInitAnswer(datagram);
+      const sentTime = echoed === null ? undefined : sentAt.get(echoed);
+      if (sentTime === undefined) {
+        receivedOther = true;
+        return;
+      }
+      done(() => resolve({ ok: true, latencyMs: Math.max(0, Date.now() - sentTime) }));
+    });
+    socket.on("error", (error) => done(() => reject(error)));
+    sendNext();
+  });
 }
 
-function extractErrorText(error: unknown): string {
-  if (!error || typeof error !== "object") return String(error ?? "");
-  const candidate = error as { code?: unknown; id?: unknown; serverMessage?: unknown; message?: unknown };
-  return `${typeof candidate.code === "string" ? candidate.code : ""} ${typeof candidate.id === "string" || typeof candidate.id === "number" ? candidate.id : ""} ${typeof candidate.serverMessage === "string" ? candidate.serverMessage : ""} ${typeof candidate.message === "string" ? candidate.message : ""}`;
+async function resolveHost(host: string): Promise<{ address: string; family: 4 | 6 }> {
+  const literal = isIP(host);
+  if (literal === 4 || literal === 6) return { address: host, family: literal };
+  try {
+    const resolved = await lookup(host);
+    return { address: resolved.address, family: resolved.family === 6 ? 6 : 4 };
+  } catch (error: unknown) {
+    throw toProbeError(error);
+  }
+}
+
+export function toProbeError(error: unknown): TeamSpeakProbeError {
+  if (error instanceof TeamSpeakProbeError) return error;
+  const code = typeof (error as { code?: unknown } | null)?.code === "string" ? (error as { code: string }).code : "";
+  if (code === "ENOTFOUND" || code === "EAI_AGAIN" || code === "EAI_NONAME") {
+    return new TeamSpeakProbeError("HOST_NOT_FOUND", "TeamSpeak host was not found", error);
+  }
+  if (code === "ECONNREFUSED") {
+    return new TeamSpeakProbeError("CONNECTION_REFUSED", "The host refused the packet: nothing listens on the voice port", error);
+  }
+  if (code === "EHOSTUNREACH" || code === "ENETUNREACH" || code === "ENETDOWN" || code === "EHOSTDOWN") {
+    return new TeamSpeakProbeError("UNREACHABLE", "TeamSpeak host is unreachable", error);
+  }
+  return new TeamSpeakProbeError("INTERNAL_ERROR", "Connection test failed", error);
 }

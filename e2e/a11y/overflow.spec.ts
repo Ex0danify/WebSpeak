@@ -12,16 +12,7 @@ import { overflowScan } from "../helpers";
 // is listed below with its finding: the test fails on anything else, and on a row that no longer
 // happens.
 
-const known: Record<string, { finding: string; clipped: string[] }> = {
-  "en admin-operations": { finding: "F31", clipped: ["OFFSCREEN:Terminate"] },
-  "zh admin-operations": { finding: "F31", clipped: ["OFFSCREEN:断开"] },
-  "de admin-operations": { finding: "F31", clipped: ["OFFSCREEN:Trennen"] },
-  "ru admin-operations": { finding: "F31", clipped: ["OFFSCREEN:Отключить"] },
-  "ja admin-operations": { finding: "F31", clipped: ["OFFSCREEN:切断"] },
-  "de demo": { finding: "F49", clipped: ["OFFSCREEN:Zur Startseite"] },
-  "ru demo": { finding: "F49", clipped: ["OFFSCREEN:На главную"] },
-  "de admin-server": { finding: "F50", clipped: ["OFFSCREEN:Änderungen speichern"] },
-};
+const known: Record<string, { finding: string; clipped: string[] }> = {};
 
 const languages = ["en", "zh", "de", "ru", "ja"] as const;
 

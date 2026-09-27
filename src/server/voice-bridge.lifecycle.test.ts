@@ -70,10 +70,10 @@ describe("a session ends and lets go of everything it held", () => {
     expect((await joinVoice(gateway, { nickname: "second", ...identity })).client.isConnected()).toBe(true);
   });
 
-  // F37: cleanupEntry() drops the session from the list first and releases the identity lease only
-  // after the TeamSpeak client has disconnected, so for as long as that takes, the console lists no
-  // session and the identity still cannot be used. The fake's disconnect is held open to show it.
-  it.fails("F37: an identity is free as soon as its session has left the admin console's list", async () => {
+  // F37: cleanupEntry() used to release the identity lease only after the TeamSpeak client had
+  // disconnected, so for as long as that took, the console listed no session and the identity still
+  // could not be used. The fake's disconnect is held open to show it.
+  it("F37: an identity is free as soon as its session has left the admin console's list", async () => {
     const gateway = await gateways.start();
     const identity = withIdentity();
     const first = await joinVoice(gateway, { nickname: "first", ...identity });
@@ -101,22 +101,15 @@ async function expectSessionsGone(gateway: Gateway, clients: { isConnected(): bo
 }
 
 describe("stopping the gateway", () => {
-  // F12 keeps stop() from finishing while a session is live, so it is started and not awaited.
-  it("F17: closes a live session's socket abnormally (1006, no reason) after disconnecting its TeamSpeak client", async () => {
-    const gateway = await gateways.start();
-    const session = await joinVoice(gateway, { nickname: "alice" });
-    void gateway.stop();
-    expect(await session.socket.waitForClose()).toEqual({ code: 1006, reason: "" });
-    expect(session.client.isConnected()).toBe(false);
-  });
-
-  it.fails("F17: tells the browser the gateway is going away (close code 1001 with a reason)", async () => {
+  // stop() is started and not awaited: what the test looks at is the socket's close.
+  it("F17: tells the browser the gateway is going away (close code 1001 with a reason)", async () => {
     const gateway = await gateways.start();
     const session = await joinVoice(gateway, { nickname: "alice" });
     void gateway.stop();
     const closed = await session.socket.waitForClose();
     expect(closed.code).toBe(1001);
     expect(closed.reason).not.toBe("");
+    expect(session.client.isConnected()).toBe(false);
   });
 });
 
@@ -154,8 +147,7 @@ async function startBridge(): Promise<BridgeContext> {
   bridges.push(async () => {
     sockets.forEach((socket) => socket.close());
     await Promise.all(sockets.map((socket) => socket.waitForClose().catch(() => undefined)));
-    // F12: a session the server ended leaves its socket behind, and then shutdown() never finishes.
-    void bridge.shutdown();
+    await bridge.shutdown();
     server.closeAllConnections();
     await new Promise<void>((resolve) => server.close(() => resolve()));
   });
@@ -205,9 +197,9 @@ describe("many sessions in a row leave nothing behind", () => {
     expect(context.ts.created.map((client) => client.isConnected())).toEqual(Array(CYCLES).fill(false));
   });
 
-  // F12 effect 2: cleanupEntry() strips the socket's listeners, so `ws` never forgets a socket that
-  // the gateway closed itself, and the server keeps all of them for the life of the process.
-  it.fails("F12: no closed socket is kept after 20 joins that the gateway ends", async () => {
+  // F12 effect 2: cleanupEntry() used to strip the socket's listeners, so `ws` never forgot a socket
+  // that the gateway closed itself, and the server kept all of them for the life of the process.
+  it("F12: no closed socket is kept after 20 joins that the gateway ends", async () => {
     const context = await startBridge();
     for (let i = 0; i < CYCLES; i++) {
       const socket = await context.open({ nickname: `visitor-${i}` });

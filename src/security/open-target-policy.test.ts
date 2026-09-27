@@ -69,16 +69,18 @@ describe("isRestrictedAddress: IPv4", () => {
     expect(isRestrictedAddress(address)).toBe(false);
   });
 
-  // Known bug F4 (docs/testing/findings.md): the policy blocks all of 192.0.0.0/16 (a === 192 && b === 0),
-  // not only the reserved 192.0.0.0/24 and 192.0.2.0/24, so public hosts such as 192.0.3.1 are refused.
-  // it.fails goes red when the bug is fixed; then make this a normal test.
-  it.fails("F4: allows public addresses in 192.0.0.0/16 outside the two reserved /24 blocks", () => {
+  // F4: only the two reserved /24 blocks of 192.0.0.0/16 are blocked (IETF protocol assignments and
+  // documentation); the rest of the /16 is public address space.
+  it("F4: allows public addresses in 192.0.0.0/16 outside the two reserved /24 blocks", () => {
     expect(isRestrictedAddress("192.0.1.1")).toBe(false);
     expect(isRestrictedAddress("192.0.3.1")).toBe(false);
+    expect(isRestrictedAddress("192.0.255.255")).toBe(false);
   });
 
-  it("F4 (current behaviour): the reserved /24 blocks and their neighbours outside 192.0/16", () => {
+  it("F4: blocks the two reserved /24 blocks and allows their neighbours", () => {
+    expect(isRestrictedAddress("192.0.0.0")).toBe(true);
     expect(isRestrictedAddress("192.0.0.255")).toBe(true);
+    expect(isRestrictedAddress("192.0.2.0")).toBe(true);
     expect(isRestrictedAddress("192.0.2.255")).toBe(true);
     expect(isRestrictedAddress("192.1.0.1")).toBe(false);
   });
@@ -123,15 +125,39 @@ describe("isRestrictedAddress: IPv6", () => {
 });
 
 describe("isRestrictedAddress: IPv6 forms that embed an IPv4 address", () => {
-  // Known bug F3 (docs/testing/findings.md): NAT64 (64:ff9b::/96) and 6to4 (2002::/16) addresses can carry a
-  // loopback or private IPv4 address, and the policy only inspects the ::ffff:0:0/96 mapped form.
-  it.fails.each([
+  // F3: NAT64 (64:ff9b::/96) and 6to4 (2002::/16) addresses can carry a loopback or private IPv4
+  // address, so the embedded address is judged with the IPv4 rules.
+  it.each([
     ["NAT64 loopback", "64:ff9b::7f00:1"],
     ["NAT64 private 10/8", "64:ff9b::a00:1"],
+    ["NAT64 private 192.168/16, dotted tail", "64:ff9b::192.168.0.1"],
+    ["NAT64 link-local, spelled out", "64:ff9b:0:0:0:0:a9fe:a9fe"],
+    ["NAT64 local-use prefix", "64:ff9b:1::1"],
     ["6to4 loopback", "2002:7f00:1::"],
     ["6to4 private 10/8", "2002:a00:1::"],
+    ["6to4 private 172.16/12 with a subnet and host", "2002:ac10:1:5::9"],
   ])("F3: blocks %s (%s)", (_name, address) => {
     expect(isRestrictedAddress(address)).toBe(true);
+  });
+
+  it.each([
+    ["NAT64 of a public address", "64:ff9b::808:808"],
+    ["NAT64 of a public address, dotted tail", "64:ff9b::8.8.8.8"],
+    ["6to4 of a public address", "2002:808:808::1"],
+  ])("F3: allows %s (%s)", (_name, address) => {
+    expect(isRestrictedAddress(address)).toBe(false);
+  });
+
+  it.each([
+    ["Teredo", "2001:0:4136:e378:8000:63bf:3fff:fdd2"],
+    ["discard-only", "100::1"],
+  ])("blocks %s (%s), which tunnel or drop traffic", (_name, address) => {
+    expect(isRestrictedAddress(address)).toBe(true);
+  });
+
+  it("does not confuse a public 2001 or 100 prefix with the blocked ones", () => {
+    expect(isRestrictedAddress("2001:4860:4860::8888")).toBe(false);
+    expect(isRestrictedAddress("100:1::1")).toBe(false);
   });
 });
 

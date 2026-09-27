@@ -30,6 +30,27 @@ const props = withDefaults(
 );
 
 const open = defineModel<boolean>("open", { default: false });
+
+const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
+function tabbableEdges(container: HTMLElement): [HTMLElement, HTMLElement] | [] {
+  const candidates = Array.from(container.querySelectorAll<HTMLElement>(FOCUSABLE)).filter((element) => element.getClientRects().length > 0);
+  return candidates.length ? [candidates[0], candidates[candidates.length - 1]] : [];
+}
+
+// reka-ui's FocusScope always loops inside a popover (the `loop` prop it passes to FocusScope is
+// hardcoded true, with no way to turn it off from here), which contradicts this component's own
+// contract ("Tab can leave it", F35). FocusScope listens on the panel itself; a capture listener on
+// an ancestor therefore runs first. At the panel's tabbable edges only, stop the key press from
+// reaching FocusScope, so the browser's own default action (moving focus) runs unopposed instead of
+// being redirected back into the panel.
+function releaseTabAtEdges(event: KeyboardEvent): void {
+  if (event.key !== "Tab" || event.altKey || event.ctrlKey || event.metaKey) return;
+  const [first, last] = tabbableEdges(event.currentTarget as HTMLElement);
+  if (!first) return;
+  const active = document.activeElement;
+  if ((event.shiftKey && active === first) || (!event.shiftKey && active === last)) event.stopPropagation();
+}
 </script>
 
 <template>
@@ -38,9 +59,11 @@ const open = defineModel<boolean>("open", { default: false });
       <slot name="trigger" />
     </PopoverTrigger>
     <PopoverPortal>
-      <PopoverContent :side="side" :align="align" :side-offset="8" :collision-padding="8" :aria-label="label" :class="cn(popoverContentClass, props.class)">
-        <slot :close="() => (open = false)" />
-      </PopoverContent>
+      <div @keydown.capture="releaseTabAtEdges">
+        <PopoverContent :side="side" :align="align" :side-offset="8" :collision-padding="8" :aria-label="label" :class="cn(popoverContentClass, props.class)">
+          <slot :close="() => (open = false)" />
+        </PopoverContent>
+      </div>
     </PopoverPortal>
   </PopoverRoot>
 </template>

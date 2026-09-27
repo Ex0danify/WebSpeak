@@ -71,19 +71,12 @@ describe("restoring the identity on mount", () => {
     expect(view.identityMaterial).toBe("");
   });
 
-  // F1: with no key the checkbox shows on, so the user believes the identity is kept.
-  it.fails("F1: restores a stored identity when the key was never written", async () => {
-    await store.saveStoredIdentity(STORED);
-    const view = await mountView();
-    expect(view.identityMaterial).toBe(STORED);
-  });
-
-  it("F1: with no key the checkbox is on, nothing is restored and no key is written (pinned)", async () => {
+  // F1: with no key the checkbox shows on, so the stored identity is restored, as the checkbox says.
+  it("restores a stored identity when the key was never written (F1)", async () => {
     await store.saveStoredIdentity(STORED);
     const view = await mountView();
     expect(view.rememberIdentity).toBe(true);
-    expect(view.identityMaterial).toBe("");
-    expect(localStorage.getItem(KEY)).toBeNull();
+    expect(view.identityMaterial).toBe(STORED);
   });
 });
 

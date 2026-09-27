@@ -27,9 +27,9 @@ export class AdminLoginRateLimiter {
     if (!current) {
       this.pruneExpired(now);
       while (this.attempts.size >= this.maxTrackedPeers) {
-        const oldestPeer = this.attempts.keys().next().value;
-        if (!oldestPeer) break;
-        this.attempts.delete(oldestPeer);
+        const weakestPeer = this.weakestPeer();
+        if (weakestPeer === undefined) break;
+        this.attempts.delete(weakestPeer);
       }
     }
     const attempt = !current || now - current.firstFailureAt >= WINDOW_MS
@@ -41,6 +41,19 @@ export class AdminLoginRateLimiter {
 
   recordSuccess(peer: string): void {
     this.attempts.delete(peer);
+  }
+
+  /** The peer with the fewest failures, the oldest of them on a tie, so a lockout outlives a flood of new peers. */
+  private weakestPeer(): string | undefined {
+    let weakest: string | undefined;
+    let fewest = Infinity;
+    for (const [peer, attempt] of this.attempts) {
+      if (attempt.failures < fewest) {
+        weakest = peer;
+        fewest = attempt.failures;
+      }
+    }
+    return weakest;
   }
 
   private pruneExpired(now: number): void {

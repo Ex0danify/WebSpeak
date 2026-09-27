@@ -28,7 +28,7 @@ test.describe("seeded identity", () => {
     await context.close();
   });
 
-  test("an unseeded browser joins with no identity of its own: the state that F1 leaves every visitor in", async ({ page }) => {
+  test("an unseeded first-time browser has no identity to send yet; the gateway hands one out", async ({ page }) => {
     const ticket = page.waitForRequest((r) => r.url().endsWith("/api/join-ticket"));
     await submitJoin(page, "Unseeded");
     const body = (await ticket).postDataJSON();

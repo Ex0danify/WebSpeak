@@ -19,10 +19,12 @@ import { menuContextKey } from "./menu-context";
 //
 // The thumb is drawn but is not a control there: reka's thumb would be a
 // second stop in the menu's arrow-key order and would step the value on Up and
-// Down while focus moves on. It is marked `data-disabled` (the menu skips
-// those; Slider cannot pass that through, reka sets the attribute itself) and
-// focus is handed back to the row. In the mobile sheet it is a plain Slider,
-// because the sheet is a dialog that tabs normally.
+// Down while focus moves on. It is marked `data-disabled` and `tabindex="-1"`
+// (the menu skips those, and it keeps the thumb out of aria-hidden-focus's
+// reach; Slider cannot pass either through as a prop, since reka's thumb
+// recomputes both itself on every render, so they are set on the element
+// directly) and focus is handed back to the row. In the mobile sheet it is a
+// plain Slider, because the sheet is a dialog that tabs normally.
 const props = withDefaults(
   defineProps<{
     label: string;
@@ -46,7 +48,11 @@ const item = ref<{ $el: HTMLElement } | null>(null);
 
 watch(
   item,
-  (row) => row?.$el.querySelector("[role=slider]")?.setAttribute("data-disabled", ""),
+  (row) => {
+    const thumb = row?.$el.querySelector("[role=slider]");
+    thumb?.setAttribute("data-disabled", "");
+    thumb?.setAttribute("tabindex", "-1");
+  },
   { flush: "post" },
 );
 

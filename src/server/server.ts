@@ -130,15 +130,7 @@ export function createWebServer(options: WebServerOptions): WebServer {
       return;
     }
 
-    const policy = options.adminService.getConnectionPolicy();
-    const managedInvite = inviteToken ? options.adminService.consumeManagedInvite(inviteToken) : null;
-    if (inviteToken && !managedInvite) {
-      response.status(400).json({ ok: false, code: "INVITE_INVALID" });
-      return;
-    }
-    let target = managedInvite?.target ?? policy.defaultTarget;
-    let serverPassword = managedInvite?.serverPassword ?? policy.serverPassword;
-    const channel = requestedChannel || managedInvite?.channel || "";
+    // Everything that can refuse the request comes before the invite is used up.
     const requestedRelayId = typeof body.accelerationRelayId === "string" ? body.accelerationRelayId.trim().slice(0, 110) : "";
     const accelerationRequested = body.accelerated === true || Boolean(requestedRelayId);
     const acceleration = resolveAccelerationOptions(options.voiceBridgeOptions.acceleration);
@@ -150,6 +142,16 @@ export function createWebServer(options: WebServerOptions): WebServer {
       response.status(400).json({ ok: false, code: "ACCELERATION_UNAVAILABLE" });
       return;
     }
+
+    const policy = options.adminService.getConnectionPolicy();
+    const managedInvite = inviteToken ? options.adminService.consumeManagedInvite(inviteToken) : null;
+    if (inviteToken && !managedInvite) {
+      response.status(400).json({ ok: false, code: "INVITE_INVALID" });
+      return;
+    }
+    let target = managedInvite?.target ?? policy.defaultTarget;
+    let serverPassword = managedInvite?.serverPassword ?? policy.serverPassword;
+    const channel = requestedChannel || managedInvite?.channel || "";
     if (!managedInvite) {
       try {
         if (policy.accessMode === "open" && typeof body.target === "string" && body.target.trim()) {
@@ -199,6 +201,11 @@ export function createWebServer(options: WebServerOptions): WebServer {
     startedAt,
   }));
 
+  // Every other answer of the API is JSON, so an unknown path is too.
+  app.use("/api", (_request, response) => {
+    response.status(404).json({ ok: false, code: "NOT_FOUND" });
+  });
+
   // Serve static frontend
   if (options.staticDir) {
     app.use(express.static(options.staticDir));
@@ -206,6 +213,24 @@ export function createWebServer(options: WebServerOptions): WebServer {
       res.sendFile(path.join(options.staticDir!, "index.html"));
     });
   }
+
+  // Errors of the body parser (and anything else that reaches Express) answer with JSON and never
+  // with the default page, which carries the stack trace outside production.
+  app.use(((error: unknown, _request, response, next) => {
+    if (response.headersSent) {
+      next(error);
+      return;
+    }
+    const failure = error as { status?: unknown; type?: unknown };
+    if (failure.type === "entity.too.large") {
+      response.status(413).json({ ok: false, code: "PAYLOAD_TOO_LARGE" });
+    } else if (failure.type === "entity.parse.failed" || failure.type === "encoding.unsupported" || failure.type === "charset.unsupported") {
+      response.status(400).json({ ok: false, code: "INVALID_JSON" });
+    } else {
+      logger.error({ err: error instanceof Error ? error.message : String(error) }, "Unhandled request error");
+      response.status(500).json({ ok: false, code: "INTERNAL_ERROR" });
+    }
+  }) as express.ErrorRequestHandler);
 
   voiceBridge.attach(server);
 
@@ -223,6 +248,7 @@ export function createWebServer(options: WebServerOptions): WebServer {
       adminSessions.clear();
       return new Promise((resolve) => {
         server.close(() => resolve());
+        server.closeAllConnections();
       });
     },
   };

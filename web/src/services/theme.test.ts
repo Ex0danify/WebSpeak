@@ -120,23 +120,22 @@ describe("saveTheme", () => {
     expect(document.documentElement.dataset.theme).toBe("dark");
   });
 
-  // F11: setItem throws when the quota is full, and then the click has no visible effect.
-  it.fails("F11: applies the theme even when the browser refuses to store it", async () => {
-    const { saveTheme } = await load();
+  // F11: a refused write (a full quota) must not stop the click from changing the theme.
+  it("F11: applies the theme even when the browser refuses to store it", async () => {
+    const { saveTheme } = await load("light");
     refuseWrites();
-    try {
-      saveTheme("dark");
-    } catch {
-      // The correct behavior is not to throw, but the assertion below is what counts.
-    }
+    expect(() => saveTheme("dark")).not.toThrow();
     expect(document.documentElement.dataset.theme).toBe("dark");
   });
 
-  it("F11: today a refused write throws and leaves the theme unchanged (pinned)", async () => {
-    const { saveTheme } = await load("light");
-    refuseWrites();
-    expect(() => saveTheme("dark")).toThrow("full");
-    expect(document.documentElement.dataset.theme).toBe("light");
+  it("F11: the app starts on the system theme when reading the storage throws", async () => {
+    vi.spyOn(window, "localStorage", "get").mockImplementation(() => {
+      throw new DOMException("blocked", "SecurityError");
+    });
+    vi.resetModules();
+    const { getStoredTheme } = await import("./theme");
+    expect(getStoredTheme()).toBe("system");
+    expect(document.documentElement.dataset.theme).toBe("system");
   });
 });
 
@@ -181,5 +180,57 @@ describe("nextTheme", () => {
     expect(nextTheme("system")).toBe("light");
     os.state.dark = false;
     expect(nextTheme("system")).toBe("dark");
+  });
+});
+
+describe("isDarkTheme and nextTheme with the system setting given (F26)", () => {
+  it("use the given value for system instead of reading matchMedia", async () => {
+    const { isDarkTheme, nextTheme } = await load();
+    const os = osPrefersDark(false);
+    expect(isDarkTheme("system", true)).toBe(true);
+    expect(nextTheme("system", true)).toBe("light");
+    expect(nextTheme("system", false)).toBe("dark");
+    expect(os.queries).toEqual([]);
+  });
+
+  it("ignore the given value for light and dark", async () => {
+    const { isDarkTheme } = await load();
+    expect(isDarkTheme("light", true)).toBe(false);
+    expect(isDarkTheme("dark", false)).toBe(true);
+  });
+});
+
+describe("watchSystemDark (F26)", () => {
+  /** A media query list that records its listeners and can fire a change. */
+  function fakeQuery(initial: boolean) {
+    const listeners = new Set<(event: MediaQueryListEvent) => void>();
+    const query = {
+      matches: initial,
+      addEventListener: (_type: string, listener: (event: MediaQueryListEvent) => void) => listeners.add(listener),
+      removeEventListener: (_type: string, listener: (event: MediaQueryListEvent) => void) => listeners.delete(listener),
+    };
+    vi.stubGlobal("matchMedia", () => query);
+    return { listeners, fire: (matches: boolean) => listeners.forEach((listener) => listener({ matches } as MediaQueryListEvent)) };
+  }
+
+  it("reports each change of the operating system until the returned function is called", async () => {
+    const { watchSystemDark } = await load();
+    const os = fakeQuery(false);
+    const seen: boolean[] = [];
+    const stop = watchSystemDark((dark) => seen.push(dark));
+    os.fire(true);
+    os.fire(false);
+    expect(seen).toEqual([true, false]);
+    stop();
+    expect(os.listeners.size).toBe(0);
+    os.fire(true);
+    expect(seen).toEqual([true, false]);
+  });
+
+  it("does nothing without matchMedia", async () => {
+    const { watchSystemDark } = await load();
+    vi.stubGlobal("matchMedia", undefined);
+    const stop = watchSystemDark(() => {});
+    expect(() => stop()).not.toThrow();
   });
 });

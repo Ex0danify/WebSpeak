@@ -70,9 +70,9 @@ export async function collectTeamSpeakPings(
 
 /**
  * Ping the TeamSpeak host from the WebSpeak machine without creating a
- * TeamSpeak client. This is intentionally a host/network diagnostic: the
- * TeamSpeak voice port is UDP, so a TCP socket probe is not meaningful and a
- * client-protocol probe would create an extra visible member.
+ * TeamSpeak client. This is a host/network diagnostic only: it says nothing
+ * about the voice port. The admin connection test shows it next to the UDP
+ * handshake of `probeTeamSpeak` (teamspeak-probe.ts), which is what decides.
  */
 export async function pingTeamSpeakHost(
   host: string,

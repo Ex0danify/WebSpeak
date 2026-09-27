@@ -58,7 +58,7 @@ interface TestFixtures {
   person: (index: number, label: string, options?: { gateway?: Gateway; seeded?: boolean }) => Promise<Person>;
   /**
    * A gateway of the test's own, for a test that ends it (the worker's cannot be started again on
-   * its port). Stopped after the test, with the wait bounded because of finding F12.
+   * its port). Stopped after the test.
    */
   ownGateway: () => Promise<Gateway>;
   /** A permanent channel of its own with a unique name. Returns its name and id; deleted after the test. */
@@ -88,7 +88,7 @@ export const test = base.extend<TestFixtures, WorkerFixtures>({
     async ({ server }, use) => {
       const gateway = await startRealGateway(server);
       await use(gateway);
-      await gateway.close({ stopTimeoutMs: 2000 });
+      await gateway.close();
     },
     { scope: "worker" },
   ],
@@ -143,15 +143,6 @@ export const test = base.extend<TestFixtures, WorkerFixtures>({
       (count) => count === 0,
       { timeoutMs: 10_000, message: "the gateway to list no session after the browsers closed" },
     );
-    // A session leaves that list when its teardown starts, but its identity lease is released only
-    // after the TeamSpeak client has disconnected. The teardown's own log line comes after both, so
-    // every join that started must have its "torn down" line before the next test may reuse an identity.
-    const logged = (message: string) => gateway.logger.info.mock.calls.filter((call) => call[1] === message).length;
-    await poll(
-      () => [logged("WebClient connecting"), logged("Client session torn down")],
-      ([started, ended]) => started === ended,
-      { timeoutMs: 10_000, message: "every session of this test to finish its teardown (identity leases released)" },
-    );
     // The gateway forgets a session before the TeamSpeak server has dropped its client, so the
     // server's own list is waited for too, or the next test would see a ghost.
     const dropStarted = Date.now();
@@ -175,7 +166,7 @@ export const test = base.extend<TestFixtures, WorkerFixtures>({
       started.push(gateway);
       return gateway;
     });
-    for (const gateway of started) await gateway.close({ stopTimeoutMs: 2000 });
+    for (const gateway of started) await gateway.close();
   },
 
   testChannel: async ({ query }, use) => {

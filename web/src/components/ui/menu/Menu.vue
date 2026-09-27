@@ -42,6 +42,11 @@ const props = withDefaults(
 
 const open = defineModel<boolean>("open", { default: false });
 
+// Reka focuses the trigger when the desktop popup closes. That is right for a real button, but a
+// caller whose trigger cannot take focus (a hidden span placed at a click point) needs to manage
+// it itself: call `event.preventDefault()` in the handler and focus whatever should get it.
+const emit = defineEmits<{ closeAutoFocus: [event: Event] }>();
+
 
 const sheet = useMediaQuery("(max-width: 740px)");
 provide(menuContextKey, { sheet, close: () => (open.value = false) });
@@ -93,7 +98,7 @@ const SheetTrigger = defineComponent({
       <slot name="trigger" />
     </DropdownMenuTrigger>
     <DropdownMenuPortal>
-      <DropdownMenuContent :side="side" :align="align" :side-offset="6" :collision-padding="8" :aria-label="label" :class="cn(menuContentClass, props.class)">
+      <DropdownMenuContent :side="side" :align="align" :side-offset="6" :collision-padding="8" :aria-label="label" :aria-labelledby="undefined" :class="cn(menuContentClass, props.class)" @close-auto-focus="emit('closeAutoFocus', $event)">
         <slot />
       </DropdownMenuContent>
     </DropdownMenuPortal>

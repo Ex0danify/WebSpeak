@@ -131,15 +131,18 @@ test.describe("server password dialog: a close that arrives after Esc", () => {
     return dialog;
   }
 
-  test("F23: the close of the refused socket brings the dialog back after it was cancelled", async ({ page }) => {
-    const dialog = await cancelThenLetTheCloseThrough(page, "dlg-late-close-pinned");
-    await expect(dialog).toBeVisible();
-  });
-
-  test("a cancelled password dialog stays closed when the socket's close arrives late (bug F23)", async ({ page }) => {
-    test.fail();
+  test("F23: a cancelled password dialog stays closed when the socket's close arrives late", async ({ page }) => {
     const dialog = await cancelThenLetTheCloseThrough(page, "dlg-late-close-marker");
     await expect(dialog).toBeHidden({ timeout: 1500 });
+  });
+
+  test("F23: retrying after a cancelled dialog still opens it for the new attempt's own failure", async ({ page }) => {
+    // The flag F23 adds must not survive past this attempt, or a later, unrelated failure would stay
+    // silent too. The server still asks for a password, so a bare retry fails the same way.
+    await cancelThenLetTheCloseThrough(page, "dlg-late-close-retry");
+    await page.getByRole("button", { name: "Enter voice space" }).click();
+    const dialog = page.getByRole("dialog", { name: "Server password required" });
+    await expect(dialog).toBeVisible();
   });
 });
 

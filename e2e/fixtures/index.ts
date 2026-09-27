@@ -71,9 +71,7 @@ export const test = base.extend<TestFixtures, WorkerFixtures>({
       const options: GatewayOptions = { staticDir };
       const gateway = await startGateway(options);
       await use(gateway);
-      // The browsers' sockets are not the harness's, so it cannot tell whether the gateway ended a
-      // session itself (a refused join, a kick), which keeps `stop()` pending forever (F12).
-      await gateway.close({ stopTimeoutMs: 2000 });
+      await gateway.close();
     },
     { scope: "worker" },
   ],
@@ -117,7 +115,7 @@ export const test = base.extend<TestFixtures, WorkerFixtures>({
       started.push(gateway);
       return gateway;
     });
-    for (const gateway of started) await gateway.close({ stopTimeoutMs: 2000 });
+    for (const gateway of started) await gateway.close();
   },
   openSession: async ({ browser, baseURL }, use, testInfo) => {
     const { use: project } = testInfo.project;

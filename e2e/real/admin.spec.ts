@@ -25,12 +25,12 @@ async function openAdmin(page: Page, gateway: Gateway, path: "/server" | "/opera
 const publicConfig = async (gateway: Gateway): Promise<{ accessMode: string; target: string }> => (await gateway.request("/api/public-config")).json();
 
 test.describe("test connection", () => {
-  // The console's test is a ping of the host from the gateway's machine; it makes no TeamSpeak client
-  // (`admin-service.ts`), and the server's UDP port is not what it measures. The disposable server's
-  // ports are published on 127.0.0.1, so this shows the real check (the product's own probe, see
-  // `startGateway`) running for the target the settings point at, and how it reports a host that
-  // does not answer.
-  test("reports a ping of the address the settings point at", async ({ page, ownGateway, server }) => {
+  // The console's test sends the first packet of the TeamSpeak handshake to the voice port and
+  // waits for the server's answer (`teamspeak-probe.ts`); it makes no TeamSpeak client, so it is
+  // not listed in a channel and cannot check the server password. The host ping runs next to it as
+  // extra detail. The disposable server's ports are published on 127.0.0.1, so this is the product's
+  // own probe and ping (see `startGateway`) against the real server.
+  test("reports the real server's answer to the handshake, and the ping of its host", async ({ page, ownGateway, server }) => {
     const gateway = await ownGateway();
     await openAdmin(page, gateway, "/server");
     await expect(page.getByLabel("TeamSpeak server address")).toHaveValue(server.host);
@@ -38,32 +38,49 @@ test.describe("test connection", () => {
 
     const answer = page.waitForResponse((response) => response.url().endsWith("/api/admin/server/test"));
     await page.getByRole("button", { name: "Test connection" }).click();
-    expect(await (await answer).json()).toMatchObject({ ok: true, checkType: "network", packetLossPercent: 0, attempts: 4, successfulAttempts: 4 });
-    await expect(page.getByText(/^Ping succeeded\..* · [\d.]+ ms · Packet loss 0%$/)).toBeVisible();
+    expect(await (await answer).json()).toMatchObject({
+      ok: true,
+      latencyMs: expect.any(Number),
+      hostPing: { ok: true, packetLossPercent: 0, attempts: 4, successfulAttempts: 4 },
+    });
+    await expect(page.getByText("TeamSpeak server answered")).toBeVisible();
+    await expect(page.getByText(/ · [\d.]+ ms · Host ping [\d.]+ ms · Packet loss 0%$/)).toBeVisible();
   });
 
-  // F38 (docs/testing/findings.md): the test is a host ping and never looks at the port, so a
-  // voice port with nothing behind it passes. Pinned as it is; a real check would turn this red.
-  test("F38: passes for a voice port that nothing listens on, because only the host is pinged", async ({ page, ownGateway }) => {
+  // F38 (docs/testing/findings.md): the test used to ping the host and never look at the port, so a
+  // voice port with nothing behind it passed. The host answers ping here, the port does not answer.
+  test("F38: fails for a voice port that nothing listens on, although the host answers ping", async ({ page, ownGateway }) => {
     const gateway = await ownGateway();
     await openAdmin(page, gateway, "/server");
     await page.getByLabel("Voice port").fill("1");
     const answer = page.waitForResponse((response) => response.url().endsWith("/api/admin/server/test"));
     await page.getByRole("button", { name: "Test connection" }).click();
-    expect(await (await answer).json()).toMatchObject({ ok: true, checkType: "network", successfulAttempts: 4 });
-    await expect(page.getByText("Network reachable (password not verified)")).toBeVisible();
+    // Nothing on UDP port 1 of the loopback address: the host answers "port unreachable" (refused),
+    // or, behind a firewall that drops instead, stays silent.
+    expect(await (await answer).json()).toMatchObject({
+      ok: false,
+      errorCode: expect.stringMatching(/^(CONNECTION_REFUSED|NO_ANSWER)$/),
+      hostPing: { ok: true, successfulAttempts: 4 },
+    });
+    await expect(page.getByText("TeamSpeak server answered")).toBeHidden();
+    await expect(page.getByText(/Host ping [\d.]+ ms · Packet loss 0%$/)).toBeVisible();
   });
 
   test("reports a host that does not answer as a failure", async ({ page, ownGateway }) => {
     const gateway = await ownGateway();
     await openAdmin(page, gateway, "/server");
-    // 192.0.2.0/24 is reserved for documentation (TEST-NET-1): nothing answers there.
+    // 192.0.2.0/24 is reserved for documentation (TEST-NET-1): nothing answers there, neither ping
+    // nor the handshake (which is silent, or refused by a router that has no route).
     await page.getByLabel("TeamSpeak server address").fill("192.0.2.1");
     const answer = page.waitForResponse((response) => response.url().endsWith("/api/admin/server/test"));
     await page.getByRole("button", { name: "Test connection" }).click();
-    expect(await (await answer).json()).toMatchObject({ ok: false, checkType: "network", successfulAttempts: 0 });
-    await expect(page.getByText(/Ping succeeded/)).toBeHidden();
-    await expect(page.getByText(/Packet loss 100%/)).toBeVisible();
+    expect(await (await answer).json()).toMatchObject({
+      ok: false,
+      errorCode: expect.stringMatching(/^(NO_ANSWER|UNREACHABLE|CONNECTION_REFUSED)$/),
+      hostPing: { ok: false, successfulAttempts: 0, packetLossPercent: 100 },
+    });
+    await expect(page.getByText("TeamSpeak server answered")).toBeHidden();
+    await expect(page.getByText(/The host does not answer ping/)).toBeVisible();
   });
 });
 

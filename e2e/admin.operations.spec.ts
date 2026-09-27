@@ -31,6 +31,8 @@ async function guestJoins(page: Page, gateway: Gateway, nickname: string, link =
 }
 
 const sessionsTable = (page: Page) => page.locator("table").first();
+/** The toast with this text; the announcement in the hidden live region is not a list item. */
+const toast = (page: Page, text: string) => page.locator("li").filter({ hasText: text });
 
 test.describe("sessions", () => {
   test("says when nobody is connected, lists a guest with its state, and Refresh picks up a new one", async ({ page, ownGateway }) => {
@@ -84,7 +86,7 @@ test.describe("invites", () => {
     const link = await page.getByLabel("Invite link created").inputValue();
 
     await page.getByRole("button", { name: "Copy link" }).click();
-    await expect(page.getByText("Invite link copied.")).toBeVisible();
+    await expect(toast(page, "Invite link copied.")).toBeVisible();
     expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(link);
 
     const guest = await guestJoins(page, gateway, "ops-invited", link);
@@ -122,10 +124,10 @@ test.describe("invites", () => {
   });
 });
 
-// The console has the words "Session terminated." and "Invite link revoked." and never shows them
-// (bug F30): the list changes and that is all.
+// Every successful action of the console says so in a toast (bug F30: terminating and revoking said nothing).
 test.describe("confirmations", () => {
-  async function terminateAndRevoke(page: Page, gateway: Gateway) {
+  test("terminating a session and revoking an invite each say so, and a refused action shows no confirmation (F30)", async ({ page, ownGateway }) => {
+    const gateway = await ownGateway();
     const guest = await guestJoins(page, gateway, "ops-notice");
     await expect(guest.getByRole("textbox", { name: "Search members" })).toBeVisible();
     await openAdmin(page, gateway, "/operations");
@@ -134,22 +136,25 @@ test.describe("confirmations", () => {
     const item = page.locator(".invite-row").first();
     await item.getByRole("button", { name: "Revoke" }).click();
     await expect(item).toContainText("Revoked");
+    await expect(toast(page, "Invite link revoked.")).toBeVisible();
+    await expect(toast(page, "Session terminated.")).toHaveCount(0);
+
     await sessionsTable(page).getByRole("row").filter({ hasText: "ops-notice" }).getByRole("button", { name: "Terminate" }).click();
     await expect(guest.getByRole("button", { name: "Enter voice space" })).toBeVisible();
+    await expect(toast(page, "Session terminated.")).toBeVisible();
     await page.getByRole("button", { name: "Refresh" }).click();
     await expect(page.getByText("There are no active sessions.")).toBeVisible();
-  }
-
-  test("F30: terminating a session and revoking an invite change the lists and say nothing", async ({ page, ownGateway }) => {
-    await terminateAndRevoke(page, await ownGateway());
-    await expect(page.getByText("Session terminated.")).toHaveCount(0);
-    await expect(page.getByText("Invite link revoked.")).toHaveCount(0);
   });
 
-  test("terminating a session and revoking an invite say so (bug F30)", async ({ page, ownGateway }) => {
-    test.fail();
-    await terminateAndRevoke(page, await ownGateway());
-    await expect(page.getByText("Session terminated.")).toBeVisible({ timeout: 1500 });
+  test("declining the confirmation dialog changes nothing and shows no toast (F30)", async ({ page, ownGateway }) => {
+    const gateway = await ownGateway();
+    await openAdmin(page, gateway, "/operations");
+    await page.getByRole("button", { name: "Create invite link" }).click();
+    const item = page.locator(".invite-row").first();
+    page.once("dialog", (dialog) => dialog.dismiss());
+    await item.getByRole("button", { name: "Revoke" }).click();
+    await expect(item).toContainText("Active");
+    await expect(page.locator("li").filter({ hasText: "revoked" })).toHaveCount(0);
   });
 });
 
@@ -174,8 +179,9 @@ test.describe("at a phone's width", () => {
     });
   }
 
-  // The sessions table is wider than the screen and scrolls inside its own box, so its action is
-  // out of sight until the table is scrolled (bug F31).
+  // The table used to have a 600px min-width and full age/member columns, so it scrolled inside
+  // its own box and hid the Terminate button off screen (bug F31). At this size the two columns
+  // are dropped and the table can shrink to fit.
   async function operationsWithASession(page: Page, gateway: Gateway) {
     const guest = await guestJoins(page, gateway, "ops-narrow");
     await expect(guest.getByRole("textbox", { name: "Search members" })).toBeVisible();
@@ -183,13 +189,7 @@ test.describe("at a phone's width", () => {
     await expect(sessionsTable(page)).toBeVisible();
   }
 
-  test("F31: with a session listed, its Terminate button is off screen until the table is scrolled", async ({ page, ownGateway }) => {
-    await operationsWithASession(page, await ownGateway());
-    expect(await overflowScan(page)).toEqual({ clipped: ["OFFSCREEN:Terminate"], pageScrolls: false });
-  });
-
-  test("everything in the sessions table is on screen at 390 px (bug F31)", async ({ page, ownGateway }) => {
-    test.fail();
+  test("everything in the sessions table is on screen at 390 px (F31)", async ({ page, ownGateway }) => {
     await operationsWithASession(page, await ownGateway());
     expect(await overflowScan(page)).toEqual({ clipped: [], pageScrolls: false });
   });

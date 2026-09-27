@@ -140,7 +140,7 @@
           <div class="page-heading"><div><h2>{{ tr('operations') }}</h2><p>{{ tr('operationsLead') }}</p></div><Button variant="secondary" :loading="operationsLoading" @click="loadOperations"><Icon v-if="!operationsLoading" name="refresh" :size="17" />{{ tr('refresh') }}</Button></div>
           <Banner class="system-notice py-2.5 text-xs leading-[normal]">{{ tr('updateNotice', { version: operations.diagnostics.version || '—' }) }}</Banner>
           <div class="operations-grid operations-primary">
-            <article class="operation-card operation-wide"><header><div><h3>{{ tr('sessions') }}</h3><p>{{ tr('sessionsLead') }}</p></div><strong>{{ operations.sessions.length }}</strong></header><div v-if="operations.sessions.length" class="table-wrap"><table><thead><tr><th>{{ tr('nickname') }}</th><th>{{ tr('sessionState') }}</th><th>{{ tr('age') }}</th><th>{{ tr('memberCount') }}</th><th></th></tr></thead><tbody><tr v-for="session in operations.sessions" :key="session.id"><td><strong>{{ session.nickname }}</strong><small>{{ session.target }}</small></td><td><Chip variant="accent">{{ sessionStateLabel(session.state) }}</Chip></td><td>{{ formatAge(session.ageSeconds) }}</td><td>{{ session.memberCount }}</td><td><Button variant="ghost" size="sm" :class="dangerSoftClass" :disabled="terminatingSession === session.id" @click="terminateSession(session)">{{ terminatingSession === session.id ? tr('terminating') : tr('endSession') }}</Button></td></tr></tbody></table></div><div v-else class="operation-empty"><Icon name="users" :size="22" /><span>{{ tr('sessionEmpty') }}</span></div></article>
+            <article class="operation-card operation-wide"><header><div><h3>{{ tr('sessions') }}</h3><p>{{ tr('sessionsLead') }}</p></div><strong>{{ operations.sessions.length }}</strong></header><div v-if="operations.sessions.length" class="table-wrap"><table><thead><tr><th>{{ tr('nickname') }}</th><th>{{ tr('sessionState') }}</th><th>{{ tr('age') }}</th><th>{{ tr('memberCount') }}</th><th><span class="sr-only">{{ tr('sessionActions') }}</span></th></tr></thead><tbody><tr v-for="session in operations.sessions" :key="session.id"><td><strong>{{ session.nickname }}</strong><small>{{ session.target }}</small></td><td><Chip variant="accent">{{ sessionStateLabel(session.state) }}</Chip></td><td>{{ formatAge(session.ageSeconds) }}</td><td>{{ session.memberCount }}</td><td><Button variant="ghost" size="sm" :class="dangerSoftClass" :disabled="terminatingSession === session.id" @click="terminateSession(session)">{{ terminatingSession === session.id ? tr('terminating') : tr('endSession') }}</Button></td></tr></tbody></table></div><div v-else class="operation-empty"><Icon name="users" :size="22" /><span>{{ tr('sessionEmpty') }}</span></div></article>
             <article class="operation-card"><header><div><h3>{{ tr('invites') }}</h3><p>{{ tr('invitesLead') }}</p></div></header><form class="invite-form" @submit.prevent="createInvite">
                 <Field :label="tr('inviteChannel')" class="gap-1"><Input v-model.trim="inviteForm.channel" :input-class="inviteInputClass" maxlength="100" :placeholder="tr('inviteChannelPlaceholder')" /></Field>
                 <div class="invite-form-grid">
@@ -153,7 +153,7 @@
           </div>
           <div class="operations-grid lower-operations">
             <article class="operation-card diagnostics-card"><header><div><h3>{{ tr('diagnostics') }}</h3><p>{{ tr('diagnosticsLead') }}</p></div><a class="text-link" href="/api/admin/diagnostics/report">{{ tr('downloadReport') }}</a></header><dl class="diagnostic-list"><div><dt>{{ tr('version') }}</dt><dd>{{ operations.diagnostics.version || '—' }}</dd></div><div><dt>{{ tr('runtime') }}</dt><dd>{{ operations.diagnostics.node || '—' }}</dd></div><div><dt>{{ tr('platform') }}</dt><dd>{{ operations.diagnostics.platform || '—' }} / {{ operations.diagnostics.arch || '—' }}</dd></div><div><dt>{{ tr('databaseSchema') }}</dt><dd>v{{ operations.diagnostics.schemaVersion || '—' }}</dd></div><div><dt>{{ tr('createdSessions') }}</dt><dd>{{ operations.diagnostics.createdSessions }}</dd></div></dl><Button variant="secondary" class="mt-auto" @click="downloadBackup">{{ tr('exportBackup') }}</Button></article>
-            <article class="operation-card logs-card"><header><div><h3>{{ tr('logViewer') }}</h3><p>{{ tr('logViewerLead') }}</p></div><span v-if="!operations.logs.available" class="muted-label">{{ tr('logsUnavailable') }}</span></header><div v-if="operations.logs.sessions.length" class="connection-list"><div class="connection-history-heading"><strong>{{ tr('connectionHistory') }}</strong><small>{{ tr('connectionHistoryLead') }}</small></div><div v-for="record in operations.logs.sessions" :key="record.id" class="connection-row"><div class="connection-person"><strong>{{ record.nickname }}</strong><small>{{ record.target }}</small><small class="connection-route">{{ connectionRoute(record) }}</small></div><div class="connection-detail"><span :class="['connection-status', record.status]">{{ connectionStatusLabel(record.status) }}</span><small>{{ record.connectedAt ? tr('connectedAt') : tr('connectionAttemptedAt') }}：{{ formatDate(record.connectedAt || record.startedAt) }}</small><small>{{ tr('duration') }}：{{ formatAge(record.durationSeconds) }}</small><small v-if="record.disconnectedAt">{{ tr('disconnectedAt') }}：{{ formatDate(record.disconnectedAt) }}</small><small v-if="record.reason">{{ tr('failureReason') }}：{{ connectionFailureText(record.reason) }}</small><small v-if="record.failureDetail" class="failure-detail">{{ tr('failureDetail') }}：{{ record.failureDetail }}</small></div></div></div><div v-if="operations.logs.entries.length" class="log-list"><div v-for="(entry, index) in operations.logs.entries" :key="`${entry.timestamp}-${index}`" class="log-row"><span :class="['log-level', entry.level.toLowerCase()]">{{ entry.level }}</span><div><strong>{{ entry.message || '—' }}</strong><small>{{ formatDate(entry.timestamp) }}<template v-if="Object.keys(entry.context).length"> · {{ formatContext(entry.context) }}</template></small></div></div></div><div v-if="!operations.logs.sessions.length && !operations.logs.entries.length" class="operation-empty"><Icon name="activity" :size="22" /><span>{{ tr('noLogs') }}</span></div></article>
+            <article class="operation-card logs-card"><header><div><h3>{{ tr('logViewer') }}</h3><p>{{ tr('logViewerLead') }}</p></div><span v-if="!operations.logs.available" class="muted-label">{{ tr('logsUnavailable') }}</span></header><div v-if="operations.logs.sessions.length" class="connection-list" role="region" tabindex="0" :aria-label="tr('connectionHistory')"><div class="connection-history-heading"><strong>{{ tr('connectionHistory') }}</strong><small>{{ tr('connectionHistoryLead') }}</small></div><div v-for="record in operations.logs.sessions" :key="record.id" class="connection-row"><div class="connection-person"><strong>{{ record.nickname }}</strong><small>{{ record.target }}</small><small class="connection-route">{{ connectionRoute(record) }}</small></div><div class="connection-detail"><span :class="['connection-status', record.status]">{{ connectionStatusLabel(record.status) }}</span><small>{{ record.connectedAt ? tr('connectedAt') : tr('connectionAttemptedAt') }}：{{ formatDate(record.connectedAt || record.startedAt) }}</small><small>{{ tr('duration') }}：{{ formatAge(record.durationSeconds) }}</small><small v-if="record.disconnectedAt">{{ tr('disconnectedAt') }}：{{ formatDate(record.disconnectedAt) }}</small><small v-if="record.reason">{{ tr('failureReason') }}：{{ connectionFailureText(record.reason) }}</small><small v-if="record.failureDetail" class="failure-detail">{{ tr('failureDetail') }}：{{ record.failureDetail }}</small></div></div></div><div v-if="operations.logs.entries.length" class="log-list" role="region" tabindex="0" :aria-label="tr('logViewer')"><div v-for="(entry, index) in operations.logs.entries" :key="`${entry.timestamp}-${index}`" class="log-row"><span :class="['log-level', entry.level.toLowerCase()]">{{ entry.level }}</span><div><strong>{{ entry.message || '—' }}</strong><small>{{ formatDate(entry.timestamp) }}<template v-if="Object.keys(entry.context).length"> · {{ formatContext(entry.context) }}</template></small></div></div></div><div v-if="!operations.logs.sessions.length && !operations.logs.entries.length" class="operation-empty"><Icon name="activity" :size="22" /><span>{{ tr('noLogs') }}</span></div></article>
             <article class="operation-card audit-card"><header><div><h3>{{ tr('audit') }}</h3><p>{{ tr('auditLead') }}</p></div></header><ul class="event-list"><li v-for="event in operations.audit" :key="`${event.event}-${event.createdAt}`"><span><Icon name="check" :size="14" /></span><div><strong>{{ eventName(event.event) }}</strong><small>{{ formatDate(event.createdAt) }}</small></div></li><li v-if="!operations.audit.length" class="empty-event">{{ tr('auditEmpty') }}</li></ul></article>
           </div>
         </section>
@@ -172,6 +172,7 @@
         </Dialog>
       </main>
     </div>
+    <Toaster :label="tr('notifications')" :dismiss-label="tr('close')" />
   </div>
 </template>
 
@@ -190,15 +191,20 @@ import { Input } from "@/components/ui/input";
 import { Radio, RadioGroup } from "@/components/ui/radio";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { Toaster } from "@/components/ui/toast";
 import { Segment, Segmented } from "@/components/ui/tabs";
 import LanguageSwitcher from "../components/LanguageSwitcher.vue";
 import { combineTeamSpeakTarget, splitTeamSpeakTarget } from "../services/teamspeak-target.js";
 import { applyTheme, getStoredTheme, isDarkTheme, nextTheme, saveTheme, type ThemeMode } from "../services/theme.js";
+import { writeStorage } from "@/lib/safe-storage";
+import { toast } from "@/lib/use-toast";
+import { detectLanguage } from "@/i18n/use-i18n";
 
 type Language = "zh" | "en" | "de" | "ru" | "ja";
 type Screen = "login" | "change-password" | "admin";
 type AccessMode = "fixed" | "open";
-interface ProbeState { ok: boolean; checkType?: "network" | "protocol"; passwordVerified?: boolean; latencyMs?: number; serverName?: string | null; packetLossPercent?: number; attempts?: number; successfulAttempts?: number; code?: string; errorCode?: string }
+interface HostPing { ok: boolean; latencyMs: number | null; packetLossPercent: number; attempts: number; successfulAttempts: number; errorCode?: string }
+interface ProbeState { ok: boolean; latencyMs?: number | null; hostPing?: HostPing; code?: string; errorCode?: string }
 interface RelayNodeForm { id: string; name: string; enabled: boolean; target: string; token: string; tokenAction: "keep" | "replace" | "remove"; hasToken: boolean }
 type WelcomeLanguage = "zh" | "en" | "de" | "ru" | "ja";
 type WelcomeTextField = "welcomeText" | "welcomeTextEn" | "welcomeTextDe" | "welcomeTextRu" | "welcomeTextJa";
@@ -213,8 +219,7 @@ const DEFAULT_WELCOME_TEXTS: Record<WelcomeLanguage, string> = {
 
 const route = useRoute();
 const router = useRouter();
-const storedLanguage = localStorage.getItem("webspeak:language");
-const language = ref<Language>(storedLanguage === "en" || storedLanguage === "de" || storedLanguage === "ru" || storedLanguage === "ja" ? storedLanguage : typeof navigator !== "undefined" && navigator.language.toLowerCase().startsWith("ru") ? "ru" : typeof navigator !== "undefined" && navigator.language.toLowerCase().startsWith("ja") ? "ja" : "zh");
+const language = ref<Language>(detectLanguage());
 const themeMode = ref<ThemeMode>(getStoredTheme());
 const themeIcon = computed(() => isDarkTheme(themeMode.value) ? "sun" : "moon");
 const themeLabel = computed(() => isDarkTheme(themeMode.value) ? tr("switchToLightTheme") : tr("switchToDarkTheme"));
@@ -300,11 +305,14 @@ const copy = {
     remove: "移除",
     testConnection: "测试连接",
     testing: "正在测试…",
-     connectionReady: "连接成功",
      connectionFailed: "连接失败",
     packetLoss: "丢包率",
-    networkReachable: "网络可达（未验证密码）",
-    networkReachableHint: "Ping 成功；管理员测试不会创建额外 TeamSpeak 成员，因此未验证服务器密码。",
+    serverAnswered: "TeamSpeak 服务器已应答",
+    serverAnsweredHint: "服务器已在该端口应答连接握手。测试不会创建 TeamSpeak 成员，因此未验证服务器密码。",
+    noAnswerError: "TeamSpeak 服务器无应答",
+    noAnswerHint: "该语音端口没有任何应答。请检查端口、服务器是否在运行以及 UDP 是否被拦截。",
+    hostPing: "主机 Ping",
+    hostPingNoAnswer: "主机不响应 Ping",
     failureReason: "原因",
     failureDetail: "诊断",
     hostNotFoundError: "找不到服务器",
@@ -366,6 +374,8 @@ const copy = {
     legacyImported: "已导入旧 config.json。WebSpeak 现在由管理控制台管理，原文件不会再作为实时配置源。",
     gotIt: "知道了",
     close: "关闭",
+    settingsSaved: "设置已保存。",
+    notifications: "通知",
     systemStatus: "系统状态",
     everythingRunning: "WebSpeak 正常运行",
     overviewLead: "管理服务可用；TeamSpeak 可达性以最近一次连接测试为准。",
@@ -405,6 +415,7 @@ const copy = {
     memberCount: "成员数",
     endSession: "断开",
     terminating: "断开中…",
+    sessionActions: "操作",
     sessionTerminated: "会话已断开。",
     confirmTerminate: "确定断开「{{nickname}}」吗？",
     invites: "受控邀请",
@@ -505,11 +516,14 @@ const copy = {
     remove: "Remove",
     testConnection: "Test connection",
     testing: "Testing…",
-     connectionReady: "Connection ready",
      connectionFailed: "Connection failed",
     packetLoss: "Packet loss",
-    networkReachable: "Network reachable (password not verified)",
-    networkReachableHint: "Ping succeeded. The admin test does not create an extra TeamSpeak client, so the server password was not verified.",
+    serverAnswered: "TeamSpeak server answered",
+    serverAnsweredHint: "The server replied to the connection handshake on this port. No client was created, so the server password was not checked.",
+    noAnswerError: "No answer from the TeamSpeak server",
+    noAnswerHint: "Nothing answered on this voice port. Check the port, that the server is running and that UDP is not blocked.",
+    hostPing: "Host ping",
+    hostPingNoAnswer: "The host does not answer ping",
     failureReason: "Reason",
     failureDetail: "Diagnostics",
     hostNotFoundError: "Server not found",
@@ -571,6 +585,8 @@ const copy = {
     legacyImported: "Legacy config.json was imported. WebSpeak is now managed here and the old file is no longer a live configuration source.",
     gotIt: "Got it",
     close: "Close",
+    settingsSaved: "Settings saved.",
+    notifications: "Notifications",
     systemStatus: "SYSTEM STATUS",
     everythingRunning: "WebSpeak is running",
     overviewLead: "The management service is available. TeamSpeak reachability reflects the latest connection test.",
@@ -610,6 +626,7 @@ const copy = {
     memberCount: "Members",
     endSession: "Terminate",
     terminating: "Terminating…",
+    sessionActions: "Actions",
     sessionTerminated: "Session terminated.",
     confirmTerminate: "Terminate “{{nickname}}”?",
     invites: "Managed invites",
@@ -707,11 +724,14 @@ const germanCopy = {
   remove: "Entfernen",
   testConnection: "Verbindung testen",
   testing: "Wird getestet…",
-  connectionReady: "Verbindung hergestellt",
   connectionFailed: "Verbindung fehlgeschlagen",
   packetLoss: "Paketverlust",
-  networkReachable: "Netzwerk erreichbar (Passwort nicht geprüft)",
-  networkReachableHint: "Ping erfolgreich. Der Admin-Test erstellt keinen zusätzlichen TeamSpeak-Client und prüft daher das Serverpasswort nicht.",
+  serverAnswered: "TeamSpeak-Server hat geantwortet",
+  serverAnsweredHint: "Der Server hat den Verbindungs-Handshake auf diesem Port beantwortet. Es wurde kein Client erstellt, daher wurde das Serverpasswort nicht geprüft.",
+  noAnswerError: "Keine Antwort vom TeamSpeak-Server",
+  noAnswerHint: "Auf diesem Sprachport hat nichts geantwortet. Prüfe den Port, ob der Server läuft und ob UDP nicht blockiert wird.",
+  hostPing: "Host-Ping",
+  hostPingNoAnswer: "Der Host antwortet nicht auf Ping",
   failureReason: "Grund",
   failureDetail: "Diagnose",
   hostNotFoundError: "Server nicht gefunden",
@@ -764,6 +784,8 @@ const germanCopy = {
   unknown: "Unbekannt",
   gotIt: "Verstanden",
   close: "Schließen",
+  settingsSaved: "Einstellungen gespeichert.",
+  notifications: "Benachrichtigungen",
   systemStatus: "SYSTEMSTATUS",
   everythingRunning: "WebSpeak läuft",
   overviewLead: "Der Verwaltungsdienst ist verfügbar. Die Erreichbarkeit von TeamSpeak entspricht dem letzten Verbindungstest.",
@@ -789,6 +811,7 @@ const germanCopy = {
   memberCount: "Mitglieder",
   endSession: "Trennen",
   terminating: "Wird getrennt…",
+  sessionActions: "Aktionen",
   sessionTerminated: "Sitzung getrennt.",
   invites: "Verwaltete Einladungen",
   inviteChannel: "Zielkanal",
@@ -861,9 +884,14 @@ const russianCopy = {
   remove: "Удалить",
   testConnection: "Проверить подключение",
   testing: "Проверка…",
-  connectionReady: "Подключение установлено",
   connectionFailed: "Подключение не удалось",
   packetLoss: "Потери пакетов",
+  serverAnswered: "Сервер TeamSpeak ответил",
+  serverAnsweredHint: "Сервер ответил на рукопожатие подключения на этом порту. Клиент не создавался, поэтому пароль сервера не проверялся.",
+  noAnswerError: "Сервер TeamSpeak не отвечает",
+  noAnswerHint: "На этом голосовом порту никто не ответил. Проверьте порт, запущен ли сервер и не блокируется ли UDP.",
+  hostPing: "Пинг хоста",
+  hostPingNoAnswer: "Хост не отвечает на пинг",
   accessAndIdentity: "Доступ и данные сайта",
   advancedSettings: "Расширенные настройки",
   advancedSettingsLead: "Изменяйте расширенные параметры передачи только при необходимости.",
@@ -876,6 +904,8 @@ const russianCopy = {
   relayToken: "Токен ретранслятора",
   relayAdd: "Добавить узел ретрансляции",
   close: "Закрыть",
+  settingsSaved: "Настройки сохранены.",
+  notifications: "Уведомления",
   relayNodeEmpty: "Узлы ретрансляции не настроены.",
   relayUnnamed: "Ретранслятор без названия",
   accessMode: "Режим доступа гостей",
@@ -912,6 +942,7 @@ const russianCopy = {
   memberCount: "Участники",
   endSession: "Отключить",
   terminating: "Отключение…",
+  sessionActions: "Действия",
   invites: "Управляемые приглашения",
   inviteChannel: "Целевой канал",
   expiresIn: "Срок действия (часы)",
@@ -920,6 +951,8 @@ const russianCopy = {
   inviteCreated: "Ссылка-приглашение создана",
   copyLink: "Копировать ссылку",
   copiedLink: "Ссылка-приглашение скопирована.",
+  sessionTerminated: "Сеанс завершён.",
+  inviteRevoked: "Ссылка-приглашение отозвана.",
   revoke: "Отозвать",
   active: "Активно",
   expired: "Истекло",
@@ -981,9 +1014,14 @@ const japaneseCopy = {
   remove: "削除",
   testConnection: "接続をテスト",
   testing: "テスト中…",
-  connectionReady: "接続準備完了",
   connectionFailed: "接続に失敗しました",
   packetLoss: "パケット損失",
+  serverAnswered: "TeamSpeak サーバーが応答しました",
+  serverAnsweredHint: "このポートでサーバーが接続ハンドシェイクに応答しました。クライアントは作成されないため、サーバーパスワードは確認されていません。",
+  noAnswerError: "TeamSpeak サーバーから応答がありません",
+  noAnswerHint: "この音声ポートでは何も応答しませんでした。ポート、サーバーの稼働状況、UDP がブロックされていないかを確認してください。",
+  hostPing: "ホストの Ping",
+  hostPingNoAnswer: "ホストが Ping に応答しません",
   accessAndIdentity: "アクセスとサイト情報",
   advancedSettings: "詳細設定",
   advancedSettingsLead: "必要な場合だけゲートウェイの詳細な転送設定を変更します。",
@@ -996,6 +1034,8 @@ const japaneseCopy = {
   relayToken: "中継トークン",
   relayAdd: "中継ノードを追加",
   close: "閉じる",
+  settingsSaved: "設定を保存しました。",
+  notifications: "通知",
   relayNodeEmpty: "中継ノードは設定されていません。",
   relayUnnamed: "名前のない中継",
   accessMode: "ゲストアクセスモード",
@@ -1032,6 +1072,7 @@ const japaneseCopy = {
   memberCount: "メンバー",
   endSession: "切断",
   terminating: "切断中…",
+  sessionActions: "操作",
   invites: "管理済み招待",
   inviteChannel: "参加先チャンネル",
   expiresIn: "有効期間（時間）",
@@ -1040,6 +1081,8 @@ const japaneseCopy = {
   inviteCreated: "招待リンクを作成しました",
   copyLink: "リンクをコピー",
   copiedLink: "招待リンクをコピーしました。",
+  sessionTerminated: "セッションを終了しました。",
+  inviteRevoked: "招待リンクを取り消しました。",
   revoke: "取り消す",
   active: "有効",
   expired: "期限切れ",
@@ -1095,7 +1138,7 @@ const currentPageTitle = computed(() => route.path === "/admin/server" ? tr('ser
 const testResultTitle = computed(() => {
   const result = testResult.value;
   if (!result) return "";
-  if (result.ok) return result.checkType === "network" ? tr("networkReachable") : tr("connectionReady");
+  if (result.ok) return tr("serverAnswered");
   const names: Record<string, keyof typeof copy.zh> = {
     INVALID_TARGET: "serverAddress",
     INVALID_NICKNAME: "invalidNicknameError",
@@ -1108,16 +1151,25 @@ const testResultTitle = computed(() => {
     INVALID_PASSWORD: "invalidServerPasswordError",
     PROTOCOL_NEGOTIATION_FAILED: "protocolFailureError",
     SERVER_REJECTED: "serverRejectedError",
+    NO_ANSWER: "noAnswerError",
     PING_UNAVAILABLE: "pingUnavailableError",
   };
   return tr(names[result.code ?? result.errorCode ?? ""] ?? "connectionFailed");
 });
-const testResultText = computed(() => { if (!testResult.value) return ""; const result = testResult.value; const toolUnavailable = result.errorCode === "PING_UNAVAILABLE"; const loss = toolUnavailable || result.packetLossPercent == null ? null : `${tr('packetLoss')} ${result.packetLossPercent}%`; if (!result.ok) return [connectionFailureText(result.code ?? result.errorCode), loss].filter(Boolean).join(" · "); if (result.checkType === "network") return [tr("networkReachableHint"), result.latencyMs == null ? null : `${result.latencyMs} ms`, loss].filter(Boolean).join(" · "); return [result.serverName, result.latencyMs == null ? null : `${result.latencyMs} ms`, loss].filter(Boolean).join(" · "); });
+const testResultText = computed(() => {
+  const result = testResult.value;
+  if (!result) return "";
+  const ping = result.hostPing;
+  const hostPing = !ping || ping.errorCode === "PING_UNAVAILABLE" ? null : ping.ok ? `${tr('hostPing')} ${ping.latencyMs} ms · ${tr('packetLoss')} ${ping.packetLossPercent}%` : tr('hostPingNoAnswer');
+  if (result.ok) return [tr("serverAnsweredHint"), result.latencyMs == null ? null : `${result.latencyMs} ms`, hostPing].filter(Boolean).join(" · ");
+  const code = result.code ?? result.errorCode;
+  return [code === "NO_ANSWER" ? tr("noAnswerHint") : connectionFailureText(code), hostPing].filter(Boolean).join(" · ");
+});
 const targetStatusText = computed(() => overview.teamSpeak.status === "reachable" ? tr('reachable') : overview.teamSpeak.status === "unreachable" ? tr('unreachable') : tr('notTested'));
 const webrtcPortRangeText = computed(() => `${serverForm.webRtcUdpStart}–${serverForm.webRtcUdpEnd}`);
 
 onMounted(loadAdminView);
-watch(() => [serverForm.address, serverForm.port, serverForm.serverPassword, serverForm.passwordAction], () => { if (!testing.value && screen.value === "admin") testResult.value = null; });
+watch(() => [serverForm.address, serverForm.port], () => { if (!testing.value && screen.value === "admin") testResult.value = null; });
 watch(() => route.path, () => { if (screen.value === "admin" && route.path === "/admin/operations") void loadOperations(); });
 
 async function loadAdminView() { loading.value = true; try { const session = await getJson("/api/admin/session"); if (!session.authenticated) { screen.value = "login"; if (route.path !== "/admin/login") await router.replace("/admin/login"); } else if (session.mustChangePassword) { csrfToken.value = String(session.csrfToken || ""); screen.value = "change-password"; if (route.path !== "/admin/change-password") await router.replace("/admin/change-password"); } else { csrfToken.value = String(session.csrfToken || ""); screen.value = "admin"; if (route.path === "/admin/login" || route.path === "/admin/change-password") await router.replace("/admin"); await Promise.all([loadOverview(), loadServerSettings()]); if (route.path === "/admin/operations") await loadOperations(); } } catch { errorMessage.value = tr('requestFailed'); } finally { loading.value = false; } }
@@ -1139,20 +1191,21 @@ function addRelayNode() { serverForm.relayNodes.push(createRelayNode()); serverF
 function removeRelayNode(index: number) { serverForm.relayNodes.splice(index, 1); serverForm.relaySettingsTouched = true; }
 async function loadServerSettings() { const value = await getJson("/api/admin/server"); const target = splitTeamSpeakTarget(value.target); Object.assign(serverForm, value, { address: target.address, port: target.port, serverPassword: "", passwordAction: "keep", welcomeTextDe: String(value.welcomeTextDe || ""), welcomeTextRu: String(value.welcomeTextRu || ""), welcomeTextJa: String(value.welcomeTextJa || ""), welcomeDefaults: { ...DEFAULT_WELCOME_TEXTS, ...(value.welcomeDefaults && typeof value.welcomeDefaults === "object" ? value.welcomeDefaults : {}) }, webRtcEnabled: value.webRtcEnabled === true, webRtcUdpStart: Number(value.webRtcUdpStart || 40000), webRtcUdpEnd: Number(value.webRtcUdpEnd || 40099), relayConfigured: value.relayConfigured === true, relayEnabled: value.relayEnabled === true, relayName: String(value.relayName || ""), relayTarget: String(value.relayTarget || ""), relayToken: "", relayTokenAction: "keep", hasRelayToken: value.hasRelayToken === true, relaySettingsTouched: false, relayNodes: mapRelayNodes(value.relayNodes) }); }
 async function loadOperations() { operationsLoading.value = true; try { const [sessions, invites, diagnostics, logs, audit] = await Promise.all([getJson("/api/admin/sessions"), getJson("/api/admin/invites"), getJson("/api/admin/diagnostics"), getJson("/api/admin/logs?limit=100"), getJson("/api/admin/audit?limit=50")]); operations.sessions = Array.isArray(sessions.sessions) ? sessions.sessions : []; operations.invites = Array.isArray(invites.invites) ? invites.invites : []; operations.diagnostics = { version: String(diagnostics.gateway?.version || ""), node: String(diagnostics.gateway?.node || ""), platform: String(diagnostics.gateway?.platform || ""), arch: String(diagnostics.gateway?.arch || ""), schemaVersion: Number(diagnostics.database?.schemaVersion || 0), createdSessions: Number(diagnostics.sessions?.created || 0) }; operations.logs = { available: Boolean(logs.available), entries: Array.isArray(logs.entries) ? logs.entries : [], sessions: Array.isArray(logs.sessions) ? logs.sessions : [] }; operations.audit = Array.isArray(audit.events) ? audit.events : []; } catch (error) { errorMessage.value = errorText((error as ApiError).code); } finally { operationsLoading.value = false; } }
-async function terminateSession(session: AdminSession) { if (!window.confirm(tr('confirmTerminate', { nickname: session.nickname }))) return; terminatingSession.value = session.id; errorMessage.value = ""; try { await sendJson(`/api/admin/sessions/${encodeURIComponent(session.id)}/terminate`, "POST", {}); await Promise.all([loadOperations(), loadOverview()]); } catch (error) { errorMessage.value = errorText((error as ApiError).code); } finally { terminatingSession.value = ""; } }
+async function terminateSession(session: AdminSession) { if (!window.confirm(tr('confirmTerminate', { nickname: session.nickname }))) return; terminatingSession.value = session.id; errorMessage.value = ""; try { await sendJson(`/api/admin/sessions/${encodeURIComponent(session.id)}/terminate`, "POST", {}); await Promise.all([loadOperations(), loadOverview()]); showOperationNotice(tr('sessionTerminated')); } catch (error) { errorMessage.value = errorText((error as ApiError).code); } finally { terminatingSession.value = ""; } }
 async function createInvite() { submitting.value = true; errorMessage.value = ""; createdInvite.value = null; try { const result = await sendJson("/api/admin/invites", "POST", { channel: inviteForm.channel, expiresInHours: inviteForm.expiresInHours, maxUses: inviteForm.maxUses }); if (typeof result.token !== "string") throw new Error("INVITE_CREATE_FAILED"); createdInvite.value = { token: result.token, link: `${location.origin}/?invite=${encodeURIComponent(result.token)}` }; inviteForm.channel = ""; await loadOperations(); } catch (error) { errorMessage.value = errorText((error as ApiError).code); } finally { submitting.value = false; } }
-async function revokeInvite(invite: ManagedInvite) { if (!window.confirm(tr('confirmRevoke'))) return; try { await sendJson(`/api/admin/invites/${encodeURIComponent(invite.id)}/revoke`, "POST", {}); await loadOperations(); } catch (error) { errorMessage.value = errorText((error as ApiError).code); } }
+async function revokeInvite(invite: ManagedInvite) { if (!window.confirm(tr('confirmRevoke'))) return; try { await sendJson(`/api/admin/invites/${encodeURIComponent(invite.id)}/revoke`, "POST", {}); await loadOperations(); showOperationNotice(tr('inviteRevoked')); } catch (error) { errorMessage.value = errorText((error as ApiError).code); } }
 async function copyInviteLink() { if (!createdInvite.value) return; try { await navigator.clipboard.writeText(createdInvite.value.link); showOperationNotice(tr('copiedLink')); } catch { errorMessage.value = tr('operationFailed'); } }
-function showOperationNotice(message: string) { errorMessage.value = message; window.setTimeout(() => { if (errorMessage.value === message) errorMessage.value = ""; }, 2200); }
+// Every successful action of the console says so in a toast; a failure stays a banner (errorMessage).
+function showOperationNotice(message: string) { toast({ title: message, variant: "success" }); }
 async function downloadBackup() { try { const response = await fetch("/api/admin/backup", { headers: { accept: "application/octet-stream" } }); if (!response.ok) throw new Error("BACKUP_FAILED"); const blob = await response.blob(); const url = URL.createObjectURL(blob); const anchor = document.createElement("a"); anchor.href = url; anchor.download = `webspeak-backup-${new Date().toISOString().slice(0, 10)}.db`; anchor.click(); URL.revokeObjectURL(url); await loadOperations(); } catch (error) { errorMessage.value = errorText((error as ApiError).code); } }
-async function saveServerSettings() { submitting.value = true; errorMessage.value = ""; try { const result = await sendJson("/api/admin/server", "PUT", serverPayload()); const target = splitTeamSpeakTarget(result.settings?.target); Object.assign(serverForm, result.settings, { address: target.address, port: target.port, serverPassword: "", passwordAction: "keep", welcomeTextDe: String(result.settings.welcomeTextDe || ""), welcomeTextRu: String(result.settings.welcomeTextRu || ""), welcomeTextJa: String(result.settings.welcomeTextJa || ""), welcomeDefaults: { ...DEFAULT_WELCOME_TEXTS, ...(result.settings.welcomeDefaults && typeof result.settings.welcomeDefaults === "object" ? result.settings.welcomeDefaults : {}) }, webRtcEnabled: result.settings.webRtcEnabled === true, webRtcUdpStart: Number(result.settings.webRtcUdpStart || 40000), webRtcUdpEnd: Number(result.settings.webRtcUdpEnd || 40099), relayConfigured: result.settings.relayConfigured === true, relayEnabled: result.settings.relayEnabled === true, relayName: String(result.settings.relayName || ""), relayTarget: String(result.settings.relayTarget || ""), relayToken: "", relayTokenAction: "keep", hasRelayToken: result.settings.hasRelayToken === true, relaySettingsTouched: false, relayNodes: mapRelayNodes(result.settings.relayNodes) }); await loadOverview(); } catch (error) { errorMessage.value = errorText((error as ApiError).code); } finally { submitting.value = false; } }
+async function saveServerSettings() { submitting.value = true; errorMessage.value = ""; try { const result = await sendJson("/api/admin/server", "PUT", serverPayload()); const target = splitTeamSpeakTarget(result.settings?.target); Object.assign(serverForm, result.settings, { address: target.address, port: target.port, serverPassword: "", passwordAction: "keep", welcomeTextDe: String(result.settings.welcomeTextDe || ""), welcomeTextRu: String(result.settings.welcomeTextRu || ""), welcomeTextJa: String(result.settings.welcomeTextJa || ""), welcomeDefaults: { ...DEFAULT_WELCOME_TEXTS, ...(result.settings.welcomeDefaults && typeof result.settings.welcomeDefaults === "object" ? result.settings.welcomeDefaults : {}) }, webRtcEnabled: result.settings.webRtcEnabled === true, webRtcUdpStart: Number(result.settings.webRtcUdpStart || 40000), webRtcUdpEnd: Number(result.settings.webRtcUdpEnd || 40099), relayConfigured: result.settings.relayConfigured === true, relayEnabled: result.settings.relayEnabled === true, relayName: String(result.settings.relayName || ""), relayTarget: String(result.settings.relayTarget || ""), relayToken: "", relayTokenAction: "keep", hasRelayToken: result.settings.hasRelayToken === true, relaySettingsTouched: false, relayNodes: mapRelayNodes(result.settings.relayNodes) }); await loadOverview(); showOperationNotice(tr('settingsSaved')); } catch (error) { errorMessage.value = errorText((error as ApiError).code); } finally { submitting.value = false; } }
 function handleWebRtcToggle() { if (serverForm.webRtcEnabled) webrtcPortNoticeOpen.value = true; }
-async function testServerConnection() { await runTest("/api/admin/server/test", { target: combineTeamSpeakTarget(serverForm.address, serverForm.port), serverPassword: serverForm.passwordAction === "replace" ? serverForm.serverPassword : undefined, passwordAction: serverForm.passwordAction }); if (testResult.value) { await loadOverview(); serverForm.lastTestAt = new Date().toISOString(); serverForm.lastTestLatencyMs = testResult.value.ok ? (testResult.value.latencyMs ?? null) : null; } }
+async function testServerConnection() { await runTest("/api/admin/server/test", { target: combineTeamSpeakTarget(serverForm.address, serverForm.port) }); if (testResult.value) { await loadOverview(); serverForm.lastTestAt = new Date().toISOString(); serverForm.lastTestLatencyMs = testResult.value.ok ? (testResult.value.latencyMs ?? null) : null; } }
 function touchRelaySettings() { serverForm.relaySettingsTouched = true; }
 function serverPayload() { return { target: combineTeamSpeakTarget(serverForm.address, serverForm.port), serverPassword: serverForm.passwordAction === "replace" ? serverForm.serverPassword : undefined, passwordAction: serverForm.passwordAction, accessMode: serverForm.accessMode, siteName: serverForm.siteName, welcomeText: serverForm.welcomeText, welcomeTextEn: serverForm.welcomeTextEn, welcomeTextDe: serverForm.welcomeTextDe, welcomeTextRu: serverForm.welcomeTextRu, welcomeTextJa: serverForm.welcomeTextJa, webRtcEnabled: serverForm.webRtcEnabled, webRtcUdpStart: serverForm.webRtcUdpStart, webRtcUdpEnd: serverForm.webRtcUdpEnd, relayNodes: serverForm.relayNodes.map((node) => ({ id: node.id, name: node.name, target: node.target, enabled: node.enabled, tokenAction: node.tokenAction, ...(node.tokenAction === "replace" ? { token: node.token } : {}) })) }; }
 async function runTest(url: string, body: Record<string, unknown>) { testing.value = true; errorMessage.value = ""; testResult.value = null; try { testResult.value = await sendJson(url, "POST", body, url.includes("/server/test")); } catch (error) { testResult.value = { ok: false, code: (error as ApiError).code }; } finally { testing.value = false; } }
 async function dismissLegacyNotice() { await sendJson("/api/admin/legacy-import/dismiss", "POST", {}); overview.legacyConfigImported = false; }
-function persistLanguage() { localStorage.setItem("webspeak:language", language.value); }
+function persistLanguage() { writeStorage("webspeak:language", language.value); }
 function cycleTheme() { themeMode.value = nextTheme(themeMode.value); saveTheme(themeMode.value); }
 function formatDate(value: string | null) { return value ? new Intl.DateTimeFormat(language.value === "zh" ? "zh-CN" : language.value === "de" ? "de-DE" : language.value === "ru" ? "ru-RU" : language.value === "ja" ? "ja-JP" : "en-US", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value)) : "—"; }
 function formatUptime(seconds: number) { const hours = Math.floor(seconds / 3600); const minutes = Math.floor((seconds % 3600) / 60); if (language.value === "zh") return `已运行 ${hours} 小时 ${minutes} 分钟`; if (language.value === "de") return `${hours} Std. ${minutes} Min. aktiv`; if (language.value === "ru") return `Работает ${hours} ч ${minutes} мин`; if (language.value === "ja") return `${hours}時間 ${minutes}分 稼働`; return `Up ${hours}h ${minutes}m`; }
@@ -1222,6 +1275,7 @@ function connectionFailureText(code?: string) {
   TIMEOUT: "networkTimeoutError",
     PROTOCOL_NEGOTIATION_FAILED: "protocolFailureError",
     SERVER_REJECTED: "serverRejectedError",
+  NO_ANSWER: "noAnswerError",
   PING_UNAVAILABLE: "pingUnavailableError",
   CONNECTION_FAILED: "connectionFailed",
   };
@@ -1425,6 +1479,12 @@ input:focus { border-color: var(--ws-accent); box-shadow: 0 0 0 3px color-mix(in
 @media (max-width: 520px) {
   .operation-card { padding: 18px; }
   .table-wrap { margin-left: -18px; margin-right: -18px; margin-bottom: -18px; }
+  /* The age and member count are not worth the width they take from the action at this size
+     (bug F31: the table's 600px min-width put the Terminate button off screen). Drop the
+     min-width and the two columns, and let the nickname cell wrap instead of forcing it. */
+  .table-wrap table { min-width: 0; }
+  .table-wrap th:nth-child(3), .table-wrap td:nth-child(3), .table-wrap th:nth-child(4), .table-wrap td:nth-child(4) { display: none; }
+  .table-wrap td:first-child { white-space: normal; overflow-wrap: anywhere; }
   .invite-form-grid, .diagnostic-list { grid-template-columns: 1fr; }
   .generated-link { display: grid; }
   .invite-row { align-items: flex-start; flex-direction: column; }
@@ -1510,6 +1570,7 @@ input:focus { border-color: var(--ws-accent); box-shadow: 0 0 0 3px color-mix(in
 
 @media(max-width:850px){
   .page-content{width:min(100% - 28px,700px);padding-top:20px;padding-bottom:14px}
+  .page-heading{flex-wrap:wrap}
   .overview-page .hero-status{padding:18px}
   .overview-page .hero-status h2{font-size:24px}
   .overview-page .metric-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;margin:10px 0}

@@ -3,7 +3,7 @@ import { expect, test } from "./fixtures";
 import { overflowScan } from "./helpers";
 
 // The /demo page: simulated data, no gateway session. It is served by the gateway from the fresh
-// build like the real pages. It reads its own language (see F32), so most tests store English first.
+// build like the real pages. Most tests store English first, so they do not depend on the browser's language.
 
 test.describe("demo page", () => {
   test.beforeEach(async ({ page }) => {
@@ -76,8 +76,7 @@ test.describe("demo page", () => {
     await expect(notice).toBeHidden();
   });
 
-  test("choosing a channel shows its members, and an empty channel shows no voice cards", async ({ page, isMobile }) => {
-    test.skip(isMobile, "a phone lists only the selected channel (F33)");
+  test("choosing a channel shows its members, and an empty channel shows no voice cards", async ({ page }) => {
     await page.goto("/demo");
     await page.getByRole("button", { name: /^Lounge 1$/ }).click();
     await expect(page.getByRole("heading", { level: 1 })).toHaveText("Lounge");
@@ -91,23 +90,18 @@ test.describe("demo page", () => {
     await expect(page.getByRole("article")).toHaveCount(0);
   });
 
-  test("F33: a phone lists only the selected channel, so no other channel can be chosen", async ({ page, isMobile }) => {
+  test("a phone can choose any channel of the demo, with only the selected one's members shown (F33)", async ({ page, isMobile }) => {
     test.skip(!isMobile, "the desktop lists every channel");
     await page.goto("/demo");
     await expect(page.getByRole("button", { name: /^Quiet Zone 2$/ })).toBeVisible();
-    await expect(page.getByRole("button", { name: /^Lounge 1$/ })).toBeHidden();
-    await expect(page.getByRole("button", { name: /^Music room 0$/ })).toBeHidden();
-  });
+    await expect(page.getByRole("button", { name: /^Lounge 1$/ })).toBeVisible();
+    await expect(page.getByRole("button", { name: /^Music room 0$/ })).toBeVisible();
 
-  test("a phone can choose any channel of the demo (bug F33)", async ({ page, isMobile }) => {
-    test.skip(!isMobile, "the desktop lists every channel");
-    test.fail();
-    await page.goto("/demo");
-    await page.getByRole("button", { name: /^Lounge 1$/ }).click({ timeout: 1500 });
+    await page.getByRole("button", { name: /^Lounge 1$/ }).click();
     await expect(page.getByRole("heading", { level: 1 })).toHaveText("Lounge");
   });
 
-  test("the Channel and Server tabs switch the chat, and a channel click returns to the channel chat", async ({ page, isMobile }) => {
+  test("the Channel and Server tabs switch the chat, and a channel click returns to the channel chat", async ({ page }) => {
     await page.goto("/demo");
     const tabs = page.getByRole("radiogroup", { name: "chat" });
     await expect(tabs.getByRole("radio", { name: "Channel" })).toBeChecked();
@@ -118,7 +112,6 @@ test.describe("demo page", () => {
     await expect(page.getByText("No messages yet")).toBeVisible();
     await expect(page.getByText("Hello everyone, welcome to WebSpeak.")).toBeHidden();
 
-    if (isMobile) return; // no other channel to click on a phone (F33)
     await page.getByRole("button", { name: /^Lounge 1$/ }).click();
     await expect(tabs.getByRole("radio", { name: "Channel" })).toBeChecked();
     await expect(page.getByText("Hello everyone, welcome to WebSpeak.")).toBeVisible();
@@ -179,15 +172,28 @@ test.describe("demo page", () => {
 });
 
 test.describe("demo page language", () => {
-  test("F32: an English browser without a stored language gets the demo in Chinese", async ({ page }) => {
+  // Like the join page: the stored language, else the browser's, else English (bug F32: Chinese for every
+  // browser but German, Russian and Japanese).
+  test("an English browser without a stored language gets the demo in English, as the join page does (F32)", async ({ page }) => {
     await page.goto("/demo");
-    await expect(page.getByRole("button", { name: "戳一戳" })).toBeVisible();
-    await expect(page.getByRole("button", { name: "Poke", exact: true })).toBeHidden();
+    await expect(page.getByRole("button", { name: "Poke", exact: true })).toBeVisible();
+    await expect(page.getByRole("button", { name: "戳一戳" })).toBeHidden();
   });
 
-  test("the demo follows an English browser's language, as the join page does (bug F32)", async ({ page }) => {
-    test.fail();
-    await page.goto("/demo");
-    await expect(page.getByRole("button", { name: "Poke", exact: true })).toBeVisible({ timeout: 1500 });
+  test("a browser in another language gets the demo in that language, and the stored language wins over it (F32)", async ({ browser, baseURL }) => {
+    const german = await browser.newContext({ baseURL, locale: "de-DE" });
+    const germanPage = await german.newPage();
+    await germanPage.goto("/demo");
+    await expect(germanPage.getByRole("link", { name: "Zur Startseite" })).toBeVisible();
+    await germanPage.evaluate(() => localStorage.setItem("webspeak:language", "en"));
+    await germanPage.goto("/demo");
+    await expect(germanPage.getByRole("button", { name: "Poke", exact: true })).toBeVisible();
+    await german.close();
+
+    const chinese = await browser.newContext({ baseURL, locale: "zh-CN" });
+    const chinesePage = await chinese.newPage();
+    await chinesePage.goto("/demo");
+    await expect(chinesePage.getByRole("button", { name: "戳一戳" })).toBeVisible();
+    await chinese.close();
   });
 });

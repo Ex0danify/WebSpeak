@@ -120,14 +120,29 @@ describe("WsClient waiting", () => {
   });
 });
 
-describe("known gateway defects the harness has to work around", () => {
-  // F12: cleanupEntry() calls ws.removeAllListeners(), which also removes the listener with which
-  // the WebSocketServer forgets a closed client, so wss.close() never calls back while a client is
-  // still tracked. The 1 s deadline is what makes the hang observable; it is not a wait for the result.
-  it.fails("F12: stopping the gateway with a live session finishes", async () => {
+describe("stopping the gateway", () => {
+  // F12: cleanupEntry() used to call ws.removeAllListeners(), which also removed the listener with which
+  // the WebSocketServer forgets a closed client, so wss.close() never called back while a client was
+  // still tracked. The 1 s deadline is only the failure signal; it is not a wait for the result.
+  it("F12: stopping the gateway with a live session finishes", async () => {
     const gateway = await gateways.start();
     const socket = await gateway.openVoice();
     await socket.waitForMessage("connected");
+    const outcome = await Promise.race([
+      gateway.stop().then(() => "stopped"),
+      new Promise((resolve) => setTimeout(() => resolve("still stopping after 1 s"), 1000)),
+    ]);
+    expect(outcome).toBe("stopped");
+  });
+
+  it("F12: stopping the gateway after it ended a session itself finishes", async () => {
+    const gateway = await gateways.start();
+    const socket = await gateway.openVoice();
+    await socket.waitForMessage("connected");
+    const admin = await gateway.adminLogin();
+    const { sessions } = (await (await admin.get("sessions")).json()) as { sessions: { id: string }[] };
+    await admin.post(`sessions/${sessions[0]!.id}/terminate`);
+    await socket.waitForClose();
     const outcome = await Promise.race([
       gateway.stop().then(() => "stopped"),
       new Promise((resolve) => setTimeout(() => resolve("still stopping after 1 s"), 1000)),

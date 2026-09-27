@@ -1,6 +1,7 @@
 import { ServerError } from "@echosixhiya/teamspeak-client";
 import { expect, test } from "./fixtures";
 import { expectInRoom, memberRow, submitJoin } from "./helpers";
+import { storageStateFor } from "./real/identities";
 
 // The join form against the real gateway and the fake TeamSpeak server behind it. The workers'
 // gateways are reused by every test of a worker, so nicknames are unique and a test that changes
@@ -88,5 +89,34 @@ test.describe("join form", () => {
     await joinButton(page).click();
     await expectInRoom(page, "join-refused");
     await expect(memberRow(page, "join-refused")).toBeVisible();
+  });
+
+  // F2: the smoke run saw the form stay put with no visible reason. The reason is on screen for both
+  // failures it was suspected of; what the smoke run measured was the lease race of F37.
+  test("a ban is shown with its reason and code, and the form stays usable (F2)", async ({ page, gateway }) => {
+    gateway.ts.failNext("connect", new ServerError("3329", "you are banned"));
+    await submitJoin(page, "join-banned");
+    await expect(page.getByText("You are banned from this server, so the connection is refused")).toBeVisible();
+    await expect(page.getByText("Error code: BANNED")).toBeVisible();
+    await expect(joinButton(page)).toBeEnabled();
+  });
+
+  test("an identity that another page is using is refused with its reason and code (F2)", async ({ browser, gateway }) => {
+    const options = { baseURL: gateway.url, storageState: storageStateFor(2, gateway.url) as never };
+    const first = await browser.newContext(options);
+    const second = await browser.newContext(options);
+    try {
+      const owner = await first.newPage();
+      await submitJoin(owner, "identity-owner");
+      await expectInRoom(owner, "identity-owner");
+      const other = await second.newPage();
+      await submitJoin(other, "identity-other");
+      await expect(other.getByText("This TeamSpeak identity is already used by another browser page")).toBeVisible();
+      await expect(other.getByText("Error code: IDENTITY_IN_USE")).toBeVisible();
+      await expect(joinButton(other)).toBeEnabled();
+    } finally {
+      await first.close();
+      await second.close();
+    }
   });
 });

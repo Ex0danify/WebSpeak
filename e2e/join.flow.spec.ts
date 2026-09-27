@@ -52,22 +52,21 @@ test.describe("a lost connection", () => {
     expect((await admin.post(`sessions/${mine.id}/terminate`)).status).toBe(200);
   }
 
-  test("F21: an administrator ending the session returns the client to the join form without a word", async ({ page, gateway }) => {
-    await join(page, "lost-terminated");
-    await terminateFromAdmin(gateway, "lost-terminated");
-    await expect(page.getByRole("button", { name: "Enter voice space" })).toBeVisible();
-    await expect(page.getByLabel("Your nickname")).toHaveValue("lost-terminated");
-    // The gateway closes with code 1000, which the client reads as a normal leave: no notice.
-    await expect(page.getByText(/Error code:/)).toBeHidden();
-  });
-
-  test("F21: an administrator ending the session tells the person why (bug F21)", async ({ page, gateway }) => {
-    test.fail();
+  test("F21: an administrator ending the session tells the person why", async ({ page, gateway }) => {
     await join(page, "lost-told");
     await terminateFromAdmin(gateway, "lost-told");
     await expect(page.getByRole("button", { name: "Enter voice space" })).toBeVisible();
-    // Any notice will do, the wording is the fix's to decide; a notice with a code is what every other refusal shows.
-    await expect(page.getByText(/Error code:/)).toBeVisible({ timeout: 2000 });
+    await expect(page.getByLabel("Your nickname")).toHaveValue("lost-told");
+    await expect(page.getByText("An administrator ended your voice session. Enter again if you want to continue")).toBeVisible();
+    await expect(page.getByText("Error code: ADMIN_TERMINATED")).toBeVisible();
+  });
+
+  test("F21: pressing Exit is still a plain leave with no notice", async ({ page, isMobile }) => {
+    test.skip(isMobile, "the header's Exit button is desktop only; the phone's is behind the More tab");
+    await join(page, "lost-self");
+    await page.getByRole("button", { name: "Exit" }).click();
+    await expect(page.getByRole("button", { name: "Enter voice space" })).toBeVisible();
+    await expect(page.getByText(/Error code:/)).toBeHidden();
   });
 
   test("a kick from TeamSpeak returns the client to the join form with the reason code, and it can join again", async ({ page, gateway }) => {

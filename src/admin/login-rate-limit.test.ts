@@ -64,13 +64,35 @@ describe("AdminLoginRateLimiter", () => {
     expect(delays).toEqual([250, 500, 1000, 2000, 2000, 2000]);
   });
 
-  it("bounds tracked peers by evicting the oldest", () => {
+  it("bounds tracked peers by evicting the oldest one among those with the fewest failures", () => {
     const limiter = new AdminLoginRateLimiter(2);
-    fail(limiter, "old", 5, 0);
+    limiter.recordFailure("old", 0);
     limiter.recordFailure("second", 1);
-    limiter.recordFailure("third", 2); // evicts "old"
-    expect(limiter.retryAfterMs("old", 3)).toBe(0);
-    expect(limiter.retryAfterMs("second", 3)).toBe(0);
+    limiter.recordFailure("third", 2); // evicts "old": equal failures, the oldest goes
+    expect(limiter.recordFailure("old", 3)).toBe(250); // "old" starts again from one failure, not two
+  });
+
+  it("F5: a locked-out peer survives a flood of new peers that fail once", () => {
+    const limiter = new AdminLoginRateLimiter(3);
+    fail(limiter, "locked", 5, 0);
+    for (let i = 0; i < 50; i += 1) limiter.recordFailure(`flood-${i}`, 1 + i);
+    expect(limiter.retryAfterMs("locked", 100)).toBeGreaterThan(0);
+  });
+
+  it("F5: with the default table size, 2000 other peers do not lift a lockout", () => {
+    const limiter = new AdminLoginRateLimiter();
+    fail(limiter, "locked", 5, 0);
+    for (let i = 0; i < 2000; i += 1) limiter.recordFailure(`flood-${i}`, 1 + i);
+    expect(limiter.retryAfterMs("locked", 3000)).toBe(WINDOW_MS - 3000);
+  });
+
+  it("evicts a locked-out peer only when every tracked peer is locked out, the oldest first", () => {
+    const limiter = new AdminLoginRateLimiter(2);
+    fail(limiter, "first", 5, 0);
+    fail(limiter, "second", 5, 1);
+    limiter.recordFailure("third", 2);
+    expect(limiter.retryAfterMs("first", 3)).toBe(0);
+    expect(limiter.retryAfterMs("second", 3)).toBeGreaterThan(0);
   });
 
   it("prunes expired peers before evicting live ones", () => {

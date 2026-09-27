@@ -50,16 +50,27 @@ describe("switching channels", () => {
   // TeamSpeak answers a switch to a deleted channel with error 768 "invalid channelID", and the
   // gateway's classifier reads "invalid ... channel" as a password problem. Moving another member
   // already answers CHANNEL_NOT_FOUND for the same case, so that is the correct code here too.
-  it("F16 (current behavior): a switch to a channel that does not exist is reported as needing a password", async () => {
+  it("F16: a switch to a channel that does not exist answers CHANNEL_NOT_FOUND, not a password request", async () => {
     const gateway = await gateways.start({ ts: newServer() });
     const session = await alice(gateway);
-    expect(await ask(session, "switchChannel", { channelId: "999" }, "gone")).toMatchObject({ type: "error", requestId: "gone", error: { code: "CHANNEL_PASSWORD_REQUIRED" } });
+    expect(await ask(session, "switchChannel", { channelId: "999" }, "gone")).toMatchObject({ type: "error", requestId: "gone", error: { code: "CHANNEL_NOT_FOUND" } });
+    expect(session.client.getChannelId()).toBe(1n);
   });
 
-  it.fails("F16: a switch to a channel that does not exist answers CHANNEL_NOT_FOUND", async () => {
+  it("F16: a channel that the server deleted after the session's tree is answered CHANNEL_NOT_FOUND too (error 768)", async () => {
     const gateway = await gateways.start({ ts: newServer() });
     const session = await alice(gateway);
-    expect(errorOf(await ask(session, "switchChannel", { channelId: "999" }))).toMatchObject({ code: "CHANNEL_NOT_FOUND" });
+    // The tree still lists the channel, so the request reaches the server, which answers "invalid channelID".
+    const stale = (session.client as unknown as { switchChannel: (id: bigint, password?: string) => Promise<void> });
+    stale.switchChannel = async () => { throw new ServerError("768", "invalid channelID"); };
+    expect(errorOf(await ask(session, "switchChannel", { channelId: "2" }))).toMatchObject({ code: "CHANNEL_NOT_FOUND" });
+  });
+
+  it("F16: an error that only says 'invalid channel' is not read as a password problem", async () => {
+    const gateway = await gateways.start({ ts: newServer() });
+    const session = await alice(gateway);
+    (session.client as unknown as { switchChannel: () => Promise<void> }).switchChannel = async () => { throw new Error("invalid channel state"); };
+    expect(errorOf(await ask(session, "switchChannel", { channelId: "2" }))).toMatchObject({ code: "CHANNEL_SWITCH_FAILED" });
   });
 });
 
@@ -128,7 +139,7 @@ describe("poke", () => {
     bob.poke(session.client, "over here");
     const received = await session.socket.waitForMessage("pokeReceived", { after });
     expect(received).toEqual({ type: "pokeReceived", invokerId: bob.id, invokerUid: "remote-bob", invokerName: "bob", message: "over here", timestamp: expect.any(Number) });
-    expect((await session.socket.waitForMessage("serverEvent", { after })).event).toMatchObject({ kind: "poke", message: "bob 戳了你一下" });
+    expect((await session.socket.waitForMessage("serverEvent", { after })).event).toMatchObject({ kind: "poke", message: "bob 戳了你一下", nickname: "bob" });
   });
 });
 

@@ -7,7 +7,7 @@ import { identityFromString } from "@echosixhiya/teamspeak-client";
 import { DirectorySynchronizer } from "./directory-sync.js";
 import { TSClient, type TSClientOptions, type TSDirectorySnapshot, type TSVoiceData, type TSRawNotification } from "./ts-client.js";
 import type { Logger as LoggerType } from "../logger.js";
-import { clientConnectionFailureCode, describeTeamSpeakError, normalizeTeamSpeakError, teamSpeakServerErrorCode, type WebSpeakError } from "../errors.js";
+import { clientConnectionFailureCode, describeTeamSpeakError, normalizeTeamSpeakError, teamSpeakServerErrorCode, WEBSPEAK_ERROR_MESSAGES, WebSpeakError } from "../errors.js";
 import { formatTeamSpeakTarget, teamSpeakTargetKey, type TeamSpeakTarget } from "../domain/teamspeak-target.js";
 import { JoinTicketStore, type JoinTicketPayload } from "./join-ticket.js";
 import { IdentityLeaseStore } from "./identity-lease.js";
@@ -49,7 +49,11 @@ export interface VoiceBridgeOptions {
   acceleration?: ConfiguredAccelerationRelay[] | (() => ConfiguredAccelerationRelay[]);
   accelerationName?: string | (() => string | undefined);
   createClient?: (options: TSClientOptions, logger: LoggerType) => TSClient;
+  /** How long a connected TeamSpeak client may take to deliver its first directory snapshot. */
+  directorySyncTimeoutMs?: number;
 }
+
+const DIRECTORY_SYNC_TIMEOUT_MS = 15_000;
 
 export interface AdminSessionSummary {
   id: string;
@@ -124,8 +128,12 @@ interface ChannelMember {
 
 interface ServerEvent {
   id: string;
-  kind: "joined" | "left" | "moved" | "poke" | "connection";
+  kind: "joined" | "left" | "moved" | "poke" | "connection" | "channelCreated" | "channelRenamed" | "channelDeleted";
   message: string;
+  // The gateway builds `message` itself, in Chinese; the browser needs these to build its own
+  // sentence with t() instead (F24). `message` stays as a fallback for an older gateway.
+  nickname?: string;
+  channelName?: string;
   timestamp: number;
 }
 
@@ -231,7 +239,10 @@ export class VoiceBridge {
       }
       const entryId = `w-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
       let entry: WebClientEntry | null = null;
+      let directoryTimer: NodeJS.Timeout | null = null;
       const session = this.sessionManager.admit(entryId, async (reason) => {
+        if (directoryTimer) clearTimeout(directoryTimer);
+        directoryTimer = null;
         if (entry) await this.cleanupEntry(entry, reason);
       });
       if (!session) {
@@ -330,11 +341,12 @@ export class VoiceBridge {
       const sendJson = (message: Record<string, unknown>) => {
         if (ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(message));
       };
-      const addServerEvent = (kind: ServerEvent["kind"], message: string) => {
+      const addServerEvent = (kind: ServerEvent["kind"], message: string, extra: Partial<Pick<ServerEvent, "nickname" | "channelName">> = {}) => {
         const event: ServerEvent = {
           id: `event-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`,
           kind,
           message,
+          ...extra,
           timestamp: Date.now(),
         };
         entry!.eventLog.push(event);
@@ -427,14 +439,16 @@ export class VoiceBridge {
         const before = new Map(previous.filter(isChannelRecord).map((channel) => [channel.id, channel]));
         const after = new Map(next.filter(isChannelRecord).map((channel) => [channel.id, channel]));
         for (const channel of after.values()) {
-          if (!before.has(channel.id)) addServerEvent("joined", `频道「${channel.name}」已创建`);
-          else if (before.get(channel.id)?.name !== channel.name) addServerEvent("moved", `频道已重命名为「${channel.name}」`);
+          if (!before.has(channel.id)) addServerEvent("channelCreated", `频道「${channel.name}」已创建`, { channelName: channel.name });
+          else if (before.get(channel.id)?.name !== channel.name) addServerEvent("channelRenamed", `频道已重命名为「${channel.name}」`, { channelName: channel.name });
         }
-        for (const channel of before.values()) if (!after.has(channel.id)) addServerEvent("left", `频道「${channel.name}」已删除`);
+        for (const channel of before.values()) if (!after.has(channel.id)) addServerEvent("channelDeleted", `频道「${channel.name}」已删除`, { channelName: channel.name });
       };
       const sendInitialState = () => {
         if (initialStateSent || !tsReady || !directory.ready || !realtimeReady || !audioReady || session.state !== "syncing") return;
         initialStateSent = true;
+        if (directoryTimer) clearTimeout(directoryTimer);
+        directoryTimer = null;
         const wasReconnecting = hasConnectedOnce;
         hasConnectedOnce = true;
         // A previous kick reason never applies to a fresh, successful session.
@@ -529,6 +543,42 @@ export class VoiceBridge {
         entry!.reconnectTimer.unref?.();
       };
 
+      const handleConnectFailure = (error: unknown, isReconnect: boolean): void => {
+        const normalized = normalizeTeamSpeakError(error);
+        const failureCode = clientConnectionFailureCode(normalized, serverPassword);
+        const failureDetail = publicFailureDetail(normalized);
+        entry!.connectionFailureCode = failureCode;
+        this.logger.warn({
+          code: failureCode,
+          normalizedCode: normalized.code,
+          failureDetail: describeTeamSpeakError(normalized),
+          ...(Object.keys(normalized.diagnostics).length ? { failureDiagnostics: normalized.diagnostics } : {}),
+          entryId,
+          reconnect: isReconnect,
+          attempt: reconnectAttempt,
+        }, "TS connect failed");
+        if (!isReconnect) {
+          try {
+            if (session.state !== "disconnecting" && session.state !== "idle") session.transition("failed");
+          } catch { /* teardown below remains authoritative */ }
+          // Send the structured failure before closing. Some browsers and
+          // reverse proxies do not preserve a WebSocket close reason, which
+          // would otherwise collapse every failure into a generic message.
+          sendJson({ type: "connectionFailed", code: failureCode, ...(failureDetail ? { detail: failureDetail } : {}) });
+          if (ws.readyState === WebSocket.OPEN) ws.close(4003, failureCode);
+          void this.teardown(entryId, "teamSpeak-connect-failed");
+          return;
+        }
+        if (isReconnect && isRecoverable(normalized)) {
+          try {
+            if (session.state !== "disconnecting" && session.state !== "idle") session.transition("reconnecting");
+          } catch { /* teardown below remains authoritative */ }
+          scheduleReconnect(normalized);
+          return;
+        }
+        failReconnect(normalized);
+      };
+
       const connectTeamSpeak = async (isReconnect: boolean): Promise<void> => {
         try {
           await tsClient.connect();
@@ -544,41 +594,21 @@ export class VoiceBridge {
             refreshDirectory();
           }
           sendInitialState();
+          if (!initialStateSent) {
+            // Without a directory snapshot the session would wait for ever: fail it like a connect timeout.
+            directoryTimer = setTimeout(() => {
+              directoryTimer = null;
+              if (initialStateSent || session.state !== "syncing") return;
+              handleConnectFailure(new WebSpeakError("timeout", WEBSPEAK_ERROR_MESSAGES.timeout, true, undefined, {
+                name: "DirectorySnapshotTimeout",
+                message: "TeamSpeak did not deliver a directory snapshot",
+              }), isReconnect);
+            }, this.options.directorySyncTimeoutMs ?? DIRECTORY_SYNC_TIMEOUT_MS);
+            directoryTimer.unref?.();
+          }
           void this.discoverExistingTeamSpeakStreams(entry!);
         } catch (error: unknown) {
-          const normalized = normalizeTeamSpeakError(error);
-          const failureCode = clientConnectionFailureCode(normalized, serverPassword);
-          const failureDetail = publicFailureDetail(normalized);
-          entry!.connectionFailureCode = failureCode;
-          this.logger.warn({
-            code: failureCode,
-            normalizedCode: normalized.code,
-            failureDetail: describeTeamSpeakError(normalized),
-            ...(Object.keys(normalized.diagnostics).length ? { failureDiagnostics: normalized.diagnostics } : {}),
-            entryId,
-            reconnect: isReconnect,
-            attempt: reconnectAttempt,
-          }, "TS connect failed");
-          if (!isReconnect) {
-            try {
-              if (session.state !== "disconnecting" && session.state !== "idle") session.transition("failed");
-            } catch { /* teardown below remains authoritative */ }
-            // Send the structured failure before closing. Some browsers and
-            // reverse proxies do not preserve a WebSocket close reason, which
-            // would otherwise collapse every failure into a generic message.
-            sendJson({ type: "connectionFailed", code: failureCode, ...(failureDetail ? { detail: failureDetail } : {}) });
-            if (ws.readyState === WebSocket.OPEN) ws.close(4003, failureCode);
-            void this.teardown(entryId, "teamSpeak-connect-failed");
-            return;
-          }
-          if (isReconnect && isRecoverable(normalized)) {
-            try {
-              if (session.state !== "disconnecting" && session.state !== "idle") session.transition("reconnecting");
-            } catch { /* teardown below remains authoritative */ }
-            scheduleReconnect(normalized);
-            return;
-          }
-          failReconnect(normalized);
+          handleConnectFailure(error, isReconnect);
         }
       };
 
@@ -608,7 +638,7 @@ export class VoiceBridge {
         if (tsReady && initialStateSent) {
           sendJson({ type: "channelList", channels: entry!.channelTree });
           if (!wasKnown) sendJson({ type: "memberEnter", id: info.id, nickname: info.nickname, uid: info.uid, isSelf: info.id === selfId });
-          if (!wasKnown && info.id !== selfId) addServerEvent("joined", `${info.nickname || "未知用户"} 加入了服务器`);
+          if (!wasKnown && info.id !== selfId) addServerEvent("joined", `${info.nickname || "未知用户"} 加入了服务器`, { nickname: info.nickname });
           scheduleMemberAvatarRefresh();
         }
       });
@@ -623,7 +653,7 @@ export class VoiceBridge {
         if (tsReady && initialStateSent && wasKnown) {
           sendJson({ type: "memberLeave", id: info.id });
           sendJson({ type: "channelList", channels: entry!.channelTree });
-          if (info.id !== selfId) addServerEvent("left", `${leavingMember?.nickname || "用户"} 离开了服务器`);
+          if (info.id !== selfId) addServerEvent("left", `${leavingMember?.nickname || "用户"} 离开了服务器`, { nickname: leavingMember?.nickname });
         }
       });
 
@@ -636,7 +666,7 @@ export class VoiceBridge {
         refreshDirectory();
         if (tsReady && initialStateSent) {
           sendJson({ type: "channelList", channels: entry!.channelTree });
-          if (info.id !== selfId) addServerEvent("moved", `${movedMember?.nickname || "用户"} 移动到了其他频道`);
+          if (info.id !== selfId) addServerEvent("moved", `${movedMember?.nickname || "用户"} 移动到了其他频道`, { nickname: movedMember?.nickname });
         }
       });
 
@@ -717,7 +747,7 @@ export class VoiceBridge {
 
       tsClient.on("poked", (event) => {
         sendJson({ type: "pokeReceived", invokerId: event.invokerID, invokerUid: event.invokerUID, invokerName: event.invokerName, message: event.message, timestamp: Date.now() });
-        addServerEvent("poke", `${event.invokerName || "用户"} 戳了你一下`);
+        addServerEvent("poke", `${event.invokerName || "用户"} 戳了你一下`, { nickname: event.invokerName });
       });
 
       // 被踢/封禁对本会话是终态：把服务器给出的原因回放给浏览器并拆除会话，
@@ -936,6 +966,16 @@ export class VoiceBridge {
   private async cleanupEntry(entry: WebClientEntry, reason: SessionTeardownReason): Promise<void> {
     this.removeScreenSharePeer(entry.id);
     if (this.entries.get(entry.id) === entry) this.entries.delete(entry.id);
+    // With nobody connected, a native stream that ends now is never seen ending: forget every stream and
+    // every target's discovery mark, so the next session that arrives asks fresh instead of listing a
+    // stream that may already be gone (F20).
+    if (this.entries.size === 0) {
+      this.screenStreams.clear();
+      this.screenStreamDiscoveryTargets.clear();
+    }
+    // The session is gone from the admin list and its client is unusable from here on, so the identity
+    // is free now, not after the awaits below (F37): a rejoin must not be refused for a session nobody lists.
+    if (entry.identityLeaseKey) this.identityLeases.release(entry.identityLeaseKey, entry.id);
     if (entry.reconnectTimer) {
       clearTimeout(entry.reconnectTimer);
       entry.reconnectTimer = null;
@@ -953,12 +993,20 @@ export class VoiceBridge {
     entry.members.clear();
     entry.tsClient.removeAllListeners();
     try { await entry.tsClient.disconnect(); } catch { /* disconnect is intentionally idempotent */ }
-    entry.ws.removeAllListeners();
+    // Only the listeners that read from the socket go. `ws` adds its own "close" listener to forget the
+    // client (wss.clients), and the bridge's "close" and "error" listeners stay so that an "error"
+    // after teardown is still handled; both end in a teardown that has already happened.
+    entry.ws.removeAllListeners("message");
+    entry.ws.removeAllListeners("pong");
     if (entry.ws.readyState === WebSocket.OPEN || entry.ws.readyState === WebSocket.CONNECTING) {
-      if (reason === "heartbeat-timeout" || reason === "gateway-shutdown") entry.ws.terminate();
+      // A heartbeat timeout means the peer is unresponsive: a close frame would just wait for an
+      // acknowledgement that never comes. Shutdown is different (F17): the peer is fine, so it gets
+      // a real code and reason instead of the 1006 a dropped network would show. A close that never
+      // gets acknowledged does not hang the process: index.ts bounds the whole shutdown (F12).
+      if (reason === "heartbeat-timeout") entry.ws.terminate();
+      else if (reason === "gateway-shutdown") entry.ws.close(1001, reason);
       else entry.ws.close(reason === "protocol-error" ? 1008 : 1000, reason);
     }
-    if (entry.identityLeaseKey) this.identityLeases.release(entry.identityLeaseKey, entry.id);
     this.logger.info({
       entryId: entry.id,
       nickname: entry.nickname,
@@ -1419,12 +1467,15 @@ export class VoiceBridge {
 
   private reconcileScreenShareAfterClientMove(entry: WebClientEntry, movedClientId: number, targetChannelId: bigint): void {
     const targetKey = teamSpeakTargetKey(entry.target);
+    // Every session is told every move on the server; the two browser rules below are about this
+    // session's own client only (F18). The native rule is about the source client, whoever's session sees it.
+    const movedIsSelf = movedClientId === entry.tsClient.getClientId();
     for (const stream of [...this.screenStreams.values()]) {
       if (stream.targetKey !== targetKey) continue;
       // A browser share belongs to the gateway user's current channel. Stop
       // it when that user moves so existing viewers cannot keep a cross-
       // channel peer alive.
-      if (stream.source === "browser" && stream.ownerEntryId === entry.id && stream.channelId !== targetChannelId) {
+      if (movedIsSelf && stream.source === "browser" && stream.ownerEntryId === entry.id && stream.channelId !== targetChannelId) {
         this.stopScreenStream(stream, "owner-moved-channel");
         continue;
       }
@@ -1435,7 +1486,7 @@ export class VoiceBridge {
         this.stopScreenStream(stream, "source-moved-channel");
         continue;
       }
-      if (stream.viewerEntryIds.has(entry.id) && stream.channelId !== targetChannelId) {
+      if (movedIsSelf && stream.viewerEntryIds.has(entry.id) && stream.channelId !== targetChannelId) {
         this.leaveScreenStream(entry, stream);
       }
     }
@@ -1481,14 +1532,16 @@ export class VoiceBridge {
       const publisherEntry = [...this.entries.values()].find((candidate) => candidate.target
         && teamSpeakTargetKey(candidate.target) === targetKey
         && candidate.tsClient.getClientId() === sourceClientId);
+      // Every session on the target gets this notification. The stream is the published browser share of its
+      // source client whether or not an earlier session has paired it already, so it is never announced a
+      // second time as a native stream of its own sharer (F19). Pairing twice with the same id is harmless.
       const browserStream = publisherEntry
         ? [...this.screenStreams.values()].find((candidate) => candidate.targetKey === targetKey
           && candidate.source === "browser"
-          && candidate.teamSpeakPublisherEntryId === publisherEntry.id
-          && !candidate.teamSpeakStreamId)
+          && candidate.teamSpeakPublisherEntryId === publisherEntry.id)
         : undefined;
       if (browserStream) {
-        browserStream.teamSpeakStreamId = streamId;
+        browserStream.teamSpeakStreamId ??= streamId;
         return;
       }
       const sourceEntry = [...this.entries.values()].find((candidate) => candidate.tsClient.getClientId() === sourceClientId);
@@ -1752,6 +1805,11 @@ async function handleCommand(
   if (command.type === "switchChannel") {
     const rawId = command.payload.channelId as string;
     const channelPassword = typeof command.payload.password === "string" ? command.payload.password : "";
+    // A channel that is not in the tree is gone (or was never visible): say so, do not ask for a password.
+    if (!entry.channelTree.some((channel) => isRecord(channel) && channel.id === rawId)) {
+      sendJson({ type: "error", requestId: command.requestId, error: { code: "CHANNEL_NOT_FOUND", message: "目标频道不可用", recoverable: false } });
+      return;
+    }
     try {
       await entry.tsClient.switchChannel(BigInt(rawId), channelPassword || undefined);
     } catch (error: unknown) {
@@ -1871,7 +1929,9 @@ function classifyOperationError(error: unknown, fallbackCode: string, fallbackMe
     if (serverCode === "connection_initialisation_failed") return { code: "CONNECTION_INITIALISATION_FAILED", message: "TeamSpeak 服务器未能完成连接初始化，请稍后重试" };
   }
   if (/permission|not permitted|insufficient|i_permission|2568/.test(normalized)) return { code: "PERMISSION_DENIED", message: "你没有执行此操作的权限" };
-  if (/channel.*(password|password.*required)|invalid.*(channel|password)|i_channel_password|781/.test(normalized)) return { code: "CHANNEL_PASSWORD_REQUIRED", message: "该频道需要密码" };
+  // 768 "invalid channelID": the channel was deleted after the tree the session had.
+  if (/invalid\s*channel\s*id|\bid[\s=:]*768\b/.test(normalized)) return { code: "CHANNEL_NOT_FOUND", message: "目标频道不可用" };
+  if (/channel.*(password|password.*required)|invalid.*password|i_channel_password|781/.test(normalized)) return { code: "CHANNEL_PASSWORD_REQUIRED", message: "该频道需要密码" };
   if (/already member/.test(normalized)) return { code: "ALREADY_IN_CHANNEL", message: "你已经在该频道中" };
   if (/full|maximum.*clients/.test(normalized)) return { code: "CHANNEL_FULL", message: "该频道已满" };
   if (/not found|unknown client|invalid client/.test(normalized)) return { code: "CLIENT_NOT_FOUND", message: "成员已离线" };

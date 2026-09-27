@@ -79,6 +79,7 @@ export function localizeMessage(message: string, language: Language): string {
     "戳一戳消息无效": "The poke message is invalid",
     "离开状态无效": "The away status is invalid",
     "音频帧格式无效": "The audio frame is invalid",
+    "成员音量无效": "The member volume is invalid",
     "私语目标无效": "The whisper targets are invalid",
     "私语状态无效": "The whisper state is invalid",
     "请先选择私语目标": "Choose a whisper target first",
@@ -99,6 +100,8 @@ export function localizeMessage(message: string, language: Language): string {
     "当前中继加速不可用，请关闭加速后重试或联系管理员": "The selected relay is unavailable. Turn off relay mode and try again, or contact the administrator",
     "与语音网关的网络连接异常中断（掉线或代理断开），并非 TeamSpeak 服务器拒绝连接，请检查网络后重新进入": "The voice gateway connection was interrupted (offline or proxy disconnected); the TeamSpeak server did not reject it. Check your network and enter again",
     "语音网关会话意外结束，请重新进入语音空间": "The voice gateway session ended unexpectedly. Enter the voice space again",
+    "语音网关正在重启或维护，请稍候片刻后重新进入": "The voice gateway is restarting or under maintenance. Wait a moment and enter again",
+    "管理员已结束你的本次语音会话，如需继续请重新进入": "An administrator ended your voice session. Enter again if you want to continue",
     "语音网关未能创建 TeamSpeak 客户端（服务器可能已关闭或地址不可达），请确认服务器地址或稍后重试": "The voice gateway could not create a TeamSpeak client. The server may be offline or unreachable; check the address and try again",
     "该昵称已被服务器上的其他用户占用，请更换昵称": "This nickname is already in use on the server. Choose another one",
     "该昵称已被占用，请更换昵称": "This nickname is already in use. Choose another one",
@@ -127,6 +130,10 @@ export function localizeMessage(message: string, language: Language): string {
     if (language === "ru") return `Не удалось переключить канал: ${detail}`;
     if (language === "ja") return `チャンネルの切り替えに失敗しました: ${detail}`;
     return language === "de" ? `Kanalwechsel fehlgeschlagen: ${detail}` : `Channel switch failed: ${detail}`;
+  }
+  if (language === "en") {
+    if (message.startsWith("麦克风声音未能发送：")) return `Microphone audio could not be sent: ${message.slice(10)}`;
+    if (message.startsWith("音频链路异常")) return message.replace("音频链路异常", "Audio link error");
   }
   if (language === "de") {
     const german: Record<string, string> = {
@@ -177,6 +184,8 @@ export function localizeMessage(message: string, language: Language): string {
       "当前中继加速不可用，请关闭加速后重试或联系管理员": "Der beschleunigte Relay-Modus ist nicht verfügbar. Deaktiviere ihn und versuche es erneut oder wende dich an den Administrator",
       "与语音网关的网络连接异常中断（掉线或代理断开），并非 TeamSpeak 服务器拒绝连接，请检查网络后重新进入": "Die Verbindung zum Sprach-Gateway wurde unerwartet unterbrochen (Offline oder Proxy getrennt) – der TeamSpeak-Server hat die Verbindung nicht abgelehnt. Prüfe deine Netzwerkverbindung und tritt erneut bei",
       "语音网关会话意外结束，请重新进入语音空间": "Die Sprach-Gateway-Sitzung wurde unerwartet beendet. Tritt dem Sprachraum erneut bei",
+      "语音网关正在重启或维护，请稍候片刻后重新进入": "Das Sprach-Gateway wird neu gestartet oder gewartet. Warte einen Moment und tritt erneut bei",
+      "管理员已结束你的本次语音会话，如需继续请重新进入": "Ein Administrator hat deine Sprachsitzung beendet. Tritt erneut bei, wenn du fortsetzen möchtest",
       "语音网关未能创建 TeamSpeak 客户端（服务器可能已关闭或地址不可达），请确认服务器地址或稍后重试": "Das Sprach-Gateway konnte keinen TeamSpeak-Client erstellen (der Server ist möglicherweise aus oder nicht erreichbar). Prüfe die Serveradresse oder versuche es später erneut",
       "消息格式无效": "Ungültiges Nachrichtenformat",
       "请求标识无效": "Ungültige Anforderungs-ID",

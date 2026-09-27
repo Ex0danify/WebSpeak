@@ -100,14 +100,12 @@ describe("localizeMessage", () => {
     expect(localizeMessage("该频道已满", "ja")).toBe("This channel is full");
   });
 
-  it("F9: shows Chinese to English users for a member volume error", () => {
-    // German has an entry for this message, English has none.
+  it("F9: gives English users the messages German has an entry for", () => {
     expect(localizeMessage("成员音量无效", "de")).toBe("Ungültige Mitgliedslautstärke");
-    expect(localizeMessage("成员音量无效", "en")).toBe("成员音量无效");
-  });
-
-  it.fails("F9: translates every message German knows into English as well", () => {
-    expect(localizeMessage("成员音量无效", "en")).not.toMatch(/[一-鿿]/);
+    expect(localizeMessage("成员音量无效", "en")).toBe("The member volume is invalid");
+    expect(localizeMessage("麦克风声音未能发送：编码失败", "en")).toBe("Microphone audio could not be sent: 编码失败");
+    expect(localizeMessage("音频链路异常（ABC）", "en")).toBe("Audio link error（ABC）");
+    expect(localizeMessage("麦克风声音未能发送：x", "de")).toBe("Mikrofon-Audio konnte nicht gesendet werden: x");
   });
 });
 

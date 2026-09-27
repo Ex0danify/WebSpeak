@@ -88,6 +88,32 @@ describe("setLanguage and loadLanguage", () => {
   });
 });
 
+describe("document language (F27)", () => {
+  it.each([
+    ["zh", "zh-CN"],
+    ["en", "en"],
+    ["de", "de"],
+    ["ru", "ru"],
+    ["ja", "ja"],
+  ])("sets html lang for %s at startup", async (stored, tag) => {
+    await load({ stored });
+    expect(document.documentElement.lang).toBe(tag);
+  });
+
+  it("follows setLanguage, loadLanguage and a direct change of the shared ref", async () => {
+    const { useI18n } = await load({ browser: "en-US" });
+    const i18n = useI18n();
+    expect(document.documentElement.lang).toBe("en");
+    i18n.setLanguage("zh");
+    expect(document.documentElement.lang).toBe("zh-CN");
+    localStorage.setItem("webspeak:language", "ru");
+    i18n.loadLanguage();
+    expect(document.documentElement.lang).toBe("ru");
+    i18n.language.value = "de";
+    expect(document.documentElement.lang).toBe("de");
+  });
+});
+
 describe("t", () => {
   const key = "__test_key__";
   it("looks the key up in the active language", async () => {
@@ -125,17 +151,17 @@ describe("t", () => {
     expect(useI18n().t(key, { count: 3, max: 0 })).toBe("3 of 0 ({{other}})");
   });
 
-  // Correct behavior asserted; goes red when t() stops passing the value as a replacement pattern.
-  it.fails("F10: a value containing $& is inserted literally", async () => {
+  // The value is inserted literally: t() passes it as a function, not as a replacement pattern.
+  it("F10: a value containing $& is inserted literally", async () => {
     const { useI18n, translations } = await load({ stored: "en" });
     translations.en[key] = "Hello {{name}}";
     expect(useI18n().t(key, { name: "$& {{name}}" })).toBe("Hello $& {{name}}");
   });
 
-  it("F10: a value with $& is expanded by String.replaceAll today (pinned)", async () => {
+  it.each(["a$&b", "$$", "x$`y", "x$'y", "$1"])("F10: the value %s is inserted as it is", async (value) => {
     const { useI18n, translations } = await load({ stored: "en" });
-    translations.en[key] = "Hello {{name}}";
-    expect(useI18n().t(key, { name: "a$&b" })).toBe("Hello a{{name}}b");
+    translations.en[key] = "Hello {{name}}!";
+    expect(useI18n().t(key, { name: value })).toBe(`Hello ${value}!`);
   });
 
   it("substitutes into the fallback text too", async () => {

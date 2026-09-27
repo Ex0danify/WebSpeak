@@ -88,7 +88,9 @@ describe("members after the initial state", () => {
     const list = await socket.waitForMessage((message) => message.type === "channelList" && memberNames(message, "Room A").includes("bob"), { after });
     expect(memberNames(list, "Lobby")).toEqual(["alice"]);
     const event = await socket.waitForMessage("serverEvent", { after });
-    expect(event.event).toMatchObject({ kind: "joined", message: "bob 加入了服务器" });
+    // The message stays for an older gateway; the browser now builds its own sentence from
+    // kind and nickname instead of showing this Chinese text whatever the page's language (F24).
+    expect(event.event).toMatchObject({ kind: "joined", message: "bob 加入了服务器", nickname: "bob" });
   });
 
   it("announces a member who leaves with `memberLeave`, a fresh `channelList` and a server event", async () => {
@@ -100,7 +102,7 @@ describe("members after the initial state", () => {
     expect(await socket.waitForMessage("memberLeave", { after })).toEqual({ type: "memberLeave", id: bob.id });
     const list = await socket.waitForMessage((message) => message.type === "channelList" && memberNames(message, "Room A").length === 0, { after });
     expect(memberNames(list, "Lobby")).toEqual(["alice"]);
-    expect((await socket.waitForMessage("serverEvent", { after })).event).toMatchObject({ kind: "left", message: "bob 离开了服务器" });
+    expect((await socket.waitForMessage("serverEvent", { after })).event).toMatchObject({ kind: "left", message: "bob 离开了服务器", nickname: "bob" });
   });
 
   it("moves a member in the tree when they change channel, with a server event", async () => {
@@ -111,7 +113,7 @@ describe("members after the initial state", () => {
     bob.moveTo(3n);
     const list = await socket.waitForMessage((message) => message.type === "channelList" && memberNames(message, "Room B").includes("bob"), { after });
     expect(memberNames(list, "Room A")).toEqual([]);
-    expect((await socket.waitForMessage("serverEvent", { after })).event).toMatchObject({ kind: "moved", message: "bob 移动到了其他频道" });
+    expect((await socket.waitForMessage("serverEvent", { after })).event).toMatchObject({ kind: "moved", message: "bob 移动到了其他频道", nickname: "bob" });
   });
 
   it("carries away and mute flags of other members in the tree", async () => {
@@ -161,7 +163,7 @@ describe("the handshake", () => {
     expect((connected.members as { nickname: string }[]).map((member) => member.nickname).sort()).toEqual(["alice", "bob", "carol"]);
   });
 
-  it("F15: without a directory snapshot no `connected` is sent, and commands answer SESSION_NOT_READY until it arrives", async () => {
+  it("F15: a snapshot that arrives in time completes the join, and commands answer SESSION_NOT_READY until it does", async () => {
     const gateway = await gateways.start({ ts: new FakeTeamSpeakServer({ withholdSnapshot: true }) });
     const socket = await gateway.openVoice(gateway.ticket({ nickname: "alice" }));
     const client = await vi.waitFor(() => {
@@ -176,5 +178,20 @@ describe("the handshake", () => {
     client.emit("directorySnapshot", gateway.ts.snapshot());
     await socket.waitForMessage("connected");
     await socket.waitForMessage("channelList");
+  });
+
+  it("F15: without a directory snapshot the session fails with TIMEOUT after the bounded wait and is closed", async () => {
+    const gateway = await gateways.start({
+      ts: new FakeTeamSpeakServer({ withholdSnapshot: true }),
+      voiceBridgeOptions: { directorySyncTimeoutMs: 100 },
+    });
+    const socket = await gateway.openVoice(gateway.ticket({ nickname: "alice" }));
+    const failure = await socket.waitForMessage("connectionFailed");
+    expect(failure).toMatchObject({ code: "TIMEOUT" });
+    expect(await socket.waitForClose()).toEqual({ code: 4003, reason: "TIMEOUT" });
+    expect(socket.messagesOfType("connected")).toEqual([]);
+    const admin = await gateway.adminLogin();
+    await vi.waitFor(async () => expect(((await (await admin.get("sessions")).json()) as { sessions: unknown[] }).sessions).toEqual([]));
+    expect(gateway.ts.created[0]!.isConnected()).toBe(false);
   });
 });

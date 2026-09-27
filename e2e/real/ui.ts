@@ -11,7 +11,7 @@ const escapeRegExp = (text: string): string => text.replace(/[.*+?^${}()|[\]\\]/
 export const channelWith = (page: Page, channel: string, count: number): Locator => page.getByRole("button", { name: `${channel} ${count}`, exact: true });
 
 /** A tab of the chat panel (the channel's own, "Server", or a private chat named by the person). */
-export const chatTab = (page: Page, name: string): Locator => page.getByRole("button", { name, exact: true });
+export const chatTab = (page: Page, name: string): Locator => page.getByRole("tab", { name, exact: true });
 
 /** One message: its sender ("You" for your own) and its text. */
 export const message = (page: Page, sender: string, text: string): Locator =>

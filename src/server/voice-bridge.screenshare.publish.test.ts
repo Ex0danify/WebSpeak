@@ -99,8 +99,8 @@ describe("a browser share published to TeamSpeak", () => {
 });
 
 // F19: every gateway session on a target sees the same notification. The first session pairs the stream with
-// the browser share; the next one finds the share already paired, takes the notification for a native
-// stream and announces the same share a second time, as a TeamSpeak stream owned by its own sharer.
+// the browser share; the next one used to find the share already paired, take the notification for a native
+// stream and announce the same share a second time, as a TeamSpeak stream owned by its own sharer.
 describe("a published share that every session is told about", () => {
   async function toldToEveryone(gateway: Gateway) {
     const context = await publishedShare(gateway);
@@ -110,20 +110,25 @@ describe("a published share that every session is told about", () => {
     return { ...context, cards };
   }
 
-  it("F19: is announced a second time as a TeamSpeak stream of the sharer, and listed twice", async () => {
+  it("F19: is announced once, as the browser share", async () => {
     const gateway = await gateways.start();
-    const { viewer, owner, streamId, cards } = await toldToEveryone(gateway);
-    expect(cards).toMatchObject([{ owner: false, stream: { streamId: TS_STREAM, source: "teamspeak", ownerPeerId: `ts-${owner.id}` } }]);
+    const { viewer, streamId, cards } = await toldToEveryone(gateway);
+    expect(cards).toEqual([]);
     const mark = await markOf(viewer);
     viewer.socket.send({ type: "screenShareList" });
-    const streams = (await viewer.socket.waitForMessage("screenShareList", { after: mark })).streams as { streamId: string }[];
-    expect(streams.map((stream) => stream.streamId).sort()).toEqual([streamId, TS_STREAM].sort());
+    expect(((await viewer.socket.waitForMessage("screenShareList", { after: mark })).streams as { streamId: string; source: string }[])).toMatchObject([{ streamId, source: "browser" }]);
   });
 
-  it.fails("F19: is announced once, as the browser share", async () => {
+  it("F19: its end reaches the sharer once and leaves the browser share listed, whoever is told", async () => {
     const gateway = await gateways.start();
-    const { cards } = await toldToEveryone(gateway);
-    expect(cards).toEqual([]);
+    const { owner, viewer, sessions, streamId } = await toldToEveryone(gateway);
+    const marks = [await markOf(owner), await markOf(viewer)];
+    notify(sessions, "notifystreamstopped", { id: TS_STREAM });
+    expect(await received(owner, marks[0]!)).toMatchObject([{ type: "screenShareError", code: "SCREEN_SHARE_NATIVE_PUBLISHER_STOPPED" }, { type: "screenShareViewerCount", streamId }]);
+    expect(await received(viewer, marks[1]!)).not.toContainEqual(expect.objectContaining({ type: "screenShareStopped" }));
+    const mark = await markOf(viewer);
+    viewer.socket.send({ type: "screenShareList" });
+    expect(((await viewer.socket.waitForMessage("screenShareList", { after: mark })).streams as { streamId: string }[]).map((stream) => stream.streamId)).toEqual([streamId]);
   });
 });
 
@@ -277,15 +282,27 @@ describe("streams that started before the session joined", () => {
     return { carol, list: await listed(carol) };
   }
 
-  it("F20: a stream that ended while no session was connected is still listed for the next session, which does not ask again", async () => {
-    const gateway = await gateways.start();
-    const { carol, list } = await endedWhileNobodyWasThere(gateway);
-    expect(list).toEqual(["ts-old"]);
-    expect(commandsOf(carol, "requeststreaminfo")).toEqual([]);
-  });
-
-  it.fails("F20: a stream that ended while no session was connected is not listed for the next session", async () => {
+  it("F20: a stream that ended while no session was connected is not listed for the next session", async () => {
     const gateway = await gateways.start();
     expect((await endedWhileNobodyWasThere(gateway)).list).toEqual([]);
+  });
+
+  it("F20: with nobody connected, an untouched target's discovery mark and streams are forgotten too", async () => {
+    const gateway = await gateways.start();
+    const source = gateway.ts.addMember("tsuser");
+    const stream = runningStream(gateway, () => source.id);
+    const alice = await joinVoice(gateway, { nickname: "alice" });
+    await alice.socket.waitForMessage("screenShareStarted");
+    alice.socket.close();
+    await vi.waitFor(async () => {
+      const admin = await gateway.adminLogin();
+      expect(((await (await admin.get("sessions")).json()) as { sessions: unknown[] }).sessions).toEqual([]);
+    });
+    // The stream is still running, unlike endedWhileNobodyWasThere: the next session should still find it,
+    // by asking again rather than trusting the forgotten discovery mark.
+    const bob = await joinVoice(gateway, { nickname: "bob" });
+    expect(await listed(bob)).toEqual(["ts-old"]);
+    expect(commandsOf(bob, "requeststreaminfo").sort()).toEqual([`requeststreaminfo clid=${bob.id}`, `requeststreaminfo clid=${source.id}`].sort());
+    stream.stop();
   });
 });

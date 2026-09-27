@@ -8,6 +8,7 @@ import { WebSpeakDatabase } from "../../src/persistence/database.js";
 import { JoinTicketStore, type JoinTicketPayload } from "../../src/server/join-ticket.js";
 import { createWebServer, type WebServer } from "../../src/server/server.js";
 import { probeTeamSpeak, type TeamSpeakProbeResult } from "../../src/server/teamspeak-probe.js";
+import type { TeamSpeakPingResult } from "../../src/server/network-probe.js";
 import type { VoiceBridgeOptions } from "../../src/server/voice-bridge.js";
 import { MASTER_SECRET, stubLogger, type StubLogger } from "./admin-service.js";
 import { FakeTeamSpeakServer } from "./fake-ts-client.js";
@@ -29,11 +30,13 @@ export interface GatewayOptions {
   /** Written as the old `config.json` before the first start, to be imported once. */
   legacyConfig?: Record<string, unknown>;
   /**
-   * What the admin "test connection" does instead of talking to a server. Succeeds by default,
-   * except with `realTeamSpeak`: then the admin service gets the product's own probe, so the test
-   * runs the host ping that production runs, and `gateway.probe` is not called.
+   * What the admin "test connection" does instead of sending the handshake packet. Succeeds by
+   * default, except with `realTeamSpeak`: then the admin service gets the product's own probe (the
+   * UDP handshake) and host ping, and `gateway.probe` and `gateway.ping` are not called.
    */
   probe?: (...args: Parameters<ProbeFn>) => Promise<TeamSpeakProbeResult>;
+  /** The host ping next to the probe. Succeeds by default (no ICMP from the tests). */
+  ping?: (host: string) => Promise<TeamSpeakPingResult>;
   /** Leave the first-run account (`admin` / `admin`, password change required) as it is. */
   forcePasswordChange?: boolean;
   /** Overrides for the `VoiceBridgeOptions` the harness wires like `src/index.ts` does. */
@@ -63,8 +66,9 @@ export interface Gateway {
   readonly logger: StubLogger;
   /** Where the admin console looks for the gateway log. The file does not exist until a test writes it. */
   readonly logFile: string;
-  /** The stub behind the admin connection test. */
+  /** The stubs behind the admin connection test: the handshake probe and the host ping. */
   readonly probe: Mock<ProbeFn>;
+  readonly ping: Mock<(host: string) => Promise<TeamSpeakPingResult>>;
   readonly dataDir: string;
   /** A request that comes from the gateway's own origin, like the browser app's. */
   request(path: string, init?: RequestInit): Promise<Response>;
@@ -75,12 +79,8 @@ export interface Gateway {
   adminLogin(password?: string): Promise<AdminApi>;
   /** The gateway's own `stop()`, for tests of shutdown. `close()` still cleans up afterwards. */
   stop(): Promise<void>;
-  /**
-   * Closes the sockets from the client side, stops the gateway and removes the data directory.
-   * `stopTimeoutMs` bounds the wait for `stop()`, for callers whose sockets the harness does not
-   * hold (a browser): a session the gateway ended itself keeps `stop()` pending (F12).
-   */
-  close(options?: { stopTimeoutMs?: number }): Promise<void>;
+  /** Closes the sockets from the client side, stops the gateway and removes the data directory. */
+  close(): Promise<void>;
 }
 
 /**
@@ -97,10 +97,12 @@ export async function startGateway(options: GatewayOptions = {}): Promise<Gatewa
   const logger = stubLogger();
   const ts = options.ts ?? new FakeTeamSpeakServer();
   const database = new WebSpeakDatabase(join(dataDir, "webspeak.db"));
-  const probe = vi.fn(options.probe ?? (async () => ({ ok: true as const, protocol: "ts6" as const, latencyMs: 12, serverName: "Fake TeamSpeak", requiresPassword: false })));
+  const probe = vi.fn(options.probe ?? (async () => ({ ok: true as const, latencyMs: 12 })));
+  const ping = vi.fn(options.ping ?? (async () => ({ ok: true, latencyMs: 3, packetLossPercent: 0, attempts: 4, successfulAttempts: 4, samples: [3, 3, 3, 3] })));
   if (options.legacyConfig) writeFileSync(join(dataDir, "config.json"), JSON.stringify(options.legacyConfig));
   const adminProbe = options.realTeamSpeak && !options.probe ? probeTeamSpeak : probe;
-  const adminService = new AdminService(database, MASTER_SECRET, logger, join(dataDir, "config.json"), adminProbe as unknown as ProbeFn, "9.9.9");
+  const adminPing = options.realTeamSpeak && !options.ping ? undefined : ping;
+  const adminService = new AdminService(database, MASTER_SECRET, logger, join(dataDir, "config.json"), adminProbe as unknown as ProbeFn, "9.9.9", adminPing);
   if (options.initialize !== false) {
     await adminService.initialize();
     if (!options.forcePasswordChange) await adminService.changePassword(TEST_ADMIN_PASSWORD);
@@ -143,6 +145,7 @@ export async function startGateway(options: GatewayOptions = {}): Promise<Gatewa
     joinTickets,
     logger,
     probe,
+    ping,
     logFile,
     dataDir,
     request,
@@ -171,22 +174,11 @@ export async function startGateway(options: GatewayOptions = {}): Promise<Gatewa
       };
     },
     stop: () => webServer.stop(),
-    close({ stopTimeoutMs }: { stopTimeoutMs?: number } = {}) {
+    close() {
       closing ??= (async () => {
-        // Closing from the client side lets `ws` forget the socket. A socket the server closed
-        // itself (kick, ban, connect failure) is never forgotten and `stop()` then never
-        // finishes, see finding F12, so that case is not awaited.
-        const closedByServer = [...sockets].some((socket) => socket.closeInfo !== null && !socket.closedLocally);
         for (const socket of sockets) socket.close();
         await Promise.all([...sockets].map((socket) => socket.waitForClose().catch(() => undefined)));
-        const stopped = webServer.stop();
-        if (closedByServer) void stopped.catch(() => undefined);
-        else if (stopTimeoutMs === undefined) await stopped;
-        else {
-          let timer: ReturnType<typeof setTimeout>;
-          const deadline = new Promise<void>((resolve) => { timer = setTimeout(resolve, stopTimeoutMs); });
-          await Promise.race([stopped.catch(() => undefined), deadline]).finally(() => clearTimeout(timer));
-        }
+        await webServer.stop();
         database.close();
         rmSync(dataDir, { recursive: true, force: true });
       })();

@@ -4,6 +4,7 @@ import rnnoiseSimdWasmUrl from "@sapphi-red/web-noise-suppressor/rnnoise_simd.wa
 import rnnoiseWasmUrl from "@sapphi-red/web-noise-suppressor/rnnoise.wasm?url";
 import rnnoiseWorkletUrl from "@sapphi-red/web-noise-suppressor/rnnoiseWorklet.js?url";
 import { loadLocalPreferences, saveLocalPreferences } from "../services/local-persistence.js";
+import { readStorage, writeStorage } from "@/lib/safe-storage";
 
 const micCaptureWorkletUrl = "/mic-capture-worklet.js";
 const SCREEN_SHARE_NEGOTIATION_TIMEOUT_MS = 15_000;
@@ -198,6 +199,10 @@ export interface ServerEvent {
   id: string;
   kind: string;
   message: string;
+  // Set by a gateway that builds a translatable sentence instead of Chinese text (F24); an older
+  // gateway sends neither, and `message` is shown as it is.
+  nickname?: string;
+  channelName?: string;
   timestamp: number;
 }
 
@@ -216,6 +221,7 @@ const CLIENT_ERROR_CODE_ALIASES: Record<string, string> = {
   GATEWAY_FULL: "SERVER_REJECTED",
   TS_CONNECT_FAILED: "CONNECTION_FAILED",
   TEAM_SPEAK_CONNECT_FAILED: "CONNECTION_FAILED",
+  "ADMIN-TERMINATED": "ADMIN_TERMINATED",
 };
 
 /** Keep codes useful to the user without allowing an unbounded server value into the UI. */
@@ -330,6 +336,8 @@ const CONNECTION_FAILURE_MESSAGES: Record<string, string> = {
   ACCELERATION_UNAVAILABLE: "当前中继加速不可用，请关闭加速后重试或联系管理员",
   GATEWAY_NETWORK_LOST: "与语音网关的网络连接异常中断（掉线或代理断开），并非 TeamSpeak 服务器拒绝连接，请检查网络后重新进入",
   GATEWAY_SESSION_ENDED: "语音网关会话意外结束，请重新进入语音空间",
+  GATEWAY_RESTARTING: "语音网关正在重启或维护，请稍候片刻后重新进入",
+  ADMIN_TERMINATED: "管理员已结束你的本次语音会话，如需继续请重新进入",
   TEAM_SPEAK_CLIENT_UNAVAILABLE: "语音网关未能创建 TeamSpeak 客户端（服务器可能已关闭或地址不可达），请确认服务器地址或稍后重试",
 };
 
@@ -342,6 +350,11 @@ export function useVoiceWebSocket() {
   const serverEvents = reactive<ServerEvent[]>([]);
   const pokeNotifications = reactive<{ id: string; invokerId: number; invokerUid: string; invokerName: string; message: string; timestamp: number }[]>([]);
   let connectionSequence = 0;
+  // Set once connectionFailed has already put a message and a code in front of the person for this
+  // attempt (F23): the gateway closes the socket right after such a failure, and onclose must not
+  // raise the same failure again from the close code once they have dismissed it (a cancelled
+  // password dialog must not come back). Reset for every new attempt.
+  let failureAlreadyReported = false;
   let lastConnection: { target: string; channel: string; nickname: string; serverPassword: string; identity?: string; rememberIdentity: boolean; accelerated: boolean; accelerationRelayId: string } | null = null;
   let latencyProbeSequence = 0;
   const pendingLatencyProbes = new Map<string, { startedAt: number; resolve: (result: LatencyProbeResult | null) => void; timer: ReturnType<typeof setTimeout> }>();
@@ -416,8 +429,8 @@ export function useVoiceWebSocket() {
   let webrtcMicMonitorTimer: ReturnType<typeof setInterval> | null = null;
   const inputDevices = reactive<AudioInputDevice[]>([]);
   const outputDevices = reactive<AudioOutputDevice[]>([]);
-  const selectedInputDeviceId = ref(typeof localStorage !== "undefined" ? localStorage.getItem("webspeak:input-device") ?? "" : "");
-  const selectedOutputDeviceId = ref(typeof localStorage !== "undefined" ? localStorage.getItem("webspeak:output-device") ?? "" : "");
+  const selectedInputDeviceId = ref(readStorage("webspeak:input-device") ?? "");
+  const selectedOutputDeviceId = ref(readStorage("webspeak:output-device") ?? "");
   const outputDeviceSupported = ref(false);
   const audioPermission = ref<AudioPermission>("unknown");
   const microphoneProcessing = reactive<MicrophoneProcessingSettings>({
@@ -711,13 +724,13 @@ export function useVoiceWebSocket() {
     outputDevices.splice(0, outputDevices.length, ...speakers);
     if (selectedInputDeviceId.value && !microphones.some((device) => device.deviceId === selectedInputDeviceId.value)) {
       selectedInputDeviceId.value = "";
-      localStorage.setItem("webspeak:input-device", selectedInputDeviceId.value);
+      writeStorage("webspeak:input-device", selectedInputDeviceId.value);
       void saveAudioPreferences();
       if (micStream) void startMicrophone().catch(() => undefined);
     }
     if (selectedOutputDeviceId.value && !speakers.some((device) => device.deviceId === selectedOutputDeviceId.value)) {
       selectedOutputDeviceId.value = "";
-      localStorage.setItem("webspeak:output-device", "");
+      writeStorage("webspeak:output-device", "");
       void saveAudioPreferences();
       if (audioCtx && outputDeviceSupported.value) void setAudioSink(audioCtx, "").catch(() => undefined);
     }
@@ -1303,7 +1316,7 @@ export function useVoiceWebSocket() {
     const previousDeviceId = selectedInputDeviceId.value;
     const shouldRestartWebRtc = webrtcActive.value && Boolean(ws.value);
     selectedInputDeviceId.value = deviceId;
-    localStorage.setItem("webspeak:input-device", deviceId);
+    writeStorage("webspeak:input-device", deviceId);
     void saveAudioPreferences();
     try {
       if (shouldRestartWebRtc) stopWebRtcTransport();
@@ -1315,7 +1328,7 @@ export function useVoiceWebSocket() {
       await refreshAudioDevices();
     } catch (error) {
       selectedInputDeviceId.value = previousDeviceId;
-      localStorage.setItem("webspeak:input-device", previousDeviceId);
+      writeStorage("webspeak:input-device", previousDeviceId);
       throw error;
     }
   }
@@ -1364,13 +1377,13 @@ export function useVoiceWebSocket() {
       throw new Error("所选扬声器当前不可用");
     }
     selectedOutputDeviceId.value = deviceId;
-    localStorage.setItem("webspeak:output-device", deviceId);
+    writeStorage("webspeak:output-device", deviceId);
     try {
       await setAudioSink(getAudioCtx(), deviceId);
       await saveAudioPreferences();
     } catch (error) {
       selectedOutputDeviceId.value = previousDeviceId;
-      localStorage.setItem("webspeak:output-device", previousDeviceId);
+      writeStorage("webspeak:output-device", previousDeviceId);
       throw error;
     }
   }
@@ -1520,6 +1533,7 @@ export function useVoiceWebSocket() {
     lastConnection = { target, channel, nickname, serverPassword, ...(identity ? { identity } : {}), rememberIdentity, accelerated, accelerationRelayId };
     identityMaterial.value = identity;
     const sequence = ++connectionSequence;
+    failureAlreadyReported = false;
     state.error = "";
     state.errorCode = "";
     // Audio diagnostics belong to the previous session, never to the new one.
@@ -1591,8 +1605,15 @@ export function useVoiceWebSocket() {
       state.reconnecting = false;
       // Prefer the close code over the generic WebSocket error event. The
       // gateway uses a dedicated code when a remembered identity is already
-      // active in another browser page.
-      if (event.code !== 1000 && !state.reconnectFailed && !state.errorCode) {
+      // active in another browser page. Code 1000 is otherwise a plain leave
+      // the person asked for and stays silent, except when the reason says an
+      // administrator ended the session instead (F21): that is not something
+      // the person did, so it gets the same notice every other refusal shows.
+      // A connectionFailed message already reported this attempt's failure
+      // (F23): the close that follows it must not raise the same failure
+      // again once the person has dismissed it, or a cancelled password
+      // dialog would reopen on its own.
+      if ((event.code !== 1000 || event.reason === "admin-terminated") && !state.reconnectFailed && !state.errorCode && !failureAlreadyReported) {
         state.errorCode = closeErrorCode(event.code, event.reason);
         state.error = closeReason(event.code, event.reason);
       }
@@ -1624,12 +1645,13 @@ export function useVoiceWebSocket() {
   }
 
   // 网关关闭码 → 前端可解释错误码的映射：4000-4003 是网关/会话级，4004/4005 是
-  // TeamSpeak 拒绝与身份冲突，4006 是中继加速，1006/1011 是传输级掉线，绝不能
-  // 被误当成 TeamSpeak 服务器拒绝。
+  // TeamSpeak 拒绝与身份冲突，4006 是中继加速，1001 是网关主动重启（F17），
+  // 1006/1011 是传输级掉线，绝不能被误当成 TeamSpeak 服务器拒绝。
   /**
    * Gateway close codes. 4000-4003 are gateway/session level, 4004/4005 are a
    * TeamSpeak rejection and an identity conflict, 4006 is the acceleration relay,
-   * and 1006 is a transport-level drop that must not be blamed on TeamSpeak.
+   * 1001 is the gateway going down on purpose (F17), and 1006 is a
+   * transport-level drop that must not be blamed on TeamSpeak.
    */
   const GATEWAY_CLOSE_CODE_CODES: Record<number, string> = {
     4000: "CONNECTION_FAILED",
@@ -1639,6 +1661,7 @@ export function useVoiceWebSocket() {
     4004: "SERVER_REJECTED",
     4005: "IDENTITY_IN_USE",
     4006: "ACCELERATION_UNAVAILABLE",
+    1001: "GATEWAY_RESTARTING",
     1006: "GATEWAY_NETWORK_LOST",
     1011: "GATEWAY_SESSION_ENDED",
   };
@@ -2583,6 +2606,7 @@ export function useVoiceWebSocket() {
         // This is the first connection attempt, not a failed reconnect. Keep
         // the user on the welcome form instead of showing an empty voice room.
         state.reconnectFailed = false;
+        failureAlreadyReported = true;
         state.errorCode = normalizedClientErrorCode(msg.code);
         state.error = connectionFailureMessage(state.errorCode, msg.detail);
         stopScreenShareTransport(false);

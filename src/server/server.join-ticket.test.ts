@@ -263,19 +263,20 @@ describe("acceleration", () => {
     expect(await post(gateway, { nickname: "a", accelerationRelayId: "nope" })).toMatchObject({ status: 400, body: { code: "ACCELERATION_UNAVAILABLE" } });
   });
 
-  it("F14: a request refused for acceleration has already used up the invite", async () => {
+  it("F14: a request refused for acceleration leaves the invite usable", async () => {
     const gateway = await gateways.start();
     const admin = await gateway.adminLogin();
     const { token } = await (await admin.post("invites", { channel: "", expiresInHours: 1, maxUses: 1 })).json() as { token: string };
     expect((await post(gateway, { nickname: "a", invite: token, accelerated: true })).body.code).toBe("ACCELERATION_UNAVAILABLE");
-    expect((await post(gateway, { nickname: "a", invite: token })).body.code).toBe("INVITE_INVALID");
+    expect((await post(gateway, { nickname: "a", invite: token, accelerationRelayId: "nope" })).body.code).toBe("ACCELERATION_UNAVAILABLE");
+    expect((await post(gateway, { nickname: "a", invite: token })).status).toBe(201);
   });
 
-  it.fails("F14: a request refused for acceleration leaves the invite usable", async () => {
+  it("F14: an invite that is used by a request that is accepted is still used up", async () => {
     const gateway = await gateways.start();
     const admin = await gateway.adminLogin();
     const { token } = await (await admin.post("invites", { channel: "", expiresInHours: 1, maxUses: 1 })).json() as { token: string };
-    await post(gateway, { nickname: "a", invite: token, accelerated: true });
     expect((await post(gateway, { nickname: "a", invite: token })).status).toBe(201);
+    expect((await post(gateway, { nickname: "a", invite: token })).body.code).toBe("INVITE_INVALID");
   });
 });

@@ -14,6 +14,7 @@ const DATA_DIR = process.env.WEBSPEAK_DATA_DIR?.trim() || path.join(ROOT_DIR, "d
 const LOG_DIR = path.join(DATA_DIR, "logs");
 const STATIC_DIR = path.join(ROOT_DIR, "web", "dist");
 const APP_VERSION = readPackageVersion();
+const SHUTDOWN_TIMEOUT_MS = 10_000;
 const SCREEN_SHARE_ICE_SERVERS = readScreenShareIceServers(process.env.WEBSPEAK_SCREEN_SHARE_ICE_SERVERS);
 
 async function main() {
@@ -77,7 +78,10 @@ async function main() {
   // Graceful shutdown
   const shutdown = async (signal: string) => {
     logger.info({ signal }, "Shutting down");
-    await webServer.stop();
+    // A stuck close must not keep the process alive until the supervisor's SIGKILL.
+    let timer: NodeJS.Timeout | undefined;
+    const deadline = new Promise<void>((resolve) => { timer = setTimeout(resolve, SHUTDOWN_TIMEOUT_MS); });
+    await Promise.race([webServer.stop(), deadline]).finally(() => clearTimeout(timer));
     database.close();
     process.exit(0);
   };

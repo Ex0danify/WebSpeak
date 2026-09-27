@@ -7,7 +7,7 @@ import { type AccessMode, type ManagedInviteRecord, type PersistedRelayNode, typ
 import { hashAdminPassword, validateAdminPassword, verifyAdminPassword } from "../security/admin-password.js";
 import { decryptSecret, encryptSecret } from "../security/secret-crypto.js";
 import { probeTeamSpeak, TeamSpeakProbeError } from "../server/teamspeak-probe.js";
-import { pingTeamSpeakHost } from "../server/network-probe.js";
+import { pingTeamSpeakHost, type TeamSpeakPingResult } from "../server/network-probe.js";
 import type { WebRtcAudioOptions } from "../server/webrtc-audio.js";
 import { DEFAULT_ACCELERATION_RELAY_PORT, type ConfiguredAccelerationRelay } from "../server/acceleration-relay.js";
 import { DEFAULT_WEBRTC_UDP_PORT_RANGE, WEBRTC_UDP_PORT_MAX, WEBRTC_UDP_PORT_MIN } from "../server/webrtc-config.js";
@@ -70,6 +70,17 @@ export interface ManagedInviteView {
 }
 
 type ProbeFunction = typeof probeTeamSpeak;
+type HostPingFunction = (host: string) => Promise<TeamSpeakPingResult>;
+
+/** What "Test connection" reports. `ok` is the answer of the voice port; the host ping is context. */
+export interface ConnectionTestResult {
+  ok: boolean;
+  /** Round trip of the TeamSpeak handshake packet; null when nothing answered. */
+  latencyMs: number | null;
+  errorCode?: string;
+  /** Ping of the host from the WebSpeak machine. A host that drops ICMP can fail it while the server is fine. */
+  hostPing: { ok: boolean; latencyMs: number | null; packetLossPercent: number; attempts: number; successfulAttempts: number; errorCode?: string };
+}
 
 export class AdminService {
   constructor(
@@ -79,6 +90,7 @@ export class AdminService {
     private readonly legacyConfigPath: string,
     private readonly probe: ProbeFunction = probeTeamSpeak,
     private readonly version = "0.1.0",
+    private readonly hostPing: HostPingFunction = (host) => pingTeamSpeakHost(host, { attempts: 4 }),
   ) {}
 
   async initialize(): Promise<void> {
@@ -221,59 +233,58 @@ export class AdminService {
     };
   }
 
-  async testConnection(targetText: string, password: string, persistResult: boolean): Promise<{ ok: boolean; checkType: "network" | "protocol"; passwordVerified: boolean; latencyMs: number; serverName: string | null; requiresPassword: boolean; packetLossPercent?: number; attempts?: number; successfulAttempts?: number; errorCode?: string }> {
+  /**
+   * Checks the voice port with the first packets of the TeamSpeak handshake (no client is created,
+   * so nothing shows up in a channel and the server password is not checked) and pings the host
+   * next to it. A silent or wrong port gives `ok: false` with the reason in `errorCode`.
+   */
+  async testConnection(targetText: string, persistResult: boolean): Promise<ConnectionTestResult> {
     let target: TeamSpeakTarget;
     try {
       target = parseTeamSpeakTarget(targetText);
     } catch {
       throw new AdminInputError("INVALID_TARGET", "TeamSpeak target is invalid");
     }
+    let handshake: { latencyMs: number } | { error: TeamSpeakProbeError };
+    let ping: TeamSpeakPingResult;
     try {
-      // The admin connection test must not create a temporary TeamSpeak
-      // client: that client becomes visible in the target channel. Use the
-      // WebSpeak host's ICMP route measurement instead. The injected probe is
-      // retained for unit tests and explicit protocol-probe callers.
-      if (this.probe === probeTeamSpeak) {
-        const result = await pingTeamSpeakHost(target.host, { attempts: 4 });
-        const publicResult = {
-          ok: result.ok,
-          checkType: "network" as const,
-          passwordVerified: false,
-          latencyMs: result.latencyMs ?? 0,
-          serverName: null,
-          requiresPassword: false,
-          packetLossPercent: result.packetLossPercent,
-          attempts: result.attempts,
-          successfulAttempts: result.successfulAttempts,
-          ...(result.errorCode ? { errorCode: result.errorCode } : {}),
-        };
-        if (persistResult) {
-          this.database.recordConnectionTest({ protocol: null, latencyMs: result.latencyMs, error: result.ok ? null : (result.errorCode ?? "UNREACHABLE") });
-          this.database.addAudit(result.ok ? "CONNECTION_TEST_SUCCEEDED" : "CONNECTION_TEST_FAILED", {
-            latencyMs: result.latencyMs,
-            packetLossPercent: result.packetLossPercent,
-            ...(result.errorCode ? { code: result.errorCode } : {}),
-          });
-        }
-        return publicResult;
-      }
-      const result = await this.probe(target, password, this.logger);
-      if (persistResult) {
-        this.database.recordConnectionTest({ protocol: result.protocol, latencyMs: result.latencyMs, error: null });
-        this.database.addAudit("CONNECTION_TEST_SUCCEEDED", { protocol: result.protocol, latencyMs: result.latencyMs });
-      }
-      const { protocol: _protocol, ...publicResult } = result;
-      return { ...publicResult, checkType: "protocol", passwordVerified: true };
+      [handshake, ping] = await Promise.all([
+        this.probe(target).catch((error: unknown) => {
+          if (error instanceof TeamSpeakProbeError) return { error };
+          throw error;
+        }),
+        this.hostPing(target.host),
+      ]);
     } catch (error: unknown) {
-      const probeError = error instanceof TeamSpeakProbeError
-        ? error
-        : new TeamSpeakProbeError("INTERNAL_ERROR", "Connection test failed", error);
-      if (persistResult) {
-        this.database.recordConnectionTest({ protocol: null, latencyMs: null, error: probeError.code });
-        this.database.addAudit("CONNECTION_TEST_FAILED", { code: probeError.code });
-      }
-      throw probeError;
+      const unexpected = new TeamSpeakProbeError("INTERNAL_ERROR", "Connection test failed", error);
+      this.recordConnectionTest(persistResult, null, unexpected.code, {});
+      throw unexpected;
     }
+    const hostPing = {
+      ok: ping.ok,
+      latencyMs: ping.latencyMs,
+      packetLossPercent: ping.packetLossPercent,
+      attempts: ping.attempts,
+      successfulAttempts: ping.successfulAttempts,
+      ...(ping.errorCode ? { errorCode: ping.errorCode } : {}),
+    };
+    const details = { hostPingOk: ping.ok, packetLossPercent: ping.packetLossPercent };
+    if ("error" in handshake) {
+      this.recordConnectionTest(persistResult, null, handshake.error.code, details);
+      return { ok: false, latencyMs: null, errorCode: handshake.error.code, hostPing };
+    }
+    this.recordConnectionTest(persistResult, handshake.latencyMs, null, details);
+    return { ok: true, latencyMs: handshake.latencyMs, hostPing };
+  }
+
+  private recordConnectionTest(persistResult: boolean, latencyMs: number | null, code: string | null, details: Record<string, unknown>): void {
+    if (!persistResult) return;
+    this.database.recordConnectionTest({ protocol: null, latencyMs, error: code });
+    this.database.addAudit(code ? "CONNECTION_TEST_FAILED" : "CONNECTION_TEST_SUCCEEDED", {
+      ...(latencyMs === null ? {} : { latencyMs }),
+      ...(code ? { code } : {}),
+      ...details,
+    });
   }
 
   getOverview(activeSessions: number, peakSessions: number, startedAt: number): Record<string, unknown> {

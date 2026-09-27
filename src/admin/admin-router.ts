@@ -262,15 +262,10 @@ export function createAdminRouter(options: AdminRouterOptions): Router {
     }
   });
 
+  // The test checks the voice port with the first handshake packets; it logs no client in, so it
+  // has no use for the server password and the request carries only the target.
   router.post("/server/test", requireSameOrigin, requireCsrf(options.sessions), async (request, response) => {
-    const body = asRecord(request.body);
-    const action = readPasswordAction(body.passwordAction);
-    const password = action === "remove"
-      ? ""
-      : typeof body.serverPassword === "string"
-        ? body.serverPassword.slice(0, 512)
-        : options.service.getConnectionPolicy().serverPassword;
-    await runProbe(options.service, response, readString(body, "target", 300), password, true);
+    await runProbe(options.service, response, readString(asRecord(request.body), "target", 300), true);
   });
 
   router.post("/legacy-import/dismiss", requireSameOrigin, requireCsrf(options.sessions), (_request, response) => {
@@ -331,11 +326,10 @@ async function runProbe(
   service: AdminService,
   response: Response,
   target: string,
-  password: string,
   persistResult: boolean,
 ): Promise<void> {
   try {
-    response.json(await service.testConnection(target, password, persistResult));
+    response.json(await service.testConnection(target, persistResult));
   } catch (error: unknown) {
     if (error instanceof TeamSpeakProbeError) {
       response.status(400).json({ ok: false, code: error.code });

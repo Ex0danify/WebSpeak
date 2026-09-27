@@ -1,6 +1,7 @@
 import type { Locator, Page } from "@playwright/test";
 import { expect, test } from "./fixtures";
 import { TEST_ADMIN_PASSWORD, type Gateway } from "../test/helpers/gateway";
+import { TeamSpeakProbeError } from "../src/server/teamspeak-probe";
 
 // The admin console's Server page: what the administrator edits, what a save keeps, and what the
 // guests then see. Each test has a gateway of its own (`ownGateway`), the console is asked for English.
@@ -92,26 +93,23 @@ test.describe("save", () => {
     await expect(page.getByLabel("TeamSpeak server address")).not.toHaveValue("");
   });
 
-  // A save that works says nothing: the answer is 200 and the page does not change (bug F29).
-  test("F29: a successful save shows no confirmation", async ({ page, ownGateway }) => {
+  // Every successful action of the console says so in a toast (bug F29: a save that worked said nothing).
+  test("a successful save says so in a toast, and a refused one shows the alert and no toast (F29)", async ({ page, ownGateway }) => {
     const gateway = await ownGateway();
     await openServerPage(page, gateway);
-    const before = await page.locator("body").innerText();
-    await siteName(page).fill("Quiet Save");
-    expect(await save(page)).toBe(200);
-    await expect(page.getByRole("button", { name: "Save changes" })).toBeEnabled();
-    const after = await page.locator("body").innerText();
-    expect(after).toBe(before);
-    await expect(page.getByRole("status").filter({ hasText: /\w/ })).toHaveCount(0);
-  });
-
-  test("a successful save says so (bug F29)", async ({ page, ownGateway }) => {
-    test.fail();
-    const gateway = await ownGateway();
-    await openServerPage(page, gateway);
+    const saved = page.locator("li").filter({ hasText: "Settings saved." });
+    await expect(saved).toHaveCount(0);
     await siteName(page).fill("Loud Save");
     expect(await save(page)).toBe(200);
-    await expect(page.getByText(/saved/i)).toBeVisible({ timeout: 1500 });
+    await expect(saved).toBeVisible();
+    await expect(page.getByRole("alert")).toHaveCount(0);
+
+    await saved.getByRole("button", { name: "Close" }).click();
+    await expect(saved).toHaveCount(0);
+    await page.getByLabel("TeamSpeak server address").fill("");
+    expect(await save(page)).toBe(400);
+    await expect(page.getByRole("alert")).toBeVisible();
+    await expect(saved).toHaveCount(0);
   });
 });
 
@@ -142,14 +140,45 @@ test.describe("welcome message", () => {
 });
 
 test.describe("connection test", () => {
-  test("Test connection shows what the probe found, for the address in the form", async ({ page, ownGateway }) => {
+  test("Test connection shows the handshake's answer and the host ping, for the address in the form", async ({ page, ownGateway }) => {
     const gateway = await ownGateway();
     await openServerPage(page, gateway);
     await page.getByLabel("TeamSpeak server address").fill("probe.example.test");
     await page.getByRole("button", { name: "Test connection" }).click();
-    await expect(page.getByText("Connection ready")).toBeVisible();
-    await expect(page.getByText("Fake TeamSpeak · 12 ms")).toBeVisible();
+    await expect(page.getByText("TeamSpeak server answered")).toBeVisible();
+    await expect(page.getByText(/ · 12 ms · Host ping 3 ms · Packet loss 0%$/)).toBeVisible();
     expect(JSON.stringify(gateway.probe.mock.calls)).toContain("probe.example.test");
+    expect(gateway.ping.mock.calls).toEqual([["probe.example.test"]]);
+  });
+
+  test("a silent voice port is a failure, and the banner still says whether the host answers ping", async ({ page, ownGateway }) => {
+    const gateway = await ownGateway();
+    gateway.probe.mockRejectedValue(new TeamSpeakProbeError("NO_ANSWER", "silent"));
+    await openServerPage(page, gateway);
+    await page.getByRole("button", { name: "Test connection" }).click();
+    await expect(page.getByText("No answer from the TeamSpeak server")).toBeVisible();
+    await expect(page.getByText(/Nothing answered on this voice port\..* · Host ping 3 ms · Packet loss 0%$/)).toBeVisible();
+    await expect(page.getByText("TeamSpeak server answered")).toBeHidden();
+  });
+
+  test("a host that ignores ping does not fail a port that answers", async ({ page, ownGateway }) => {
+    const gateway = await ownGateway();
+    gateway.ping.mockResolvedValue({ ok: false, latencyMs: null, packetLossPercent: 100, attempts: 4, successfulAttempts: 0, samples: [], errorCode: "TIMEOUT" });
+    await openServerPage(page, gateway);
+    await page.getByRole("button", { name: "Test connection" }).click();
+    await expect(page.getByText("TeamSpeak server answered")).toBeVisible();
+    await expect(page.getByText(/ · The host does not answer ping$/)).toBeVisible();
+  });
+
+  test("the test sends only the address: the server password is not part of it", async ({ page, ownGateway }) => {
+    const gateway = await ownGateway();
+    await openServerPage(page, gateway);
+    await page.getByRole("radio", { name: "Change" }).click();
+    await page.getByRole("textbox", { name: "Server password" }).fill("typed-secret");
+    const request = page.waitForRequest((candidate) => candidate.url().endsWith("/api/admin/server/test"));
+    await page.getByRole("button", { name: "Test connection" }).click();
+    expect(JSON.parse((await request).postData() ?? "{}")).toEqual({ target: expect.stringContaining(":") });
+    await expect(page.getByText("TeamSpeak server answered")).toBeVisible();
   });
 });
 
