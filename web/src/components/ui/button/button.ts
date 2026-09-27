@@ -18,7 +18,7 @@ export const buttonVariants = cva(
       },
       size: {
         sm: "h-8 px-3 text-xs",
-        md: "h-10 px-4 text-sm",
+        md: "h-10 px-4 text-sm max-[740px]:h-11",
         lg: "h-12 px-6 text-base",
       },
       // Square button with an icon and no text. Needs an aria-label.
@@ -29,7 +29,7 @@ export const buttonVariants = cva(
     },
     compoundVariants: [
       { iconOnly: true, size: "sm", class: "w-8" },
-      { iconOnly: true, size: "md", class: "w-10" },
+      { iconOnly: true, size: "md", class: "w-10 max-[740px]:w-11" },
       { iconOnly: true, size: "lg", class: "w-12" },
     ],
     defaultVariants: { variant: "primary", size: "md", iconOnly: false },

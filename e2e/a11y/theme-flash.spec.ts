@@ -5,8 +5,8 @@ import { useCannedApi } from "../fixtures/canned-api";
 // A stored theme has to be on the page before the first paint, or a reload flashes the other theme
 // (about 20 to 55 ms measured). Timing that is flaky; what decides it is whether anything other than
 // the app's own script applies the theme, so the test loads the page with every script blocked and
-// reads what the page looks like then. Once `index.html` has an inline theme script the fail marker
-// goes red, and the pinned test with it.
+// reads what the page looks like then. `index.html` now has an inline theme script, so this holds
+// even with every other script blocked.
 
 interface Look {
   theme: string | null;
@@ -27,19 +27,9 @@ async function storedDark(page: Page, blockScripts: boolean): Promise<Look> {
 }
 
 test("F51: a stored dark theme is applied before the app's script runs", async ({ page }) => {
-  test.fail(true, "F51: only the app's own script applies the theme");
   const loaded = await storedDark(page, false);
   expect(loaded.theme).toBe("dark");
   await page.unrouteAll();
   const early = await storedDark(page, true);
   expect(early).toEqual(loaded);
-});
-
-test("F51 pinned: with the script blocked, a stored dark theme is not applied", async ({ page }) => {
-  const loaded = await storedDark(page, false);
-  expect(loaded.theme).toBe("dark");
-  await page.unrouteAll();
-  const early = await storedDark(page, true);
-  expect(early.theme).toBeNull();
-  expect(early.background).not.toBe(loaded.background);
 });

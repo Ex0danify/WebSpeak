@@ -1,7 +1,17 @@
 import type { Page } from "@playwright/test";
 import { expect, test } from "./fixtures";
 import { join, overflowScan } from "./helpers";
-import { translations } from "../web/src/i18n/webclient";
+import { translations as commonTranslations } from "../web/src/i18n/common";
+import { translations as joinTranslations } from "../web/src/i18n/join";
+import { translations as roomTranslations } from "../web/src/i18n/room";
+
+// Step 8.2 split the one i18n module WebClient used into `join` (pre-connect screen) and
+// `room` (connected view); step 8.6 pulled out `common`, the strings every view agreed on.
+// A key lives in exactly one of the three, so this merge is complete and lossless for every
+// language, matching what use-i18n.ts's own t() resolves for WebClient.
+const translations: Record<string, Record<string, string>> = Object.fromEntries(
+  Object.keys(roomTranslations).map((language) => [language, { ...commonTranslations[language], ...joinTranslations[language], ...roomTranslations[language] }]),
+);
 
 // Theme and language: what the page looks like and says, and what the page remembers. Real gateway,
 // fake TeamSpeak server. The theme button is in the room's header on desktop and on the More tab of a

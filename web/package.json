@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite --host",
-    "build": "vue-tsc --noEmit && vite build && node ../scripts/build-stamp.mjs",
+    "build": "vue-tsc --noEmit && npm run check:styles && vite build && node ../scripts/build-stamp.mjs",
     "preview": "vite preview",
     "check:styles": "node scripts/check-styles.mjs",
     "check:i18n": "node scripts/check-i18n.mjs"

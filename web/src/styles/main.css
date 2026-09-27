@@ -1,21 +1,24 @@
 /*
  * WebSpeak styling entry point (Tailwind CSS v4).
- *
- * Preflight (Tailwind's reset) is intentionally NOT imported yet. The existing
- * scoped styles in the views rely on browser defaults. Add
- *   @import "tailwindcss/preflight.css" layer(base);
- * once the views are migrated to the ui/ components.
  */
 @layer theme, base, components, utilities;
 
 @import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/preflight.css" layer(base);
 @import "tailwindcss/utilities.css" layer(utilities);
 @import "./tokens.css";
 
+@layer base {
+  body {
+    background: var(--color-surface-0);
+    color: var(--color-fg);
+    font-family: var(--font-sans);
+  }
+}
+
 /*
- * Legacy resets that the scoped view styles rely on. They sit in the base layer
- * so ui components (utilities layer) can set their own font and border, while the
- * unlayered legacy rules still win over them. Replaced by preflight in step 6.3.
+ * Legacy resets the scoped view styles still rely on. Preflight (above) already sets
+ * equivalent values for these; kept until step 6.4/6.5 clear the legacy CSS they support.
  */
 @layer base {
   button,

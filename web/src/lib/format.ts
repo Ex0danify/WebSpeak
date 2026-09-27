@@ -1,4 +1,4 @@
-import type { Language } from "../i18n/webclient/index.js";
+import type { Language } from "../i18n/room/index.js";
 
 export function median(values: number[]): number | null {
   const sorted = [...values].sort((left, right) => left - right);

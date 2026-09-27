@@ -3,10 +3,25 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#006a64" />
+    <meta name="theme-color" content="#065682" />
     <meta name="description" content="WebSpeak — TeamSpeak browser voice workspace" />
     <link rel="icon" type="image/jpeg" href="/网站图标.jpg" />
     <title>WebSpeak · TeamSpeak Web Client</title>
+    <script>
+      // Sets data-theme before the body paints, so a reload of a stored dark (or light) theme
+      // doesn't flash the other theme while the app's own module script is still loading (F51).
+      // "system" needs no OS lookup here: tokens.css already resolves it with its own media
+      // query, matching document.documentElement having no data-theme attribute at all.
+      (function () {
+        try {
+          var stored = localStorage.getItem("webspeak:theme");
+          var theme = stored === "light" || stored === "dark" || stored === "system" ? stored : "system";
+          document.documentElement.dataset.theme = theme;
+        } catch (e) {
+          // localStorage unavailable; the CSS default (system) still applies
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="app"></div>

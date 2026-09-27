@@ -8,7 +8,7 @@ async function load(options: { stored?: string; browser?: string } = {}) {
   if (options.stored !== undefined) localStorage.setItem("webspeak:language", options.stored);
   vi.spyOn(navigator, "language", "get").mockReturnValue(options.browser ?? "en-US");
   vi.resetModules();
-  const [i18n, { translations }] = await Promise.all([import("./use-i18n"), import("./webclient/index")]);
+  const [i18n, { translations }] = await Promise.all([import("./use-i18n"), import("./common/index")]);
   return { ...i18n, translations };
 }
 

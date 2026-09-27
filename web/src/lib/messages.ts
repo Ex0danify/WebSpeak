@@ -1,4 +1,4 @@
-import type { Language } from "../i18n/webclient/index.js";
+import type { Language } from "../i18n/room/index.js";
 
 export function localizeMessage(message: string, language: Language): string {
   if (language === "zh") return message;
