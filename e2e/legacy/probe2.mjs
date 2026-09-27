@@ -1,0 +1,28 @@
+import { launch, writeTone, URL_BASE } from "./lib.mjs";
+const SP = new URL(".", import.meta.url).pathname;
+writeTone(SP + "silence-ish.wav", { amp: 0.0 });
+const browser = await launch(SP + "silence-ish.wav");
+const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 }, permissions: ["microphone"], locale: "en" });
+const page = await ctx.newPage();
+await page.goto(URL_BASE + "/", { waitUntil: "networkidle" });
+await page.fill("#nickname", "smoke-probe");
+await page.click(".join-form button[type=submit]");
+await page.waitForSelector(".join-page", { state: "detached", timeout: 20000 });
+await page.waitForTimeout(2000);
+await page.getByRole("button", { name: "Audio settings" }).click();
+await page.waitForTimeout(600);
+await page.screenshot({ path: SP + "shots/02-settings.png" });
+const dlg = page.getByRole("dialog");
+console.log("dialog count", await dlg.count());
+console.log("tabs:", await dlg.getByRole("tab").allTextContents());
+console.log("controls:", await dlg.locator("button,input,select,[role=switch],[role=slider],[role=radio]").evaluateAll((els) => els.map((e) => `${e.tagName.toLowerCase()}[${e.getAttribute("role") || e.type || ""}] ${(e.getAttribute("aria-label") || e.id || e.textContent || "").trim().replace(/\s+/g, " ").slice(0, 45)}`)));
+await page.keyboard.press("Escape");
+await page.waitForTimeout(300);
+console.log("dialog after Esc:", await page.getByRole("dialog").count(), "| focus:", await page.evaluate(() => (document.activeElement?.getAttribute("aria-label") || document.activeElement?.textContent || "").trim().slice(0, 40)));
+// member context menu: click own row
+await page.locator("text=smoke-probe (You)").first().click();
+await page.waitForTimeout(500);
+await page.screenshot({ path: SP + "shots/03-menu.png" });
+console.log("menu items:", await page.getByRole("menu").getByRole("menuitem").allTextContents().catch(() => "n/a"), "menus:", await page.getByRole("menu").count());
+await page.keyboard.press("Escape");
+await browser.close();

@@ -1,0 +1,21 @@
+import { chromium, rec, openSession } from "./lib.mjs";
+const SP = new URL(".", import.meta.url).pathname;
+const browser = await chromium.launch({ executablePath: "/usr/bin/chromium-browser", args: ["--use-fake-device-for-media-stream", "--use-fake-ui-for-media-stream", `--use-file-for-fake-audio-capture=${SP}quiet.wav`, "--auto-accept-this-tab-capture", "--auto-select-desktop-capture-source=Entire screen", "--enable-usermedia-screen-capturing", "--auto-select-tab-capture-source-by-title=WebSpeak", "--autoplay-policy=no-user-gesture-required"] });
+const A = await openSession(browser, "smoke-A"); const B = await openSession(browser, "smoke-B");
+await A.page.waitForTimeout(800);
+await A.page.getByRole("button", { name: "Share screen" }).first().click(); await A.page.waitForTimeout(3500);
+await B.page.getByRole("button", { name: "Watch screen" }).click(); await B.page.waitForTimeout(5000);
+await B.page.screenshot({ path: SP + "shots/83-share-watching.png" });
+const vid = await B.page.evaluate(() => { const v = document.querySelector("video"); return v ? { w: v.videoWidth, h: v.videoHeight, paused: v.paused, ready: v.readyState, t: v.currentTime } : null; });
+rec("7", "Viewer B receives video (WebRTC) from A's shared screen", !!vid && vid.w > 0 && vid.ready >= 2, JSON.stringify(vid));
+console.log("B errors:", B.errors, "| B signalling msgs:", [...new Set(B.texts.filter((m) => /screenShare|webrtc/i.test(m.type)).map((m) => m.type))]);
+// Exit the player, then stop from A via the ✕ on its own card
+await B.page.keyboard.press("Escape"); await B.page.waitForTimeout(800);
+const stopBtn = A.page.locator("[aria-label*='Stop' i], [title*='Stop' i]").first();
+console.log("stop control:", await stopBtn.count(), await stopBtn.getAttribute("aria-label").catch(() => null));
+await stopBtn.click(); await A.page.waitForTimeout(2000);
+await A.page.screenshot({ path: SP + "shots/84-share-stopped-A.png" });
+const live = await A.page.getByText("Live", { exact: true }).count();
+const bWatch = await B.page.getByRole("button", { name: "Watch screen" }).count();
+rec("7", "Stop sharing: Live badge gone on A, Watch button gone on B", live === 0 && bWatch === 0, `A live badges: ${live}, B watch buttons: ${bWatch}`);
+await browser.close();

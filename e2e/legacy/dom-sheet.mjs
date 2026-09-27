@@ -1,0 +1,14 @@
+import { launch, openSession } from "./lib.mjs";
+const SP = new URL(".", import.meta.url).pathname;
+const browser = await launch(SP + "quiet.wav");
+const A = await openSession(browser, "smoke-A", { viewport: { width: 390, height: 844 }, touch: true });
+const B = await openSession(browser, "smoke-B"); const p = A.page; await p.waitForTimeout(1200);
+const row = p.locator(".member-row", { hasText: "smoke-B" }).first(); const box = await row.boundingBox();
+const cdp = await A.ctx.newCDPSession(p);
+await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ x: box.x + 60, y: box.y + box.height / 2 }] });
+await p.waitForTimeout(900);
+console.log("open during hold:", await p.evaluate(() => !!document.querySelector("[data-menu-sheet],[role=dialog],[role=menu]")));
+await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] }); await p.waitForTimeout(600);
+console.log(await p.evaluate(() => { const els = [...document.querySelectorAll("[role]")].filter((e) => e.getBoundingClientRect().height > 0 && /dialog|menu|group|button|slider/.test(e.getAttribute("role"))); return els.map((e) => `${e.getAttribute("role")} h=${Math.round(e.getBoundingClientRect().height)} y=${Math.round(e.getBoundingClientRect().top)} "${(e.getAttribute("aria-label") || e.textContent.trim()).replace(/\s+/g, " ").slice(0, 30)}"`).join("\n"); }));
+console.log("buttons in sheet:", await p.evaluate(() => [...document.querySelectorAll("button")].filter((b) => b.getBoundingClientRect().top > 380 && b.offsetParent).map((b) => `${b.textContent.trim().slice(0, 24)} h=${Math.round(b.getBoundingClientRect().height)}`)));
+await browser.close();

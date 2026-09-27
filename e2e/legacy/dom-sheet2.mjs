@@ -1,0 +1,15 @@
+import { launch, openSession } from "./lib.mjs";
+const SP = new URL(".", import.meta.url).pathname;
+const browser = await launch(SP + "quiet.wav");
+const A = await openSession(browser, "smoke-A", { viewport: { width: 390, height: 844 }, touch: true });
+const B = await openSession(browser, "smoke-B"); const p = A.page; await p.waitForTimeout(1200);
+const row = p.locator(".member-row", { hasText: "smoke-B" }).first();
+await row.locator("button").last().tap(); await p.waitForTimeout(700);
+const dump = () => p.evaluate(() => { const e = [...document.querySelectorAll("*")].find((x) => x.children.length === 0 && x.textContent.trim() === "Poke"); if (!e) return "no Poke element"; const out = []; for (let n = e, i = 0; n && i < 7; n = n.parentElement, i++) { const r = n.getBoundingClientRect(); out.push(`${n.tagName.toLowerCase()} role=${n.getAttribute("role")} state=${n.getAttribute("data-state")} box=${Math.round(r.left)},${Math.round(r.top)} ${Math.round(r.width)}x${Math.round(r.height)}`); } return out.join("\n"); });
+console.log("OPEN:\n" + await dump());
+const close = p.getByRole("button", { name: "Close" });
+console.log("close buttons:", await close.count(), await close.evaluateAll((els) => els.map((e) => `${Math.round(e.getBoundingClientRect().height)}h vis=${!!e.offsetParent}`)));
+await close.last().tap(); await p.waitForTimeout(800);
+console.log("AFTER CLOSE TAP:\n" + await dump());
+await p.screenshot({ path: SP + "shots/65-m-after-close.png" });
+await browser.close();

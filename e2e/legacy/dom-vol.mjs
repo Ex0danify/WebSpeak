@@ -1,0 +1,10 @@
+import { launch, writeTone, openSession } from "./lib.mjs";
+const SP = new URL(".", import.meta.url).pathname;
+const browser = await launch(SP + "quiet.wav");
+const A = await openSession(browser, "smoke-A"); const B = await openSession(browser, "smoke-B");
+await A.page.waitForTimeout(800);
+await A.page.locator(".member-row", { hasText: "smoke-B" }).first().click({ button: "right" });
+await A.page.waitForTimeout(400);
+const html = await A.page.getByRole("menu").first().evaluate((m) => [...m.querySelectorAll("[role=menuitem],[role=slider],input")].slice(0, 2).map((e) => e.outerHTML.replace(/class="[^"]*"/g, "").slice(0, 420)));
+console.log(html.join("\n\n"));
+await browser.close();

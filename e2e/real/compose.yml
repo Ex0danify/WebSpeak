@@ -1,0 +1,36 @@
+# Disposable TeamSpeak 6 server for layer 5 (`npm run test:real`). Started and removed by
+# `global-setup.ts` / `global-teardown.ts`, which pass every variable below; do not run it by hand
+# without them. Nothing here is persisted: the data directory is a tmpfs, so every run starts empty.
+#
+# The license is accepted by the person who runs the tests. `WEBSPEAK_TEST_TS_LICENSE` has no
+# default on purpose: no file in this repository accepts it for anyone.
+name: ${WEBSPEAK_TEST_TS_PROJECT:?set by e2e/real/global-setup.ts}
+
+services:
+  tsserver:
+    # 6.0.0-beta13.1. Pinned by digest so a run cannot change license or protocol behavior silently.
+    image: teamspeaksystems/teamspeak6-server@sha256:d845f803aecf842c2df034c959c23ff2462357bacafb3807500885c5ec170fa1
+    environment:
+      TSSERVER_LICENSE_ACCEPTED: ${WEBSPEAK_TEST_TS_LICENSE:?the person running the tests must accept the TeamSpeak server license, see docs/testing/README.md}
+      # WebQuery is off by default. The key is per run, so the suite can drive the server with the
+      # same HTTP API the gateway uses for the channel list.
+      TSSERVER_QUERY_HTTP_ENABLED: "1"
+      TSSERVER_QUERY_HTTP_ALLOW_GUEST: "0"
+      TSSERVER_QUERY_ADMIN_API_KEY: ${WEBSPEAK_TEST_TS_API_KEY:?set by e2e/real/global-setup.ts}
+      # A file, not an address: written by global-setup with the loopback and the bridge gateway.
+      TSSERVER_QUERY_ALLOW_LIST: /run/webspeak/query_ip_allowlist.txt
+      TSSERVER_QUERY_SKIP_BRUTE_FORCE_CHECK: "1"
+    ports:
+      - "127.0.0.1:${WEBSPEAK_TEST_TS_VOICE_PORT:?}:9987/udp"
+      - "127.0.0.1:${WEBSPEAK_TEST_TS_QUERY_PORT:?}:10080/tcp"
+    volumes:
+      - ${WEBSPEAK_TEST_TS_RUN_DIR:?}/query_ip_allowlist.txt:/run/webspeak/query_ip_allowlist.txt:ro
+    # The image runs as uid 9987 (teamspeak).
+    tmpfs:
+      - /var/tsserver:uid=9987,gid=9987
+
+networks:
+  default:
+    ipam:
+      config:
+        - subnet: ${WEBSPEAK_TEST_TS_SUBNET:?}

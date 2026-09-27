@@ -1,0 +1,13 @@
+import { launch, writeTone, openSession } from "./lib.mjs";
+const SP = new URL(".", import.meta.url).pathname;
+const browser = await launch(SP + "quiet.wav");
+const A = await openSession(browser, "smoke-A"); const B = await openSession(browser, "smoke-B");
+await A.page.waitForTimeout(1000);
+await A.page.getByRole("button", { name: "Share screen" }).first().click(); await A.page.waitForTimeout(3500);
+console.log("B buttons:", await B.page.getByRole("button").evaluateAll((els) => els.filter((e) => e.offsetParent).map((e) => (e.getAttribute("aria-label") || e.textContent).trim().slice(0, 24)).filter((t) => /watch|screen|share|live/i.test(t))));
+await B.page.getByRole("button", { name: "Watch screen" }).click(); await B.page.waitForTimeout(5000);
+console.log("player:", await B.page.locator(".screen-share-player").count(), "controls:", await B.page.locator(".screen-share-player-controls").count(), "volume:", await B.page.locator(".screen-share-player-volume").count());
+console.log("controls html:", (await B.page.locator(".screen-share-player-controls").first().evaluate((e) => e.outerHTML).catch(() => "none")).slice(0, 700));
+await B.page.screenshot({ path: SP + "shots/92-dbg.png" });
+console.log("errors", A.errors, B.errors);
+await browser.close();

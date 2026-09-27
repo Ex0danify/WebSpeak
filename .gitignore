@@ -9,3 +9,8 @@ webspeak-update.tar.gz
 claude.pem
 .idea
 .snapshots/
+coverage/
+test-results/
+
+# Identities of the real-server tests (private keys), made on first run
+e2e/real/.identities.json

@@ -4,10 +4,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite --host",
-    "build": "vue-tsc --noEmit && vite build",
+    "build": "vue-tsc --noEmit && vite build && node ../scripts/build-stamp.mjs",
     "preview": "vite preview",
-    "snapshot": "node scripts/snapshot.mjs",
-    "snapshot:diff": "node scripts/snapshot-diff.mjs",
     "check:styles": "node scripts/check-styles.mjs",
     "check:i18n": "node scripts/check-i18n.mjs"
   },
@@ -27,6 +25,7 @@
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^5.2.3",
+    "@vue/test-utils": "^2.5.1",
     "pixelmatch": "^7.2.0",
     "playwright-core": "^1.63.0",
     "pngjs": "^7.0.0",

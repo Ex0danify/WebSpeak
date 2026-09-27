@@ -5,7 +5,7 @@ import { randomUUID } from "node:crypto";
 import { isIP } from "node:net";
 import { identityFromString } from "@echosixhiya/teamspeak-client";
 import { DirectorySynchronizer } from "./directory-sync.js";
-import { TSClient, type TSDirectorySnapshot, type TSVoiceData, type TSRawNotification } from "./ts-client.js";
+import { TSClient, type TSClientOptions, type TSDirectorySnapshot, type TSVoiceData, type TSRawNotification } from "./ts-client.js";
 import type { Logger as LoggerType } from "../logger.js";
 import { clientConnectionFailureCode, describeTeamSpeakError, normalizeTeamSpeakError, teamSpeakServerErrorCode, type WebSpeakError } from "../errors.js";
 import { formatTeamSpeakTarget, teamSpeakTargetKey, type TeamSpeakTarget } from "../domain/teamspeak-target.js";
@@ -48,6 +48,7 @@ export interface VoiceBridgeOptions {
   screenShareIceServers?: ScreenShareIceServer[] | (() => ScreenShareIceServer[]);
   acceleration?: ConfiguredAccelerationRelay[] | (() => ConfiguredAccelerationRelay[]);
   accelerationName?: string | (() => string | undefined);
+  createClient?: (options: TSClientOptions, logger: LoggerType) => TSClient;
 }
 
 export interface AdminSessionSummary {
@@ -259,7 +260,8 @@ export class VoiceBridge {
       }, "WebClient connecting");
       let tsClient: TSClient;
       try {
-        tsClient = new TSClient({ target, nickname, serverPassword, defaultChannel: channelName, identity, ...(acceleration ? { acceleration } : {}) }, this.logger);
+        const clientOptions: TSClientOptions = { target, nickname, serverPassword, defaultChannel: channelName, identity, ...(acceleration ? { acceleration } : {}) };
+        tsClient = this.options.createClient ? this.options.createClient(clientOptions, this.logger) : new TSClient(clientOptions, this.logger);
       } catch (error: unknown) {
         if (identityLeaseKey) this.identityLeases.release(identityLeaseKey, entryId);
         this.logger.error({ err: error, entryId }, "Could not create TeamSpeak client");

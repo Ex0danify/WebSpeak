@@ -1,8 +1,10 @@
-// Canned /api/admin/** responses for the snapshot harness, so the authenticated admin
-// screens (overview, server settings, operations) render without a gateway.
-// Times are fixed, and the page runs in UTC, so shots are deterministic.
+import type { Page } from "@playwright/test";
 
-const at = (minutes) => new Date(Date.UTC(2026, 0, 15, 12, 0) - minutes * 60_000).toISOString();
+// Canned /api responses for the visual and accessibility tests, so the guest page and the
+// authenticated admin screens (overview, server settings, operations) render without a gateway that
+// has real data. Times are fixed, and the page runs in UTC, so shots are deterministic.
+
+const at = (minutes: number) => new Date(Date.UTC(2026, 0, 15, 12, 0) - minutes * 60_000).toISOString();
 
 const overview = {
   gateway: { version: "0.0.0-snapshot", uptimeSeconds: 93_784 },
@@ -82,14 +84,42 @@ const audit = {
   ],
 };
 
-export const adminScreens = [
+export const publicConfig = {
+  version: "0.0.0-snapshot",
+  initialized: true,
+  siteName: "WebSpeak",
+  welcomeText: "欢迎来到 WebSpeak",
+  welcomeTextEn: "Welcome to WebSpeak",
+  welcomeTexts: {
+    zh: "欢迎来到 WebSpeak",
+    en: "Welcome to WebSpeak",
+    de: "Willkommen bei WebSpeak",
+    ru: "Добро пожаловать в WebSpeak",
+    ja: "WebSpeak へようこそ",
+  },
+  accessMode: "fixed",
+  target: "ts.example.com:9987",
+  visitorNumber: 1234,
+  visitorTotal: 5678,
+  accelerationAvailable: false,
+  accelerationRelays: [],
+};
+
+export interface Screen {
+  id: string;
+  path: string;
+  langs: string[];
+  admin?: boolean;
+}
+
+export const adminScreens: Screen[] = [
   { id: "admin-overview", path: "/admin", langs: ["en", "de"], admin: true },
   { id: "admin-server", path: "/admin/server", langs: ["en"], admin: true },
   { id: "admin-operations", path: "/admin/operations", langs: ["en"], admin: true },
 ];
 
 // Returns [status, body] for an authenticated admin request, or null when not mocked.
-export function adminApi(pathname) {
+export function adminApi(pathname: string): [number, unknown] | null {
   if (pathname === "/api/admin/session") return [200, { authenticated: true, mustChangePassword: false, csrfToken: "snapshot-csrf" }];
   if (pathname === "/api/admin/overview") return [200, overview];
   if (pathname === "/api/admin/server") return [200, server];
@@ -99,4 +129,28 @@ export function adminApi(pathname) {
   if (pathname === "/api/admin/logs") return [200, logs];
   if (pathname === "/api/admin/audit") return [200, audit];
   return null;
+}
+
+/**
+ * Before the first navigation: the language and theme the page starts in, and the canned `/api`
+ * answers (`admin` adds the signed-in console's). Whatever else asks for `/api` gets a 404.
+ */
+export async function useCannedApi(page: Page, { lang, theme, admin }: { lang: string; theme: string; admin?: boolean }): Promise<void> {
+  await page.addInitScript(({ language, themeMode }) => {
+    try {
+      localStorage.setItem("webspeak:language", language);
+      localStorage.setItem("webspeak:theme", themeMode);
+    } catch {
+      // storage unavailable
+    }
+  }, { language: lang, themeMode: theme });
+  await page.context().route("**/api/**", (route) => {
+    const { pathname } = new URL(route.request().url());
+    const json = (status: number, body: unknown) => route.fulfill({ status, contentType: "application/json", body: JSON.stringify(body) });
+    if (pathname === "/api/public-config") return json(200, publicConfig);
+    const authenticated = admin ? adminApi(pathname) : null;
+    if (authenticated) return json(authenticated[0], authenticated[1]);
+    if (pathname === "/api/admin/session") return json(200, { authenticated: false });
+    return json(404, { error: "NOT_MOCKED" });
+  });
 }
