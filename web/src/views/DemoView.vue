@@ -1,35 +1,20 @@
 <template>
   <div class="demo-page">
-    <header class="demo-header">
-      <div class="demo-brand"><span><Icon name="waveform" :size="21" /></span><div><strong>WebSpeak</strong><small>{{ t('demoBrowserClient') }}</small></div></div>
-      <div class="demo-tools"><span class="demo-badge">{{ t('demoBadge') }}</span><LanguageSwitcher v-model="language" :menu-label="t('languageMenu')" @change="persistLanguage" /><Button as="a" href="/" variant="outline" size="sm" class="demo-back-full">{{ t('demoBack') }}</Button><Button as="a" href="/" variant="outline" size="sm" icon-only :aria-label="t('demoBack')" class="demo-back-compact"><Icon name="home" :size="16" /></Button></div>
-    </header>
+    <DemoHeader />
 
     <Banner v-if="reconnecting" variant="warning" icon="refresh" class="demo-reconnect">
       {{ t('reconnecting') }}
       <template #actions><Button size="sm" variant="outline" @click="reconnecting = false">{{ t('restore') }}</Button></template>
     </Banner>
     <main class="demo-shell">
-      <aside class="demo-channel-panel" :aria-label="t('channels')">
-        <div class="demo-panel-title"><span>{{ t('channels') }}</span><strong>{{ selectedChannel.name }}</strong></div>
-        <div v-for="channel in channels" :key="channel.id" :class="['demo-channel', { active: selectedChannelId === channel.id }]">
-          <Button variant="ghost" size="sm" :class="`w-full justify-start px-0 hover:bg-transparent ${selectedChannelId === channel.id ? 'text-accent' : 'text-fg-muted'}`" @click="selectChannel(channel.id)"><Icon name="volume" :size="16" /><span class="min-w-0 flex-1 truncate text-left">{{ channel.name }}</span><Count>{{ channel.members.length }}</Count></Button>
-          <div class="demo-channel-members"><span v-for="member in channel.members" :key="member.id"><Avatar :name="member.name" size="xs" :speaking="speakingId === member.id" :speaking-label="t('speaking')" :class="selectedChannelId === channel.id ? '[--avatar-gap:var(--ws-accent-soft)]' : ''" />{{ member.name }}</span></div>
-        </div>
-      </aside>
+      <DemoChannelPanel :channels="channels" :selected-channel-id="selectedChannelId" :selected-channel-name="selectedChannel.name" :speaking-id="speakingId" @select="selectChannel" />
 
       <section class="demo-main">
-        <div class="demo-hero"><div><Chip variant="success" dot>{{ t('simulated') }}</Chip><h1><Icon name="volume" :size="24" /> {{ selectedChannel.name }}</h1><p>{{ t('heroLead') }}</p><small><Icon name="users" :size="14" /> {{ selectedChannel.members.length }} {{ t('demoOnline') }}</small></div><div class="demo-wave" aria-hidden="true"><i v-for="bar in bars" :key="bar" :style="{ height: `${bar}px` }"></i></div></div>
-        <div class="demo-section-heading"><span>{{ t('voiceActivity') }}</span><strong>{{ t('speakingNow') }}</strong></div>
-        <div class="demo-voice-grid"><article v-for="member in selectedChannel.members" :key="member.id" :class="['demo-voice-card', { speaking: speakingId === member.id }]" @click="speakingId = member.id"><Avatar :name="member.name" size="xl" /><strong>{{ member.name }}</strong><span class="demo-voice-status">{{ speakingId === member.id ? t('speaking') : t('connected') }}</span></article></div>
-
-        <Separator class="demo-chat-rule" />
-        <div class="demo-chat-head"><div><span>{{ t('textChannel') }}</span><strong># {{ selectedChannel.name }} {{ t('chat') }}</strong></div><Segmented v-model="activeTab" :aria-label="t('chat')" class="demo-tabs"><Segment v-for="tab in tabs" :key="tab.id" :value="tab.id">{{ tab.label }}</Segment></Segmented></div>
-        <div class="demo-messages"><div v-for="message in visibleMessages" :key="message.id" :class="['demo-message', { mine: message.mine }]" @dblclick="message.mine = !message.mine"><Avatar :name="message.author" size="md" /><div><small>{{ message.author }} · {{ message.time }}</small><p>{{ messageText(message) }}</p></div></div><div v-if="!visibleMessages.length" class="demo-empty"><Icon name="message" :size="22" /><strong>{{ t('emptyChat') }}</strong></div></div>
-        <form class="demo-composer" @submit.prevent="sendMessage"><Input v-model="draft" :placeholder="t('placeholder')" :aria-label="t('placeholder')" class="flex-1" /><Button type="submit" icon-only :aria-label="t('send')" :disabled="!draft.trim()"><Icon name="send" :size="17" /></Button></form>
+        <DemoVoiceSection v-model:speaking-id="speakingId" :channel="selectedChannel" />
+        <DemoChatPanel v-model:active-tab="activeTab" v-model:draft="draft" :channel-name="selectedChannel.name" :tabs="tabs" :visible-messages="visibleMessages" @send="sendMessage" @toggle-mine="toggleMine" />
       </section>
 
-      <aside class="demo-actions-panel" :aria-label="t('simulationControls')"><div class="demo-panel-title"><span>{{ t('voice') }}</span><strong>{{ t('simulationControls') }}</strong></div><Button variant="outline" class="justify-start" @click="toggleSpeaking"><Icon name="mic" :size="17" /> {{ speakingId ? t('stopSpeaking') : t('simulateSpeaking') }}</Button><Button variant="outline" class="justify-start" @click="poke = !poke"><Icon name="bell" :size="17" /> {{ t('poke') }}</Button><Button variant="outline" class="justify-start" @click="reconnecting = true"><Icon name="refresh" :size="17" /> {{ t('simulateReconnect') }}</Button><div class="demo-note"><Icon name="shield" :size="16" /><span>{{ t('demoNote') }}</span></div><Separator class="demo-user-rule" /><div class="demo-user"><Avatar name="illusia" size="md" /><div><strong>illusia</strong><small>{{ t('you') }} · {{ t('ready') }}</small></div><span class="demo-green-dot"></span></div></aside>
+      <DemoActionsPanel :speaking-id="speakingId" @toggle-speaking="toggleSpeaking" @poke="poke = !poke" @reconnect="reconnecting = true" />
     </main>
     <Banner v-if="poke" variant="warning" icon="bell" :title="`msicbot ${t('pokedYou')}`" dismissible :dismiss-label="t('close')" class="demo-poke shadow-lg" @dismiss="poke = false" />
   </div>
@@ -37,28 +22,24 @@
 
 <script setup lang="ts">
 import { computed, ref } from "vue";
-import { Avatar } from "@/components/ui/avatar";
 import { Banner } from "@/components/ui/banner";
 import { Button } from "@/components/ui/button";
-import { Chip, Count } from "@/components/ui/chip";
-import { Icon } from "@/components/ui/icon";
-import { Input } from "@/components/ui/input";
-import { Separator } from "@/components/ui/separator";
-import { Segment, Segmented } from "@/components/ui/tabs";
-import LanguageSwitcher from "../components/LanguageSwitcher.vue";
+import DemoActionsPanel from "../components/demo/DemoActionsPanel.vue";
+import DemoChannelPanel from "../components/demo/DemoChannelPanel.vue";
+import DemoChatPanel from "../components/demo/DemoChatPanel.vue";
+import DemoHeader from "../components/demo/DemoHeader.vue";
+import DemoVoiceSection from "../components/demo/DemoVoiceSection.vue";
+import type { DemoChannel, DemoMessage, DemoTab } from "../components/demo/types";
 import { useI18n } from "@/i18n/use-i18n";
 
-interface DemoMessage { id: number; author: string; time: string; text: string; zhText?: string; enText?: string; ruText?: string; jaText?: string; mine: boolean }
-type Tab = "channel" | "server";
-const { language, t, setLanguage } = useI18n();
+const { t } = useI18n();
 const selectedChannelId = ref("quiet");
-const activeTab = ref<Tab>("channel");
+const activeTab = ref<DemoTab>("channel");
 const speakingId = ref("illusia");
 const reconnecting = ref(false);
 const poke = ref(false);
 const draft = ref("");
-const bars = [15, 31, 21, 42, 25, 50, 32, 21, 38, 27, 45, 18, 33];
-const channels = [
+const channels: DemoChannel[] = [
   { id: "quiet", name: "Quiet Zone", members: [{ id: "illusia", name: "illusia" }, { id: "msicbot", name: "msicbot" }] },
   { id: "lounge", name: "Lounge", members: [{ id: "alice", name: "Alice" }] },
   { id: "music", name: "Music room", members: [] },
@@ -71,10 +52,9 @@ const tabs = computed(() => [{ id: "channel" as const, label: t('channel') }, { 
 const selectedChannel = computed(() => channels.find((channel) => channel.id === selectedChannelId.value) ?? channels[0]);
 const visibleMessages = computed(() => activeTab.value === "channel" ? messages.value : []);
 
-function persistLanguage() { setLanguage(language.value); }
 function selectChannel(id: string) { selectedChannelId.value = id; activeTab.value = "channel"; }
 function toggleSpeaking() { speakingId.value = speakingId.value ? "" : selectedChannel.value.members[0]?.id ?? ""; }
-function messageText(message: DemoMessage): string { return language.value === "zh" ? message.zhText ?? message.text : language.value === "ru" ? message.ruText ?? message.enText ?? message.text : language.value === "ja" ? message.jaText ?? message.enText ?? message.text : message.enText ?? message.text; }
+function toggleMine(id: number) { const message = messages.value.find((m) => m.id === id); if (message) message.mine = !message.mine; }
 function sendMessage() { const text = draft.value.trim(); if (!text) return; messages.value.push({ id: Date.now(), author: "illusia", time: "now", text, mine: true }); draft.value = ""; }
 </script>
 
@@ -82,16 +62,16 @@ function sendMessage() { const text = draft.value.trim(); if (!text) return; mes
 :global(*) { box-sizing: border-box; }
 :global(body) { margin: 0; font-family: var(--font-sans); background: var(--ws-surface-0); color: var(--ws-fg); }
 .demo-page { min-height: 100dvh; padding: 0 28px 38px; background: radial-gradient(circle at 72% 12%, color-mix(in srgb, var(--ws-accent) 18%, transparent), transparent 26rem), var(--ws-surface-0); line-height: normal; }
-.demo-header { display: flex; align-items: center; justify-content: space-between; width: min(1380px, 100%); min-height: 82px; margin: 0 auto; }
-.demo-brand, .demo-tools, .demo-brand > div, .demo-tools { display: flex; align-items: center; }.demo-brand { gap: 10px; }.demo-brand > span { display: grid; place-items: center; width: 39px; height: 39px; color: var(--ws-accent-fg); background: var(--ws-accent); border-radius: 12px; }.demo-brand strong, .demo-brand small { display: block; }.demo-brand strong { color: var(--ws-accent); font-size: 18px; }.demo-brand small { margin-top: 2px; color: var(--ws-fg-muted); font-size: 10px; }.demo-tools { gap: 15px; color: var(--ws-fg-muted); font-size: 12px; }.demo-badge { color: var(--ws-success); font-weight: 700; }.demo-back-compact { display: none; }
-.demo-reconnect { width: min(1380px, 100%); margin: 0 auto 14px }.demo-shell { display: grid; grid-template-columns: 240px minmax(0, 1fr) 235px; gap: 18px; width: min(1380px, 100%); min-height: 720px; margin: 0 auto; }.demo-channel-panel, .demo-actions-panel, .demo-main { min-width: 0; padding: 20px; border: 1px solid var(--ws-line); border-radius: 16px; background: color-mix(in srgb, var(--ws-surface-1) 90%, transparent); box-shadow: 0 12px 30px color-mix(in srgb, var(--ws-accent) 5%, transparent); }.demo-panel-title { display: grid; gap: 5px; margin-bottom: 20px; }.demo-panel-title span, .demo-section-heading span, .demo-chat-head span { color: var(--ws-fg-muted); font-size: 10px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }.demo-panel-title strong { color: var(--ws-fg); font-size: 18px; }.demo-channel { margin: 4px -8px 12px; padding: 3px 8px 9px; border-radius: 10px; }.demo-channel.active { background: var(--ws-accent-soft); }.demo-channel-members { display: grid; gap: 7px; padding-left: 22px; color: var(--ws-fg-muted); font-size: 11px; }.demo-channel-members span { display: flex; align-items: center; gap: 7px; }
-.demo-main { padding: 27px 32px; }.demo-hero { display: flex; align-items: center; justify-content: space-between; min-height: 190px; padding: 26px 29px; overflow: hidden; border-radius: 14px; background: linear-gradient(112deg, var(--ws-accent-soft), var(--ws-surface-0)); }.demo-green-dot { width: 7px; height: 7px; background: var(--ws-success); border-radius: 50%; }.demo-hero h1 { display: flex; align-items: center; gap: 8px; margin: 17px 0 7px; color: var(--ws-fg); font-size: 28px; font-weight: 700; letter-spacing: -.05em; }.demo-hero p { margin: 0 0 15px; color: var(--ws-fg-muted); font-size: 12px; }.demo-hero small { display: flex; align-items: center; gap: 6px; color: var(--ws-fg-muted); font-size: 11px; }.demo-wave { display: flex; align-items: center; gap: 5px; height: 60px; padding-right: 22px; }.demo-wave i { width: 4px; border-radius: 4px; background: var(--ws-accent); }.demo-wave i:nth-child(3n) { background: var(--ws-success); }.demo-section-heading { display: grid; gap: 5px; margin: 31px 0 15px; }.demo-section-heading strong { color: var(--ws-fg); font-size: 21px; font-weight: 700; }.demo-voice-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(125px, 1fr)); gap: 11px; }.demo-voice-card { display: grid; justify-items: center; gap: 7px; padding: 15px 8px; border: 1px solid var(--ws-line); border-radius: 12px; background: var(--ws-surface-1); cursor: pointer; }.demo-voice-card strong { color: var(--ws-fg); font-size: 12px; }.demo-voice-status { color: var(--ws-fg-muted); font-size: 10px; }.demo-voice-card.speaking { border-color: var(--ws-success); box-shadow: 0 0 0 2px color-mix(in srgb, var(--ws-success) 18%, transparent), 0 8px 20px color-mix(in srgb, var(--ws-success) 12%, transparent); }.demo-voice-card.speaking .demo-voice-status { color: var(--ws-success); }.demo-chat-rule { margin-top: 33px; }.demo-chat-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; margin-top: 23px; }.demo-chat-head strong { display: block; margin-top: 6px; color: var(--ws-fg); font-size: 20px; font-weight: 700; }.demo-messages { display: grid; align-content: start; gap: 13px; min-height: 215px; max-height: 270px; margin-top: 17px; overflow-y: auto; padding: 7px 3px; }.demo-message { display: flex; align-items: flex-start; gap: 9px; max-width: 76%; }.demo-message.mine { justify-self: end; flex-direction: row-reverse; text-align: right; }.demo-message small { color: var(--ws-fg-muted); font-size: 9px; }.demo-message p { margin: 4px 0 0; padding: 8px 11px; color: var(--ws-fg); background: var(--ws-surface-0); border-radius: 4px 11px 11px 11px; font-size: 12px; }.demo-message.mine p { color: var(--ws-accent-fg); background: var(--ws-accent); border-radius: 11px 4px 11px 11px; }.demo-empty { display: grid; place-content: center; justify-items: center; gap: 8px; min-height: 170px; color: var(--ws-fg-muted); }.demo-empty strong { font-size: 12px; }.demo-composer { display: flex; gap: 8px }.demo-actions-panel { display: flex; flex-direction: column; gap: 9px; }.demo-note { display: flex; gap: 8px; margin-top: 10px; padding: 11px; color: var(--ws-fg-muted); background: var(--ws-surface-0); border-radius: 9px; font-size: 10px; line-height: 1.5; }.demo-user-rule { margin-top: auto; }.demo-user { display: flex; align-items: center; gap: 9px; margin-top: 6px; }.demo-user div { min-width: 0; flex: 1; }.demo-user strong, .demo-user small { display: block; }.demo-user strong { color: var(--ws-fg); font-size: 12px; }.demo-user small { margin-top: 4px; color: var(--ws-fg-muted); font-size: 10px; }.demo-poke { position: fixed; z-index: 10; top: 82px; right: 25px; width: min(380px, calc(100% - 32px)) }@media (max-width: 1080px) { .demo-shell { grid-template-columns: 210px minmax(0, 1fr); }.demo-actions-panel { grid-column: 1 / -1; min-height: 160px; }.demo-actions-panel .demo-panel-title { margin-bottom: 3px; }.demo-actions-panel > button { display: inline-flex; width: fit-content; }.demo-note { margin-top: 4px; }.demo-user-rule { margin-top: 0; } }
-@media (max-width: 720px) { .demo-page { padding: 0 14px 24px; }.demo-header { min-height: 68px; }.demo-tools { gap: 6px; font-size: 10px; }.demo-badge { display: none; }.demo-shell { display: block; min-height: 0; }.demo-channel-panel { margin-bottom: 12px; }.demo-channel-panel .demo-channel:not(.active) .demo-channel-members { display: none; }.demo-actions-panel { margin-top: 12px; }.demo-main { padding: 17px 14px; }.demo-hero { min-height: 170px; padding: 20px; }.demo-wave { padding-right: 0; transform: scale(.75); transform-origin: right center; }.demo-chat-head { display: grid; align-items: start; }.demo-tabs { overflow-x: auto; }.demo-message { max-width: 94%; } }
-@media (max-width: 420px) { .demo-back-full { display: none; }.demo-back-compact { display: inline-flex; } }
-@media (max-width: 360px) { .demo-hero h1 { font-size: 23px; }.demo-hero p { font-size: 11px; }.demo-voice-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.demo-reconnect { width: min(1380px, 100%); margin: 0 auto 14px }
+.demo-shell { display: grid; grid-template-columns: 240px minmax(0, 1fr) 235px; gap: 18px; width: min(1380px, 100%); min-height: 720px; margin: 0 auto; }
+.demo-channel-panel, .demo-actions-panel, .demo-main { min-width: 0; padding: 20px; border: 1px solid var(--ws-line); border-radius: 16px; background: color-mix(in srgb, var(--ws-surface-1) 90%, transparent); box-shadow: 0 12px 30px color-mix(in srgb, var(--ws-accent) 5%, transparent); }
+.demo-main { padding: 27px 32px; }
+.demo-poke { position: fixed; z-index: 10; top: 82px; right: 25px; width: min(380px, calc(100% - 32px)) }
+:global(button:focus-visible), :global(a:focus-visible), :global(input:focus-visible), :global(select:focus-visible) { outline: 3px solid var(--ws-accent); outline-offset: 2px; }
+@media (max-width: 1080px)  { .demo-shell { grid-template-columns: 210px minmax(0, 1fr); } }
+@media (max-width: 720px)  { .demo-page { padding: 0 14px 24px; } .demo-shell { display: block; min-height: 0; } .demo-channel-panel { margin-bottom: 12px; } .demo-main { padding: 17px 14px; } }
 /* The whole app is zoomed via #app (zoom:var(--ui-scale)) on large displays;
    divide the fixed poke banner offsets back to CSS pixels so it stays at the
    intended 82px/25px margin instead of drifting by the zoom factor. */
-@media (min-width: 851px) { .demo-poke { top: calc(82px / var(--ui-scale)); right: calc(25px / var(--ui-scale)); } }
-:global(button:focus-visible), :global(a:focus-visible), :global(input:focus-visible), :global(select:focus-visible) { outline: 3px solid var(--ws-accent); outline-offset: 2px; }
+@media (min-width: 851px)  { .demo-poke { top: calc(82px / var(--ui-scale)); right: calc(25px / var(--ui-scale)); } }
 </style>

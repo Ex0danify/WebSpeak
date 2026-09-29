@@ -1,4 +1,5 @@
 import type { Language } from "../i18n/room/index.js";
+import type { ChannelMember, ChatMessage } from "../composables/useVoiceWebSocket.js";
 
 export function median(values: number[]): number | null {
   const sorted = [...values].sort((left, right) => left - right);
@@ -11,6 +12,36 @@ export function serverKey(address: string): string {
 
 export function avatarInitial(name: string) {
   return (name.trim()[0] || "?").toUpperCase();
+}
+
+// Fixed pastel identity colors picked by nickname hash. A user must keep the same
+// color in every theme, so they cannot be theme tokens (see style-budget.json).
+const avatarColors = ["#9edbd4", "#b9d4c5", "#e8c6a8", "#c5c7e8", "#edd2d4", "#c8d9e9", "#e4d3b8"];
+
+export function avatarStyle(name: string, isSelf = false, avatar = ""): Record<string, string> {
+  const fallback = isSelf ? "linear-gradient(135deg, var(--ws-accent), color-mix(in srgb, var(--ws-accent) 75%, var(--ws-fg)))" : "";
+  let hash = 0;
+  for (let index = 0; index < name.length; index++) hash = name.charCodeAt(index) + ((hash << 5) - hash);
+  return {
+    background: fallback || avatarColors[Math.abs(hash) % avatarColors.length],
+    ...(avatar ? { backgroundImage: `url("${avatar}")`, backgroundPosition: "center", backgroundSize: "cover" } : {}),
+  };
+}
+
+export function messageAvatar(message: ChatMessage, members: ChannelMember[]): string {
+  const member = members.find((candidate) =>
+    (typeof message.senderId === "number" && candidate.id === message.senderId) ||
+    (Boolean(message.senderUid) && candidate.uid === message.senderUid),
+  );
+  return member?.avatar ?? "";
+}
+
+export function isSpeaking(member: ChannelMember, speakingIds: Set<number>): boolean {
+  return speakingIds.has(member.id);
+}
+
+export function memberDisplayName(member: ChannelMember, t: (key: string) => string): string {
+  return member.isSelf ? `${member.nickname}${t("selfSuffix")}` : member.nickname;
 }
 
 export function formatTime(timestamp: number, language: Language): string {

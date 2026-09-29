@@ -135,19 +135,21 @@ export async function installVoiceFixture(context: BrowserContext, options: Scri
     socket.send(JSON.stringify(payload));
   };
 
+  const startSpeaking = (clientIds: number[]) => {
+    speakingTimer = setInterval(() => { try { send({ type: "voiceActivity", clientIds }); } catch { /* closed */ } }, 100);
+    send({ type: "voiceActivity", clientIds });
+  };
+
   return {
     tickets,
     commands,
     get connections() { return connections; },
     send,
-    startSpeaking(clientIds) {
-      speakingTimer = setInterval(() => { try { send({ type: "voiceActivity", clientIds }); } catch { /* closed */ } }, 100);
-      send({ type: "voiceActivity", clientIds });
-    },
+    startSpeaking,
     apply(scenario) {
-      if (scenario === "connected") this.startSpeaking([2]);
+      if (scenario === "connected") startSpeaking([2]);
       else if (scenario === "poke") {
-        this.startSpeaking([2]);
+        startSpeaking([2]);
         send({ type: "pokeReceived", invokerId: 2, invokerUid: "uid-alex", invokerName: "Alex Rivera", message: "Raid is starting", timestamp: CHAT_TIME + 180_000 });
       } else if (scenario === "pokes") {
         send({ type: "pokeReceived", invokerId: 2, invokerUid: "uid-alex", invokerName: "Alex Rivera", message: "Raid is starting", timestamp: CHAT_TIME + 180_000 });

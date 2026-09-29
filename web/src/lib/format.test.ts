@@ -1,5 +1,10 @@
-import { describe, expect, it } from "vitest";
-import { avatarInitial, formatTime, median, microphoneErrorMessage, serverKey } from "./format";
+import { describe, expect, it, vi } from "vitest";
+import { avatarInitial, avatarStyle, formatTime, isSpeaking, median, memberDisplayName, messageAvatar, microphoneErrorMessage, serverKey } from "./format";
+import type { ChannelMember, ChatMessage } from "../composables/useVoiceWebSocket";
+
+function member(id: number, nickname: string, overrides: Partial<ChannelMember> = {}): ChannelMember {
+  return { id, nickname, ...overrides };
+}
 
 describe("median", () => {
   it("returns null for an empty list", () => {
@@ -82,5 +87,74 @@ describe("microphoneErrorMessage", () => {
 
   it.each([undefined, null, "NotAllowedError", { name: "NotAllowedError" }])("does not throw for %j", (value) => {
     expect(microphoneErrorMessage(value)).toBe("麦克风访问失败：请检查浏览器权限");
+  });
+});
+
+describe("avatarStyle", () => {
+  it("is deterministic for the same name", () => {
+    expect(avatarStyle("Lucas")).toEqual(avatarStyle("Lucas"));
+  });
+
+  it("picks different fallback colors for different names", () => {
+    expect(avatarStyle("Lucas").background).not.toBe(avatarStyle("Ana").background);
+  });
+
+  it("gives self an accent gradient instead of a palette color", () => {
+    expect(avatarStyle("Lucas", true).background).toContain("var(--ws-accent)");
+  });
+
+  it("layers an avatar image over the fallback background when given one", () => {
+    const style = avatarStyle("Lucas", false, "https://example.com/a.png");
+    expect(style).toMatchObject({ backgroundImage: 'url("https://example.com/a.png")', backgroundPosition: "center", backgroundSize: "cover" });
+  });
+
+  it("does not set a background image without an avatar", () => {
+    expect(avatarStyle("Lucas")).not.toHaveProperty("backgroundImage");
+  });
+});
+
+describe("messageAvatar", () => {
+  const members = [member(1, "Lucas", { avatar: "lucas.png" }), member(2, "Ana", { uid: "ana-uid", avatar: "ana.png" })];
+
+  it("matches by sender id", () => {
+    const message = { senderId: 1 } as ChatMessage;
+    expect(messageAvatar(message, members)).toBe("lucas.png");
+  });
+
+  it("falls back to sender uid when there is no numeric id", () => {
+    const message = { senderUid: "ana-uid" } as ChatMessage;
+    expect(messageAvatar(message, members)).toBe("ana.png");
+  });
+
+  it("returns an empty string for an unknown sender", () => {
+    const message = { senderId: 99 } as ChatMessage;
+    expect(messageAvatar(message, members)).toBe("");
+  });
+
+  it("returns an empty string when the matched member has no avatar", () => {
+    const message = { senderId: 3 } as ChatMessage;
+    expect(messageAvatar(message, [member(3, "Sam")])).toBe("");
+  });
+});
+
+describe("isSpeaking", () => {
+  it("is true when the member's id is in the speaking set", () => {
+    expect(isSpeaking(member(1, "Lucas"), new Set([1, 2]))).toBe(true);
+  });
+
+  it("is false otherwise", () => {
+    expect(isSpeaking(member(1, "Lucas"), new Set([2]))).toBe(false);
+  });
+});
+
+describe("memberDisplayName", () => {
+  const t = vi.fn((key: string) => (key === "selfSuffix" ? " (You)" : key));
+
+  it("appends the self suffix for the local member", () => {
+    expect(memberDisplayName(member(1, "Lucas", { isSelf: true }), t)).toBe("Lucas (You)");
+  });
+
+  it("returns the plain nickname for other members", () => {
+    expect(memberDisplayName(member(2, "Ana"), t)).toBe("Ana");
   });
 });

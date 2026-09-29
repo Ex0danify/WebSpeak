@@ -58,9 +58,10 @@ interface TestFixtures {
   person: (index: number, label: string, options?: { gateway?: Gateway; seeded?: boolean }) => Promise<Person>;
   /**
    * A gateway of the test's own, for a test that ends it (the worker's cannot be started again on
-   * its port). Stopped after the test.
+   * its port). Stopped after the test. `webRtc: true` turns WebRTC audio on; without it (the
+   * default, as for the worker's gateway) voice travels as Opus over the WebSocket.
    */
-  ownGateway: () => Promise<Gateway>;
+  ownGateway: (options?: { webRtc?: boolean }) => Promise<Gateway>;
   /** A permanent channel of its own with a unique name. Returns its name and id; deleted after the test. */
   testChannel: (label: string) => Promise<{ name: string; id: string }>;
 }
@@ -68,7 +69,7 @@ interface TestFixtures {
 let counter = 0;
 
 /** A real gateway aimed at the disposable server: the real TeamSpeak client, the server as the fixed target. */
-async function startRealGateway(server: RealServer): Promise<Gateway> {
+async function startRealGateway(server: RealServer, options: { webRtc?: boolean } = {}): Promise<Gateway> {
   assertFreshBuild();
   const gateway = await startGateway({ staticDir, realTeamSpeak: true });
   gateway.adminService.updateSettings({
@@ -76,7 +77,7 @@ async function startRealGateway(server: RealServer): Promise<Gateway> {
     accessMode: "fixed",
     siteName: "WebSpeak real-server test",
     welcomeText: "",
-    webRtcEnabled: false,
+    webRtcEnabled: options.webRtc === true,
   });
   return gateway;
 }
@@ -161,8 +162,8 @@ export const test = base.extend<TestFixtures, WorkerFixtures>({
 
   ownGateway: async ({ server }, use) => {
     const started: Gateway[] = [];
-    await use(async () => {
-      const gateway = await startRealGateway(server);
+    await use(async (options) => {
+      const gateway = await startRealGateway(server, options);
       started.push(gateway);
       return gateway;
     });

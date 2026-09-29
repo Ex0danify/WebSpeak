@@ -12,12 +12,12 @@
     },
     "src/views/WebClient.vue": {
       "colors": 0,
+      "themeSelectors": 0
+    },
+    "src/components/room/ScreenSharePlayer.vue": {
+      "colors": 0,
       "themeSelectors": 0,
       "allow": [
-        {
-          "region": "avatar-colors",
-          "reason": "Fixed pastel identity colors picked by nickname hash. A user must keep the same color in every theme, so they cannot be theme tokens. Initials sit on them in accent-fg."
-        },
         {
           "region": "screen-share-player",
           "reason": "Video player chrome (letterbox, controls, labels). A video surface stays dark in every theme, and light text on it must stay light, which no swapping token expresses."

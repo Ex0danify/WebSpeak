@@ -1,0 +1,24 @@
+{
+  "files": {
+    "src/views/WebClient.vue": {
+      "classAttrs": 10,
+      "classBindings": 3,
+      "styleLines": 194
+    },
+    "src/views/AdminView.vue": {
+      "classAttrs": 1,
+      "classBindings": 0,
+      "styleLines": 92
+    },
+    "src/views/DemoView.vue": {
+      "classAttrs": 5,
+      "classBindings": 0,
+      "styleLines": 17
+    },
+    "src/views/UiGallery.vue": {
+      "classAttrs": 220,
+      "classBindings": 1,
+      "styleLines": 0
+    }
+  }
+}

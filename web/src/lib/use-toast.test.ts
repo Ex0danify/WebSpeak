@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { dismissToast, toast, useToast } from "./use-toast";
+import { dismissToast, showToast, toast, useToast } from "./use-toast";
 
 // The queue is module state, so every test starts from an empty one.
 afterEach(() => dismissToast());
@@ -62,6 +62,18 @@ describe("dismissToast", () => {
     toast("a");
     dismissToast(99999);
     expect(useToast().toasts.value).toHaveLength(1);
+  });
+});
+
+describe("showToast", () => {
+  it("defaults to a 2.8 s success toast", () => {
+    showToast("Copied");
+    expect(useToast().toasts.value).toMatchObject([{ title: "Copied", variant: "success", duration: 2800 }]);
+  });
+
+  it("accepts an explicit variant", () => {
+    showToast("Failed", "danger");
+    expect(useToast().toasts.value).toMatchObject([{ title: "Failed", variant: "danger", duration: 2800 }]);
   });
 });
 

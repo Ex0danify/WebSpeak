@@ -59,6 +59,11 @@ export function dismissToast(id?: number) {
   items.value = id === undefined ? [] : items.value.filter((t) => t.id !== id);
 }
 
+// Shorthand for a short-lived confirmation/error toast, the shape most call sites want.
+export function showToast(title: string, variant: "success" | "danger" = "success"): number {
+  return toast({ title, variant, duration: 2800 });
+}
+
 export function useToast() {
   return { toasts: readonly(items), toast, dismiss: dismissToast };
 }

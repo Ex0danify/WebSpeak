@@ -1,5 +1,6 @@
 import { flushPromises, mount, type VueWrapper } from "@vue/test-utils";
 import { IDBFactory } from "fake-indexeddb";
+import { createPinia } from "pinia";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type * as Persistence from "@/services/local-persistence";
 
@@ -42,7 +43,7 @@ afterEach(() => {
 
 /** Mounts the view and waits until it has finished reading the stored identity. */
 async function mountView(): Promise<View> {
-  wrapper = mount(WebClient);
+  wrapper = mount(WebClient, { global: { plugins: [createPinia()] } });
   const view = wrapper.vm as unknown as View;
   await vi.waitFor(() => expect(view.identityReady).toBe(true));
   await flushPromises();
