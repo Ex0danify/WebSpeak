@@ -1,14 +1,14 @@
 import type { Page } from "@playwright/test";
 import { expect, test } from "./fixtures";
 import { join, overflowScan } from "./helpers";
-import { translations as commonTranslations } from "../web/src/i18n/common";
-import { translations as joinTranslations } from "../web/src/i18n/join";
-import { translations as roomTranslations } from "../web/src/i18n/room";
+import { translations as commonTranslations } from "../web/src/shared/i18n/common";
+import { translations as joinTranslations } from "../web/src/features/join/i18n";
+import { translations as roomTranslations } from "../web/src/features/room/i18n";
 
-// Step 8.2 split the one i18n module WebClient used into `join` (pre-connect screen) and
+// Step 8.2 split the one i18n module the old WebClient view used into `join` (pre-connect screen) and
 // `room` (connected view); step 8.6 pulled out `common`, the strings every view agreed on.
 // A key lives in exactly one of the three, so this merge is complete and lossless for every
-// language, matching what use-i18n.ts's own t() resolves for WebClient.
+// language, matching what useI18n.ts's own t() resolves for the join page.
 const translations: Record<string, Record<string, string>> = Object.fromEntries(
   Object.keys(roomTranslations).map((language) => [language, { ...commonTranslations[language], ...joinTranslations[language], ...roomTranslations[language] }]),
 );

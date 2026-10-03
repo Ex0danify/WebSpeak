@@ -44,6 +44,17 @@ test.describe("join form", () => {
     await expect(page.getByLabel("Your nickname")).toHaveValue("join-remembered");
   });
 
+  test("the room is at /room, and a reload there lands on the join page", async ({ page }) => {
+    await page.goto("/");
+    await page.getByLabel("Your nickname").fill("join-route");
+    await joinButton(page).click();
+    await expectInRoom(page, "join-route");
+    expect(new URL(page.url()).pathname).toBe("/room");
+    await page.reload();
+    await expect(page.getByLabel("Your nickname")).toBeVisible();
+    expect(new URL(page.url()).pathname).toBe("/");
+  });
+
   test("a nickname with spaces around it is trimmed", async ({ page, gateway }) => {
     await submitJoin(page, "  join-trimmed  ");
     await expectInRoom(page, "join-trimmed");

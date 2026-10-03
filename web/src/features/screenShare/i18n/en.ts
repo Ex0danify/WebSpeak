@@ -1,0 +1,17 @@
+export const en: Record<string, string> = {
+  screenShare: "Screen sharing",
+  watchingScreenShare: "Watching",
+  screenShareVolume: "Share volume",
+  directP2POnly: "Direct P2P · STUN for public candidate discovery",
+  screenShareNativeUnavailable: "Native TeamSpeak screen sharing is not available to web viewers yet",
+  screenShareExit: "Exit viewer",
+  screenShareConnecting: "Connecting to screen share",
+  screenShareViewers: "Current viewers",
+  screenShareExitFullscreen: "Exit fullscreen",
+  screenShareSettingsHint: "Adjust output quality before sharing",
+  screenShareResolution: "Output resolution",
+  screenShareResolutionSource: "Source resolution",
+  screenShareResolution720p: "720p (up to 1280 × 720)",
+  screenShareResolution1080p: "1080p (up to 1920 × 1080)",
+  screenShareSettingsNote: "These settings apply the next time you start sharing",
+};

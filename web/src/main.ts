@@ -1,15 +1,26 @@
 import "@fontsource-variable/inter/wght.css";
 import "@fontsource/ibm-plex-mono/400.css";
 import "@fontsource/ibm-plex-mono/500.css";
-import "./styles/main.css";
+import "@/shared/styles/main.css";
 import { createApp } from "vue";
 import { createPinia } from "pinia";
 import { createRouter, createWebHistory, type RouteRecordRaw } from "vue-router";
 import App from "./App.vue";
-import WebClient from "./views/WebClient.vue";
+import { clientRoutes } from "./views/clientRoutes";
 import AdminView from "./views/AdminView.vue";
 import DemoView from "./views/DemoView.vue";
-import "./services/theme.js";
+import "@/shared/services/theme.js";
+import { registerMessages } from "@/shared/i18n/useI18n.js";
+import { translations as commonMessages } from "@/shared/i18n/common/index.js";
+import { translations as roomMessages } from "@/features/room/i18n/index.js";
+import { joinMessages } from "@/features/join";
+import { adminMessages } from "@/features/admin";
+import { demoMessages } from "@/features/demo";
+import { sessionMessages } from "@/features/session";
+import { screenShareMessages } from "@/features/screenShare";
+import { chatMessages } from "@/features/room";
+
+for (const messages of [commonMessages, roomMessages, joinMessages, adminMessages, demoMessages, sessionMessages, screenShareMessages, chatMessages]) registerMessages(messages);
 
 const BASELINE_WIDTH = 1920;
 const BASELINE_HEIGHT = 1080;
@@ -31,8 +42,7 @@ applyUiScale();
 window.addEventListener("resize", applyUiScale, { passive: true });
 
 const routes: RouteRecordRaw[] = [
-  { path: "/", name: "webclient", component: WebClient },
-  { path: "/join", name: "join", component: WebClient },
+  ...clientRoutes,
   { path: "/demo", name: "demo", component: DemoView },
   { path: "/admin/:pathMatch(.*)*", name: "admin", component: AdminView },
 ];

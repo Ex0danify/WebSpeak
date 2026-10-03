@@ -1,9 +1,9 @@
 {
   "files": {
-    "src/views/WebClient.vue": {
-      "classAttrs": 10,
-      "classBindings": 3,
-      "styleLines": 194
+    "src/views/RoomView.vue": {
+      "classAttrs": 0,
+      "classBindings": 0,
+      "styleLines": 3
     },
     "src/views/AdminView.vue": {
       "classAttrs": 1,
@@ -19,6 +19,16 @@
       "classAttrs": 220,
       "classBindings": 1,
       "styleLines": 0
+    },
+    "src/views/ClientLayout.vue": {
+      "classAttrs": 2,
+      "classBindings": 0,
+      "styleLines": 45
+    },
+    "src/views/JoinView.vue": {
+      "classAttrs": 2,
+      "classBindings": 0,
+      "styleLines": 64
     }
   }
 }

@@ -22,15 +22,19 @@
 
 <script setup lang="ts">
 import { computed, ref } from "vue";
-import { Banner } from "@/components/ui/banner";
-import { Button } from "@/components/ui/button";
-import DemoActionsPanel from "../components/demo/DemoActionsPanel.vue";
-import DemoChannelPanel from "../components/demo/DemoChannelPanel.vue";
-import DemoChatPanel from "../components/demo/DemoChatPanel.vue";
-import DemoHeader from "../components/demo/DemoHeader.vue";
-import DemoVoiceSection from "../components/demo/DemoVoiceSection.vue";
-import type { DemoChannel, DemoMessage, DemoTab } from "../components/demo/types";
-import { useI18n } from "@/i18n/use-i18n";
+import { Banner } from "@/shared/ui/banner";
+import { Button } from "@/shared/ui/button";
+import {
+  DemoActionsPanel,
+  DemoChannelPanel,
+  DemoChatPanel,
+  DemoHeader,
+  DemoVoiceSection,
+  type DemoChannel,
+  type DemoMessage,
+  type DemoTab,
+} from "@/features/demo";
+import { useI18n } from "@/shared/i18n/useI18n";
 
 const { t } = useI18n();
 const selectedChannelId = ref("quiet");

@@ -1,5 +1,5 @@
 // One table for both target parsers. The gateway (src/domain/teamspeak-target.ts)
-// parses and validates; the web form (web/src/services/teamspeak-target.ts) only
+// parses and validates; the web form (web/src/shared/lib/teamspeakTarget.ts) only
 // splits and joins. For every input the gateway accepts, the two must describe the
 // same server, so both test files run this table.
 export const ACCEPTED_TARGETS: ReadonlyArray<readonly [input: string, expected: { host: string; port: number }]> = [

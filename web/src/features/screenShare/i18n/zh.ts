@@ -1,0 +1,17 @@
+export const zh: Record<string, string> = {
+  screenShare: "屏幕共享",
+  watchingScreenShare: "正在观看",
+  screenShareVolume: "共享音量",
+  directP2POnly: "直连 P2P · STUN 仅用于发现公网地址",
+  screenShareNativeUnavailable: "原生 TeamSpeak 屏幕共享暂不支持网页观看",
+  screenShareExit: "退出观看",
+  screenShareConnecting: "正在连接屏幕共享",
+  screenShareViewers: "正在观看的观众",
+  screenShareExitFullscreen: "退出全屏",
+  screenShareSettingsHint: "共享前调整输出质量",
+  screenShareResolution: "输出分辨率",
+  screenShareResolutionSource: "原始分辨率",
+  screenShareResolution720p: "720p（最高 1280 × 720）",
+  screenShareResolution1080p: "1080p（最高 1920 × 1080）",
+  screenShareSettingsNote: "设置会在下一次开始共享时生效",
+};

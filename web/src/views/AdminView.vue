@@ -12,15 +12,17 @@
 <script setup lang="ts">
 import { computed, onMounted } from "vue";
 import { useRoute } from "vue-router";
-import { Toaster } from "@/components/ui/toast";
-import AdminOperationsPage from "@/components/admin/AdminOperationsPage.vue";
-import AdminOverviewPage from "@/components/admin/AdminOverviewPage.vue";
-import AdminServerPage from "@/components/admin/AdminServerPage.vue";
-import AdminShell from "@/components/admin/AdminShell.vue";
+import { Toaster } from "@/shared/ui/toast";
 import { storeToRefs } from "pinia";
-import { useAdminSessionStore } from "@/stores/adminSession";
-import { useTheme } from "../composables/useTheme.js";
-import { useI18n } from "@/i18n/use-i18n";
+import {
+  AdminOperationsPage,
+  AdminOverviewPage,
+  AdminServerPage,
+  AdminShell,
+  useAdminSessionStore,
+} from "@/features/admin";
+import { useTheme } from "@/shared/composables/useTheme.js";
+import { useI18n } from "@/shared/i18n/useI18n";
 
 const route = useRoute();
 const { t } = useI18n();

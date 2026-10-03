@@ -1,6 +1,6 @@
 {
   "files": {
-    "src/components/ui/icon/Icon.vue": {
+    "src/shared/ui/icon/Icon.vue": {
       "colors": 0,
       "themeSelectors": 0,
       "allow": [
@@ -10,11 +10,11 @@
         }
       ]
     },
-    "src/views/WebClient.vue": {
+    "src/views/RoomView.vue": {
       "colors": 0,
       "themeSelectors": 0
     },
-    "src/components/room/ScreenSharePlayer.vue": {
+    "src/features/screenShare/ScreenSharePlayer.vue": {
       "colors": 0,
       "themeSelectors": 0,
       "allow": [

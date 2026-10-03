@@ -1,5 +1,5 @@
 // Scripted /ws/voice gateway. It answers the join ticket request and speaks just enough of the
-// gateway protocol (see handleMessage() in web/src/composables/useVoiceWebSocket.ts) for the
+// gateway protocol (see handleMessage() in web/src/features/room/useRoomSession.ts) for the
 // connected view to render without a TeamSpeak server. Voice audio is never sent.
 //
 // It serves the states a fake TeamSpeak client cannot produce cheaply: the reconnect banner, a

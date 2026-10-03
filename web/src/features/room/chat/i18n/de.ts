@@ -1,0 +1,27 @@
+import { en } from "./en.js";
+
+export const de: Record<string, string> = {
+  ...en,
+  channelChat: "Chat in {{channel}}",
+  messageCount: "{{count}} Nachrichten",
+  chatStart: "Dies ist der Anfang des Chats",
+  chatStartLead: "Sende eine Nachricht und begrüße deine Kanalmitglieder.",
+  chatTabs: "Chat-Tabs",
+  serverChat: "Server",
+  privateMessagePlaceholder: "Private Nachricht senden…",
+  serverMessagePlaceholder: "Nachricht an den Server senden…",
+  privateChatStart: "Dies ist der Anfang des privaten Chats",
+  privateChatStartLead: "Sende eine private Nachricht.",
+  eventLog: "Ereignisprotokoll",
+  eventCount: "{{count}} Ereignisse",
+  noEvents: "Noch keine Serverereignisse",
+  noEventsLead: "Änderungen an Kanälen und Mitgliedern werden hier angezeigt.",
+  eventConnected: "Mit dem Server verbunden",
+  eventMemberJoined: "{{nickname}} ist dem Server beigetreten",
+  eventMemberLeft: "{{nickname}} hat den Server verlassen",
+  eventMemberMoved: "{{nickname}} ist in einen anderen Kanal gewechselt",
+  eventChannelCreated: "Kanal „{{channel}}“ wurde erstellt",
+  eventChannelRenamed: "Kanal wurde in „{{channel}}“ umbenannt",
+  eventChannelDeleted: "Kanal „{{channel}}“ wurde gelöscht",
+  sendMessagePlaceholder: "Nachricht an die Kanalmitglieder…",
+};

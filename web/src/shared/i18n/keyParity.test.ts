@@ -1,0 +1,134 @@
+import { describe, expect, it } from "vitest";
+import knownGaps from "./knownGaps.json";
+
+// Test version of `npm run check:i18n` (web/scripts/check-i18n.mjs). It scans the language
+// files as text, the same way, because `join`, `room` and `admin` start from `...en` (per
+// module) and so hold every key that module declares in English at runtime: only the text
+// shows what they translate themselves. `common` and `demo` do not spread and are fully
+// standalone in all five languages. Every module folder is checked (step 8.7 widened this
+// from join/room only, once step 8.6 had resolved the cross-module collisions that made
+// checking admin/demo alongside join/room premature — see check-i18n.mjs and the plan's
+// Track 8 notes). Modules are discovered by glob (any folder under src/ with an index.ts and
+// the five language files, named after the folder or, for a folder called i18n, its parent),
+// so they keep being found as they relocate into features/ and shared/.
+
+const LANGUAGES = ["zh", "en", "de", "ru", "ja"] as const;
+type Language = (typeof LANGUAGES)[number];
+const KEY = /^ {2}(?:([A-Za-z_$][\w$]*)|"([^"]+)"):/gm;
+
+type Translations = Record<Language, Record<string, string>>;
+
+const indexFiles = import.meta.glob<{ translations: Translations }>("@/**/i18n/**/index.ts", { eager: true });
+const sourceFiles = import.meta.glob<string>("@/**/i18n/**/*.ts", { eager: true, query: "?raw", import: "default" });
+
+const moduleDirs = new Map<string, string>();
+for (const path of Object.keys(indexFiles)) {
+  const dir = path.slice(0, path.lastIndexOf("/"));
+  if (!LANGUAGES.every((language) => `${dir}/${language}.ts` in sourceFiles)) continue;
+  const parts = dir.split("/");
+  const name = parts.at(-1) === "i18n" ? parts.at(-2)! : parts.at(-1)!;
+  expect(moduleDirs.has(name), `two i18n modules are both named "${name}"`).toBe(false);
+  moduleDirs.set(name, dir);
+}
+
+const modules = [...moduleDirs.keys()].sort();
+type Module = string;
+
+const translationsByModule: Record<Module, Translations> = Object.fromEntries(
+  modules.map((module) => [module, indexFiles[`${moduleDirs.get(module)}/index.ts`]!.translations]),
+);
+
+function declaredKeys(module: Module, language: Language): Set<string> {
+  const source = sourceFiles[`${moduleDirs.get(module)}/${language}.ts`]!;
+  return new Set([...source.matchAll(KEY)].map((match) => (match[1] ?? match[2])!));
+}
+
+// module -> language -> declared keys
+const declaredByModule = Object.fromEntries(modules.map((module) => [
+  module,
+  Object.fromEntries(LANGUAGES.map((language) => [language, declaredKeys(module, language)])),
+])) as Record<Module, Record<Language, Set<string>>>;
+
+// module -> union of keys declared by any language in that module
+const unionByModule = Object.fromEntries(modules.map((module) => [
+  module,
+  new Set(LANGUAGES.flatMap((language) => [...declaredByModule[module][language]])),
+])) as Record<Module, Set<string>>;
+
+const allowed = knownGaps as Partial<Record<Module, Partial<Record<Language, string[]>>>>;
+
+/** Keys another language declares for this module that this one does not, sorted. */
+function missingKeys(module: Module, language: Language): string[] {
+  return [...unionByModule[module]].filter((key) => !declaredByModule[module][language].has(key)).sort();
+}
+
+describe("module discovery", () => {
+  it("finds the modules we ship", () => {
+    expect(modules).toEqual(expect.arrayContaining(["common", "join", "room", "admin", "demo"]));
+  });
+
+  it("declares each key in exactly one module, per language", () => {
+    for (const language of LANGUAGES) {
+      const seenIn = new Map<string, Module>();
+      for (const module of modules) {
+        for (const key of declaredByModule[module][language]) {
+          expect(seenIn.has(key), `"${key}" (${language}) is declared in both ${seenIn.get(key)}/ and ${module}/`).toBe(false);
+          seenIn.set(key, module);
+        }
+      }
+    }
+  });
+});
+
+describe("the key scan", () => {
+  it.each(modules.flatMap((module) => LANGUAGES.map((language) => [module, language] as const)))(
+    "finds only keys that %s/%s really has at runtime",
+    (module, language) => {
+      for (const key of declaredByModule[module][language]) expect(translationsByModule[module][language]).toHaveProperty(key);
+    },
+  );
+
+  it.each(modules.filter((module) => ["join", "room", "admin", "session", "screenShare", "chat"].includes(module)))("%s: de, ru and ja hold every English key at runtime through the spread", (module) => {
+    for (const language of ["de", "ru", "ja"] as const) {
+      for (const key of declaredByModule[module].en) expect(translationsByModule[module][language]).toHaveProperty(key);
+    }
+  });
+
+  it.each(modules.filter((module) => ["common", "demo"].includes(module)))("%s: every language finds exactly the runtime keys, none spread another file", (module) => {
+    for (const language of LANGUAGES) {
+      expect([...declaredByModule[module][language]].sort()).toEqual(Object.keys(translationsByModule[module][language]).sort());
+    }
+  });
+
+  it("reads quoted keys as well as bare ones", () => {
+    const sample = ['  plain: "a",', '  "quoted-key": "b",', '    nested: "c",'].join("\n");
+    const keys = [...sample.matchAll(KEY)].map((match) => match[1] ?? match[2]);
+    expect(keys).toEqual(["plain", "quoted-key"]);
+  });
+});
+
+describe("translation key parity", () => {
+  it.each(modules.flatMap((module) => LANGUAGES.map((language) => [module, language] as const)))(
+    "%s/%s: the missing keys are exactly the known gaps",
+    (module, language) => {
+      const missing = missingKeys(module, language);
+      const known = allowed[module]?.[language] ?? [];
+      const added = missing.filter((key) => !known.includes(key));
+      const fixed = known.filter((key) => !missing.includes(key));
+      // Two separate messages so the failure says what to do.
+      expect(added, `${module}/${language}: new missing keys, translate them instead of adding them to knownGaps.json`).toEqual([]);
+      expect(fixed, `${module}/${language}: keys that are translated now, remove them from knownGaps.json`).toEqual([]);
+    },
+  );
+
+  it("knownGaps.json is sorted, has no duplicates and names only modules and languages we ship", () => {
+    for (const [module, byLanguage] of Object.entries(allowed)) {
+      expect(modules).toContain(module);
+      for (const [language, keys] of Object.entries(byLanguage ?? {})) {
+        expect(LANGUAGES).toContain(language);
+        expect(keys).toEqual([...new Set(keys)].sort());
+        expect(keys!.length).toBeGreaterThan(0);
+      }
+    }
+  });
+});

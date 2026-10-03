@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { cn } from "@/lib/utils";
+import { cn } from "@/shared/lib/cn";
 
 describe("web test project", () => {
   it("runs in happy-dom and resolves the @ alias", () => {
