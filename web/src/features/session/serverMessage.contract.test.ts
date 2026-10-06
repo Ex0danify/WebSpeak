@@ -1,16 +1,43 @@
 // Contract between the gateway and the browser (Step R4.4): every control frame type that
-// `src/server/voice-bridge.ts` puts on the socket must be a member of the `ServerMessage` union.
-// Both sides are read as source text, so adding a sender without extending the union fails here.
-import { readFileSync } from "node:fs";
+// the gateway (every non-test `.ts` under `src/`) puts on the socket must be a member of the
+// `ServerMessage` union. Both sides are read as source text, so adding a sender without extending
+// the union fails here, wherever in `src/` the sender lives.
+import { readFileSync, readdirSync } from "node:fs";
+import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
 const read = (relative: string) => readFileSync(new URL(relative, import.meta.url), "utf8");
 
-const gatewaySource = read("../../../../src/server/voice-bridge.ts");
+const gatewayRoot = resolve(import.meta.dirname, "../../../../src");
+
+function gatewayFiles(): string[] {
+  return (readdirSync(gatewayRoot, { recursive: true }) as string[])
+    .map((file) => file.replaceAll("\\", "/"))
+    .filter((file) => file.endsWith(".ts") && !file.endsWith(".test.ts"))
+    .sort();
+}
+
+const gatewayPaths = gatewayFiles();
+const gatewaySource = gatewayPaths.map((file) => readFileSync(resolve(gatewayRoot, file), "utf8")).join("\n");
 const sessionTypesSource = read("./sessionTypes.ts");
 
-/** `type: "x"` literals in the gateway that are not browser-bound frames (the SDP description kind). */
-const NOT_A_FRAME = new Set(["offer"]);
+/**
+ * `type: "x"` literals in the gateway that are not browser-bound frames: the SDP description kind,
+ * the browser-to-gateway command names (`voice-protocol`, screen-share signals) and the internal
+ * directory-sync events. Matched by name because the scan covers every file under `src/`.
+ */
+const NOT_A_FRAME = new Set([
+  "offer",
+  "switchChannel",
+  "clientEnter",
+  "clientLeave",
+  "clientMoved",
+  "clientUpdated",
+  "screenShareStart",
+  "screenShareStop",
+  "screenShareJoin",
+  "screenShareLeave",
+]);
 
 function gatewayFrameTypes(): string[] {
   const types = new Set<string>();
@@ -30,6 +57,10 @@ function unionTypes(): string[] {
 }
 
 describe("ServerMessage contract with the gateway", () => {
+  it("reads the gateway source files (fails loudly on an empty list)", () => {
+    expect(gatewayPaths.length, `no gateway sources found under src/`).toBeGreaterThan(0);
+  });
+
   it("finds the senders (guards against the scan silently matching nothing)", () => {
     expect(gatewayFrameTypes().length).toBeGreaterThan(25);
   });

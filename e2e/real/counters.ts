@@ -1,5 +1,5 @@
 import type { AdminApi, Gateway } from "../../test/helpers/gateway";
-import type { AudioFlowStats } from "../../src/server/voice-bridge";
+import type { AudioFlowStats } from "../../src/modules/voice/index";
 import { poll, type PollOptions } from "../helpers";
 
 /**

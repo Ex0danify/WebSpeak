@@ -1,5 +1,5 @@
 import { identityFromString } from "@echosixhiya/teamspeak-client";
-import { TSClient } from "../../src/server/ts-client";
+import { TSClient } from "../../src/modules/teamspeak/teamSpeakClient";
 import { poll } from "../helpers/poll";
 import { ADMIN_IDENTITIES, GUEST_IDENTITY, type IdentityStore, identities } from "./identities";
 import { type RealServer, WebQuery, silentLogger } from "./server";

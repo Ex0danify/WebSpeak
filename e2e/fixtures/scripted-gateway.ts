@@ -7,7 +7,7 @@
 //
 // Two users: the Playwright specs of layer 4 and the screenshot tests of layer 6 (e2e/visual).
 import type { BrowserContext, WebSocketRoute } from "@playwright/test";
-import type { ClientCommand } from "../../src/server/voice-protocol";
+import type { ClientCommand } from "../../src/modules/voice/messages/voiceProtocol";
 
 /** A JSON message the gateway sends to the browser. */
 export type ServerMessage = { type: string } & Record<string, unknown>;

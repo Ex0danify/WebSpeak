@@ -5,6 +5,7 @@ import { useSessionStore } from "@/features/session";
 import { safeClientErrorCode } from "@/features/session";
 import type { SinkAudioContext, SinkAudioElement } from "../voiceTypes";
 import type { MessageHandlers } from "@/features/session";
+import { useWebRtcAccompaniment } from "./useWebRtcAccompaniment";
 
 /** Late-bound pieces owned by other modules or still in the assembler (V-D2): resolved at call time. */
 export interface WebRtcTransportDeps {
@@ -36,7 +37,7 @@ export interface WebRtcTransportDeps {
 }
 
 /** The WebRTC voice transport: the peer, the microphone mix stream, the mic monitor, the answer, the
- *  fallback to the PCM WebSocket path and the accompaniment (shared display audio) that joins the mix. The peer, the mix nodes and the monitor are non-reactive
+ *  fallback to the PCM WebSocket path and the accompaniment (`useWebRtcAccompaniment`) that joins the mix. The peer, the mix nodes and the monitor are non-reactive
  *  closure state, never stored in Pinia. */
 export function useWebRtcTransport(deps: WebRtcTransportDeps) {
   const session = useSessionStore();
@@ -44,7 +45,7 @@ export function useWebRtcTransport(deps: WebRtcTransportDeps) {
   const { state } = session;
   const audio = useVoiceAudioStore();
   const {
-    microphoneMuted, inputVolume, voxThreshold, selectedOutputDeviceId, accompanimentActive, accompanimentSupported, accompanimentErrorCode,
+    microphoneMuted, inputVolume, voxThreshold, selectedOutputDeviceId, accompanimentActive,
   } = storeToRefs(audio);
   const { volumes } = audio;
   const { webrtcActive, micLevel } = deps;
@@ -60,7 +61,6 @@ export function useWebRtcTransport(deps: WebRtcTransportDeps) {
   let webrtcMicMonitorAnalyser: AnalyserNode | null = null;
   let webrtcMicMonitorGain: GainNode | null = null;
   let webrtcMicMonitorTimer: ReturnType<typeof setInterval> | null = null;
-  let accompanimentStream: MediaStream | null = null;
 
   function stopWebRtcMix(): void {
     webrtcMixAccompanimentSource?.disconnect();
@@ -95,6 +95,7 @@ export function useWebRtcTransport(deps: WebRtcTransportDeps) {
     webrtcMixMicSource = microphoneSource;
     webrtcMixMicGain = microphoneGain;
 
+    const accompanimentStream = accompaniment.getAccompanimentStream();
     const accompanimentTrack = accompanimentStream?.getAudioTracks()[0];
     if (accompanimentTrack) {
       const accompanimentSource = ctx.createMediaStreamSource(accompanimentStream!);
@@ -246,7 +247,7 @@ export function useWebRtcTransport(deps: WebRtcTransportDeps) {
     webrtcPeer = null;
     webrtcActive.value = false;
     webrtcNegotiationPromise = null;
-    releaseAccompanimentStream();
+    accompaniment.releaseAccompanimentStream();
     stopWebRtcMix();
     stopWebRtcMicMonitor();
     deps.stopWebRtcPlayback();
@@ -310,94 +311,6 @@ export function useWebRtcTransport(deps: WebRtcTransportDeps) {
     }
   }
 
-  function releaseAccompanimentStream(): void {
-    accompanimentStream?.getTracks().forEach((track) => track.stop());
-    accompanimentStream = null;
-    accompanimentActive.value = false;
-  }
-
-  async function startAccompaniment(): Promise<void> {
-    accompanimentErrorCode.value = "";
-    if (!accompanimentSupported.value) {
-      accompanimentErrorCode.value = "unsupported";
-      throw new Error("伴奏共享不可用");
-    }
-    if (!webrtcActive.value || !webrtcPeer || !deps.getMicStream()) {
-      accompanimentErrorCode.value = "needsWebRtc";
-      throw new Error("伴奏功能需要启用 WebRTC");
-    }
-
-    const captureProcessingConstraints: MediaTrackConstraints = {
-      // Display/application audio must not pass through browser voice
-      // processing. Those processors are designed for speech and can change
-      // music level from frame to frame (AGC), suppress quiet passages, or
-      // cancel sustained tones.
-      autoGainControl: false,
-      echoCancellation: false,
-      noiseSuppression: false,
-    };
-    const audioConstraints = { ...captureProcessingConstraints } as MediaTrackConstraints & { restrictOwnAudio?: boolean };
-    const supportedConstraints = navigator.mediaDevices.getSupportedConstraints?.() as Record<string, boolean> | undefined;
-    if (supportedConstraints?.restrictOwnAudio) audioConstraints.restrictOwnAudio = true;
-    const options = {
-      video: { displaySurface: "browser" },
-      audio: audioConstraints,
-      selfBrowserSurface: "exclude",
-      systemAudio: "include",
-      windowAudio: "window",
-    } as unknown as DisplayMediaStreamOptions;
-
-    let nextStream: MediaStream;
-    try {
-      nextStream = await navigator.mediaDevices.getDisplayMedia(options);
-    } catch (error) {
-      if (error instanceof DOMException && error.name === "AbortError") return;
-      accompanimentErrorCode.value = "permission";
-      throw error;
-    }
-    const audioTrack = nextStream.getAudioTracks()[0];
-    nextStream.getVideoTracks().forEach((track) => track.stop());
-    if (!audioTrack) {
-      nextStream.getTracks().forEach((track) => track.stop());
-      accompanimentErrorCode.value = "noAudio";
-      throw new Error("所选来源没有可共享音频");
-    }
-
-    try {
-      // Do not pass the Chromium-only restrictOwnAudio hint to
-      // applyConstraints: rejecting an unknown key could otherwise cause the
-      // browser to discard all three standard processing-off constraints.
-      await audioTrack.applyConstraints(captureProcessingConstraints);
-    } catch {
-      // Some browsers expose display audio but reject one or more optional
-      // processing constraints. The capture can still proceed without
-      // introducing a WebSpeak-side gain stage.
-    }
-    if ("contentHint" in audioTrack) audioTrack.contentHint = "music";
-
-    accompanimentStream?.getTracks().forEach((track) => track.stop());
-    accompanimentStream = nextStream;
-    accompanimentActive.value = true;
-    deps.sendCmd("setAccompanimentActive", { active: true });
-    audioTrack.addEventListener("ended", () => { void stopAccompaniment(); }, { once: true });
-    try {
-      await replaceWebRtcAudioTrack();
-    } catch (error) {
-      releaseAccompanimentStream();
-      deps.sendCmd("setAccompanimentActive", { active: false });
-      stopWebRtcMix();
-      accompanimentErrorCode.value = "permission";
-      throw error;
-    }
-  }
-
-  async function stopAccompaniment(): Promise<void> {
-    accompanimentErrorCode.value = "";
-    releaseAccompanimentStream();
-    if (webrtcActive.value) deps.sendCmd("setAccompanimentActive", { active: false });
-    if (webrtcActive.value && webrtcPeer && deps.getMicStream()) await replaceWebRtcAudioTrack();
-    else stopWebRtcMix();
-  }
 
   /** The live peer, if any (accompaniment and member volume ask whether WebRTC is in play). */
   function getWebRtcPeer(): RTCPeerConnection | null {
@@ -408,6 +321,16 @@ export function useWebRtcTransport(deps: WebRtcTransportDeps) {
   function getWebRtcMixMicGain(): GainNode | null {
     return webrtcMixMicGain;
   }
+
+  const accompaniment = useWebRtcAccompaniment({
+    getMicStream: () => deps.getMicStream(),
+    sendCmd: (type, payload) => deps.sendCmd(type, payload),
+    webrtcActive,
+    hasPeer: () => webrtcPeer !== null,
+    replaceWebRtcAudioTrack,
+    stopWebRtcMix,
+  });
+  const { startAccompaniment, stopAccompaniment, releaseAccompanimentStream } = accompaniment;
 
   const handlers: MessageHandlers = {
     webrtcAnswer: (msg) => {

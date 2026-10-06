@@ -1,7 +1,7 @@
-import type { JoinTicketPayload } from "../../src/server/join-ticket.js";
-import type { FakeTSClient } from "./fake-ts-client.js";
+import type { JoinTicketPayload } from "../../src/modules/join/joinTicket.js";
+import type { FakeTSClient } from "./fakeTsClient.js";
 import type { Gateway } from "./gateway.js";
-import type { JsonMessage, WsClient } from "./ws-client.js";
+import type { JsonMessage, WsClient } from "./wsClient.js";
 
 export interface VoiceSession {
   socket: WsClient;

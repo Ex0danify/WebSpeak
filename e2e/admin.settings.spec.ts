@@ -1,7 +1,7 @@
 import type { Locator, Page } from "@playwright/test";
 import { expect, test } from "./fixtures";
 import { TEST_ADMIN_PASSWORD, type Gateway } from "../test/helpers/gateway";
-import { TeamSpeakProbeError } from "../src/server/teamspeak-probe";
+import { TeamSpeakProbeError } from "../src/modules/teamspeak/teamSpeakProbe";
 
 // The admin console's Server page: what the administrator edits, what a save keeps, and what the
 // guests then see. Each test has a gateway of its own (`ownGateway`), the console is asked for English.

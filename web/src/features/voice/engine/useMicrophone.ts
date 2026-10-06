@@ -1,21 +1,18 @@
 import type { Ref } from "vue";
 import { storeToRefs } from "pinia";
-import { RnnoiseWorkletNode, loadRnnoise } from "@sapphi-red/web-noise-suppressor";
-import rnnoiseSimdWasmUrl from "@sapphi-red/web-noise-suppressor/rnnoise_simd.wasm?url";
-import rnnoiseWasmUrl from "@sapphi-red/web-noise-suppressor/rnnoise.wasm?url";
-import rnnoiseWorkletUrl from "@sapphi-red/web-noise-suppressor/rnnoiseWorklet.js?url";
-import { writeStorage } from "@/shared/services/safeStorage";
+import type { RnnoiseWorkletNode } from "@sapphi-red/web-noise-suppressor";
 import { useVoiceAudioStore } from "../stores/voiceAudioStore";
 import { useSessionStore } from "@/features/session";
 import {
   AUDIO_FRAME_SAMPLES,
   MAX_AUDIO_BUFFERED_BYTES,
-  VOX_ATTACK_FRAMES,
-  VOX_HOLD,
   micCaptureWorkletUrl,
 } from "../audioConstants";
 import { normalizeMicrophoneFailure } from "../voiceErrors";
 import type { SinkAudioContext } from "../voiceTypes";
+import { useAudioInputDevices } from "./useAudioInputDevices";
+import { createMicrophoneProcessing } from "./microphoneProcessing";
+import { useMicrophoneTest } from "./useMicrophoneTest";
 
 /** Late-bound pieces owned by other modules or still in the assembler (V-D2): resolved at call time. */
 export interface MicrophoneDeps {
@@ -42,19 +39,19 @@ export interface MicrophoneDeps {
   startWebRtcTransport(sequence: number, socket: WebSocket): Promise<void>;
 }
 
-/** The microphone: support check, constraints, device lists, the capture graph with VOX and the PCM
- *  frame assembler, mute and noise suppression. The stream, the audio nodes and the frame buffers are
- *  non-reactive closure state, never stored in Pinia. and the microphone test. */
+/** The microphone: support check, constraints, the capture graph and the PCM frame assembler, mute
+ *  and noise suppression. The stream, the audio nodes and the frame buffers are non-reactive closure
+ *  state, never stored in Pinia. Device lists, RNNoise/VOX and the microphone test live in sibling
+ *  factories that get the stream through late-bound callbacks. */
 export function useMicrophone(deps: MicrophoneDeps) {
   const session = useSessionStore();
   const { ws } = storeToRefs(session);
   const { state } = session;
   const audio = useVoiceAudioStore();
   const {
-    microphoneMuted, noiseSuppressionEnabled, inputVolume, voxThreshold, selectedInputDeviceId, selectedOutputDeviceId,
-    outputDeviceSupported, audioPermission, microphoneTestActive, testAudioUrl,
+    microphoneMuted, noiseSuppressionEnabled, inputVolume, selectedInputDeviceId, audioPermission, microphoneTestActive,
   } = storeToRefs(audio);
-  const { inputDevices, outputDevices, microphoneProcessing } = audio;
+  const { microphoneProcessing } = audio;
   const { webrtcActive, micLevel } = deps;
 
   let micStream: MediaStream | null = null;
@@ -63,20 +60,18 @@ export function useMicrophone(deps: MicrophoneDeps) {
   let workletContext: AudioContext | null = null;
   let workletModulePromise: Promise<void> | null = null;
   let rnnoiseNode: RnnoiseWorkletNode | null = null;
-  let rnnoiseWorkletModulePromise: Promise<void> | null = null;
-  let rnnoiseWasmPromise: Promise<ArrayBuffer> | null = null;
   let micSource: MediaStreamAudioSourceNode | null = null;
   let micGain: GainNode | null = null;
   let silentGain: GainNode | null = null;
   let processedMicDestination: MediaStreamAudioDestinationNode | null = null;
   let microphoneStartPromise: Promise<void> | null = null;
-  let testRecorder: MediaRecorder | null = null;
-  let testRecorderTimer: ReturnType<typeof setTimeout> | null = null;
-  let voxAttack = 0;
-  let voxRelease = 0;
   let convBuf = new Int16Array(1024);
   let accumBuf = new Int16Array(2048);
   let accumLen = 0;
+
+  const processing = createMicrophoneProcessing();
+  const devices = useAudioInputDevices(deps, { isOpen: () => micStream !== null, startMicrophone: () => startMicrophone() });
+  const { refreshAudioDevices, refreshInputDevices, prepareInputDevices, setInputDevice } = devices;
 
   function checkSupport(): string | null {
     if (typeof window === "undefined") return null;
@@ -101,78 +96,6 @@ export function useMicrophone(deps: MicrophoneDeps) {
     return constraints;
   }
 
-  async function refreshAudioDevices(): Promise<void> {
-    if (!navigator.mediaDevices?.enumerateDevices) {
-      inputDevices.length = 0;
-      outputDevices.length = 0;
-      deps.setAudioNotice("DEVICE_LIST_UNAVAILABLE", "无法读取音频设备列表，将使用浏览器默认音频设备：请在系统或浏览器隐私设置中允许读取设备信息");
-      return;
-    }
-    let devices: MediaDeviceInfo[];
-    try {
-      devices = await navigator.mediaDevices.enumerateDevices();
-      deps.clearAudioNotice("DEVICE_LIST_UNAVAILABLE");
-    } catch {
-      // enumerateDevices rejects when the device list is blocked (for example in a
-      // locked-down iframe). Use the browser defaults and explain the limitation.
-      inputDevices.length = 0;
-      outputDevices.length = 0;
-      deps.setAudioNotice("DEVICE_LIST_UNAVAILABLE", "无法读取音频设备列表，将使用浏览器默认音频设备：请在系统或浏览器隐私设置中允许读取设备信息");
-      return;
-    }
-    const microphones = devices
-      .filter((device) => device.kind === "audioinput")
-      .map((device) => ({ deviceId: device.deviceId, label: device.label, groupId: device.groupId }));
-    const speakers = devices
-      .filter((device) => device.kind === "audiooutput")
-      .map((device) => ({ deviceId: device.deviceId, label: device.label, groupId: device.groupId }));
-    inputDevices.splice(0, inputDevices.length, ...microphones);
-    outputDevices.splice(0, outputDevices.length, ...speakers);
-    if (selectedInputDeviceId.value && !microphones.some((device) => device.deviceId === selectedInputDeviceId.value)) {
-      selectedInputDeviceId.value = "";
-      writeStorage("webspeak:input-device", selectedInputDeviceId.value);
-      void deps.saveAudioPreferences();
-      if (micStream) void startMicrophone().catch(() => undefined);
-    }
-    if (selectedOutputDeviceId.value && !speakers.some((device) => device.deviceId === selectedOutputDeviceId.value)) {
-      selectedOutputDeviceId.value = "";
-      writeStorage("webspeak:output-device", "");
-      void deps.saveAudioPreferences();
-      const currentAudioCtx = deps.existingAudioCtx();
-      if (currentAudioCtx && outputDeviceSupported.value) void deps.setAudioSink(currentAudioCtx, "").catch(() => undefined);
-    }
-  }
-
-  async function refreshInputDevices(): Promise<void> {
-    await refreshAudioDevices();
-  }
-
-  async function prepareInputDevices(): Promise<void> {
-    if (!micStream) await startMicrophone();
-    else await refreshAudioDevices();
-  }
-
-  async function setInputDevice(deviceId: string): Promise<void> {
-    const previousDeviceId = selectedInputDeviceId.value;
-    const shouldRestartWebRtc = webrtcActive.value && Boolean(ws.value);
-    selectedInputDeviceId.value = deviceId;
-    writeStorage("webspeak:input-device", deviceId);
-    void deps.saveAudioPreferences();
-    try {
-      if (shouldRestartWebRtc) deps.stopWebRtcTransport();
-      if (micStream) await startMicrophone();
-      if (shouldRestartWebRtc && ws.value) {
-        deps.stopWebRtcTransport();
-        await deps.startWebRtcTransport(deps.connectionSequence(), ws.value);
-      }
-      await refreshAudioDevices();
-    } catch (error) {
-      selectedInputDeviceId.value = previousDeviceId;
-      writeStorage("webspeak:input-device", previousDeviceId);
-      throw error;
-    }
-  }
-
   /**
    * Microphone failures are a degraded state, not a connection failure: the room
    * stays joined, so they get their own slot instead of taking over `error`.
@@ -187,36 +110,6 @@ export function useMicrophone(deps: MicrophoneDeps) {
   function clearMicrophoneError(): void {
     state.microphoneError = "";
     state.microphoneErrorCode = "";
-  }
-
-  async function createRnnoiseNode(ctx: AudioContext): Promise<RnnoiseWorkletNode | null> {
-    if (typeof AudioWorkletNode === "undefined" || !ctx.audioWorklet) {
-      microphoneProcessing.rnnoise = false;
-      return null;
-    }
-    try {
-      if (!rnnoiseWasmPromise) {
-        rnnoiseWasmPromise = loadRnnoise({ url: rnnoiseWasmUrl, simdUrl: rnnoiseSimdWasmUrl }).catch((error) => {
-          rnnoiseWasmPromise = null;
-          throw error;
-        });
-      }
-      if (!rnnoiseWorkletModulePromise) {
-        rnnoiseWorkletModulePromise = ctx.audioWorklet.addModule(rnnoiseWorkletUrl).catch((error) => {
-          rnnoiseWorkletModulePromise = null;
-          throw error;
-        });
-      }
-      const [wasmBinary] = await Promise.all([rnnoiseWasmPromise, rnnoiseWorkletModulePromise]);
-      const node = new RnnoiseWorkletNode(ctx, { maxChannels: 1, wasmBinary });
-      microphoneProcessing.rnnoise = true;
-      return node;
-    } catch {
-      // Native browser NS remains active as a fallback. RNNoise is an optional
-      // enhancement and must never prevent a microphone from starting.
-      microphoneProcessing.rnnoise = false;
-      return null;
-    }
   }
 
   async function startMicrophone(): Promise<void> {
@@ -247,7 +140,7 @@ export function useMicrophone(deps: MicrophoneDeps) {
     micStream = nextStream;
 
     micSource = ctx.createMediaStreamSource(micStream);
-    rnnoiseNode = noiseSuppressionEnabled.value ? await createRnnoiseNode(ctx) : null;
+    rnnoiseNode = noiseSuppressionEnabled.value ? await processing.createRnnoiseNode(ctx) : null;
     if (!noiseSuppressionEnabled.value) microphoneProcessing.rnnoise = false;
     const processedSource: AudioNode = rnnoiseNode ?? micSource;
     if (rnnoiseNode) micSource.connect(rnnoiseNode);
@@ -268,13 +161,10 @@ export function useMicrophone(deps: MicrophoneDeps) {
         && !microphoneTestActive.value
         && !webrtcActive.value
         && socket?.readyState === WebSocket.OPEN
-        && voxGate(input);
+        && processing.voxGate(input);
       if (!shouldSend) {
         accumLen = 0;
-        if (microphoneMuted.value) {
-          voxAttack = 0;
-          voxRelease = 0;
-        }
+        if (microphoneMuted.value) processing.resetVox();
         return;
       }
       if (!socket) {
@@ -357,28 +247,9 @@ export function useMicrophone(deps: MicrophoneDeps) {
     await microphoneStartPromise;
   }
 
-  function voxGate(samples: Float32Array): boolean {
-    let sum = 0;
-    const count = Math.min(256, samples.length);
-    for (let i = 0; i < count; i++) sum += samples[i] * samples[i];
-    const rms = Math.sqrt(sum / count);
-    if (rms >= voxThreshold.value) {
-      voxAttack = Math.min(VOX_ATTACK_FRAMES, voxAttack + 1);
-      voxRelease = VOX_HOLD;
-      return voxAttack >= VOX_ATTACK_FRAMES;
-    }
-    voxAttack = 0;
-    if (voxRelease > 0) {
-      voxRelease--;
-      return true;
-    }
-    return false;
-  }
-
   function stopCaptureGraph(): void {
     accumLen = 0;
-    voxAttack = 0;
-    voxRelease = 0;
+    processing.resetVox();
     micLevel.value = 0;
     scriptNode?.disconnect();
     workletNode?.port.close();
@@ -413,14 +284,13 @@ export function useMicrophone(deps: MicrophoneDeps) {
       deps.releaseAudioCtx();
       workletContext = null;
       workletModulePromise = null;
-      rnnoiseWorkletModulePromise = null;
+      processing.forgetRnnoiseWorkletModule();
     }
   }
 
   function setMicrophoneMuted(muted: boolean): void {
     microphoneMuted.value = muted;
-    voxAttack = 0;
-    voxRelease = 0;
+    processing.resetVox();
     accumLen = 0;
     if (webrtcActive.value) micStream?.getAudioTracks().forEach((track) => { track.enabled = !muted; });
     const mixMicGain = deps.webrtcMixMicGain();
@@ -445,44 +315,6 @@ export function useMicrophone(deps: MicrophoneDeps) {
     }
   }
 
-  async function startMicrophoneTest(): Promise<void> {
-    microphoneTestActive.value = true;
-    if (testAudioUrl.value) {
-      URL.revokeObjectURL(testAudioUrl.value);
-      testAudioUrl.value = "";
-    }
-    try {
-      await prepareInputDevices();
-      if (typeof MediaRecorder !== "undefined" && micStream) {
-        const chunks: Blob[] = [];
-        const recorder = new MediaRecorder(micStream);
-        testRecorder = recorder;
-        recorder.ondataavailable = (event) => {
-          if (event.data.size) chunks.push(event.data);
-        };
-        recorder.onstop = () => {
-          if (chunks.length) {
-            testAudioUrl.value = URL.createObjectURL(new Blob(chunks, { type: recorder.mimeType || "audio/webm" }));
-          }
-          if (testRecorder === recorder) testRecorder = null;
-        };
-        recorder.start();
-        testRecorderTimer = setTimeout(() => stopMicrophoneTest(), 5_000);
-      }
-    } catch (error) {
-      microphoneTestActive.value = false;
-      throw error;
-    }
-  }
-
-  function stopMicrophoneTest(): void {
-    microphoneTestActive.value = false;
-    if (testRecorderTimer) clearTimeout(testRecorderTimer);
-    testRecorderTimer = null;
-    if (testRecorder && testRecorder.state !== "inactive") testRecorder.stop();
-    if (!state.connected) stopMicrophone();
-  }
-
   /** The open microphone stream, if any (the WebRTC transport and the mic test read it until they move). */
   function getMicStream(): MediaStream | null {
     return micStream;
@@ -498,9 +330,11 @@ export function useMicrophone(deps: MicrophoneDeps) {
     if (micGain) micGain.gain.value = inputVolume.value;
   }
 
+  const test = useMicrophoneTest({ prepareInputDevices, getMicStream, stopMicrophone });
+
   return {
     checkSupport, microphoneConstraints, refreshAudioDevices, refreshInputDevices, prepareInputDevices, setInputDevice,
     setMicrophoneError, clearMicrophoneError, startMicrophone, ensureMicrophone, stopMicrophone, stopCaptureGraph, setMicrophoneMuted,
-    setNoiseSuppressionEnabled, startMicrophoneTest, stopMicrophoneTest, getMicStream, getProcessedMicStream, applyMicGain,
+    setNoiseSuppressionEnabled, startMicrophoneTest: test.startMicrophoneTest, stopMicrophoneTest: test.stopMicrophoneTest, getMicStream, getProcessedMicStream, applyMicGain,
   };
 }

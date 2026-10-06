@@ -1,119 +1,15 @@
 // useWebRtcTransport on its own (Step V4.4): stores, browser stubs and stub deps, no composable around it.
 // The wire messages (webrtcOffer, webrtcAnswer, webrtcError) are also pinned by messages.connection.test.ts.
-import { createPinia, setActivePinia } from "pinia";
-import { ref } from "vue";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+// The accompaniment lives in useWebRtcAccompaniment.test.ts.
+import { describe, expect, it, vi } from "vitest";
 import { useVoiceAudioStore } from "../stores/voiceAudioStore";
-import { useSessionStore } from "@/features/session";
+import { FakeAnalyserNode, FakeMediaStream, FakeMediaStreamTrack, FakeRTCPeerConnection } from "@/testSupport/browserStubs";
 import {
-  FakeAnalyserNode, FakeAudioContext, FakeMediaStream, FakeMediaStreamTrack, FakeRTCPeerConnection, installBrowserStubs,
-  type BrowserStubs,
-} from "@/testSupport/browserStubs";
-import type { SinkAudioContext } from "../voiceTypes";
-import { useWebRtcTransport, type WebRtcTransportDeps } from "./useWebRtcTransport";
+  looseSrcObject, recordSources, rtc, sentTypes, setup, shareAccompaniment, socketStub, started, useTransportFixture,
+} from "@/testSupport/webRtcTransportFixture";
+import { useWebRtcTransport } from "./useWebRtcTransport";
 
-let stubs: BrowserStubs;
-let ctx: FakeAudioContext;
-let micStream: FakeMediaStream | null;
-let processedStream: FakeMediaStream | null;
-let order: string[];
-
-function socketStub(readyState = 1) {
-  return { readyState, send: vi.fn() } as unknown as WebSocket & { send: ReturnType<typeof vi.fn>; readyState: number };
-}
-
-/** Record which stream every `createMediaStreamSource` call was given. */
-function recordSources(): unknown[] {
-  const sources: unknown[] = [];
-  const target = ctx as unknown as { createMediaStreamSource: (stream?: unknown) => unknown };
-  const create = target.createMediaStreamSource.bind(ctx);
-  target.createMediaStreamSource = (stream?: unknown) => { sources.push(stream); return create(stream); };
-  return sources;
-}
-
-/** A display capture track: `ended` listeners are kept so a test can end the share as the browser does. */
-class FakeDisplayTrack extends FakeMediaStreamTrack {
-  contentHint = "";
-  applyConstraints = vi.fn(async (_constraints?: unknown) => undefined);
-  private readonly endedListeners: (() => void)[] = [];
-  override addEventListener(type?: string, listener?: () => void): void { if (type === "ended" && listener) this.endedListeners.push(listener); }
-  end(): void { for (const listener of this.endedListeners.splice(0)) listener(); }
-}
-
-/** Puts a display-audio share on the peer's audio sender, as the accompaniment button does. */
-async function shareAccompaniment(peer: FakeRTCPeerConnection, transport: ReturnType<typeof useWebRtcTransport>) {
-  const audio = new FakeDisplayTrack("audio");
-  const video = new FakeMediaStreamTrack("video");
-  const replaceTrack = vi.fn(async (_track?: unknown) => undefined);
-  vi.spyOn(peer, "getSenders").mockReturnValue([{ track: { kind: "audio" }, replaceTrack }] as unknown as RTCRtpSender[]);
-  (navigator.mediaDevices as unknown as { getDisplayMedia: () => Promise<FakeMediaStream> }).getDisplayMedia = async () => new FakeMediaStream([audio, video]);
-  await transport.startAccompaniment();
-  return { audio, video, replaceTrack };
-}
-
-/** happy-dom only takes its own MediaStream as `srcObject`; the fakes are not one. */
-function looseSrcObject(): void {
-  Object.defineProperty(HTMLMediaElement.prototype, "srcObject", { value: null, writable: true, configurable: true });
-}
-
-function sentTypes(socket: WebSocket): string[] {
-  return (socket.send as ReturnType<typeof vi.fn>).mock.calls.map(([frame]) => (JSON.parse(String(frame)) as { type: string }).type);
-}
-
-function setup(overrides: Partial<WebRtcTransportDeps> = {}) {
-  const audio = useVoiceAudioStore();
-  const session = useSessionStore();
-  const base = {
-    getMicStream: vi.fn(() => micStream as unknown as MediaStream | null),
-    getProcessedMicStream: vi.fn(() => (processedStream ?? micStream) as unknown as MediaStream | null),
-    ensureMicrophone: vi.fn(async () => undefined),
-    startMicrophone: vi.fn(async () => undefined),
-    stopCaptureGraph: vi.fn(() => { order.push("captureGraph"); }),
-    setMicrophoneError: vi.fn(() => "message"),
-    getAudioCtx: vi.fn(() => ctx as unknown as SinkAudioContext),
-    effectiveOutputVolume: vi.fn(() => 0.5),
-    stopWebRtcPlayback: vi.fn(() => { order.push("playback"); }),
-    attachWebRtcPlayback: vi.fn(),
-    syncWebRtcPlayback: vi.fn(async () => undefined),
-    setAudioNotice: vi.fn(),
-    markSpeaking: vi.fn(),
-    clearSpeaking: vi.fn(),
-    sendCmd: vi.fn(),
-    connectionSequence: vi.fn(() => 3),
-    hasLastConnection: vi.fn(() => true),
-    webrtcActive: ref(false),
-    micLevel: ref(0),
-  } satisfies WebRtcTransportDeps;
-  const deps = { ...base, ...overrides } as typeof base;
-  return { audio, session, deps, transport: useWebRtcTransport(deps) };
-}
-
-/** A transport with a negotiated offer in flight: the socket is the session socket too. */
-async function started(overrides: Partial<WebRtcTransportDeps> = {}) {
-  const made = setup(overrides);
-  const socket = socketStub();
-  made.session.ws = socket;
-  made.session.state.connected = true;
-  await made.transport.startWebRtcTransport(3, socket);
-  return { ...made, socket, peer: FakeRTCPeerConnection.instances.at(-1)! };
-}
-
-beforeEach(() => {
-  setActivePinia(createPinia());
-  stubs = installBrowserStubs();
-  ctx = new FakeAudioContext();
-  micStream = new FakeMediaStream([new FakeMediaStreamTrack("audio")]);
-  processedStream = null;
-  order = [];
-  window.localStorage.clear();
-});
-afterEach(() => {
-  vi.useRealTimers();
-  delete (HTMLMediaElement.prototype as unknown as Record<string, unknown>).srcObject;
-  document.body.replaceChildren();
-  stubs.restore();
-  vi.restoreAllMocks();
-});
+useTransportFixture();
 
 describe("startWebRtcTransport", () => {
   it("throws without RTCPeerConnection", async () => {
@@ -127,7 +23,7 @@ describe("startWebRtcTransport", () => {
     await stale.transport.startWebRtcTransport(2, socketStub());
     const closed = setup();
     await closed.transport.startWebRtcTransport(3, socketStub(3));
-    micStream = null;
+    rtc.micStream = null;
     const noMic = setup();
     await noMic.transport.startWebRtcTransport(3, socketStub());
     expect(FakeRTCPeerConnection.instances).toHaveLength(0);
@@ -135,7 +31,7 @@ describe("startWebRtcTransport", () => {
   });
 
   it("throws when the microphone stream has no audio track", async () => {
-    micStream = new FakeMediaStream([]);
+    rtc.micStream = new FakeMediaStream([]);
     const { transport } = setup();
     await expect(transport.startWebRtcTransport(3, socketStub())).rejects.toThrow("没有可用的麦克风音轨");
   });
@@ -143,7 +39,7 @@ describe("startWebRtcTransport", () => {
   it("stops the PCM capture, sends the mixed track and offers over the socket", async () => {
     const { audio, deps, socket, peer } = await started();
     audio.accompanimentActive = true;
-    expect(order).toEqual(["captureGraph"]);
+    expect(rtc.order).toEqual(["captureGraph"]);
     expect(peer.config).toEqual({ iceServers: [] });
     expect(deps.webrtcActive.value).toBe(true);
     const [frame] = socket.send.mock.calls[0]!;
@@ -157,21 +53,21 @@ describe("startWebRtcTransport", () => {
     const audioStore = useVoiceAudioStore();
     audioStore.microphoneMuted = true;
     const { socket } = await started();
-    const track = micStream!.getAudioTracks()[0]!;
+    const track = rtc.micStream!.getAudioTracks()[0]!;
     expect(track.enabled).toBe(false);
-    expect(ctx.gains[0]!.gain.value).toBe(0);
+    expect(rtc.ctx.gains[0]!.gain.value).toBe(0);
     expect(JSON.parse(String(socket.send.mock.calls[0]![0])).payload.muted).toBe(true);
   });
 
   it("mixes the processed microphone at the input volume", async () => {
-    processedStream = new FakeMediaStream([new FakeMediaStreamTrack("audio")]);
+    rtc.processedStream = new FakeMediaStream([new FakeMediaStreamTrack("audio")]);
     const audioStore = useVoiceAudioStore();
     audioStore.inputVolume = 0.6;
     const sources = recordSources();
     const { transport } = await started();
-    expect(sources[0]).toBe(processedStream);
-    expect(transport.getWebRtcMixMicGain()).toBe(ctx.gains[0]);
-    expect(ctx.gains[0]!.gain.value).toBe(0.6);
+    expect(sources[0]).toBe(rtc.processedStream);
+    expect(transport.getWebRtcMixMicGain()).toBe(rtc.ctx.gains[0]);
+    expect(rtc.ctx.gains[0]!.gain.value).toBe(0.6);
   });
 
   it("plays the remote track through a hidden autoplaying element at the output volume", async () => {
@@ -179,10 +75,10 @@ describe("startWebRtcTransport", () => {
     const { deps, peer } = await started();
     const remote = new FakeMediaStream([new FakeMediaStreamTrack("audio")]);
     useVoiceAudioStore().selectedOutputDeviceId = "spk";
-    order.length = 0;
+    rtc.order.length = 0;
     peer.ontrack?.({ streams: [remote], track: remote.getTracks()[0] });
     const element = document.body.querySelector("audio") as HTMLAudioElement & { setSinkId?: (id: string) => Promise<void> };
-    expect(order).toEqual(["playback"]);
+    expect(rtc.order).toEqual(["playback"]);
     expect(element.autoplay).toBe(true);
     expect(element.volume).toBe(0.5);
     expect(element.getAttribute("aria-hidden")).toBe("true");
@@ -313,12 +209,12 @@ describe("fallbackFromWebRtc", () => {
   it("tells the gateway, tears the transport down, explains it and restarts the PCM microphone", async () => {
     const { deps, session, socket, peer, transport } = await started();
     session.state.connected = true;
-    order.length = 0;
+    rtc.order.length = 0;
     await transport.fallbackFromWebRtc(3, socket);
     expect(sentTypes(socket)).toEqual(["webrtcOffer", "webrtcStop"]);
     expect(deps.webrtcActive.value).toBe(false);
     expect(peer.closed).toBe(true);
-    expect(order).toEqual(["playback"]);
+    expect(rtc.order).toEqual(["playback"]);
     expect(deps.setAudioNotice).toHaveBeenCalledWith("WEBRTC_FALLBACK", expect.stringContaining("WEBRTC_UNAVAILABLE"));
     expect(deps.startMicrophone).toHaveBeenCalledTimes(1);
   });
@@ -366,10 +262,10 @@ describe("stopWebRtcTransport", () => {
     const { deps, peer, transport } = await started();
     const shared = await shareAccompaniment(peer, transport);
     deps.micLevel.value = 0.4;
-    order.length = 0;
+    rtc.order.length = 0;
     const mixGain = transport.getWebRtcMixMicGain()!;
     transport.stopWebRtcTransport();
-    expect(order).toEqual(["playback"]);
+    expect(rtc.order).toEqual(["playback"]);
     expect(shared.audio.stopped).toBe(true);
     expect(useVoiceAudioStore().accompanimentActive).toBe(false);
     expect((mixGain as unknown as { disconnected: boolean }).disconnected).toBe(true);
@@ -398,153 +294,6 @@ describe("stopWebRtcTransport", () => {
   });
 });
 
-describe("accompaniment", () => {
-  function displayMedia(fn: () => Promise<FakeMediaStream>): void {
-    (navigator.mediaDevices as unknown as { getDisplayMedia: () => Promise<FakeMediaStream> }).getDisplayMedia = fn;
-  }
-
-  it("needs browser support, and says so", async () => {
-    const { audio, transport } = await started();
-    audio.accompanimentSupported = false;
-    await expect(transport.startAccompaniment()).rejects.toThrow("伴奏共享不可用");
-    expect(audio.accompanimentErrorCode).toBe("unsupported");
-  });
-
-  it("needs an active WebRTC transport with a peer and a microphone", async () => {
-    const idle = setup();
-    idle.audio.accompanimentSupported = true;
-    await expect(idle.transport.startAccompaniment()).rejects.toThrow("伴奏功能需要启用 WebRTC");
-    expect(idle.audio.accompanimentErrorCode).toBe("needsWebRtc");
-
-    const { audio, deps, transport } = await started();
-    audio.accompanimentSupported = true;
-    deps.webrtcActive.value = false;
-    await expect(transport.startAccompaniment()).rejects.toThrow("伴奏功能需要启用 WebRTC");
-    deps.webrtcActive.value = true;
-    micStream = null;
-    await expect(transport.startAccompaniment()).rejects.toThrow("伴奏功能需要启用 WebRTC");
-  });
-
-  it("keeps the audio, drops the video, turns voice processing off and tags the track as music", async () => {
-    const { audio, deps, peer, transport } = await started();
-    audio.accompanimentSupported = true;
-    const shared = await shareAccompaniment(peer, transport);
-    expect(shared.video.stopped).toBe(true);
-    expect(shared.audio.stopped).toBe(false);
-    expect(shared.audio.applyConstraints).toHaveBeenCalledWith({ autoGainControl: false, echoCancellation: false, noiseSuppression: false });
-    expect(shared.audio.contentHint).toBe("music");
-    expect(audio.accompanimentActive).toBe(true);
-    expect(audio.accompanimentErrorCode).toBe("");
-    expect(deps.sendCmd).toHaveBeenCalledWith("setAccompanimentActive", { active: true });
-    expect(shared.replaceTrack).toHaveBeenCalledTimes(1);
-  });
-
-  it("asks the browser for own-tab exclusion and system audio, and hints restrictOwnAudio only where supported", async () => {
-    const { audio, peer, transport } = await started();
-    audio.accompanimentSupported = true;
-    const options: unknown[] = [];
-    const devices = navigator.mediaDevices as unknown as { getSupportedConstraints: () => Record<string, boolean> };
-    devices.getSupportedConstraints = () => ({ restrictOwnAudio: true });
-    displayMedia(async (...args: unknown[]) => { options.push(args[0]); return new FakeMediaStream([new FakeDisplayTrack("audio")]); });
-    vi.spyOn(peer, "getSenders").mockReturnValue([{ track: { kind: "audio" }, replaceTrack: async () => undefined }] as unknown as RTCRtpSender[]);
-    await transport.startAccompaniment();
-    devices.getSupportedConstraints = () => ({});
-    await transport.startAccompaniment();
-    expect(options[0]).toMatchObject({
-      video: { displaySurface: "browser" }, selfBrowserSurface: "exclude", systemAudio: "include", windowAudio: "window",
-      audio: { autoGainControl: false, echoCancellation: false, noiseSuppression: false, restrictOwnAudio: true },
-    });
-    expect((options[1] as { audio: object }).audio).not.toHaveProperty("restrictOwnAudio");
-  });
-
-  it("does nothing when the picker is dismissed, and reports a refused capture as a permission problem", async () => {
-    const { audio, deps, transport } = await started();
-    audio.accompanimentSupported = true;
-    displayMedia(async () => { throw new DOMException("dismissed", "AbortError"); });
-    await expect(transport.startAccompaniment()).resolves.toBeUndefined();
-    expect(audio.accompanimentErrorCode).toBe("");
-    expect(audio.accompanimentActive).toBe(false);
-    displayMedia(async () => { throw new DOMException("no", "NotAllowedError"); });
-    await expect(transport.startAccompaniment()).rejects.toBeInstanceOf(DOMException);
-    expect(audio.accompanimentErrorCode).toBe("permission");
-    expect(deps.sendCmd).not.toHaveBeenCalled();
-  });
-
-  it("rejects a source without audio and stops everything it was given", async () => {
-    const { audio, transport } = await started();
-    audio.accompanimentSupported = true;
-    const video = new FakeMediaStreamTrack("video");
-    displayMedia(async () => new FakeMediaStream([video]));
-    await expect(transport.startAccompaniment()).rejects.toThrow("所选来源没有可共享音频");
-    expect(video.stopped).toBe(true);
-    expect(audio.accompanimentErrorCode).toBe("noAudio");
-    expect(audio.accompanimentActive).toBe(false);
-  });
-
-  it("shares on when the browser refuses one of the processing constraints", async () => {
-    const { audio, peer, transport } = await started();
-    audio.accompanimentSupported = true;
-    const track = new FakeDisplayTrack("audio");
-    track.applyConstraints.mockRejectedValue(new Error("optional"));
-    displayMedia(async () => new FakeMediaStream([track]));
-    vi.spyOn(peer, "getSenders").mockReturnValue([{ track: { kind: "audio" }, replaceTrack: async () => undefined }] as unknown as RTCRtpSender[]);
-    await transport.startAccompaniment();
-    expect(audio.accompanimentActive).toBe(true);
-  });
-
-  it("mixes the shared audio next to the microphone, at source level", async () => {
-    const { audio, peer, transport } = await started();
-    audio.accompanimentSupported = true;
-    const sources = recordSources();
-    const shared = await shareAccompaniment(peer, transport);
-    expect(sources).toHaveLength(2); // microphone, accompaniment
-    expect((sources[1] as FakeMediaStream).getAudioTracks()).toEqual([shared.audio]);
-    expect(ctx.gains).toHaveLength(3); // the first mix's mic gain, the monitor's silent gain, the second mix's mic gain: none for the accompaniment
-  });
-
-  it("replaces a previous share, stopping its tracks", async () => {
-    const { audio, peer, transport } = await started();
-    audio.accompanimentSupported = true;
-    const first = await shareAccompaniment(peer, transport);
-    await shareAccompaniment(peer, transport);
-    expect(first.audio.stopped).toBe(true);
-  });
-
-  it("stops by itself when the browser ends the share, and tells the gateway", async () => {
-    const { audio, deps, peer, transport } = await started();
-    audio.accompanimentSupported = true;
-    const shared = await shareAccompaniment(peer, transport);
-    deps.sendCmd.mockClear();
-    shared.replaceTrack.mockClear();
-    shared.audio.end();
-    await vi.waitFor(() => expect(shared.replaceTrack).toHaveBeenCalledTimes(1));
-    expect(shared.audio.stopped).toBe(true);
-    expect(audio.accompanimentActive).toBe(false);
-    expect(deps.sendCmd).toHaveBeenCalledWith("setAccompanimentActive", { active: false });
-  });
-
-  it("undoes the share when the mix cannot be put on the sender", async () => {
-    const { audio, deps, transport } = await started();
-    audio.accompanimentSupported = true;
-    displayMedia(async () => new FakeMediaStream([new FakeDisplayTrack("audio")]));
-    await expect(transport.startAccompaniment()).rejects.toThrow("WebRTC 音频轨道尚未就绪");
-    expect(audio.accompanimentActive).toBe(false);
-    expect(audio.accompanimentErrorCode).toBe("permission");
-    expect(deps.sendCmd).toHaveBeenLastCalledWith("setAccompanimentActive", { active: false });
-    expect(transport.getWebRtcMixMicGain()).toBeNull();
-  });
-
-  it("stopAccompaniment without WebRTC only drops the mix and tells no one", async () => {
-    const { audio, deps, transport } = await started();
-    audio.accompanimentErrorCode = "permission";
-    deps.webrtcActive.value = false;
-    deps.sendCmd.mockClear();
-    await transport.stopAccompaniment();
-    expect(audio.accompanimentErrorCode).toBe("");
-    expect(deps.sendCmd).not.toHaveBeenCalled();
-    expect(transport.getWebRtcMixMicGain()).toBeNull();
-  });
-});
 
 describe("mix stream", () => {
   it("replaceWebRtcAudioTrack puts a fresh mix on the audio sender", async () => {
@@ -626,7 +375,7 @@ describe("microphone monitor", () => {
     made.session.state.tsClientId = 9;
     const socket = socketStub();
     await made.transport.startWebRtcTransport(3, socket);
-    micStream!.getAudioTracks()[0]!.enabled = false;
+    rtc.micStream!.getAudioTracks()[0]!.enabled = false;
     await vi.advanceTimersByTimeAsync(50);
     expect(made.deps.markSpeaking).not.toHaveBeenCalled();
     expect(made.deps.clearSpeaking).toHaveBeenCalledWith(9);
@@ -643,8 +392,9 @@ describe("microphone monitor", () => {
   });
 
   it("gives up quietly when the analyser graph cannot be built", async () => {
-    vi.spyOn(ctx, "createAnalyser").mockImplementation(() => { throw new Error("no analyser"); });
+    vi.spyOn(rtc.ctx, "createAnalyser").mockImplementation(() => { throw new Error("no analyser"); });
     const { peer } = await started();
     expect(peer.closed).toBe(false);
   });
 });
+

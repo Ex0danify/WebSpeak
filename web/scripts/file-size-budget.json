@@ -1,14 +1,6 @@
 {
   "limit": 400,
   "files": {
-    "src/features/screenShare/useScreenSharePeers.session.test.ts": 464,
-    "src/features/screenShare/useScreenSharePeers.signalling.test.ts": 465,
-    "src/features/screenShare/useScreenSharePeers.ts": 530,
-    "src/features/session/useConnection.ts": 413,
-    "src/features/voice/engine/useMicrophone.test.ts": 727,
-    "src/features/voice/engine/useMicrophone.ts": 506,
-    "src/features/voice/engine/useWebRtcTransport.test.ts": 650,
-    "src/features/voice/engine/useWebRtcTransport.ts": 427,
     "src/views/UiGallery.vue": 887
   }
 }

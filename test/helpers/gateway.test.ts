@@ -1,7 +1,7 @@
 import { existsSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { startGateway, TEST_ADMIN_PASSWORD, useGateway } from "./gateway.js";
-import type { FakeTSClient } from "./fake-ts-client.js";
+import type { FakeTSClient } from "./fakeTsClient.js";
 
 const gateways = useGateway();
 

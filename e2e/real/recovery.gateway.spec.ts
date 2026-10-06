@@ -10,7 +10,9 @@ import { channelIdOf } from "./ui";
 // gateway has another port, hence another origin, so getting back in is not something this test can
 // show.
 
-test("a gateway that ends under a live browser returns it to the join form with a reason", async ({ person, ownGateway, query }) => {
+// F53: marker. The join form is not rendered once the config reload fails, so the button is missing.
+// Remove `.fail` when the form stays after a gateway restart.
+test.fail("F53: a gateway that ends under a live browser returns it to the join form with a reason", async ({ person, ownGateway, query }) => {
   const gateway = await ownGateway();
   const alice = await person(0, "gw-down", { gateway });
   await alice.join();

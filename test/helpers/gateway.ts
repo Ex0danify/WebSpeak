@@ -3,16 +3,16 @@ import { createServer } from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, type Mock, vi } from "vitest";
-import { AdminService } from "../../src/admin/admin-service.js";
-import { WebSpeakDatabase } from "../../src/persistence/database.js";
-import { JoinTicketStore, type JoinTicketPayload } from "../../src/server/join-ticket.js";
-import { createWebServer, type WebServer } from "../../src/server/server.js";
-import { probeTeamSpeak, type TeamSpeakProbeResult } from "../../src/server/teamspeak-probe.js";
-import type { TeamSpeakPingResult } from "../../src/server/network-probe.js";
-import type { VoiceBridgeOptions } from "../../src/server/voice-bridge.js";
-import { MASTER_SECRET, stubLogger, type StubLogger } from "./admin-service.js";
-import { FakeTeamSpeakServer } from "./fake-ts-client.js";
-import { WsClient } from "./ws-client.js";
+import { AdminService } from "../../src/modules/admin/adminService.js";
+import { WebSpeakDatabase } from "../../src/infra/persistence/database.js";
+import { JoinTicketStore, type JoinTicketPayload } from "../../src/modules/join/joinTicket.js";
+import { createWebServer, type WebServer } from "../../src/transport/http/httpServer.js";
+import { probeTeamSpeak, type TeamSpeakProbeResult } from "../../src/modules/teamspeak/teamSpeakProbe.js";
+import type { TeamSpeakPingResult } from "../../src/modules/relay/networkProbe.js";
+import type { VoiceBridgeOptions } from "../../src/modules/voice/voiceBridge.js";
+import { MASTER_SECRET, stubLogger, type StubLogger } from "./adminService.js";
+import { FakeTeamSpeakServer } from "./fakeTsClient.js";
+import { WsClient } from "./wsClient.js";
 
 /** The administrator password the harness sets unless `forcePasswordChange` is on. */
 export const TEST_ADMIN_PASSWORD = "correct horse battery staple 42";

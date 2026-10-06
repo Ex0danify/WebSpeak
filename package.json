@@ -9,8 +9,9 @@
     "node": ">=22.5.0"
   },
   "scripts": {
+    "check:gateway-size": "node scripts/check-gateway-size.mjs",
     "dev": "tsx src/index.ts",
-    "build": "tsc",
+    "build": "tsc && npm run check:gateway-size && npm run check:gateway-names && npm run check:gateway-deps",
     "start": "node dist/index.js",
     "web:dev": "cd web && npx vite --host",
     "web:build": "npm --prefix web run build",
@@ -26,7 +27,9 @@
     "test:real": "NODE_OPTIONS=--disable-warning=ExperimentalWarning playwright test -c e2e/real/playwright.config.ts",
     "test:visual": "NODE_OPTIONS=--disable-warning=ExperimentalWarning playwright test -c e2e/visual/playwright.config.ts",
     "test:a11y": "NODE_OPTIONS=--disable-warning=ExperimentalWarning playwright test -c e2e/a11y/playwright.config.ts",
-    "test:full": "npm --prefix web run build && npm test && npm run test:e2e && npm run test:visual && npm run test:a11y"
+    "test:full": "npm --prefix web run build && npm test && npm run test:e2e && npm run test:visual && npm run test:a11y",
+    "check:gateway-deps": "depcruise src --config .dependency-cruiser.cjs",
+    "check:gateway-names": "node scripts/check-gateway-names.mjs"
   },
   "dependencies": {
     "@discordjs/opus": "^0.10.0",
@@ -43,6 +46,7 @@
     "@types/node": "^22.15.0",
     "@types/ws": "^8.18.1",
     "@vitest/coverage-v8": "^5.0.2",
+    "dependency-cruiser": "^18.5.0",
     "fake-indexeddb": "^6.2.5",
     "happy-dom": "^20.14.5",
     "tsx": "^4.21.0",

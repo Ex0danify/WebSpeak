@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { TSClient } from "../../src/server/ts-client";
+import { TSClient } from "../../src/modules/teamspeak/teamSpeakClient";
 import { realServerFromEnv, silentLogger } from "./server";
 
 const server = realServerFromEnv();

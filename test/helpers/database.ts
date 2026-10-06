@@ -2,8 +2,8 @@ import { mkdirSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { afterEach, beforeEach, vi } from "vitest";
-import type { AdminCredential } from "../../src/security/admin-password.js";
-import { type ManagedInviteRecord, type SettingsUpdate, WebSpeakDatabase } from "../../src/persistence/database.js";
+import type { AdminCredential } from "../../src/infra/security/adminPassword.js";
+import { type ManagedInviteRecord, type SettingsUpdate, WebSpeakDatabase } from "../../src/infra/persistence/database.js";
 
 export interface DatabaseFixture {
   /** Directory that holds the database (`<tmp>/nested`). */

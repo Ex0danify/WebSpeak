@@ -1,0 +1,155 @@
+import type { WebSocket } from "ws";
+import type { DirectorySynchronizer, TSClient } from "../teamspeak/index.js";
+import type { Logger } from "../../shared/logger.js";
+import type { WebSpeakError } from "../../shared/errors.js";
+import type { TeamSpeakTarget } from "../../shared/teamSpeakTarget.js";
+import type { AccelerationRelayOptions } from "../relay/index.js";
+import type { ManagedSession } from "./session/voiceSessionManager.js";
+import type { WebRtcAudioSession } from "./webrtc/webrtcAudioSession.js";
+
+export interface AdminSessionSummary {
+  id: string;
+  nickname: string;
+  target: string;
+  state: string;
+  createdAt: string;
+  ageSeconds: number;
+  tsClientId: number | null;
+  channelId: string | null;
+  memberCount: number;
+  audio: AudioFlowStats;
+}
+
+export interface AudioFlowStats {
+  ingressFrames: number;
+  ingressDroppedFrames: number;
+  ingressFirstAt: number | null;
+  ingressLastAt: number | null;
+  ingressMaxGapMs: number;
+  tsSendFrames: number;
+  tsSendErrors: number;
+  tsSendFirstAt: number | null;
+  tsSendLastAt: number | null;
+  tsSendMaxGapMs: number;
+  tsEncodeMaxMs: number;
+  tsReceiveFrames: number;
+  tsReceiveFirstAt: number | null;
+  tsReceiveLastAt: number | null;
+  tsReceiveMaxGapMs: number;
+  egressFrames: number;
+  egressDroppedFrames: number;
+  egressFirstAt: number | null;
+  egressLastAt: number | null;
+  egressMaxGapMs: number;
+  egressSentFirstAt: number | null;
+  egressSentLastAt: number | null;
+  egressSentMaxGapMs: number;
+  egressPeakBufferedBytes: number;
+  egressFramesByClient: Record<string, number>;
+  webrtcIngressRtpFrames: number;
+  webrtcIngressRtpFirstAt: number | null;
+  webrtcIngressRtpLastAt: number | null;
+  webrtcIngressRtpMaxGapMs: number;
+  webrtcEgressRtpFrames: number;
+  webrtcEgressRtpFirstAt: number | null;
+  webrtcEgressRtpLastAt: number | null;
+  webrtcEgressRtpMaxGapMs: number;
+  webrtcQueuePeakFrames: number;
+  webrtcQueueDroppedFrames: number;
+  webrtcQueueUnderrunTicks: number;
+  webrtcPacerLateTicks: number;
+  webrtcQueueCurrentFrames: number;
+  webrtcIngressQuietFrames: number;
+  webrtcIngressDecodeErrors: number;
+  webrtcDownlinkDecodedFrames: number;
+  webrtcDownlinkDecodeErrors: number;
+  webrtcDownlinkShortFrames: number;
+}
+
+export interface ChannelMember {
+  id: number;
+  nickname: string;
+  uid: string;
+  avatar?: string;
+  away?: boolean;
+  awayMessage?: string;
+  inputMuted?: boolean;
+  outputMuted?: boolean;
+  channelCommander?: boolean;
+}
+
+export interface ServerEvent {
+  id: string;
+  kind: "joined" | "left" | "moved" | "poke" | "connection" | "channelCreated" | "channelRenamed" | "channelDeleted";
+  message: string;
+  // The gateway builds `message` itself, in Chinese; the browser needs these to build its own
+  // sentence with t() instead (F24). `message` stays as a fallback for an older gateway.
+  nickname?: string;
+  channelName?: string;
+  timestamp: number;
+}
+
+export interface WebClientEntry {
+  id: string;
+  session: ManagedSession;
+  tsClient: TSClient;
+  ws: WebSocket;
+  nickname: string;
+  rememberIdentity: boolean;
+  clientIp: string;
+  target: TeamSpeakTarget;
+  accelerationRelay?: { name: string; target: string };
+  acceleration?: AccelerationRelayOptions;
+  identityLeaseKey?: string;
+  webrtcPublicHost?: string;
+  channelTree: unknown[];
+  members: Map<number, ChannelMember>;
+  avatarCache: Map<string, string | null>;
+  eventLog: ServerEvent[];
+  opusEncoder: { encode(pcm: Buffer): Buffer } | null;
+  opusEncoderWarnedAt: number; // Opus 编码器不可用告警的时间戳，用于限流避免反复刷屏
+  whisperTargetIds: Set<number>;
+  whisperActive: boolean;
+  isAlive: boolean;
+  reconnectTimer: ReturnType<typeof setTimeout> | null;
+  audio: AudioFlowStats;
+  webrtc: WebRtcAudioSession | null;
+  lastLatencyProbeAt: number;
+  connectionFailureCode?: string;
+  screenPeerId: string;
+}
+
+/** Mutable per-connection flags and timers that `attach()` used to close over. */
+export interface VoiceConnectionState {
+  tsReady: boolean;
+  selfId: number;
+  selfChannelId: bigint;
+  initialStateSent: boolean;
+  audioReady: boolean;
+  realtimeReady: boolean;
+  hasConnectedOnce: boolean;
+  // Set when the server kicks or bans this client. The kick and the transport
+  // drop can arrive in either order, so the reason is parked here and consumed
+  // by whichever handler runs second.
+  pendingKickReason: WebSpeakError | null;
+  reconnectStartedAt: number;
+  reconnectAttempt: number;
+  directoryTimer: NodeJS.Timeout | null;
+  avatarRefreshTimer: ReturnType<typeof setTimeout> | null;
+  avatarRefreshRunning: boolean;
+}
+
+/** Everything one browser connection's handlers share. Created once the TS client exists. */
+export interface VoiceConnection {
+  entry: WebClientEntry;
+  session: ManagedSession;
+  ws: WebSocket;
+  tsClient: TSClient;
+  logger: Logger;
+  channelName: string | undefined;
+  serverPassword: string | undefined;
+  directory: DirectorySynchronizer;
+  avatarRequests: Set<string>;
+  sendJson: (message: Record<string, unknown>) => void;
+  state: VoiceConnectionState;
+}

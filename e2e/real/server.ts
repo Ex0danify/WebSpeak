@@ -2,7 +2,7 @@ import { execFileSync, spawnSync } from "node:child_process";
 import { randomBytes } from "node:crypto";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import type { Logger } from "../../src/logger";
+import type { Logger } from "../../src/shared/logger";
 import { poll } from "../helpers/poll";
 
 const composeFile = fileURLToPath(new URL("./compose.yml", import.meta.url));

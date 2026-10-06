@@ -2,8 +2,8 @@ import { fileURLToPath } from "node:url";
 import { test as base, expect } from "@playwright/test";
 import { Session } from "../helpers/session";
 import { type Gateway, type GatewayOptions, startGateway } from "../../test/helpers/gateway";
-import type { FakeRemoteMember } from "../../test/helpers/fake-ts-client";
-import { JoinRateLimiter } from "../../src/server/join-rate-limit";
+import type { FakeRemoteMember } from "../../test/helpers/fakeTsClient";
+import { JoinRateLimiter } from "../../src/modules/join/joinRateLimit";
 import { startGalleryServer } from "./gallery";
 
 // The join-ticket limit is 30 a minute per peer, and every browser of a worker reaches its gateway

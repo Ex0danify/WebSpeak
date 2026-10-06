@@ -1,8 +1,8 @@
 import path from "node:path";
 import { existsSync, readFileSync, unlinkSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { createAccelerationRelayServer } from "./server/acceleration-relay.js";
-import { normalizeScreenShareIceServers, type ScreenShareIceServer } from "./server/screen-share.js";
+import { createAccelerationRelayServer } from "./modules/relay/index.js";
+import { normalizeScreenShareIceServers, type ScreenShareIceServer } from "./modules/screenShare/index.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT_DIR = path.resolve(__dirname, "..");
@@ -23,13 +23,13 @@ async function main() {
     return;
   }
   const [{ createLogger }, { createWebServer }, { APP_PORT }, { WebSpeakDatabase }, { loadOrCreateMasterSecret }, { AdminService }, { JoinTicketStore }] = await Promise.all([
-    import("./logger.js"),
-    import("./server/server.js"),
-    import("./constants.js"),
-    import("./persistence/database.js"),
-    import("./security/master-secret.js"),
-    import("./admin/admin-service.js"),
-    import("./server/join-ticket.js"),
+    import("./shared/logger.js"),
+    import("./transport/http/httpServer.js"),
+    import("./shared/constants.js"),
+    import("./infra/persistence/database.js"),
+    import("./infra/security/masterSecret.js"),
+    import("./modules/admin/index.js"),
+    import("./modules/join/index.js"),
   ]);
   const logger = createLogger(LOG_DIR);
   const database = new WebSpeakDatabase(path.join(DATA_DIR, "webspeak.db"));

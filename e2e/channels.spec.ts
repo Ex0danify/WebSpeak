@@ -1,7 +1,7 @@
 import type { Locator, Page } from "@playwright/test";
 import { expect, type Script, test } from "./fixtures";
 import { channelGroup, channelHeading, join, memberRow } from "./helpers";
-import type { FakeRemoteMember } from "../test/helpers/fake-ts-client";
+import type { FakeRemoteMember } from "../test/helpers/fakeTsClient";
 import type { Gateway } from "../test/helpers/gateway";
 
 // The channel tree and the voice cards of the connected view. Real gateway, fake TeamSpeak server.

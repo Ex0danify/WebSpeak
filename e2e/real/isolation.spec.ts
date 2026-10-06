@@ -1,5 +1,5 @@
 import { existsSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import type { TSClient } from "../../src/server/ts-client";
+import type { TSClient } from "../../src/modules/teamspeak/teamSpeakClient";
 import { memberRow, poll } from "../helpers";
 import { JOIN_PACE_MS, expect, test } from "./fixtures";
 import { connectAs } from "./provision";

@@ -1,7 +1,7 @@
 import { fileURLToPath } from "node:url";
 import { test as base, expect, type Page } from "@playwright/test";
 import { type Gateway, startGateway } from "../../test/helpers/gateway";
-import { JoinRateLimiter } from "../../src/server/join-rate-limit";
+import { JoinRateLimiter } from "../../src/modules/join/joinRateLimit";
 import { Session, expectInRoom, poll, submitJoin } from "../helpers";
 import { assertFreshBuild } from "../helpers/build-stamp";
 import { type SeededIdentity, identities, storageStateFor } from "./identities";

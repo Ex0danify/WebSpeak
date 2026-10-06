@@ -1,4 +1,4 @@
-import { createAccelerationRelayServer } from "./server/acceleration-relay.js";
+import { createAccelerationRelayServer } from "./modules/relay/index.js";
 
 const token = process.env.WEBSPEAK_ACCELERATION_RELAY_TOKEN?.trim();
 if (!token) throw new Error("WEBSPEAK_ACCELERATION_RELAY_TOKEN is required");
