@@ -44,7 +44,7 @@
         @reconnect-now="reconnectNow"
         @disconnect="doDisconnect"
       />
-      <AudioNoticeBanner :audio-notice="voiceState.audioNotice" :audio-notice-code="voiceState.audioNoticeCode" />
+      <AudioNoticeBanner :audio-notice="voiceState.audioNotice" />
       <PokeStack :pokes="pokeNotifications" @dismiss="dismissPoke" />
 
       <div class="workspace-scroll">

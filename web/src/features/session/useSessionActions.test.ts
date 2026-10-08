@@ -2,6 +2,7 @@
 import { createPinia, setActivePinia } from "pinia";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useSessionStore } from "./sessionStore";
+import { text } from "@/shared/i18n/localizedText";
 import { FakeWebSocket } from "@/testSupport/fakeWebsocket";
 import { useSessionActions } from "./useSessionActions";
 
@@ -12,7 +13,7 @@ function setup(open = true) {
   socket = new FakeWebSocket("ws://test");
   if (open) socket.open();
   session.ws = socket as unknown as WebSocket;
-  return { session, actions: useSessionActions({ protocolErrorMessage: (code, fallback) => `${code}:${fallback}` }) };
+  return { session, actions: useSessionActions({ protocolErrorMessage: (code, fallback) => text("operationFailedUnknownDetail", { code, detail: fallback }) }) };
 }
 
 beforeEach(() => {
@@ -43,7 +44,7 @@ describe("sendCmd", () => {
 describe("sendCommandAndWait", () => {
   it("rejects at once when the socket is not open", async () => {
     const { actions } = setup(false);
-    await expect(actions.sendCommandAndWait("moveClient", {})).rejects.toThrow("语音连接尚未就绪");
+    await expect(actions.sendCommandAndWait("moveClient", {})).rejects.toThrow("The voice connection is not ready yet");
   });
 
   it("registers the request, sends its id, and resolves when the router settles it", async () => {
@@ -63,7 +64,7 @@ describe("sendCommandAndWait", () => {
     const done = actions.sendCommandAndWait("moveClient", {}, 500);
     const caught = done.then(() => new Error("resolved"), (error: Error) => error);
     await vi.advanceTimersByTimeAsync(500);
-    expect((await caught).message).toBe("操作超时，请稍后重试");
+    expect((await caught).message).toBe("The operation timed out. Try again shortly");
     expect(actions.pendingCommands.size).toBe(0);
   });
 
@@ -125,10 +126,11 @@ describe("chat", () => {
   it("sendTextMessage sends, then records the message as the person's own", () => {
     const { session, actions } = setup();
     session.state.tsClientId = 7;
+    session.members.push({ id: 7, nickname: "Me", isSelf: true });
     actions.sendTextMessage("  hi  ", "chan-1");
     expect(socket.sentJson).toEqual([{ type: "sendTextMessage", payload: { message: "hi" } }]);
     expect(session.chatMessages).toHaveLength(1);
-    expect(session.chatMessages[0]).toMatchObject({ scope: "channel", targetId: "chan-1", senderId: 7, invokerName: "你", message: "hi", isSelf: true });
+    expect(session.chatMessages[0]).toMatchObject({ scope: "channel", targetId: "chan-1", senderId: 7, invokerName: "Me", message: "hi", isSelf: true });
     expect(session.chatMessages[0].id).toMatch(/^self-/);
   });
 

@@ -1,4 +1,6 @@
+import type { MessageKey } from "@/shared/i18n/messageKeys";
 import { computed, nextTick, onMounted, onUnmounted, ref, watch, type Ref } from "vue";
+import { resolveText, type MaybeLocalizedText } from "@/shared/i18n/localizedText";
 import { useI18n } from "@/shared/i18n/useI18n.js";
 import { readStorage, writeStorage } from "@/shared/services/safeStorage.js";
 import type { ChannelMember } from "@/features/session";
@@ -14,7 +16,7 @@ export interface ScreenShareSessionSlice {
   screenShareViewingStreamId: Ref<string>;
   screenShareRemoteStream: Ref<MediaStream | null>;
   screenShareRemoteVolume: Ref<number>;
-  screenShareError: Ref<string>;
+  screenShareError: Ref<MaybeLocalizedText>;
   screenShareErrorCode: Ref<string>;
   startScreenShare: (audio: boolean, settings?: ScreenShareOutputSettings) => Promise<void>;
   joinScreenShare: (streamId: string) => void;
@@ -44,7 +46,7 @@ export function useScreenShare(options: UseScreenShareOptions) {
   const screenSharePlayerEl = ref<HTMLElement | null>(null);
   const screenShareFullscreen = ref(false);
 
-  const screenShareResolutionOptions: Array<{ value: ScreenShareResolutionPreset; width?: number; height?: number; label: string }> = [
+  const screenShareResolutionOptions: Array<{ value: ScreenShareResolutionPreset; width?: number; height?: number; label: MessageKey }> = [
     { value: "source", label: "screenShareResolutionSource" },
     { value: "720p", width: 1280, height: 720, label: "screenShareResolution720p" },
     { value: "1080p", width: 1920, height: 1080, label: "screenShareResolution1080p" },
@@ -70,12 +72,17 @@ export function useScreenShare(options: UseScreenShareOptions) {
 
   const screenShareErrorText = computed(() => {
     if (screenShareErrorCode.value === "SCREEN_SHARE_NATIVE_BRIDGE_REQUIRED") return t("screenShareNativeUnavailable");
-    return screenShareError.value;
+    return resolveText(screenShareError.value);
   });
+  function ownerName(stream: ScreenShareStream | null): string {
+    if (!stream) return t("screenShare");
+    if (stream.nameKind === "teamspeakNative") return t("screenShareTeamSpeakUser", { id: stream.ownerClientId ?? "" });
+    return stream.ownerNickname || t("screenShare");
+  }
   const activeScreenShareStream = computed<ScreenShareStream | null>(() => screenShareStreams.find((stream) => stream.streamId === screenShareViewingStreamId.value) ?? null);
   const screenSharePlayerViewers = computed(() => activeScreenShareStream.value?.viewers.slice(-5) ?? []);
   const screenSharePlayerViewerCount = computed(() => activeScreenShareStream.value?.viewerCount ?? activeScreenShareStream.value?.viewers.length ?? 0);
-  const screenSharePlayerOwnerName = computed(() => activeScreenShareStream.value?.ownerNickname ?? t("screenShare"));
+  const screenSharePlayerOwnerName = computed(() => ownerName(activeScreenShareStream.value));
 
   function screenShareStreamForMember(member: ChannelMember): ScreenShareStream | null {
     return screenShareStreams.find((stream) => {

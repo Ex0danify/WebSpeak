@@ -50,7 +50,7 @@ describe("connect", () => {
     harness = await createVoiceHarness({ joinTicket: { status: 429, body: { code: "RATE_LIMITED" } } });
     harness.voice.session.connect("t", "c", "n");
     await flushPromises();
-    expect(harness.voice.session.state).toMatchObject({ connecting: false, connected: false, errorCode: "RATE_LIMITED", error: "请求过于频繁，请稍后重试" });
+    expect(harness.voice.session.state).toMatchObject({ connecting: false, connected: false, errorCode: "RATE_LIMITED", error: { key: "err_RATE_LIMITED" } });
     expect(() => harness.socket()).toThrow();
   });
 
@@ -113,7 +113,7 @@ describe("disconnect", () => {
     await connected();
     const move = harness.voice.actions.moveClient(9, "2");
     const probe = harness.voice.session.measureLatency();
-    const moveOutcome = expect(move).rejects.toThrow("语音连接已关闭");
+    const moveOutcome = expect(move).rejects.toThrow("The voice connection was closed");
     harness.voice.session.disconnect();
     await moveOutcome;
     expect(await probe).toBeNull();
@@ -159,7 +159,7 @@ describe("commands", () => {
     vi.useFakeTimers();
     await connected();
     const move = harness.voice.actions.moveClient(9, "2");
-    const outcome = expect(move).rejects.toThrow("操作超时，请稍后重试");
+    const outcome = expect(move).rejects.toThrow("The operation timed out. Try again shortly");
     await vi.advanceTimersByTimeAsync(7_999);
     await vi.advanceTimersByTimeAsync(1);
     await outcome;
@@ -167,7 +167,7 @@ describe("commands", () => {
 
   it("moveClient rejects at once when the socket is not open", async () => {
     harness = await createVoiceHarness();
-    await expect(harness.voice.actions.moveClient(9, "2")).rejects.toThrow("语音连接尚未就绪");
+    await expect(harness.voice.actions.moveClient(9, "2")).rejects.toThrow("The voice connection is not ready yet");
   });
 
   it("measureLatency sends a latencyProbe and resolves null without a socket", async () => {
@@ -210,7 +210,7 @@ describe("chat", () => {
     harness.voice.chat.sendTextMessage("x".repeat(501));
     expect(socket.sentJson).toEqual([{ type: "sendTextMessage", payload: { message: "hello" } }]);
     expect(harness.voice.chat.chatMessages).toHaveLength(1);
-    expect(harness.voice.chat.chatMessages[0]).toMatchObject({ scope: "channel", targetId: "4", senderId: 7, invokerName: "你", message: "hello", isSelf: true });
+    expect(harness.voice.chat.chatMessages[0]).toMatchObject({ scope: "channel", targetId: "4", senderId: 7, invokerName: "", message: "hello", isSelf: true });
     expect(harness.voice.chat.chatMessages[0].id).toMatch(/^self-/);
   });
 

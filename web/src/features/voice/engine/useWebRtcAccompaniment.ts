@@ -31,11 +31,11 @@ export function useWebRtcAccompaniment(deps: WebRtcAccompanimentDeps) {
     accompanimentErrorCode.value = "";
     if (!accompanimentSupported.value) {
       accompanimentErrorCode.value = "unsupported";
-      throw new Error("伴奏共享不可用");
+      throw new Error("Accompaniment sharing is unavailable");
     }
     if (!webrtcActive.value || !deps.hasPeer() || !deps.getMicStream()) {
       accompanimentErrorCode.value = "needsWebRtc";
-      throw new Error("伴奏功能需要启用 WebRTC");
+      throw new Error("Accompaniment needs WebRTC");
     }
 
     const captureProcessingConstraints: MediaTrackConstraints = {
@@ -71,7 +71,7 @@ export function useWebRtcAccompaniment(deps: WebRtcAccompanimentDeps) {
     if (!audioTrack) {
       nextStream.getTracks().forEach((track) => track.stop());
       accompanimentErrorCode.value = "noAudio";
-      throw new Error("所选来源没有可共享音频");
+      throw new Error("The selected source has no audio to share");
     }
 
     try {

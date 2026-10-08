@@ -49,9 +49,9 @@ describe("initialize", () => {
   it("keeps the other settings when it imports the legacy target", async () => {
     ctx.writeLegacyConfig({ tsHost: "legacy.example.org" });
     const service = ctx.create();
-    ctx.database.open().updateSettings({ ...service.database.getSettings(), siteName: "Kept", tsPasswordEncrypted: null, welcomeTextEn: "kept en" });
+    ctx.database.open().updateSettings({ ...service.database.getSettings(), siteName: "Kept", tsPasswordEncrypted: null, welcomeTexts: { en: "kept en" } });
     await service.initialize();
-    expect(service.database.getSettings()).toMatchObject({ siteName: "Kept", welcomeTextEn: "kept en", tsHost: "legacy.example.org", tsPort: 9987 });
+    expect(service.database.getSettings()).toMatchObject({ siteName: "Kept", welcomeTexts: { en: "kept en" }, tsHost: "legacy.example.org", tsPort: 9987 });
   });
 
   it("does not import again after the first start, even if the file changes", async () => {
@@ -116,10 +116,12 @@ describe("admin password", () => {
 describe("views", () => {
   it("public config shows the site, target and access mode, with the welcome text in every language", () => {
     const service = ctx.create();
-    service.updateSettings(settingsInput({ welcomeText: "zh text", welcomeTextEn: "en text" }));
+    service.updateSettings(settingsInput({ welcomeTexts: { en: "en text", fr: "fr text" } }));
     const config = service.getPublicConfig() as { welcomeTexts: Record<string, string> } & Record<string, unknown>;
-    expect(config).toMatchObject({ version: "9.9.9", initialized: false, siteName: "Test site", accessMode: "open", target: "ts.example.org:9988", welcomeText: "zh text", welcomeTextEn: "en text" });
-    expect(config.welcomeTexts).toMatchObject({ zh: "zh text", en: "en text", de: DEFAULT_WELCOME_TEXTS.de, ru: DEFAULT_WELCOME_TEXTS.ru, ja: DEFAULT_WELCOME_TEXTS.ja });
+    expect(config).toMatchObject({ version: "9.9.9", initialized: false, siteName: "Test site", accessMode: "open", target: "ts.example.org:9988" });
+    expect(config).not.toHaveProperty("welcomeText");
+    expect(config).not.toHaveProperty("welcomeTextEn");
+    expect(config.welcomeTexts).toMatchObject({ en: "en text", fr: "fr text", de: DEFAULT_WELCOME_TEXTS.de });
   });
 
   it("public config leaks neither the server password nor relay data", () => {
@@ -151,11 +153,8 @@ describe("updateSettings validation", () => {
     ["an unparsable target", { target: "not a target:::" }, "INVALID_TARGET"],
     ["an empty site name", { siteName: "   " }, "INVALID_SITE_NAME"],
     ["a site name over 80 characters", { siteName: "x".repeat(81) }, "INVALID_SITE_NAME"],
-    ["a welcome text over 500 characters", { welcomeText: "x".repeat(501) }, "INVALID_WELCOME_TEXT"],
-    ["an English welcome text over 500 characters", { welcomeTextEn: "x".repeat(501) }, "INVALID_WELCOME_TEXT_EN"],
-    ["a German welcome text over 500 characters", { welcomeTextDe: "x".repeat(501) }, "INVALID_WELCOME_TEXT_DE"],
-    ["a Russian welcome text over 500 characters", { welcomeTextRu: "x".repeat(501) }, "INVALID_WELCOME_TEXT_RU"],
-    ["a Japanese welcome text over 500 characters", { welcomeTextJa: "x".repeat(501) }, "INVALID_WELCOME_TEXT_JA"],
+    ["an English welcome text over 500 characters", { welcomeTexts: { en: "x".repeat(501) } }, "INVALID_WELCOME_TEXT"],
+    ["a German welcome text over 500 characters", { welcomeTexts: { de: "x".repeat(501) } }, "INVALID_WELCOME_TEXT"],
     ["an unknown access mode", { accessMode: "closed" as never }, "INVALID_ACCESS_MODE"],
     ["a non-boolean WebRTC flag", { webRtcEnabled: "yes" as never }, "INVALID_WEBRTC_ENABLED"],
     ["a WebRTC start port below 1024", { webRtcUdpStart: 1023, webRtcUdpEnd: 2000 }, "INVALID_WEBRTC_PORT_RANGE"],
@@ -173,21 +172,23 @@ describe("updateSettings validation", () => {
 
   it("accepts the limits: 80 character name, 500 character texts, ports 1024 and 65535", () => {
     const service = ctx.create();
-    service.updateSettings(settingsInput({ siteName: "x".repeat(80), welcomeText: "y".repeat(500), welcomeTextJa: "z".repeat(500), webRtcUdpStart: 1024, webRtcUdpEnd: 65535 }));
+    service.updateSettings(settingsInput({ siteName: "x".repeat(80), welcomeTexts: { en: "y".repeat(500), de: "z".repeat(500) }, webRtcUdpStart: 1024, webRtcUdpEnd: 65535 }));
     expect(service.database.getSettings()).toMatchObject({ webRtcUdpStart: 1024, webRtcUdpEnd: 65535 });
   });
 
   it("trims the site name and welcome texts", () => {
     const service = ctx.create();
-    service.updateSettings(settingsInput({ siteName: "  Name  ", welcomeText: "  zh  ", welcomeTextEn: " en " }));
-    expect(service.database.getSettings()).toMatchObject({ siteName: "Name", welcomeText: "zh", welcomeTextEn: "en" });
+    service.updateSettings(settingsInput({ siteName: "  Name  ", welcomeTexts: { en: " en ", de: "  de  " } }));
+    expect(service.database.getSettings()).toMatchObject({ siteName: "Name", welcomeTexts: { en: "en", de: "de" } });
   });
 
   it("keeps a language's welcome text when the form omits it, and clears it when the form sends an empty string", () => {
     const service = ctx.create();
-    service.updateSettings(settingsInput({ welcomeTextDe: "hallo", welcomeTextRu: "privet" }));
-    service.updateSettings(settingsInput({ welcomeTextRu: "" }));
-    expect(service.database.getSettings()).toMatchObject({ welcomeTextDe: "hallo", welcomeTextRu: "" });
+    service.updateSettings(settingsInput({ welcomeTexts: { de: "hallo", en: "hello" } }));
+    service.updateSettings(settingsInput({ welcomeTexts: { en: "" } }));
+    expect(service.database.getSettings().welcomeTexts).toEqual({ de: "hallo" });
+    service.updateSettings(settingsInput());
+    expect(service.database.getSettings().welcomeTexts).toEqual({ de: "hallo" });
   });
 
   it("keeps the current WebRTC range when the form omits it", () => {

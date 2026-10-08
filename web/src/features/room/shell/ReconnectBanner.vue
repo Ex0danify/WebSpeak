@@ -5,7 +5,7 @@
     :title="reconnectFailed ? t('reconnectFailed') : t('connectionInterrupted')"
     class="mx-auto mt-3.5 w-[min(950px,calc(100%-64px))] max-[740px]:w-[calc(100%-30px)]"
   >
-    {{ reconnecting ? t('reconnectingAttempt', { attempt: reconnectAttempt }) : localizedMessage(error) }}
+    {{ reconnecting ? t('reconnectingAttempt', { attempt: reconnectAttempt }) : resolveText(error) }}
     <template #actions>
       <Button v-if="reconnectFailed" size="sm" variant="outline" @click="$emit('reconnect-now')">{{ t('reconnectNow') }}</Button>
       <Button size="sm" variant="ghost" @click="$emit('disconnect')">{{ t('back') }}</Button>
@@ -17,13 +17,13 @@
 import { Banner } from "@/shared/ui/banner";
 import { Button } from "@/shared/ui/button";
 import { useI18n } from "@/shared/i18n/useI18n.js";
-import { localizeMessage } from "@/shared/lib/localizeMessage.js";
+import { resolveText, type MaybeLocalizedText } from "@/shared/i18n/localizedText.js";
 
 defineProps<{
   reconnecting: boolean;
   reconnectFailed: boolean;
   reconnectAttempt: number;
-  error: string;
+  error: MaybeLocalizedText;
 }>();
 
 defineEmits<{
@@ -31,9 +31,5 @@ defineEmits<{
   (e: "disconnect"): void;
 }>();
 
-const { t, language } = useI18n();
-
-function localizedMessage(message: string) {
-  return localizeMessage(message, language.value);
-}
+const { t } = useI18n();
 </script>

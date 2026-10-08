@@ -1,5 +1,6 @@
 import { storeToRefs } from "pinia";
 import { useSessionStore } from "./sessionStore";
+import { LocalizedError, text, type LocalizedText } from "@/shared/i18n/localizedText";
 import { normalizedClientErrorCode } from "./sessionErrors";
 import { closeErrorCode, closeReason, connectionFailureMessage, joinTicketReason, protocolErrorMessage } from "./connectionMessages";
 import { setScreenShareIceServers } from "./iceServers";
@@ -22,7 +23,7 @@ export interface ConnectionDeps {
   applyWhisperState: (targetIds: unknown, active: unknown) => void;
   syncKnownMemberVolumes: () => void;
   ensureMicrophone: () => Promise<void>;
-  setMicrophoneError: (error: unknown) => string;
+  setMicrophoneError: (error: unknown) => LocalizedText;
   startWebRtcTransport: (sequence: number, socket: WebSocket) => Promise<void>;
   sendScreenShareMessage: (payload: Record<string, unknown>) => void;
   isMicrophoneMuted: () => boolean;
@@ -75,18 +76,17 @@ export function useConnection(deps: ConnectionDeps) {
       const result = await response.json().catch(() => ({})) as { ticket?: unknown; code?: unknown; detail?: unknown };
       if (!response.ok || typeof result.ticket !== "string") {
         const failureCode = normalizedClientErrorCode(result.code);
-        const failure = new Error(joinTicketReason(failureCode, result.detail));
-        Object.assign(failure, { code: failureCode });
-        throw failure;
+        const reason = joinTicketReason(failureCode, result.detail);
+        throw new LocalizedError(reason, failureCode);
       }
       if (sequence !== connectionSequence) return;
       openVoiceSocket(sequence, result.ticket);
     } catch (error: unknown) {
       if (sequence !== connectionSequence) return;
       state.connecting = false;
-      const errorRecord = error && typeof error === "object" ? error as { code?: unknown } : {};
-      state.errorCode = normalizedClientErrorCode(errorRecord.code, "REQUEST_FAILED");
-      state.error = error instanceof Error ? error.message : connectionFailureMessage(state.errorCode);
+      const code = error instanceof LocalizedError ? error.code : undefined;
+      state.errorCode = normalizedClientErrorCode(code, "REQUEST_FAILED");
+      state.error = error instanceof LocalizedError ? error.text : error instanceof Error ? error.message : connectionFailureMessage(state.errorCode);
     }
   }
 
@@ -115,7 +115,7 @@ export function useConnection(deps: ConnectionDeps) {
     socket.onclose = (event) => {
       if (sequence !== connectionSequence) return;
       deps.clearLatencyProbes();
-      deps.rejectPendingCommands(new Error("语音连接已关闭"));
+      deps.rejectPendingCommands(new LocalizedError(text("voiceConnectionClosed"), "VOICE_CONNECTION_CLOSED"));
       state.connected = false;
       state.connecting = false;
       state.reconnecting = false;
@@ -150,7 +150,7 @@ export function useConnection(deps: ConnectionDeps) {
   function disconnect(preserveConnection = false): void {
     connectionSequence++;
     deps.clearLatencyProbes();
-    deps.rejectPendingCommands(new Error("语音连接已关闭"));
+    deps.rejectPendingCommands(new LocalizedError(text("voiceConnectionClosed"), "VOICE_CONNECTION_CLOSED"));
     const keepRememberedIdentity = lastConnection?.rememberIdentity === true;
     if (!preserveConnection) lastConnection = null;
     deps.stopMicrophone();
@@ -240,7 +240,7 @@ export function useConnection(deps: ConnectionDeps) {
       state.connecting = false;
       state.reconnecting = Boolean(msg.recoverable !== false);
       state.reconnectFailed = false;
-      if (!state.reconnecting) state.error = "TeamSpeak 连接已断开";
+      if (!state.reconnecting) state.error = text("connectionClosedTeamSpeak");
       deps.stopWebRtcTransport();
       deps.stopScreenShareTransport(false);
       deps.stopMicrophone();

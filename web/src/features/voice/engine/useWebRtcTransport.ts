@@ -3,6 +3,7 @@ import { storeToRefs } from "pinia";
 import { useVoiceAudioStore } from "../stores/voiceAudioStore";
 import { useSessionStore } from "@/features/session";
 import { safeClientErrorCode } from "@/features/session";
+import type { LocalizedText, TextParams } from "@/shared/i18n/localizedText";
 import type { SinkAudioContext, SinkAudioElement } from "../voiceTypes";
 import type { MessageHandlers } from "@/features/session";
 import { useWebRtcAccompaniment } from "./useWebRtcAccompaniment";
@@ -15,14 +16,14 @@ export interface WebRtcTransportDeps {
   ensureMicrophone(): Promise<void>;
   startMicrophone(): Promise<void>;
   stopCaptureGraph(): void;
-  setMicrophoneError(error: unknown): string;
+  setMicrophoneError(error: unknown): LocalizedText;
   // audio output
   getAudioCtx(): SinkAudioContext;
   effectiveOutputVolume(): number;
   stopWebRtcPlayback(): void;
   attachWebRtcPlayback(output: SinkAudioElement, stream: MediaStream): void;
   syncWebRtcPlayback(): Promise<void>;
-  setAudioNotice(code: string, message: string): void;
+  setAudioNotice(code: string, params?: TextParams): void;
   // downlink, commands
   markSpeaking(clientId: number): void;
   clearSpeaking(clientId: number): void;
@@ -75,7 +76,7 @@ export function useWebRtcTransport(deps: WebRtcTransportDeps) {
 
   function createWebRtcMixStream(): MediaStream {
     const micStream = deps.getMicStream();
-    if (!micStream) throw new Error("没有可用的麦克风音轨");
+    if (!micStream) throw new Error("No microphone track is available");
     const ctx = deps.getAudioCtx();
     stopWebRtcMix();
     const destination = ctx.createMediaStreamDestination();
@@ -111,20 +112,20 @@ export function useWebRtcTransport(deps: WebRtcTransportDeps) {
   async function replaceWebRtcAudioTrack(): Promise<void> {
     if (!webrtcPeer || !deps.getMicStream()) return;
     const sender = webrtcPeer.getSenders().find((candidate) => candidate.track?.kind === "audio");
-    if (!sender) throw new Error("WebRTC 音频轨道尚未就绪");
+    if (!sender) throw new Error("The WebRTC audio track is not ready");
     const mixedStream = createWebRtcMixStream();
     const mixedTrack = mixedStream.getAudioTracks()[0];
-    if (!mixedTrack) throw new Error("混合音频轨道创建失败");
+    if (!mixedTrack) throw new Error("The mixed audio track could not be created");
     await sender.replaceTrack(mixedTrack);
   }
 
   async function startWebRtcTransport(sequence: number, socket: WebSocket): Promise<void> {
-    if (typeof RTCPeerConnection === "undefined") throw new Error("当前浏览器不支持 WebRTC");
+    if (typeof RTCPeerConnection === "undefined") throw new Error("This browser does not support WebRTC");
     await deps.ensureMicrophone();
     const micStream = deps.getMicStream();
     if (sequence !== deps.connectionSequence() || socket.readyState !== WebSocket.OPEN || !micStream) return;
     const microphoneTrack = micStream.getAudioTracks()[0];
-    if (!microphoneTrack) throw new Error("没有可用的麦克风音轨");
+    if (!microphoneTrack) throw new Error("No microphone track is available");
 
     deps.stopCaptureGraph();
     const peer = new RTCPeerConnection({ iceServers: [] });
@@ -133,7 +134,7 @@ export function useWebRtcTransport(deps: WebRtcTransportDeps) {
     microphoneTrack.enabled = !microphoneMuted.value;
     const mixedStream = createWebRtcMixStream();
     const mixedTrack = mixedStream.getAudioTracks()[0];
-    if (!mixedTrack) throw new Error("混合音频轨道创建失败");
+    if (!mixedTrack) throw new Error("The mixed audio track could not be created");
     peer.addTrack(mixedTrack, mixedStream);
     peer.ontrack = (event) => {
       const stream = event.streams[0] ?? new MediaStream([event.track]);
@@ -235,7 +236,7 @@ export function useWebRtcTransport(deps: WebRtcTransportDeps) {
     if (socket.readyState === WebSocket.OPEN && state.connected) {
       // Degrading to the compatibility transport must be visible: the user is
       // still connected, but with different latency and audio quality.
-      deps.setAudioNotice("WEBRTC_FALLBACK", `实时语音（WebRTC）不可用（错误代码：${safeClientErrorCode(reasonCode) || "WEBRTC_UNAVAILABLE"}），已切换为兼容传输：延迟与音质可能下降`);
+      deps.setAudioNotice("WEBRTC_FALLBACK", { code: safeClientErrorCode(reasonCode) || "WEBRTC_UNAVAILABLE" });
       try { await deps.startMicrophone(); } catch (error: unknown) {
         deps.setMicrophoneError(error);
       }

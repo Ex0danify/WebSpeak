@@ -80,7 +80,7 @@ describe("starting a share", () => {
   it("names a share after its owner when it has no name, and shares no audio unless asked", async () => {
     const gateway = await gateways.start();
     const owner = await joinVoice(gateway, { nickname: "owner" });
-    expect(await startShare(owner)).toMatchObject({ name: "owner 的屏幕", audio: false });
+    expect(await startShare(owner)).toMatchObject({ name: "owner's screen", nameKind: "ownerScreen", audio: false });
   });
 
   it("allows one share per session", async () => {

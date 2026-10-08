@@ -25,6 +25,6 @@ export function registerVoiceChat(ctx: VoiceConnection): void {
 
   ctx.tsClient.on("poked", (event) => {
     ctx.sendJson({ type: "pokeReceived", invokerId: event.invokerID, invokerUid: event.invokerUID, invokerName: event.invokerName, message: event.message, timestamp: Date.now() });
-    addServerEvent(ctx, "poke", `${event.invokerName || "用户"} 戳了你一下`, { nickname: event.invokerName });
+    addServerEvent(ctx, "poke", `${event.invokerName || "A user"} poked you`, { nickname: event.invokerName });
   });
 }

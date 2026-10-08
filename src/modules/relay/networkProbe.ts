@@ -114,8 +114,6 @@ function classifyProbeError(error: unknown): TeamSpeakPingErrorCode {
   if (/enoent|spawn\s+(?:ping(?:\.exe)?|ping)\s+.*not found|command not found/.test(lower)) return "PING_UNAVAILABLE";
   if (/enotfound|eai_again|getaddrinfo|host not found|unknown host|could not find host|name or service not known/.test(lower)) return "HOST_NOT_FOUND";
   if (/timeout|timed out|packet ack timeout|idle timeout/.test(lower)) return "TIMEOUT";
-  // 关键词刻意收窄：裸的 password/version/denied 会出现在大量无关的 ping/传输
-  // 输出中，误判会把用户引向错误的排查方向，只把明确的短语视为证据。
   // Keep the keywords narrow: a bare "password", "version" or "denied" appears in
   // plenty of unrelated ping/transport output, and guessing here used to send the
   // user to the wrong remedy. Only explicit phrases are treated as evidence.
@@ -151,17 +149,27 @@ function pingHostOnce(host: string, timeoutMs: number): Promise<number> {
     child.stderr.on("data", (chunk: string) => { output += chunk; });
     child.once("error", (error) => finish(() => reject(error)));
     child.once("close", (code) => finish(() => {
-      const match = output.match(/(?:time|时间)\s*[=<]\s*([\d.,]+)\s*(?:ms|毫秒)?/i);
-      if (code === 0 && match) {
-        const latencyMs = Number.parseFloat(match[1].replace(",", "."));
-        if (Number.isFinite(latencyMs)) {
-          resolve(Math.max(0, latencyMs));
-          return;
-        }
+      const latencyMs = parsePingLatency(output);
+      if (code === 0 && latencyMs !== null) {
+        resolve(latencyMs);
+        return;
       }
       reject(new Error(output.trim() || `ping exited with code ${code ?? "unknown"}`));
     }));
   });
+}
+
+/**
+ * Round-trip time in ms from `ping` output in any language, or null. Windows translates its reply
+ * line ("time=", "Zeit=", "temps=", ...) and the unit, but keeps "TTL=" in upper-case Latin letters,
+ * so the number directly before it is taken first. Linux and macOS print a lower-case "ttl=" and
+ * an English "time=12.3 ms".
+ */
+export function parsePingLatency(output: string): number | null {
+  const match = output.match(/[=<]\s*(\d+(?:[.,]\d+)?)\s*[^\d\s=<]*\s+TTL=/) ?? output.match(/\btime\s*[=<]\s*(\d+(?:[.,]\d+)?)/i);
+  if (!match) return null;
+  const latencyMs = Number.parseFloat(match[1].replace(",", "."));
+  return Number.isFinite(latencyMs) ? Math.max(0, latencyMs) : null;
 }
 
 /**

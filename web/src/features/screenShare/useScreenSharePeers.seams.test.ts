@@ -98,12 +98,12 @@ describe("stream list helpers", () => {
     vi.spyOn(Date, "now").mockReturnValue(7_000);
     const first = context.module.upsertScreenShareStream({ streamId: "a", ownerPeerId: "p" });
     expect(first).toEqual({
-      streamId: "a", source: "browser", ownerPeerId: "p", ownerNickname: "TeamSpeak 用户", name: "屏幕共享", audio: false,
+      streamId: "a", source: "browser", ownerPeerId: "p", ownerNickname: "", name: "", audio: false,
       createdAt: 7_000, viewerCount: 0, viewers: [],
     });
     context.module.upsertScreenShareStream({ streamId: "b", ownerPeerId: "q", source: "teamspeak", ownerClientId: 4, audio: true });
     context.module.upsertScreenShareStream({ streamId: "a", ownerPeerId: "p", name: "renamed", viewerCount: 3 });
-    expect(context.store.screenShareStreams.map((stream) => [stream.streamId, stream.name])).toEqual([["a", "renamed"], ["b", "屏幕共享"]]);
+    expect(context.store.screenShareStreams.map((stream) => [stream.streamId, stream.name])).toEqual([["a", "renamed"], ["b", ""]]);
     expect(context.store.screenShareStreams[1]).toMatchObject({ source: "teamspeak", ownerClientId: 4, audio: true });
   });
 
@@ -121,7 +121,7 @@ describe("stream list helpers", () => {
     expect(context.module.upsertScreenShareStream({
       streamId: "a", ownerPeerId: "p", ownerClientId: "4", ownerNickname: 1, name: 2, audio: "yes", createdAt: "x", viewerCount: "3", viewers: "no",
     })).toEqual({
-      streamId: "a", source: "browser", ownerPeerId: "p", ownerNickname: "TeamSpeak 用户", name: "屏幕共享", audio: false,
+      streamId: "a", source: "browser", ownerPeerId: "p", ownerNickname: "", name: "", audio: false,
       createdAt: 9, viewerCount: 0, viewers: [],
     });
   });

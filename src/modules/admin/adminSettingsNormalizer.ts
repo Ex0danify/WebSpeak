@@ -6,6 +6,8 @@ import { DEFAULT_ACCELERATION_RELAY_PORT } from "../relay/index.js";
 import { DEFAULT_WEBRTC_UDP_PORT_RANGE, WEBRTC_UDP_PORT_MAX, WEBRTC_UDP_PORT_MIN } from "../../config/webrtcConfig.js";
 import { AdminInputError } from "./adminErrors.js";
 
+const DEFAULT_RELAY_NAME = "Relay acceleration";
+
 type StoredSettings = ReturnType<WebSpeakDatabase["getSettings"]>;
 
 export interface AdminSettingsInput {
@@ -14,11 +16,8 @@ export interface AdminSettingsInput {
   passwordAction?: "keep" | "replace" | "remove";
   accessMode: AccessMode;
   siteName: string;
-  welcomeText: string;
-  welcomeTextEn?: string;
-  welcomeTextDe?: string;
-  welcomeTextRu?: string;
-  welcomeTextJa?: string;
+  /** Texts to store by language code; a language left out keeps its stored text, an empty one clears it. */
+  welcomeTexts?: Record<string, string>;
   webRtcEnabled: boolean;
   webRtcUdpStart?: number;
   webRtcUdpEnd?: number;
@@ -40,6 +39,16 @@ export interface RelayNodeInput {
   tokenAction?: "keep" | "replace" | "remove";
 }
 
+function mergeWelcomeTexts(current: Record<string, string>, input: Record<string, string> | undefined): Record<string, string> {
+  const merged = { ...current };
+  for (const [language, text] of Object.entries(input ?? {})) {
+    const trimmed = text.trim();
+    if (trimmed) merged[language] = trimmed;
+    else delete merged[language];
+  }
+  return merged;
+}
+
 export function normalizeSettings(input: AdminSettingsInput, current: StoredSettings, masterSecret: Buffer, relayNodes?: PersistedRelayNode[]): SettingsUpdate {
   let target: TeamSpeakTarget;
   try {
@@ -48,17 +57,11 @@ export function normalizeSettings(input: AdminSettingsInput, current: StoredSett
     throw new AdminInputError("INVALID_TARGET", "TeamSpeak target is invalid");
   }
   const siteName = input.siteName.trim();
-  const welcomeText = input.welcomeText.trim();
-  const welcomeTextEn = typeof input.welcomeTextEn === "string" ? input.welcomeTextEn.trim() : current.welcomeTextEn;
-  const welcomeTextDe = typeof input.welcomeTextDe === "string" ? input.welcomeTextDe.trim() : current.welcomeTextDe;
-  const welcomeTextRu = typeof input.welcomeTextRu === "string" ? input.welcomeTextRu.trim() : current.welcomeTextRu;
-  const welcomeTextJa = typeof input.welcomeTextJa === "string" ? input.welcomeTextJa.trim() : current.welcomeTextJa;
+  const welcomeTexts = mergeWelcomeTexts(current.welcomeTexts, input.welcomeTexts);
   if (!siteName || siteName.length > 80) throw new AdminInputError("INVALID_SITE_NAME", "Site name must contain 1 to 80 characters");
-  if (welcomeText.length > 500) throw new AdminInputError("INVALID_WELCOME_TEXT", "Welcome text cannot exceed 500 characters");
-  if (welcomeTextEn.length > 500) throw new AdminInputError("INVALID_WELCOME_TEXT_EN", "English welcome text cannot exceed 500 characters");
-  if (welcomeTextDe.length > 500) throw new AdminInputError("INVALID_WELCOME_TEXT_DE", "German welcome text cannot exceed 500 characters");
-  if (welcomeTextRu.length > 500) throw new AdminInputError("INVALID_WELCOME_TEXT_RU", "Russian welcome text cannot exceed 500 characters");
-  if (welcomeTextJa.length > 500) throw new AdminInputError("INVALID_WELCOME_TEXT_JA", "Japanese welcome text cannot exceed 500 characters");
+  if (Object.values(welcomeTexts).some((text) => text.length > 500)) {
+    throw new AdminInputError("INVALID_WELCOME_TEXT", "Welcome text cannot exceed 500 characters");
+  }
   if (input.accessMode !== "fixed" && input.accessMode !== "open") {
     throw new AdminInputError("INVALID_ACCESS_MODE", "Access mode is invalid");
   }
@@ -135,11 +138,7 @@ export function normalizeSettings(input: AdminSettingsInput, current: StoredSett
   }
   return {
     siteName,
-    welcomeText,
-    welcomeTextEn,
-    welcomeTextDe,
-    welcomeTextRu,
-    welcomeTextJa,
+    welcomeTexts,
     accessMode: input.accessMode,
     tsHost: target.host,
     tsPort: target.port,
@@ -212,7 +211,7 @@ export function legacyRelayNodesFromSettings(settings: SettingsUpdate, existing:
   const now = new Date().toISOString();
   return [{
     id: previous?.id ?? "relay-default",
-    name: settings.relayName || "中继加速",
+    name: settings.relayName || DEFAULT_RELAY_NAME,
     enabled: settings.relayEnabled,
     host: settings.relayHost,
     port: settings.relayPort || DEFAULT_ACCELERATION_RELAY_PORT,
@@ -225,11 +224,7 @@ export function legacyRelayNodesFromSettings(settings: SettingsUpdate, existing:
 export function toSettingsUpdate(settings: StoredSettings): SettingsUpdate {
   return {
     siteName: settings.siteName,
-    welcomeText: settings.welcomeText,
-    welcomeTextEn: settings.welcomeTextEn,
-    welcomeTextDe: settings.welcomeTextDe,
-    welcomeTextRu: settings.welcomeTextRu,
-    welcomeTextJa: settings.welcomeTextJa,
+    welcomeTexts: settings.welcomeTexts,
     accessMode: settings.accessMode,
     tsHost: settings.tsHost,
     tsPort: settings.tsPort,

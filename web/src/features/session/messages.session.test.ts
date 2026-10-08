@@ -146,7 +146,7 @@ describe("commandCompleted / error with a request id", () => {
     void move.then(() => { settled = true; }, () => { settled = true; });
     await flushPromises();
     expect(settled).toBe(false);
-    const outcome = expect(move).rejects.toThrow("语音连接已关闭");
+    const outcome = expect(move).rejects.toThrow("The voice connection was closed");
     harness.voice.session.disconnect();
     await outcome;
   });
@@ -166,11 +166,13 @@ describe("audioError", () => {
     const socket = await connected();
     await push(socket, { type: "audioError", code: "AUDIO_ENCODER_UNAVAILABLE", detail: "opus missing" });
     expect(harness.voice.session.state.audioNoticeCode).toBe("AUDIO_ENCODER_UNAVAILABLE");
-    expect(harness.voice.session.state.audioNotice).toContain("音频编码器不可用");
-    expect(harness.voice.session.state.audioNotice).toContain("opus missing");
+    expect(harness.voice.session.state.audioNotice).toEqual({
+      key: "audioNoticeEncoder",
+      params: { code: "AUDIO_ENCODER_UNAVAILABLE" },
+    });
     await push(socket, { type: "audioError" });
     expect(harness.voice.session.state.audioNoticeCode).toBe("AUDIO_ERROR");
-    expect(harness.voice.session.state.audioNotice).toContain("音频链路异常");
+    expect(harness.voice.session.state.audioNotice).toEqual({ key: "audioNoticeLink", params: { code: "AUDIO_ERROR" } });
   });
 });
 
@@ -202,7 +204,7 @@ describe("webrtcAnswer / webrtcError", () => {
     expect(socket.sentOfType("webrtcStop")).toHaveLength(1);
     expect(FakeRTCPeerConnection.instances[0].closed).toBe(true);
     expect(harness.voice.session.state.audioNoticeCode).toBe("WEBRTC_FALLBACK");
-    expect(harness.voice.session.state.audioNotice).toContain("WEBRTC_DISABLED");
+    expect(harness.voice.session.state.audioNotice).toEqual({ key: "audioNoticeWebrtcFallback", params: { code: "WEBRTC_DISABLED" } });
     await push(socket, { type: "webrtcError", code: "AGAIN" });
     expect(socket.sentOfType("webrtcStop")).toHaveLength(1);
   });

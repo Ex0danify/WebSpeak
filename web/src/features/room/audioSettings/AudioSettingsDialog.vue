@@ -48,6 +48,7 @@ import { Button } from "@/shared/ui/button";
 import { Dialog } from "@/shared/ui/dialog";
 import { Separator } from "@/shared/ui/separator";
 import { useI18n } from "@/shared/i18n/useI18n.js";
+import type { MaybeLocalizedText } from "@/shared/i18n/localizedText.js";
 import type { AudioInputDevice, AudioOutputDevice, AudioPermission } from "@/features/voice";
 import InputDevicePanel from "./InputDevicePanel.vue";
 import OutputVolumePanel from "./OutputVolumePanel.vue";
@@ -55,7 +56,7 @@ import OutputVolumePanel from "./OutputVolumePanel.vue";
 const open = defineModel<boolean>({ required: true });
 
 defineProps<{
-  audioSettingsError: string;
+  audioSettingsError: MaybeLocalizedText;
   selectedInputDeviceId: string;
   inputDevices: AudioInputDevice[];
   audioPermission: AudioPermission;
@@ -76,7 +77,7 @@ defineProps<{
   outputVolume: number;
   notificationVolume: number;
   audioStatus: { variant: "success" | "warning" | "danger" | "neutral"; label: string };
-  microphoneError: string;
+  microphoneError: MaybeLocalizedText;
 }>();
 
 defineEmits<{

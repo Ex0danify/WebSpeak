@@ -4,7 +4,8 @@ export { useMicrophone, type MicrophoneDeps } from "./engine/useMicrophone";
 export { useWebRtcTransport, type WebRtcTransportDeps } from "./engine/useWebRtcTransport";
 export { useAudioPreferences, type AudioPreferencesDeps } from "./useAudioPreferences";
 export { useVoiceAudioStore, type AccompanimentErrorCode } from "./stores/voiceAudioStore";
-export { normalizeMicrophoneFailure } from "./voiceErrors";
+export { normalizeMicrophoneFailure, microphoneErrorText } from "./voiceErrors";
+export { translations as voiceMessages } from "./i18n/index.js";
 export type {
   AudioInputDevice,
   AudioOutputDevice,

@@ -5,6 +5,8 @@ export interface ScreenShareStream {
   ownerClientId?: number;
   ownerNickname: string;
   name: string;
+  /** Set when the gateway filled in a default for `name`/`ownerNickname`; the UI renders its own text. */
+  nameKind?: "teamspeakNative" | "ownerScreen";
   audio: boolean;
   createdAt: number;
   viewerCount: number;

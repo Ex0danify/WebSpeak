@@ -20,11 +20,7 @@ export function readSettingsInput(body: Record<string, unknown>): AdminSettingsI
     passwordAction: readPasswordAction(body.passwordAction),
     accessMode: body.accessMode === "open" ? "open" : body.accessMode === "fixed" ? "fixed" : body.accessMode as never,
     siteName: readString(body, "siteName", 80),
-    welcomeText: readOptionalString(body, "welcomeText", 500),
-    welcomeTextEn: typeof body.welcomeTextEn === "string" ? body.welcomeTextEn.slice(0, 500) : undefined,
-    welcomeTextDe: typeof body.welcomeTextDe === "string" ? body.welcomeTextDe.slice(0, 500) : undefined,
-    welcomeTextRu: typeof body.welcomeTextRu === "string" ? body.welcomeTextRu.slice(0, 500) : undefined,
-    welcomeTextJa: typeof body.welcomeTextJa === "string" ? body.welcomeTextJa.slice(0, 500) : undefined,
+    welcomeTexts: readWelcomeTexts(body.welcomeTexts),
     webRtcEnabled: body.webRtcEnabled === true,
     webRtcUdpStart: readOptionalInteger(body, "webRtcUdpStart"),
     webRtcUdpEnd: readOptionalInteger(body, "webRtcUdpEnd"),
@@ -44,6 +40,19 @@ function readRelaySettingsAction(value: unknown): "keep" | "replace" | "remove" 
 
 function readPasswordAction(value: unknown): "keep" | "replace" | "remove" {
   return value === "replace" || value === "remove" ? value : "keep";
+}
+
+const WELCOME_LANGUAGE_PATTERN = /^[a-z]{2,3}(-[A-Za-z0-9]{2,8})*$/;
+const WELCOME_LANGUAGE_MAX = 16;
+
+/** The welcome texts by language code; keys that are not language codes and non-string values are dropped. */
+function readWelcomeTexts(value: unknown): Record<string, string> | undefined {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return undefined;
+  const texts: Record<string, string> = {};
+  for (const [language, text] of Object.entries(value).slice(0, WELCOME_LANGUAGE_MAX)) {
+    if (WELCOME_LANGUAGE_PATTERN.test(language) && typeof text === "string") texts[language] = text.slice(0, 500);
+  }
+  return texts;
 }
 
 export function asRecord(value: unknown): Record<string, unknown> {

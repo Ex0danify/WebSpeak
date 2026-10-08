@@ -3,10 +3,10 @@
     <h2>{{ t('welcomeBack') }}</h2>
     <p class="card-lead">{{ t('joinLead') }}</p>
 
-    <div v-if="error" class="notice error-notice"><span class="notice-symbol">!</span><span class="notice-content"><span>{{ localizedMessage(error) }}</span><code v-if="errorCode">{{ t('errorCode') }}: {{ visibleErrorCode(errorCode) }}</code></span></div>
-    <div v-if="browserError" class="notice warning-notice"><span class="notice-symbol">i</span><span>{{ localizedMessage(browserError) }}</span></div>
-    <div v-if="!serverConfigLoading && !initialized" class="notice warning-notice"><span class="notice-symbol">i</span><span>{{ t('notConfigured') }} <a href="/admin">{{ t('configureNow') }}</a></span></div>
-    <div v-if="!localPersistenceAvailable" class="notice warning-notice"><span class="notice-symbol">i</span><span>{{ t('localPersistenceUnavailable') }}</span></div>
+    <div v-if="error" class="notice error-notice"><span class="notice-symbol">!</span><span class="notice-content"><span>{{ resolveText(error) }}</span><code v-if="errorCode">{{ t('errorCode') }}: {{ visibleErrorCode(errorCode) }}</code></span></div>
+    <div v-if="browserError" class="notice warning-notice"><span class="notice-symbol">{{ NOTICE_GLYPH }}</span><span>{{ resolveText(browserError) }}</span></div>
+    <div v-if="!serverConfigLoading && !initialized" class="notice warning-notice"><span class="notice-symbol">{{ NOTICE_GLYPH }}</span><span>{{ t('notConfigured') }} <a href="/admin">{{ t('configureNow') }}</a></span></div>
+    <div v-if="!localPersistenceAvailable" class="notice warning-notice"><span class="notice-symbol">{{ NOTICE_GLYPH }}</span><span>{{ t('localPersistenceUnavailable') }}</span></div>
 
     <form v-if="initialized" class="join-form" @submit.prevent="$emit('connect')">
       <div v-if="accessMode === 'open'" class="field-grid target-fields">
@@ -47,6 +47,7 @@
 </template>
 
 <script setup lang="ts">
+import { NOTICE_GLYPH } from "@/shared/lib/brand";
 import { Button } from "@/shared/ui/button";
 import { Checkbox } from "@/shared/ui/checkbox";
 import { Field } from "@/shared/ui/field";
@@ -54,7 +55,8 @@ import { Icon } from "@/shared/ui/icon";
 import { Input } from "@/shared/ui/input";
 import { Select } from "@/shared/ui/select";
 import { useI18n } from "@/shared/i18n/useI18n.js";
-import { localizeMessage, visibleErrorCode } from "@/shared/lib/localizeMessage.js";
+import { visibleErrorCode } from "@/features/session";
+import { resolveText, type MaybeLocalizedText } from "@/shared/i18n/localizedText.js";
 import { isLocalPersistenceAvailable } from "@/shared/services/localPersistence.js";
 import type { FavoriteServer, RecentServer } from "@/shared/services/localPersistence.js";
 
@@ -67,8 +69,8 @@ defineProps<{
   accelerationRelays: Array<{ id: string; name: string }>;
   initialized: boolean;
   serverConfigLoading: boolean;
-  browserError: string;
-  error: string;
+  browserError: MaybeLocalizedText;
+  error: MaybeLocalizedText;
   errorCode: string;
   identityReady: boolean;
   canJoin: boolean;
@@ -90,12 +92,8 @@ const nickname = defineModel<string>("nickname", { default: "" });
 const channel = defineModel<string>("channel", { default: "" });
 const rememberIdentity = defineModel<boolean>("rememberIdentity", { default: false });
 
-const { language, t } = useI18n();
+const { t } = useI18n();
 const localPersistenceAvailable = isLocalPersistenceAvailable();
-
-function localizedMessage(message: string) {
-  return localizeMessage(message, language.value);
-}
 </script>
 
 <style scoped>

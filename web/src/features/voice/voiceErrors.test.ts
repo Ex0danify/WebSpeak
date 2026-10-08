@@ -1,6 +1,6 @@
 // Step V1.2: the microphone failure mapping (split out of errors.test.ts, Step S3.2).
 import { describe, expect, it } from "vitest";
-import { normalizeMicrophoneFailure } from "./voiceErrors";
+import { audioNoticeText, microphoneErrorText, normalizeMicrophoneFailure } from "./voiceErrors";
 
 describe("normalizeMicrophoneFailure", () => {
   function domError(name: string): Error {
@@ -10,14 +10,14 @@ describe("normalizeMicrophoneFailure", () => {
   }
 
   it.each([
-    ["NotAllowedError", "MIC_NOTALLOWEDERROR", "浏览器未授予麦克风权限"],
-    ["NotFoundError", "MIC_NOTFOUNDERROR", "未找到可用的麦克风"],
-    ["OverconstrainedError", "MIC_OVERCONSTRAINEDERROR", "所选麦克风当前不可用"],
-    ["NotReadableError", "MIC_NOTREADABLEERROR", "麦克风可能正被其他程序占用"],
-    ["SecurityError", "MIC_SECURITYERROR", "浏览器阻止了麦克风访问"],
-    ["AbortError", "MIC_ABORTERROR", "麦克风启动被中断，请重试"],
-  ])("%s", (name, code, reason) => {
-    expect(normalizeMicrophoneFailure(domError(name))).toEqual({ code, message: `麦克风访问失败：${reason}` });
+    ["NotAllowedError", "MIC_NOTALLOWEDERROR", "micFailedPermission"],
+    ["NotFoundError", "MIC_NOTFOUNDERROR", "micFailedNotFound"],
+    ["OverconstrainedError", "MIC_OVERCONSTRAINEDERROR", "micFailedUnavailable"],
+    ["NotReadableError", "MIC_NOTREADABLEERROR", "micFailedBusy"],
+    ["SecurityError", "MIC_SECURITYERROR", "micFailedBlocked"],
+    ["AbortError", "MIC_ABORTERROR", "micFailedAborted"],
+  ])("%s", (name, code, key) => {
+    expect(normalizeMicrophoneFailure(domError(name))).toEqual({ code, text: { key } });
   });
 
   // Bug kept on purpose (plan V-D4), logged as VD1 in docs/design/voice-decompose-findings.md: the
@@ -26,26 +26,76 @@ describe("normalizeMicrophoneFailure", () => {
   it.fails("VD1: a TypeError gets its own sentence", () => {
     expect(normalizeMicrophoneFailure(domError("TypeError"))).toEqual({
       code: "MIC_TYPEERROR",
-      message: "麦克风访问失败：麦克风访问参数被系统拒绝",
+      text: { key: "micFailedParameters" },
     });
   });
 
   it("uses the generic reason for an unknown error name and keeps its name as the code", () => {
     expect(normalizeMicrophoneFailure(domError("WeirdError"))).toEqual({
       code: "MIC_WEIRDERROR",
-      message: "麦克风访问失败：麦克风不可用，请检查浏览器权限与音频设备",
+      text: { key: "micFailedGeneric" },
     });
   });
 
   it("reports MIC_UNAVAILABLE for a value that is not an Error", () => {
     expect(normalizeMicrophoneFailure("nope")).toEqual({
       code: "MIC_UNAVAILABLE",
-      message: "麦克风访问失败：麦克风不可用，请检查浏览器权限与音频设备",
+      text: { key: "micFailedGeneric" },
     });
     expect(normalizeMicrophoneFailure(domError("")).code).toBe("MIC_UNAVAILABLE");
   });
 
   it("truncates a long error name to 40 characters", () => {
     expect(normalizeMicrophoneFailure(domError("E".repeat(100))).code).toBe(`MIC_${"E".repeat(40)}`);
+  });
+});
+
+describe("microphoneErrorText", () => {
+  it.each([
+    ["NotAllowedError", "micFailedPermission"],
+    ["NotFoundError", "micFailedNotFound"],
+    ["NotReadableError", "micFailedBusy"],
+    ["OverconstrainedError", "micFailedUnavailable"],
+    ["SecurityError", "micFailedBlocked"],
+  ] as const)("maps a %s DOMException to its sentence", (name, key) => {
+    expect(microphoneErrorText(new DOMException("x", name))).toEqual({ key });
+  });
+
+  it("uses the fallback key for an unknown DOMException name", () => {
+    expect(microphoneErrorText(new DOMException("x", "AbortError"), "micSwitchFailed")).toEqual({ key: "micSwitchFailed" });
+  });
+
+  it.each([undefined, null, "NotAllowedError", { name: "NotAllowedError" }])("does not throw for %j and uses the default", (value) => {
+    expect(microphoneErrorText(value)).toEqual({ key: "micFailedCheckPermissions" });
+  });
+
+  it("uses the default for a plain Error, even one named like a known reason", () => {
+    const error = new Error("denied");
+    error.name = "NotAllowedError";
+    expect(microphoneErrorText(error)).toEqual({ key: "micFailedCheckPermissions" });
+  });
+});
+
+describe("audioNoticeText", () => {
+  it.each([
+    ["WEBRTC_FALLBACK", "audioNoticeWebrtcFallback"],
+    ["PLAYBACK_BLOCKED", "audioNoticePlaybackBlocked"],
+    ["DEVICE_LIST_UNAVAILABLE", "audioNoticeDeviceList"],
+    ["AUDIO_CONTEXT_SUSPENDED", "audioNoticeContextSuspended"],
+  ])("%s has its own sentence and passes the params on", (code, key) => {
+    expect(audioNoticeText(code, { code: "X" })).toEqual({ key, params: { code: "X" } });
+  });
+
+  it("names the encoder failure specially and never prints the gateway detail", () => {
+    expect(audioNoticeText("AUDIO_ENCODER_UNAVAILABLE")).toEqual({ key: "audioNoticeEncoder", params: { code: "AUDIO_ENCODER_UNAVAILABLE" } });
+    expect(audioNoticeText("AUDIO_ENCODER_UNAVAILABLE", { detail: "boom" })).toEqual({
+      key: "audioNoticeEncoder",
+      params: { code: "AUDIO_ENCODER_UNAVAILABLE" },
+    });
+  });
+
+  it("gives every other code the generic audio-link sentence", () => {
+    expect(audioNoticeText("AUDIO_X")).toEqual({ key: "audioNoticeLink", params: { code: "AUDIO_X" } });
+    expect(audioNoticeText("AUDIO_X", { detail: "boom" })).toEqual({ key: "audioNoticeLinkDetail", params: { code: "AUDIO_X", detail: "boom" } });
   });
 });

@@ -11,11 +11,7 @@ export function importLegacyConfigOnce(database: WebSpeakDatabase, legacyConfigP
     const current = database.getSettings();
     database.updateSettings({
       siteName: current.siteName,
-      welcomeText: current.welcomeText,
-      welcomeTextEn: current.welcomeTextEn,
-      welcomeTextDe: current.welcomeTextDe,
-      welcomeTextRu: current.welcomeTextRu,
-      welcomeTextJa: current.welcomeTextJa,
+      welcomeTexts: current.welcomeTexts,
       accessMode: current.accessMode,
       tsHost: legacy.tsHost,
       tsPort: legacy.tsPort,

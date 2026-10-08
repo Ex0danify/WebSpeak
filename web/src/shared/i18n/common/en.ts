@@ -1,8 +1,9 @@
-export const en: Record<string, string> = {
+export const en = {
+  appDescription: "WebSpeak — TeamSpeak browser voice workspace",
+  appTitle: "WebSpeak · TeamSpeak Web Client",
   close: "Close",
   connected: "Connected",
   languageMenu: "Language",
-  languageSwitch: "中文",
   notifications: "Notifications",
   optional: "Optional",
   poke: "Poke",
@@ -18,10 +19,10 @@ export const en: Record<string, string> = {
   switchToDarkTheme: "Switch to dark theme",
   switchToLightTheme: "Switch to light theme",
   textChannel: "TEXT CHANNEL",
-  themeDark: "Dark theme",
-  themeLight: "Light theme",
-  themeSystem: "System theme",
   voiceActivity: "VOICE ACTIVITY",
   you: "You",
   server: "Server",
-};
+} satisfies Record<string, string>;
+
+/** What the app needs to know about this language besides its words (read by languages.ts). */
+export const meta = { endonym: "English", tag: "en", intl: "en-US", flag: "🇬🇧" };

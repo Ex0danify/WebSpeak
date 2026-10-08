@@ -1,7 +1,4 @@
-import { en } from "./en.js";
-
 export const de: Record<string, string> = {
-  ...en,
   channelChat: "Chat in {{channel}}",
   messageCount: "{{count}} Nachrichten",
   chatStart: "Dies ist der Anfang des Chats",

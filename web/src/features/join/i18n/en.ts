@@ -1,4 +1,4 @@
-export const en: Record<string, string> = {
+export const en = {
   browserWorkspace: "Browser voice workspace",
   secureGateway: "Secure voice gateway",
   adminConsole: "Admin console",
@@ -61,4 +61,4 @@ export const en: Record<string, string> = {
   serverPasswordInvalidLead: "The server password was rejected. Enter it again and retry.",
   serverPasswordRetry: "Enter password and retry",
   serverPasswordRetryPlaceholder: "Enter the server password",
-};
+} satisfies Record<string, string>;

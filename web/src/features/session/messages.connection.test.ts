@@ -165,7 +165,7 @@ describe("disconnected / reconnecting / reconnected / reconnectFailed / connecti
   it("disconnected with recoverable:false raises the disconnect error", async () => {
     const socket = await connected();
     await push(socket, { type: "disconnected", recoverable: false });
-    expect(harness.voice.session.state).toMatchObject({ connected: false, reconnecting: false, error: "TeamSpeak 连接已断开" });
+    expect(harness.voice.session.state).toMatchObject({ connected: false, reconnecting: false, error: { key: "connectionClosedTeamSpeak" } });
   });
 
   it("disconnected clears the whisper state", async () => {
@@ -218,7 +218,7 @@ describe("disconnected / reconnecting / reconnected / reconnectFailed / connecti
   it("without a prior connectionFailed, a non-1000 close raises the code-derived error", async () => {
     const socket = await connected();
     socket.serverClose(4004, "");
-    expect(harness.voice.session.state).toMatchObject({ connected: false, errorCode: "SERVER_REJECTED", error: "服务器当前已满或拒绝了连接，请稍后重试" });
+    expect(harness.voice.session.state).toMatchObject({ connected: false, errorCode: "SERVER_REJECTED", error: { key: "closeServerFullOrRejected" } });
   });
 
   it("a plain close (1000) stays silent, but admin-terminated does not", async () => {

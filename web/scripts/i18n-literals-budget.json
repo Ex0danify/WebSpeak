@@ -1,0 +1,9 @@
+{
+  "ignore": [
+    {
+      "file": "src/views/UiGallery.vue",
+      "reason": "Dev-only component gallery, not shipped UI (i18n plan section 0.1, out of scope in section 5). English only, no CJK."
+    }
+  ],
+  "files": {}
+}

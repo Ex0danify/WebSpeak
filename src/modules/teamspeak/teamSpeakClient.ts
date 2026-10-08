@@ -236,13 +236,10 @@ export class TSClient extends EventEmitter {
     });
 
     client.on("clientLeave", (info) => {
-      // 仅记录本客户端的踢出(4)/踢出并封禁(5)退出原因，供 kicked 事件区分普通踢出与封禁
       if (info.id === this.clientId && (info.reasonID === 4 || info.reasonID === 5)) this.selfLeaveReasonId = info.reasonID;
       this.emit("clientLeave", info);
     });
 
-    // 转发 SDK 的 kicked 事件：不转发的话管理员填写的踢出原因会被丢弃，浏览器
-    // 只能看到笼统的「连接失败」。这里把原因连同 reason id 一起归一化后向上抛。
     // The SDK emits `kicked` only for a self leave with reason 4 (kick) or 5
     // (kick with ban) and hands over the admin written reason message. Without
     // this listener the reason was dropped, so the browser degraded to a generic

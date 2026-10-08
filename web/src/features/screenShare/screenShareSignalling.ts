@@ -1,4 +1,5 @@
 import type { Ref } from "vue";
+import { text } from "@/shared/i18n/localizedText";
 import type { ScreenShareSignal, ScreenShareStream } from "./screenShareTypes";
 import type { ScreenSharePeerContext, createScreenSharePeerLifecycle } from "./screenSharePeerLifecycle";
 
@@ -47,7 +48,7 @@ export function createScreenShareSignalling(ctx: ScreenShareSignallingContext) {
         signal: { kind: "offer", sdp: peer.localDescription?.sdp ?? offer.sdp ?? "" },
       });
     } catch {
-      failScreenSharePeer(stream.ownerPeerId, "无法创建屏幕共享直连请求，请重试");
+      failScreenSharePeer(stream.ownerPeerId, text("screenShareP2POfferFailed"));
     }
   }
 
@@ -67,7 +68,7 @@ export function createScreenShareSignalling(ctx: ScreenShareSignallingContext) {
         signal: { kind: "offer", sdp: peer.localDescription?.sdp ?? offer.sdp ?? "" },
       });
     } catch {
-      failScreenSharePeer(peerId, "无法为 TeamSpeak 观看端创建屏幕共享直连");
+      failScreenSharePeer(peerId, text("screenShareP2PTsViewerFailed"));
     }
   }
 
@@ -110,7 +111,7 @@ export function createScreenShareSignalling(ctx: ScreenShareSignallingContext) {
         await peer.setLocalDescription(answer);
         ctx.send({ type: "screenShareSignal", streamId, targetPeerId: fromPeerId, signal: { kind: "answer", sdp: answer.sdp ?? "" } });
       } catch {
-        failScreenSharePeer(fromPeerId, "无法回复 TeamSpeak 屏幕共享的直连请求");
+        failScreenSharePeer(fromPeerId, text("screenShareP2PTsAnswerFailed"));
       }
       return;
     }
@@ -122,7 +123,7 @@ export function createScreenShareSignalling(ctx: ScreenShareSignallingContext) {
         await peer.setRemoteDescription({ type: "answer", sdp: signal.sdp });
         await flushScreenShareCandidates(fromPeerId, peer);
       } catch {
-        failScreenSharePeer(fromPeerId, "TeamSpeak 观看端无法完成屏幕共享直连协商");
+        failScreenSharePeer(fromPeerId, text("screenShareP2PTsNegotiationFailed"));
       }
       return;
     }
@@ -134,7 +135,7 @@ export function createScreenShareSignalling(ctx: ScreenShareSignallingContext) {
         await peer.setRemoteDescription({ type: "answer", sdp: signal.sdp });
         await flushScreenShareCandidates(fromPeerId, peer);
       } catch {
-        failScreenSharePeer(fromPeerId, "观看端无法完成屏幕共享直连协商");
+        failScreenSharePeer(fromPeerId, text("screenShareP2PViewerNegotiationFailed"));
       }
       return;
     }
@@ -150,7 +151,7 @@ export function createScreenShareSignalling(ctx: ScreenShareSignallingContext) {
         await peer.setLocalDescription(answer);
         ctx.send({ type: "screenShareSignal", streamId, targetPeerId: fromPeerId, signal: { kind: "answer", sdp: answer.sdp ?? "" } });
       } catch {
-        setScreenShareP2PError("共享端无法完成观看者的直连协商");
+        setScreenShareP2PError(text("screenShareP2POwnerNegotiationFailed"));
       }
     }
   }

@@ -3,7 +3,7 @@
     <section v-for="channelItem in channels" :key="channelItem.id" :class="['member-channel-group', { current: currentChannelId === channelItem.id, 'drag-over': dragOverChannelId === channelItem.id }]" :data-member-channel-id="channelItem.id" :style="{ marginLeft: `${channelItem.depth * 10}px` }" @dragover="$emit('channel-drag-over', channelItem, $event)" @dragleave="$emit('channel-drag-leave', channelItem, $event)" @drop="$emit('channel-drop', channelItem, $event)" @pointermove="$emit('member-pointer-move', $event)" @pointerup="$emit('member-pointer-up', $event)" @pointercancel="$emit('member-pointer-cancel', $event)">
       <button class="member-channel-heading" :title="t('switchChannel')" @click="$emit('select-channel', channelItem)">
         <Icon name="volume" :size="16" />
-        <span>{{ channelItem.name }}</span>
+        <span>{{ channelNameText(channelItem, t) }}</span>
         <small>{{ channelItem.members.length }}</small>
       </button>
       <div v-if="channelItem.members.length" class="member-list">
@@ -36,7 +36,7 @@
 import { Icon } from "@/shared/ui/icon";
 import MemberRow from "./MemberRow.vue";
 import { useI18n } from "@/shared/i18n/useI18n.js";
-import { isSpeaking } from "@/features/session";
+import { channelNameText, isSpeaking } from "@/features/session";
 import type { TreeChannel } from "../roomTypes.js";
 import type { ChannelMember } from "@/features/session";
 

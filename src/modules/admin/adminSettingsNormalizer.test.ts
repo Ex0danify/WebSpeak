@@ -9,7 +9,7 @@ import { legacyRelayNodesFromSettings, normalizeRelayNodes, normalizeSettings, t
 const TOKEN = "relay-token-1234567";
 
 const stored = (overrides: Partial<PersistedSettings> = {}): PersistedSettings => ({
-  siteName: "Old", welcomeText: "old", welcomeTextEn: "en", welcomeTextDe: "de", welcomeTextRu: "ru", welcomeTextJa: "ja",
+  siteName: "Old", welcomeTexts: { en: "en", de: "de" },
   accessMode: "fixed", tsHost: "127.0.0.1", tsPort: 9987, tsPasswordEncrypted: null, detectedProtocol: null,
   lastTestAt: null, lastTestLatencyMs: null, lastTestError: null, webRtcEnabled: false, webRtcUdpStart: 40000, webRtcUdpEnd: 40100,
   relayConfigured: false, relayEnabled: false, relayName: "", relayHost: "", relayPort: 0, relayTokenEncrypted: null,
@@ -33,19 +33,17 @@ function codeOf(action: () => unknown): string {
 
 describe("normalizeSettings", () => {
   it("trims text, parses the target and keeps current values for omitted fields", () => {
-    const result = normalizeSettings(settingsInput({ siteName: "  Site  ", welcomeText: " hi " }), stored(), MASTER_SECRET);
-    expect(result).toMatchObject({ siteName: "Site", welcomeText: "hi", welcomeTextEn: "en", tsHost: "ts.example.org", tsPort: 9988, accessMode: "open", webRtcUdpStart: 40000, webRtcUdpEnd: 40100 });
+    const result = normalizeSettings(settingsInput({ siteName: "  Site  ", welcomeTexts: { en: " hi " } }), stored(), MASTER_SECRET);
+    expect(result).toMatchObject({ siteName: "Site", welcomeTexts: { en: "hi", de: "de" }, tsHost: "ts.example.org", tsPort: 9988, accessMode: "open", webRtcUdpStart: 40000, webRtcUdpEnd: 40100 });
   });
 
   const rejects: Array<[string, Parameters<typeof settingsInput>[0], string]> = [
     ["a bad target", { target: "bad target:::" }, "INVALID_TARGET"],
     ["an empty site name", { siteName: "  " }, "INVALID_SITE_NAME"],
     ["a site name over 80", { siteName: "x".repeat(81) }, "INVALID_SITE_NAME"],
-    ["a welcome text over 500", { welcomeText: "x".repeat(501) }, "INVALID_WELCOME_TEXT"],
-    ["an English welcome over 500", { welcomeTextEn: "x".repeat(501) }, "INVALID_WELCOME_TEXT_EN"],
-    ["a German welcome over 500", { welcomeTextDe: "x".repeat(501) }, "INVALID_WELCOME_TEXT_DE"],
-    ["a Russian welcome over 500", { welcomeTextRu: "x".repeat(501) }, "INVALID_WELCOME_TEXT_RU"],
-    ["a Japanese welcome over 500", { welcomeTextJa: "x".repeat(501) }, "INVALID_WELCOME_TEXT_JA"],
+    ["an English welcome over 500", { welcomeTexts: { en: "x".repeat(501) } }, "INVALID_WELCOME_TEXT"],
+    ["a German welcome over 500", { welcomeTexts: { de: "x".repeat(501) } }, "INVALID_WELCOME_TEXT"],
+    ["a welcome over 500 in any other language", { welcomeTexts: { fr: "x".repeat(501) } }, "INVALID_WELCOME_TEXT"],
     ["an unknown access mode", { accessMode: "nope" as never }, "INVALID_ACCESS_MODE"],
     ["a non-boolean webRtcEnabled", { webRtcEnabled: "yes" as never }, "INVALID_WEBRTC_ENABLED"],
     ["a start port below 1024", { webRtcUdpStart: 80 }, "INVALID_WEBRTC_PORT_RANGE"],
@@ -54,6 +52,13 @@ describe("normalizeSettings", () => {
   ];
   it.each(rejects)("rejects %s", (_name, overrides, code) => {
     expect(codeOf(() => normalizeSettings(settingsInput(overrides), stored(), MASTER_SECRET))).toBe(code);
+  });
+
+  it("keeps a language's welcome text when the form omits it and clears it when the form sends an empty one", () => {
+    const kept = normalizeSettings(settingsInput({ welcomeTexts: { fr: "salut" } }), stored(), MASTER_SECRET);
+    expect(kept.welcomeTexts).toEqual({ en: "en", de: "de", fr: "salut" });
+    expect(normalizeSettings(settingsInput({ welcomeTexts: { de: "  " } }), stored(), MASTER_SECRET).welcomeTexts).toEqual({ en: "en" });
+    expect(normalizeSettings(settingsInput(), stored(), MASTER_SECRET).welcomeTexts).toEqual({ en: "en", de: "de" });
   });
 
   it("locks the UDP range while WebRTC is enabled", () => {
@@ -141,7 +146,7 @@ describe("legacyRelayNodesFromSettings", () => {
   it("builds a default node, or reuses the id and createdAt of the first existing node", () => {
     expect(legacyRelayNodesFromSettings(update, [])[0]).toMatchObject({ id: "relay-default", name: "R", enabled: true, host: "relay.example.org", port: 9100, tokenEncrypted: "tok" });
     expect(legacyRelayNodesFromSettings(update, [node()])[0]).toMatchObject({ id: "relay-a", createdAt: node().createdAt });
-    expect(legacyRelayNodesFromSettings({ ...update, relayName: "" }, [])[0]!.name).toBe("中继加速");
+    expect(legacyRelayNodesFromSettings({ ...update, relayName: "" }, [])[0]!.name).toBe("Relay acceleration");
   });
 });
 

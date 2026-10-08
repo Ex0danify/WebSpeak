@@ -3,16 +3,9 @@ import { expect, test } from "./fixtures";
 import { overflowScan } from "./helpers";
 
 // The /demo page: simulated data, no gateway session. It is served by the gateway from the fresh
-// build like the real pages. Most tests store English first, so they do not depend on the browser's language.
+// build like the real pages. The fixtures store English first, so tests do not depend on the browser's language.
 
 test.describe("demo page", () => {
-  test.beforeEach(async ({ page }) => {
-    await page.addInitScript(() => {
-      // Only a first visit: a test that switches language must still see its choice after a reload.
-      if (!localStorage.getItem("webspeak:language")) localStorage.setItem("webspeak:language", "en");
-    });
-  });
-
   const voiceCard = (page: Page, name: string) => page.getByRole("article").filter({ hasText: name });
 
   test("shows the simulated channels, the hero and the two voice cards of the first channel", async ({ page }) => {
@@ -177,7 +170,6 @@ test.describe("demo page language", () => {
   test("an English browser without a stored language gets the demo in English, as the join page does (F32)", async ({ page }) => {
     await page.goto("/demo");
     await expect(page.getByRole("button", { name: "Poke", exact: true })).toBeVisible();
-    await expect(page.getByRole("button", { name: "戳一戳" })).toBeHidden();
   });
 
   test("a browser in another language gets the demo in that language, and the stored language wins over it (F32)", async ({ browser, baseURL }) => {
@@ -190,10 +182,11 @@ test.describe("demo page language", () => {
     await expect(germanPage.getByRole("button", { name: "Poke", exact: true })).toBeVisible();
     await german.close();
 
+    // A retired language (zh) is not offered any more: the browser falls back to English.
     const chinese = await browser.newContext({ baseURL, locale: "zh-CN" });
     const chinesePage = await chinese.newPage();
     await chinesePage.goto("/demo");
-    await expect(chinesePage.getByRole("button", { name: "戳一戳" })).toBeVisible();
+    await expect(chinesePage.getByRole("button", { name: "Poke", exact: true })).toBeVisible();
     await chinese.close();
   });
 });

@@ -31,7 +31,7 @@ describe("the initial state", () => {
     expect((connected.members as { nickname: string }[]).map((member) => member.nickname).sort()).toEqual(["alice", "bob"]);
     expect(connected.members).toContainEqual(expect.objectContaining({ id, nickname: "alice", uid: client.uid }));
     expect(connected.members).toContainEqual(expect.objectContaining({ nickname: "bob", uid: "remote-bob", away: false, inputMuted: false, outputMuted: false }));
-    expect(connected.serverEventLog).toEqual([expect.objectContaining({ kind: "connection", message: "已连接到服务器" })]);
+    expect(connected.serverEventLog).toEqual([expect.objectContaining({ kind: "connection", message: "Connected to the server" })]);
     expect(connected).toMatchObject({ whisperTargetIds: [], whisperActive: false, webrtcAvailable: false, accelerated: false });
     expect(connected.screenShareIceServers).toEqual(expect.any(Array));
   });
@@ -90,7 +90,7 @@ describe("members after the initial state", () => {
     const event = await socket.waitForMessage("serverEvent", { after });
     // The message stays for an older gateway; the browser now builds its own sentence from
     // kind and nickname instead of showing this Chinese text whatever the page's language (F24).
-    expect(event.event).toMatchObject({ kind: "joined", message: "bob 加入了服务器", nickname: "bob" });
+    expect(event.event).toMatchObject({ kind: "joined", message: "bob joined the server", nickname: "bob", params: { nickname: "bob" } });
   });
 
   it("announces a member who leaves with `memberLeave`, a fresh `channelList` and a server event", async () => {
@@ -102,7 +102,7 @@ describe("members after the initial state", () => {
     expect(await socket.waitForMessage("memberLeave", { after })).toEqual({ type: "memberLeave", id: bob.id });
     const list = await socket.waitForMessage((message) => message.type === "channelList" && memberNames(message, "Room A").length === 0, { after });
     expect(memberNames(list, "Lobby")).toEqual(["alice"]);
-    expect((await socket.waitForMessage("serverEvent", { after })).event).toMatchObject({ kind: "left", message: "bob 离开了服务器", nickname: "bob" });
+    expect((await socket.waitForMessage("serverEvent", { after })).event).toMatchObject({ kind: "left", message: "bob left the server", nickname: "bob", params: { nickname: "bob" } });
   });
 
   it("moves a member in the tree when they change channel, with a server event", async () => {
@@ -113,7 +113,7 @@ describe("members after the initial state", () => {
     bob.moveTo(3n);
     const list = await socket.waitForMessage((message) => message.type === "channelList" && memberNames(message, "Room B").includes("bob"), { after });
     expect(memberNames(list, "Room A")).toEqual([]);
-    expect((await socket.waitForMessage("serverEvent", { after })).event).toMatchObject({ kind: "moved", message: "bob 移动到了其他频道", nickname: "bob" });
+    expect((await socket.waitForMessage("serverEvent", { after })).event).toMatchObject({ kind: "moved", message: "bob moved to another channel", nickname: "bob", params: { nickname: "bob" } });
   });
 
   it("carries away and mute flags of other members in the tree", async () => {

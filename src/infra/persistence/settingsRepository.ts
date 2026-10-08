@@ -1,6 +1,6 @@
 import type { TeamSpeakProtocol } from "../../shared/teamSpeakProtocol.js";
 import { DEFAULT_WEBRTC_UDP_PORT_RANGE } from "../../config/webrtcConfig.js";
-import type { SettingsRow } from "./databaseRows.js";
+import type { SettingsRow, WelcomeTextRow } from "./databaseRows.js";
 import type { PersistedSettings, SettingsUpdate } from "./databaseTypes.js";
 import type { PersistenceContext } from "./persistenceContext.js";
 
@@ -11,11 +11,7 @@ export class SettingsRepository {
     const row = this.context.database.prepare("SELECT * FROM settings WHERE id = 1").get() as SettingsRow;
     return {
       siteName: row.site_name,
-      welcomeText: row.welcome_text,
-      welcomeTextEn: row.welcome_text_en,
-      welcomeTextDe: row.welcome_text_de,
-      welcomeTextRu: row.welcome_text_ru,
-      welcomeTextJa: row.welcome_text_ja,
+      welcomeTexts: this.readWelcomeTexts(),
       accessMode: row.access_mode === "open" ? "open" : "fixed",
       tsHost: row.ts_host,
       tsPort: row.ts_port,
@@ -58,18 +54,13 @@ export class SettingsRepository {
   write(settings: SettingsUpdate, now: string): void {
     this.context.database.prepare(
       `UPDATE settings SET
-         site_name = ?, welcome_text = ?, welcome_text_en = ?, welcome_text_de = ?, welcome_text_ru = ?, welcome_text_ja = ?, access_mode = ?, ts_host = ?, ts_port = ?,
+         site_name = ?, access_mode = ?, ts_host = ?, ts_port = ?,
          ts_password_encrypted = ?, webrtc_enabled = ?, webrtc_udp_start = ?,
          webrtc_udp_end = ?, relay_configured = ?, relay_enabled = ?, relay_name = ?,
          relay_host = ?, relay_port = ?, relay_token_encrypted = ?, updated_at = ?
        WHERE id = 1`,
     ).run(
       settings.siteName,
-      settings.welcomeText,
-      settings.welcomeTextEn ?? "",
-      settings.welcomeTextDe ?? "",
-      settings.welcomeTextRu ?? "",
-      settings.welcomeTextJa ?? "",
       settings.accessMode,
       settings.tsHost,
       settings.tsPort,
@@ -85,5 +76,19 @@ export class SettingsRepository {
       settings.relayTokenEncrypted,
       now,
     );
+    this.writeWelcomeTexts(settings.welcomeTexts ?? {});
+  }
+
+  private readWelcomeTexts(): Record<string, string> {
+    const rows = this.context.database.prepare("SELECT language, text FROM welcome_texts ORDER BY language").all() as WelcomeTextRow[];
+    return Object.fromEntries(rows.map((row) => [row.language, row.text]));
+  }
+
+  private writeWelcomeTexts(texts: Record<string, string>): void {
+    this.context.database.exec("DELETE FROM welcome_texts");
+    const insert = this.context.database.prepare("INSERT INTO welcome_texts (language, text) VALUES (?, ?)");
+    for (const [language, text] of Object.entries(texts)) {
+      if (text.trim()) insert.run(language, text);
+    }
   }
 }

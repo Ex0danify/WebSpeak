@@ -1,10 +1,11 @@
 <template>
   <footer class="join-footer" role="contentinfo">
-    <span>WebSpeak</span><span class="footer-separator">·</span><span>{{ t('teamSpeakClient') }}</span><span class="footer-spacer"></span><button type="button" class="clear-local-button" @click="$emit('clear-local-data')">{{ t('clearLocalData') }}</button><span class="footer-separator">·</span><span>{{ t('browserSupport') }}</span>
+    <span>{{ APP_NAME }}</span><span class="footer-separator">·</span><span>{{ t('teamSpeakClient') }}</span><span class="footer-spacer"></span><button type="button" class="clear-local-button" @click="$emit('clear-local-data')">{{ t('clearLocalData') }}</button><span class="footer-separator">·</span><span>{{ t('browserSupport') }}</span>
   </footer>
 </template>
 
 <script setup lang="ts">
+import { APP_NAME } from "@/shared/lib/brand";
 import { useI18n } from "@/shared/i18n/useI18n.js";
 
 defineEmits<{

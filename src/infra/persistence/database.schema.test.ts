@@ -156,7 +156,6 @@ describe("schema snapshot", () => {
           "sql": "CREATE TABLE settings (
                   id INTEGER PRIMARY KEY CHECK (id = 1),
                   site_name TEXT NOT NULL,
-                  welcome_text TEXT NOT NULL,
                   access_mode TEXT NOT NULL CHECK (access_mode IN ('fixed', 'open')),
                   ts_host TEXT NOT NULL,
                   ts_port INTEGER NOT NULL CHECK (ts_port BETWEEN 1 AND 65535),
@@ -166,7 +165,15 @@ describe("schema snapshot", () => {
                   last_test_latency_ms INTEGER,
                   last_test_error TEXT,
                   updated_at TEXT NOT NULL
-                , webrtc_enabled INTEGER NOT NULL DEFAULT 0 CHECK (webrtc_enabled IN (0, 1)), webrtc_public_host TEXT NOT NULL DEFAULT '', webrtc_udp_start INTEGER NOT NULL DEFAULT 40000 CHECK (webrtc_udp_start BETWEEN 1 AND 65535), webrtc_udp_end INTEGER NOT NULL DEFAULT 40099 CHECK (webrtc_udp_end BETWEEN 1 AND 65535), welcome_text_en TEXT NOT NULL DEFAULT '', relay_configured INTEGER NOT NULL DEFAULT 0 CHECK (relay_configured IN (0, 1)), relay_enabled INTEGER NOT NULL DEFAULT 0 CHECK (relay_enabled IN (0, 1)), relay_name TEXT NOT NULL DEFAULT '', relay_host TEXT NOT NULL DEFAULT '', relay_port INTEGER NOT NULL DEFAULT 39087 CHECK (relay_port BETWEEN 1 AND 65535), relay_token_encrypted TEXT, welcome_text_de TEXT NOT NULL DEFAULT '', welcome_text_ru TEXT NOT NULL DEFAULT '', welcome_text_ja TEXT NOT NULL DEFAULT '')",
+                , webrtc_enabled INTEGER NOT NULL DEFAULT 0 CHECK (webrtc_enabled IN (0, 1)), webrtc_public_host TEXT NOT NULL DEFAULT '', webrtc_udp_start INTEGER NOT NULL DEFAULT 40000 CHECK (webrtc_udp_start BETWEEN 1 AND 65535), webrtc_udp_end INTEGER NOT NULL DEFAULT 40099 CHECK (webrtc_udp_end BETWEEN 1 AND 65535), relay_configured INTEGER NOT NULL DEFAULT 0 CHECK (relay_configured IN (0, 1)), relay_enabled INTEGER NOT NULL DEFAULT 0 CHECK (relay_enabled IN (0, 1)), relay_name TEXT NOT NULL DEFAULT '', relay_host TEXT NOT NULL DEFAULT '', relay_port INTEGER NOT NULL DEFAULT 39087 CHECK (relay_port BETWEEN 1 AND 65535), relay_token_encrypted TEXT)",
+          "type": "table",
+        },
+        {
+          "name": "welcome_texts",
+          "sql": "CREATE TABLE welcome_texts (
+                  language TEXT PRIMARY KEY,
+                  text TEXT NOT NULL
+                )",
           "type": "table",
         },
       ]
@@ -180,7 +187,7 @@ describe("schema snapshot", () => {
     mkdirSyncFor(v6Path);
     createSchema6Database(v6Path);
     const database = fx.open(v6Path);
-    expect(database.getSettings()).toMatchObject({ siteName: "Six", welcomeText: "hello six", welcomeTextDe: "", welcomeTextJa: "" });
+    expect(database.getSettings()).toMatchObject({ siteName: "Six", welcomeTexts: {} });
     database.close();
     const upgraded = dumpSchema(v6Path);
     // ALTER TABLE ADD COLUMN stores the added column text, so only the object names must match the fresh layout.
@@ -241,7 +248,6 @@ describe("schema snapshot", () => {
           "sql": "CREATE TABLE settings (
             id INTEGER PRIMARY KEY CHECK (id = 1),
             site_name TEXT NOT NULL,
-            welcome_text TEXT NOT NULL,
             access_mode TEXT NOT NULL CHECK (access_mode IN ('fixed', 'open')),
             ts_host TEXT NOT NULL,
             ts_port INTEGER NOT NULL CHECK (ts_port BETWEEN 1 AND 65535),
@@ -251,7 +257,15 @@ describe("schema snapshot", () => {
             last_test_latency_ms INTEGER,
             last_test_error TEXT,
             updated_at TEXT NOT NULL
-          , webrtc_enabled INTEGER NOT NULL DEFAULT 0 CHECK (webrtc_enabled IN (0, 1)), webrtc_public_host TEXT NOT NULL DEFAULT '', webrtc_udp_start INTEGER NOT NULL DEFAULT 40000 CHECK (webrtc_udp_start BETWEEN 1 AND 65535), webrtc_udp_end INTEGER NOT NULL DEFAULT 40099 CHECK (webrtc_udp_end BETWEEN 1 AND 65535), welcome_text_en TEXT NOT NULL DEFAULT '', relay_configured INTEGER NOT NULL DEFAULT 0 CHECK (relay_configured IN (0, 1)), relay_enabled INTEGER NOT NULL DEFAULT 0 CHECK (relay_enabled IN (0, 1)), relay_name TEXT NOT NULL DEFAULT '', relay_host TEXT NOT NULL DEFAULT '', relay_port INTEGER NOT NULL DEFAULT 39087 CHECK (relay_port BETWEEN 1 AND 65535), relay_token_encrypted TEXT, welcome_text_de TEXT NOT NULL DEFAULT '', welcome_text_ru TEXT NOT NULL DEFAULT '', welcome_text_ja TEXT NOT NULL DEFAULT '')",
+          , webrtc_enabled INTEGER NOT NULL DEFAULT 0 CHECK (webrtc_enabled IN (0, 1)), webrtc_public_host TEXT NOT NULL DEFAULT '', webrtc_udp_start INTEGER NOT NULL DEFAULT 40000 CHECK (webrtc_udp_start BETWEEN 1 AND 65535), webrtc_udp_end INTEGER NOT NULL DEFAULT 40099 CHECK (webrtc_udp_end BETWEEN 1 AND 65535), relay_configured INTEGER NOT NULL DEFAULT 0 CHECK (relay_configured IN (0, 1)), relay_enabled INTEGER NOT NULL DEFAULT 0 CHECK (relay_enabled IN (0, 1)), relay_name TEXT NOT NULL DEFAULT '', relay_host TEXT NOT NULL DEFAULT '', relay_port INTEGER NOT NULL DEFAULT 39087 CHECK (relay_port BETWEEN 1 AND 65535), relay_token_encrypted TEXT)",
+          "type": "table",
+        },
+        {
+          "name": "welcome_texts",
+          "sql": "CREATE TABLE welcome_texts (
+                  language TEXT PRIMARY KEY,
+                  text TEXT NOT NULL
+                )",
           "type": "table",
         },
       ]

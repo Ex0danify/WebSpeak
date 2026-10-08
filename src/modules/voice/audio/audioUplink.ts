@@ -8,7 +8,7 @@ export function handleUplinkFrame(ctx: VoiceConnection, data: Buffer | string): 
   const frame = typeof data === "string" ? Buffer.from(data) : data;
   if (!ctx.state.tsReady || frame.length !== AUDIO_FRAME_BYTES) {
     ctx.entry.audio.ingressDroppedFrames++;
-    sendProtocolError(ctx.sendJson, "INVALID_AUDIO_FRAME", "音频帧格式无效");
+    sendProtocolError(ctx.sendJson, "INVALID_AUDIO_FRAME", "Audio frame format is invalid");
     return;
   }
   const now = Date.now();
@@ -30,8 +30,6 @@ export function handleUplinkFrame(ctx: VoiceConnection, data: Buffer | string): 
       ctx.entry.audio.tsSendLastAt = sentAt;
       ctx.entry.audio.tsSendFrames++;
     } else {
-      // Opus 编码器不可用（初始化失败或销毁后仍有帧在途）：显式告知浏览器
-      // 而不是静默丢帧，5 秒限流避免高频告警刷屏。
       // The Opus encoder is unavailable (init failed or torn down while
       // frames are still in flight): say it instead of dropping silently.
       const warnedAt = ctx.entry.opusEncoderWarnedAt;

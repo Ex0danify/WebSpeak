@@ -53,11 +53,7 @@ describe("settings", () => {
     database.updateSettings(settings());
     expect(database.getSettings()).toMatchObject({
       siteName: "Test site",
-      welcomeText: "zh",
-      welcomeTextEn: "en",
-      welcomeTextDe: "de",
-      welcomeTextRu: "ru",
-      welcomeTextJa: "ja",
+      welcomeTexts: { de: "de", en: "en" },
       accessMode: "open",
       tsHost: "ts.example.org",
       tsPort: 9988,
@@ -74,11 +70,18 @@ describe("settings", () => {
     });
   });
 
-  it("stores optional welcome texts and the WebRTC range as defaults when they are omitted", () => {
+  it("stores no welcome texts and the default WebRTC range when they are omitted", () => {
     const database = fx.open();
-    const { welcomeTextEn: _en, welcomeTextDe: _de, welcomeTextRu: _ru, welcomeTextJa: _ja, webRtcUdpStart: _s, webRtcUdpEnd: _e, ...minimal } = settings();
+    const { welcomeTexts: _texts, webRtcUdpStart: _s, webRtcUdpEnd: _e, ...minimal } = settings();
     database.updateSettings(minimal);
-    expect(database.getSettings()).toMatchObject({ welcomeTextEn: "", welcomeTextDe: "", welcomeTextRu: "", welcomeTextJa: "", webRtcUdpStart: 40000, webRtcUdpEnd: 40099 });
+    expect(database.getSettings()).toMatchObject({ welcomeTexts: {}, webRtcUdpStart: 40000, webRtcUdpEnd: 40099 });
+  });
+
+  it("replaces the stored welcome texts on every save and does not store empty ones", () => {
+    const database = fx.open();
+    database.updateSettings(settings({ welcomeTexts: { en: "hello", de: "hallo", fr: "salut" } }));
+    database.updateSettings(settings({ welcomeTexts: { en: "hi", de: "  " } }));
+    expect(database.getSettings().welcomeTexts).toEqual({ en: "hi" });
   });
 
   it("audits every save with the access mode and target, under the given event name", () => {

@@ -19,7 +19,7 @@ export function handleScreenShareMessage(
 
   if (message.type === "screenShareStart") {
     if ([...hub.screenStreams.values()].some((stream) => stream.source === "browser" && stream.ownerEntryId === entry.id)) {
-      sendJson({ type: "screenShareError", requestId: message.requestId, code: "SCREEN_SHARE_ALREADY_ACTIVE", message: "你已经在共享屏幕" });
+      sendJson({ type: "screenShareError", requestId: message.requestId, code: "SCREEN_SHARE_ALREADY_ACTIVE", message: "You are already sharing your screen" });
       return;
     }
     const stream: ScreenStreamRecord = {
@@ -28,7 +28,8 @@ export function handleScreenShareMessage(
       ownerPeerId: entry.screenPeerId,
       ownerClientId: entry.tsClient.getClientId() || undefined,
       ownerNickname: entry.nickname,
-      name: message.name?.trim() || `${entry.nickname} 的屏幕`,
+      name: message.name?.trim() || `${entry.nickname}'s screen`,
+      ...(message.name?.trim() ? {} : { nameKind: "ownerScreen" as const }),
       audio: message.audio === true,
       createdAt: Date.now(),
       viewerCount: 0,
@@ -53,17 +54,17 @@ export function handleScreenShareMessage(
 
   const stream = hub.screenStreams.get(screenStreamKey(teamSpeakTargetKey(entry.target), message.streamId));
   if (!stream) {
-    sendJson({ type: "screenShareError", requestId: "requestId" in message ? message.requestId : undefined, code: "SCREEN_SHARE_NOT_FOUND", message: "屏幕共享已结束或不存在" });
+    sendJson({ type: "screenShareError", requestId: "requestId" in message ? message.requestId : undefined, code: "SCREEN_SHARE_NOT_FOUND", message: "The screen share has ended or does not exist" });
     return;
   }
   if (stream.targetKey !== teamSpeakTargetKey(entry.target) || stream.channelId !== entry.tsClient.getChannelId()) {
-    sendJson({ type: "screenShareError", requestId: "requestId" in message ? message.requestId : undefined, code: "SCREEN_SHARE_TARGET_MISMATCH", message: "屏幕共享不属于当前服务器或频道" });
+    sendJson({ type: "screenShareError", requestId: "requestId" in message ? message.requestId : undefined, code: "SCREEN_SHARE_TARGET_MISMATCH", message: "The screen share does not belong to the current server or channel" });
     return;
   }
 
   if (message.type === "screenShareStop") {
     if (stream.ownerEntryId !== entry.id) {
-      sendJson({ type: "screenShareError", requestId: message.requestId, code: "SCREEN_SHARE_NOT_OWNER", message: "只有共享者可以结束共享" });
+      sendJson({ type: "screenShareError", requestId: message.requestId, code: "SCREEN_SHARE_NOT_OWNER", message: "Only the sharer can end the share" });
       return;
     }
     hub.stopScreenStream(stream, "owner-stopped");
@@ -73,7 +74,7 @@ export function handleScreenShareMessage(
 
   if (message.type === "screenShareJoin") {
     if (stream.ownerEntryId === entry.id) {
-      sendJson({ type: "screenShareError", requestId: message.requestId, code: "SCREEN_SHARE_OWNER_CANNOT_JOIN", message: "共享者不能作为观看者加入自己的共享" });
+      sendJson({ type: "screenShareError", requestId: message.requestId, code: "SCREEN_SHARE_OWNER_CANNOT_JOIN", message: "The sharer cannot join their own share as a viewer" });
       return;
     }
     const alreadyJoined = stream.viewerEntryIds.has(entry.id);
@@ -123,12 +124,12 @@ function relayScreenShareSignal(
 ): void {
   if (stream.source === "teamspeak") {
     if (!stream.viewerEntryIds.has(entry.id) || targetPeerId !== stream.ownerPeerId) {
-      sendJson({ type: "screenShareError", code: "SCREEN_SHARE_SIGNAL_FORBIDDEN", message: "无权发送该屏幕共享信令" });
+      sendJson({ type: "screenShareError", code: "SCREEN_SHARE_SIGNAL_FORBIDDEN", message: "Not allowed to send signals for this screen share" });
       return;
     }
     const sourceClientId = stream.sourceClientId;
     if (!sourceClientId) {
-      sendJson({ type: "screenShareError", code: "SCREEN_SHARE_SOURCE_UNAVAILABLE", message: "共享来源暂不可用" });
+      sendJson({ type: "screenShareError", code: "SCREEN_SHARE_SOURCE_UNAVAILABLE", message: "The share source is temporarily unavailable" });
       return;
     }
     if (signal.kind === "close") {
@@ -136,7 +137,7 @@ function relayScreenShareSignal(
       return;
     }
     if (signal.kind === "offer") {
-      sendJson({ type: "screenShareError", code: "SCREEN_SHARE_INVALID_SIGNAL", message: "观看端不能向 TeamSpeak 来源发送 offer" });
+      sendJson({ type: "screenShareError", code: "SCREEN_SHARE_INVALID_SIGNAL", message: "A viewer cannot send an offer to a TeamSpeak source" });
       return;
     }
     const payload = signal.kind === "iceCandidate"
@@ -147,7 +148,7 @@ function relayScreenShareSignal(
       clid: String(sourceClientId),
       json: JSON.stringify(payload),
     })).catch((error: unknown) => {
-      sendJson({ type: "screenShareError", code: "SCREEN_SHARE_SIGNAL_FAILED", message: error instanceof Error ? error.message : "屏幕共享信令发送失败" });
+      sendJson(failureFrame("SCREEN_SHARE_SIGNAL_FAILED", error, "Failed to send the screen share signal"));
     });
     return;
   }
@@ -156,7 +157,7 @@ function relayScreenShareSignal(
     const viewerClid = parseNativeViewerPeerId(targetPeerId);
     const publisher = stream.teamSpeakPublisherEntryId ? hub.host.getParticipant(stream.teamSpeakPublisherEntryId) : undefined;
     if (!viewerClid || !publisher || !stream.teamSpeakStreamId || !stream.nativeViewerClids.has(viewerClid)) {
-      sendJson({ type: "screenShareError", code: "SCREEN_SHARE_PEER_NOT_FOUND", message: "TeamSpeak 观看者已离开" });
+      sendJson({ type: "screenShareError", code: "SCREEN_SHARE_PEER_NOT_FOUND", message: "The viewer has left" });
       return;
     }
     if (signal.kind === "close") {
@@ -171,7 +172,7 @@ function relayScreenShareSignal(
       return;
     }
     if (signal.kind === "answer") {
-      sendJson({ type: "screenShareError", code: "SCREEN_SHARE_INVALID_SIGNAL", message: "TeamSpeak 观看端不能先发送 answer" });
+      sendJson({ type: "screenShareError", code: "SCREEN_SHARE_INVALID_SIGNAL", message: "A TeamSpeak viewer cannot send an answer first" });
       return;
     }
     let command: string;
@@ -193,7 +194,7 @@ function relayScreenShareSignal(
       return;
     }
     void publisher.tsClient.sendProtocolCommand(command).catch((error: unknown) => {
-      sendJson({ type: "screenShareError", code: "SCREEN_SHARE_SIGNAL_FAILED", message: error instanceof Error ? error.message : "屏幕共享信令发送失败" });
+      sendJson(failureFrame("SCREEN_SHARE_SIGNAL_FAILED", error, "Failed to send the screen share signal"));
     });
     return;
   }
@@ -202,7 +203,7 @@ function relayScreenShareSignal(
   const isOwner = entry.id === stream.ownerEntryId;
   const isViewer = stream.viewerEntryIds.has(entry.id);
   if (!owner || (!isOwner && !isViewer)) {
-    sendJson({ type: "screenShareError", code: "SCREEN_SHARE_SIGNAL_FORBIDDEN", message: "无权发送该屏幕共享信令" });
+    sendJson({ type: "screenShareError", code: "SCREEN_SHARE_SIGNAL_FORBIDDEN", message: "Not allowed to send signals for this screen share" });
     return;
   }
   // Keep the browser P2P graph bipartite: the owner may signal only an
@@ -214,7 +215,7 @@ function relayScreenShareSignal(
       .find((candidate) => candidate?.screenPeerId === targetPeerId)
     : targetPeerId === owner.screenPeerId ? owner : undefined;
   if (!targetEntry || targetEntry.id === entry.id) {
-    sendJson({ type: "screenShareError", code: "SCREEN_SHARE_PEER_NOT_FOUND", message: "观看者已离开" });
+    sendJson({ type: "screenShareError", code: "SCREEN_SHARE_PEER_NOT_FOUND", message: "The viewer has left" });
     return;
   }
   hub.sendToEntry(targetEntry.id, { type: "screenShareSignal", streamId: stream.streamId, fromPeerId: entry.screenPeerId, signal });
@@ -249,7 +250,7 @@ async function joinNativeScreenStream(
 ): Promise<void> {
   const sourceClientId = stream.sourceClientId;
   if (!entry.tsClient.getClientId() || !sourceClientId) {
-    sendJson({ type: "screenShareError", requestId, code: "SCREEN_SHARE_SOURCE_UNAVAILABLE", message: "共享来源暂不可用" });
+    sendJson({ type: "screenShareError", requestId, code: "SCREEN_SHARE_SOURCE_UNAVAILABLE", message: "The share source is temporarily unavailable" });
     return;
   }
   try {
@@ -267,6 +268,26 @@ async function joinNativeScreenStream(
     }));
   } catch (error: unknown) {
     hub.leaveScreenStream(entry, stream);
-    sendJson({ type: "screenShareError", requestId, code: "SCREEN_SHARE_JOIN_FAILED", message: error instanceof Error ? error.message : "无法加入屏幕共享" });
+    sendJson(failureFrame("SCREEN_SHARE_JOIN_FAILED", error, "Could not join the screen share", requestId));
   }
+}
+
+const MAX_DETAIL_LENGTH = 160;
+
+/**
+ * A `screenShareError` for a failed TeamSpeak command. `message` keeps the error text when there is one (as
+ * before), and the same text travels in `params.detail`, capped and stripped of control characters, so the
+ * browser never has to parse `message`.
+ */
+function failureFrame(code: "SCREEN_SHARE_SIGNAL_FAILED" | "SCREEN_SHARE_JOIN_FAILED", error: unknown, fallback: string, requestId?: string): Record<string, unknown> {
+  const detail = error instanceof Error
+    ? error.message.replace(/[\u0000-\u001f\u007f]/g, " ").replace(/\s+/g, " ").trim().slice(0, MAX_DETAIL_LENGTH)
+    : "";
+  return {
+    type: "screenShareError",
+    ...(requestId !== undefined ? { requestId } : {}),
+    code,
+    message: error instanceof Error ? error.message : fallback,
+    ...(detail ? { params: { detail } } : {}),
+  };
 }

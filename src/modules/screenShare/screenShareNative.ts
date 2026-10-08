@@ -147,8 +147,9 @@ export function handleRawScreenNotification(hub: ScreenShareHub, entry: ScreenSh
       source: "teamspeak",
       ownerPeerId: `ts-${sourceClientId}`,
       ownerClientId: sourceClientId,
-      ownerNickname: params.name || `TeamSpeak 用户 ${sourceClientId}`,
-      name: params.name || "TeamSpeak 屏幕共享",
+      ownerNickname: params.name || `TeamSpeak user ${sourceClientId}`,
+      name: params.name || "TeamSpeak screen share",
+      ...(params.name ? {} : { nameKind: "teamspeakNative" as const }),
       audio: params.audio === "1",
       createdAt: Date.now(),
       viewerCount: 0,
@@ -163,6 +164,7 @@ export function handleRawScreenNotification(hub: ScreenShareHub, entry: ScreenSh
     stream.sourceClientId = sourceClientId;
     stream.ownerNickname = params.name || stream.ownerNickname;
     stream.name = params.name || stream.name;
+    if (params.name) delete stream.nameKind;
     stream.audio = params.audio === "1";
     hub.screenStreams.set(key, stream);
     // Every gateway session attached to the same TS target sees the same
@@ -192,7 +194,7 @@ export function handleRawScreenNotification(hub: ScreenShareHub, entry: ScreenSh
       hub.sendToEntry(browserStream.ownerEntryId, {
         type: "screenShareError",
         code: "SCREEN_SHARE_NATIVE_PUBLISHER_STOPPED",
-        message: "TeamSpeak 客户端屏幕共享通道已停止，网页共享仍可继续",
+        message: "The TeamSpeak client screen share channel has stopped; the web share can continue",
       });
       hub.broadcastScreenMessage(browserStream, hub.screenShareViewerCountMessage(browserStream));
     }

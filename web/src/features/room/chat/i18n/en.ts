@@ -1,4 +1,4 @@
-export const en: Record<string, string> = {
+export const en = {
   channelChat: "{{channel}} chat",
   messageCount: "{{count}} messages",
   chatStart: "This is the beginning of the chat",
@@ -21,4 +21,4 @@ export const en: Record<string, string> = {
   eventChannelRenamed: "Channel renamed to \"{{channel}}\"",
   eventChannelDeleted: "Channel \"{{channel}}\" was deleted",
   sendMessagePlaceholder: "Message the channel…",
-};
+} satisfies Record<string, string>;

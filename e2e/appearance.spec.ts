@@ -1,17 +1,10 @@
 import type { Page } from "@playwright/test";
 import { expect, test } from "./fixtures";
 import { join, overflowScan } from "./helpers";
-import { translations as commonTranslations } from "../web/src/shared/i18n/common";
-import { translations as joinTranslations } from "../web/src/features/join/i18n";
-import { translations as roomTranslations } from "../web/src/features/room/i18n";
+import { loadJoinRoomTranslations } from "./helpers/translations";
 
-// Step 8.2 split the one i18n module the old WebClient view used into `join` (pre-connect screen) and
-// `room` (connected view); step 8.6 pulled out `common`, the strings every view agreed on.
-// A key lives in exactly one of the three, so this merge is complete and lossless for every
-// language, matching what useI18n.ts's own t() resolves for the join page.
-const translations: Record<string, Record<string, string>> = Object.fromEntries(
-  Object.keys(roomTranslations).map((language) => [language, { ...commonTranslations[language], ...joinTranslations[language], ...roomTranslations[language] }]),
-);
+// The merged common, join and room messages per language (a key lives in exactly one of the three).
+const translations = await loadJoinRoomTranslations();
 
 // Theme and language: what the page looks like and says, and what the page remembers. Real gateway,
 // fake TeamSpeak server. The theme button is in the room's header on desktop and on the More tab of a
@@ -130,11 +123,8 @@ test.describe("theme", () => {
 });
 
 const LANGUAGES = [
-  { code: "zh", option: "中文" },
   { code: "en", option: "English" },
   { code: "de", option: "Deutsch" },
-  { code: "ru", option: "Русский" },
-  { code: "ja", option: "日本語" },
 ] as const;
 
 const text = (code: string, key: string): string => translations[code][key];
@@ -146,11 +136,11 @@ async function pickLanguage(page: Page, from: string, option: string): Promise<v
 }
 
 test.describe("language", () => {
-  test("each of the five languages switches the page at once, and the switcher shows the current one", async ({ page }) => {
+  test("each language switches the page at once, and the switcher shows the current one", async ({ page }) => {
     await page.goto("/");
     let current = "en";
     await expect(page.getByRole("button", { name: text("en", "enterVoice") })).toBeVisible();
-    for (const { code, option } of [...LANGUAGES, LANGUAGES[1]]) {
+    for (const { code, option } of [...LANGUAGES, LANGUAGES[0]]) {
       await pickLanguage(page, current, option);
       current = code;
       await expect(page.getByRole("button", { name: text(code, "enterVoice") })).toBeVisible();
@@ -175,26 +165,23 @@ test.describe("language", () => {
     await pickLanguage(page, "en", "Deutsch");
     await expect(page.getByRole("button", { name: text("de", "enterVoice") })).toBeVisible();
     await expect.poll(() => page.evaluate(() => document.documentElement.lang)).toBe("de");
-    for (const { code, option } of [LANGUAGES[0], LANGUAGES[3], LANGUAGES[4], LANGUAGES[1]]) {
+    for (const { code, option } of [LANGUAGES[0]]) {
       await pickLanguage(page, await page.evaluate(() => localStorage.getItem("webspeak:language") ?? "en"), option);
-      await expect.poll(() => page.evaluate(() => document.documentElement.lang)).toBe(code === "zh" ? "zh-CN" : code);
+      await expect.poll(() => page.evaluate(() => document.documentElement.lang)).toBe(code);
     }
   });
 
   test("the html lang attribute is set at startup from the stored language (F27)", async ({ page }) => {
-    await page.addInitScript(() => localStorage.setItem("webspeak:language", "ja"));
+    await page.addInitScript(() => localStorage.setItem("webspeak:language", "de"));
     await page.goto("/");
-    await expect(page.getByRole("button", { name: text("ja", "enterVoice") })).toBeVisible();
-    expect(await page.evaluate(() => document.documentElement.lang)).toBe("ja");
+    await expect(page.getByRole("button", { name: text("de", "enterVoice") })).toBeVisible();
+    expect(await page.evaluate(() => document.documentElement.lang)).toBe("de");
   });
 });
 
-// German and Russian have the longest words. Nothing may be cut off or sit outside the screen, on the
+// German has the longest words. Nothing may be cut off or sit outside the screen, on the
 // join form and in the room, and on a phone on each of its four tabs.
-for (const { code, name } of [
-  { code: "de", name: "German" },
-  { code: "ru", name: "Russian" },
-]) {
+for (const { code, name } of [{ code: "de", name: "German" }]) {
   test(`${name}: no text is cut off or off screen on the join form and in the room`, async ({ page, isMobile }) => {
     await page.addInitScript((language) => localStorage.setItem("webspeak:language", language), code);
     await page.goto("/");

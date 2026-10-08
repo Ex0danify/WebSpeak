@@ -21,7 +21,7 @@ const draft = defineModel<string>("draft", { required: true });
 const emit = defineEmits<{ send: []; toggleMine: [id: number] }>();
 const { language, t } = useI18n();
 
-function messageText(message: DemoMessage): string { return language.value === "zh" ? message.zhText ?? message.text : language.value === "ru" ? message.ruText ?? message.enText ?? message.text : language.value === "ja" ? message.jaText ?? message.enText ?? message.text : message.enText ?? message.text; }
+function messageText(message: DemoMessage): string { return language.value === "de" ? message.deText ?? message.enText ?? message.text : message.enText ?? message.text; }
 </script>
 
 <style scoped>

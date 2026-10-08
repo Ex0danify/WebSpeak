@@ -1,4 +1,5 @@
 import { defineStore } from "pinia";
+import type { MaybeLocalizedText } from "@/shared/i18n/localizedText";
 import { reactive, ref, shallowRef } from "vue";
 import type { ScreenShareStream, ScreenShareWebRtcStats } from "../screenShareTypes";
 
@@ -17,7 +18,7 @@ export const useScreenShareStore = defineStore("voiceScreenShare", () => {
   const screenShareViewingStreamId = ref("");
   // A MediaStream is not proxied by Vue either way; shallowRef just says so.
   const screenShareRemoteStream = shallowRef<MediaStream | null>(null);
-  const screenShareError = ref("");
+  const screenShareError = ref<MaybeLocalizedText>("");
   const screenShareErrorCode = ref("");
   const screenShareRemoteVolume = ref(1);
   const screenShareWebRtcStats = reactive<ScreenShareWebRtcStats>(initialStats());

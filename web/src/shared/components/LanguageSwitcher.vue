@@ -36,8 +36,7 @@ import { computed } from "vue";
 import { Button } from "../ui/button";
 import { Icon } from "../ui/icon";
 import { Menu, MenuItem } from "../ui/menu";
-
-type Language = "zh" | "en" | "de" | "ru" | "ja";
+import { LANGUAGES, type Language } from "../i18n/languages";
 
 const props = withDefaults(defineProps<{
   modelValue: Language;
@@ -54,15 +53,9 @@ const emit = defineEmits<{
   change: [value: Language];
 }>();
 
-const options: Array<{ value: Language; code: string; label: string; flag: string }> = [
-  { value: "zh", code: "ZH", label: "中文", flag: "🇨🇳" },
-  { value: "en", code: "EN", label: "English", flag: "🇬🇧" },
-  { value: "de", code: "DE", label: "Deutsch", flag: "🇩🇪" },
-  { value: "ru", code: "RU", label: "Русский", flag: "🇷🇺" },
-  { value: "ja", code: "JA", label: "日本語", flag: "🇯🇵" },
-];
+const options = LANGUAGES.map((language) => ({ value: language.code, code: language.code.toUpperCase(), label: language.endonym, flag: language.flag }));
 
-const currentLanguage = computed(() => options.find((option) => option.value === props.modelValue) ?? options[0]);
+const currentLanguage = computed(() => options.find((option) => option.value === props.modelValue) ?? options[0]!);
 
 function select(value: Language) {
   emit("update:modelValue", value);

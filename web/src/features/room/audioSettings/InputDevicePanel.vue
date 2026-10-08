@@ -1,7 +1,7 @@
 <template>
   <section class="settings-section">
     <h3><Icon name="mic" :size="20" /> {{ t('inputDevice') }}</h3>
-    <Field :label="t('microphone')" :error="audioSettingsError ? localizedMessage(audioSettingsError) : undefined" class="mb-5">
+    <Field :label="t('microphone')" :error="audioSettingsError ? resolveText(audioSettingsError) : undefined" class="mb-5">
       <Select :model-value="selectedInputDeviceId" :disabled="!inputDevices.length" @update:model-value="$emit('input-device-change', $event)">
         <option value="">{{ t('defaultMicrophone') }}</option>
         <option v-for="(device, index) in inputDevices" :key="device.deviceId || `microphone-${index}`" :value="device.deviceId">{{ device.label || t('microphoneNumber', { index: index + 1 }) }}</option>
@@ -53,11 +53,11 @@ import { Select } from "@/shared/ui/select";
 import { Slider } from "@/shared/ui/slider";
 import { Switch } from "@/shared/ui/switch";
 import { useI18n } from "@/shared/i18n/useI18n.js";
-import { localizeMessage } from "@/shared/lib/localizeMessage.js";
+import { resolveText, type MaybeLocalizedText } from "@/shared/i18n/localizedText.js";
 import type { AudioInputDevice, AudioPermission } from "@/features/voice";
 
 defineProps<{
-  audioSettingsError: string;
+  audioSettingsError: MaybeLocalizedText;
   selectedInputDeviceId: string;
   inputDevices: AudioInputDevice[];
   audioPermission: AudioPermission;
@@ -83,11 +83,7 @@ defineEmits<{
   (e: "toggle-mic-test"): void;
 }>();
 
-const { language, t } = useI18n();
-
-function localizedMessage(message: string) {
-  return localizeMessage(message, language.value);
-}
+const { t } = useI18n();
 </script>
 
 <style scoped>

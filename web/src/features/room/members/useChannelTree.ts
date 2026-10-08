@@ -1,8 +1,8 @@
 import { computed, reactive, ref, watch, type Ref } from "vue";
 import { useI18n } from "@/shared/i18n/useI18n.js";
-import { localizeMessage } from "@/shared/lib/localizeMessage.js";
+import { errorText, resolveText, text } from "@/shared/i18n/localizedText.js";
 import { toast as raiseToast } from "@/shared/composables/useToast.js";
-import type { ChannelInfo, ChannelMember } from "@/features/session";
+import { channelNameText, type ChannelInfo, type ChannelMember } from "@/features/session";
 import type { RoomSession, TreeChannel } from "../roomTypes.js";
 
 export interface UseChannelTreeOptions {
@@ -27,14 +27,10 @@ export function useChannelTree(options: UseChannelTreeOptions) {
   const { state: voiceState, clearError } = options.session;
   const { channels, members } = options.roster;
   const { switchChannel, moveClient, setAway } = options.actions;
-  const { language, t } = useI18n();
+  const { t } = useI18n();
 
   function notify(message: string, variant: "success" | "danger" = "success") {
     raiseToast({ title: message, variant, duration: 2800 });
-  }
-
-  function localizedMessage(message: string): string {
-    return localizeMessage(message, language.value);
   }
 
   const memberQuery = ref("");
@@ -227,7 +223,7 @@ export function useChannelTree(options: UseChannelTreeOptions) {
   }
 
   function channelLabel(item: TreeChannel) {
-    return `${"　".repeat(item.depth)}${item.name}`;
+    return `${"\u3000".repeat(item.depth)}${channelNameText(item, t)}`;
   }
 
   function toggleAway(): void {
@@ -250,7 +246,7 @@ export function useChannelTree(options: UseChannelTreeOptions) {
       await moveClient(member.id, targetChannelId);
       notify(t("moveMemberSuccess"));
     } catch (error: unknown) {
-      notify(localizedMessage(error instanceof Error ? error.message : "操作失败"), "danger");
+      notify(resolveText(errorText(error, text("err_OPERATION_FAILED"))), "danger");
     }
   }
 

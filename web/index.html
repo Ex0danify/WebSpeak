@@ -1,11 +1,11 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#065682" />
     <meta name="description" content="WebSpeak — TeamSpeak browser voice workspace" />
-    <link rel="icon" type="image/jpeg" href="/网站图标.jpg" />
+    <link rel="icon" type="image/jpeg" href="/site-icon.jpg" />
     <title>WebSpeak · TeamSpeak Web Client</title>
     <script>
       // Sets data-theme before the body paints, so a reload of a stored dark (or light) theme
@@ -19,6 +19,30 @@
           document.documentElement.dataset.theme = theme;
         } catch (e) {
           // localStorage unavailable; the CSS default (system) still applies
+        }
+      })();
+    </script>
+    <script>
+      // Sets <html lang> before the body paints, so a German user doesn't see the default language
+      // announced until the app's module script runs. Same choice as detectLanguage() in useI18n.ts:
+      // the stored language, else the first browser language whose code prefixes it, else English.
+      // The code -> BCP 47 tag table is injected at build time from the common/<code>.ts meta files
+      // (vite.config.ts), so a new language needs no edit here.
+      (function () {
+        try {
+          var tags = __LANGUAGE_TAGS__;
+          var stored = localStorage.getItem("webspeak:language");
+          var code = stored && tags[stored] ? stored : "";
+          var preferred = navigator.languages && navigator.languages.length ? navigator.languages : [navigator.language];
+          for (var i = 0; !code && i < preferred.length; i++) {
+            var browser = String(preferred[i]).toLowerCase();
+            for (var known in tags) {
+              if (known !== "en" && browser.indexOf(known.toLowerCase()) === 0) code = known;
+            }
+          }
+          document.documentElement.lang = tags[code || "en"] || "en";
+        } catch (e) {
+          // storage or navigator unavailable; the static lang="en" stays
         }
       })();
     </script>

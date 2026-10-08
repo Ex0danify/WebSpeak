@@ -1,4 +1,4 @@
-export const en: Record<string, string> = {
+export const en = {
   demoBrowserClient: "Browser voice workspace",
   demoBadge: "Demo — simulated data",
   demoBack: "Back home",
@@ -19,4 +19,4 @@ export const en: Record<string, string> = {
   simulateReconnect: "Simulate reconnect",
   demoNote: "This page never connects to a real TeamSpeak server.",
   ready: "Ready",
-};
+} satisfies Record<string, string>;

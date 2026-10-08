@@ -14,23 +14,23 @@ describe("accompaniment", () => {
   it("needs browser support, and says so", async () => {
     const { audio, transport } = await started();
     audio.accompanimentSupported = false;
-    await expect(transport.startAccompaniment()).rejects.toThrow("伴奏共享不可用");
+    await expect(transport.startAccompaniment()).rejects.toThrow("Accompaniment sharing is unavailable");
     expect(audio.accompanimentErrorCode).toBe("unsupported");
   });
 
   it("needs an active WebRTC transport with a peer and a microphone", async () => {
     const idle = setup();
     idle.audio.accompanimentSupported = true;
-    await expect(idle.transport.startAccompaniment()).rejects.toThrow("伴奏功能需要启用 WebRTC");
+    await expect(idle.transport.startAccompaniment()).rejects.toThrow("Accompaniment needs WebRTC");
     expect(idle.audio.accompanimentErrorCode).toBe("needsWebRtc");
 
     const { audio, deps, transport } = await started();
     audio.accompanimentSupported = true;
     deps.webrtcActive.value = false;
-    await expect(transport.startAccompaniment()).rejects.toThrow("伴奏功能需要启用 WebRTC");
+    await expect(transport.startAccompaniment()).rejects.toThrow("Accompaniment needs WebRTC");
     deps.webrtcActive.value = true;
     rtc.micStream = null;
-    await expect(transport.startAccompaniment()).rejects.toThrow("伴奏功能需要启用 WebRTC");
+    await expect(transport.startAccompaniment()).rejects.toThrow("Accompaniment needs WebRTC");
   });
 
   it("keeps the audio, drops the video, turns voice processing off and tags the track as music", async () => {
@@ -83,7 +83,7 @@ describe("accompaniment", () => {
     audio.accompanimentSupported = true;
     const video = new FakeMediaStreamTrack("video");
     displayMedia(async () => new FakeMediaStream([video]));
-    await expect(transport.startAccompaniment()).rejects.toThrow("所选来源没有可共享音频");
+    await expect(transport.startAccompaniment()).rejects.toThrow("The selected source has no audio to share");
     expect(video.stopped).toBe(true);
     expect(audio.accompanimentErrorCode).toBe("noAudio");
     expect(audio.accompanimentActive).toBe(false);
@@ -135,7 +135,7 @@ describe("accompaniment", () => {
     const { audio, deps, transport } = await started();
     audio.accompanimentSupported = true;
     displayMedia(async () => new FakeMediaStream([new FakeDisplayTrack("audio")]));
-    await expect(transport.startAccompaniment()).rejects.toThrow("WebRTC 音频轨道尚未就绪");
+    await expect(transport.startAccompaniment()).rejects.toThrow("The WebRTC audio track is not ready");
     expect(audio.accompanimentActive).toBe(false);
     expect(audio.accompanimentErrorCode).toBe("permission");
     expect(deps.sendCmd).toHaveBeenLastCalledWith("setAccompanimentActive", { active: false });

@@ -49,8 +49,8 @@ const channels: DemoChannel[] = [
   { id: "music", name: "Music room", members: [] },
 ];
 const messages = ref<DemoMessage[]>([
-  { id: 1, author: "illusia", time: "10:24", text: "", zhText: "大家好，欢迎来到 WebSpeak。", enText: "Hello everyone, welcome to WebSpeak.", mine: true },
-  { id: 2, author: "msicbot", time: "10:25", text: "", zhText: "语音和文字频道都已同步。", enText: "Voice and text channels are in sync.", mine: false },
+  { id: 1, author: "illusia", time: "10:24", text: "", enText: "Hello everyone, welcome to WebSpeak.", deText: "Hallo zusammen, willkommen bei WebSpeak.", mine: true },
+  { id: 2, author: "msicbot", time: "10:25", text: "", enText: "Voice and text channels are in sync.", deText: "Sprach- und Textkanäle sind synchron.", mine: false },
 ]);
 const tabs = computed(() => [{ id: "channel" as const, label: t('channel') }, { id: "server" as const, label: t('server') }]);
 const selectedChannel = computed(() => channels.find((channel) => channel.id === selectedChannelId.value) ?? channels[0]);

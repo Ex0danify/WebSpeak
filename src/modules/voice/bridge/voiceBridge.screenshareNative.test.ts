@@ -66,7 +66,7 @@ describe("a stream that a TeamSpeak user starts", () => {
   it("gets a default name and no audio when TeamSpeak gives none, and an update changes the card without announcing it again", async () => {
     const gateway = await gateways.start();
     const { source, viewer, sessions, stream } = await nativeShare(gateway, { name: "", audio: "0" });
-    expect(stream).toMatchObject({ name: "TeamSpeak 屏幕共享", ownerNickname: `TeamSpeak 用户 ${source.id}`, audio: false });
+    expect(stream).toMatchObject({ name: "TeamSpeak screen share", nameKind: "teamspeakNative", ownerNickname: `TeamSpeak user ${source.id}`, audio: false });
     const mark = await markOf(viewer);
     notify(sessions, "notifystreaminfo", { id: STREAM_ID, clid: String(source.id), name: "Renamed", audio: "1" });
     const list = async () => {

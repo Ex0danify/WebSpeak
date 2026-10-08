@@ -3,7 +3,7 @@
 
   <main v-else-if="screen === 'change-password'" class="login-page">
     <section class="login-card">
-      <div class="admin-brand centered"><span><Icon name="waveform" :size="24" /></span><div><strong>WebSpeak</strong><small>{{ t('adminConsoleTitle') }}</small></div></div>
+      <div class="admin-brand centered"><span><Icon name="waveform" :size="24" /></span><div><strong>{{ APP_NAME }}</strong><small>{{ t('adminConsoleTitle') }}</small></div></div>
       <header><h1>{{ t('changePasswordTitle') }}</h1><p>{{ t('changePasswordLead') }}</p></header>
       <form @submit.prevent="$emit('change-password')">
         <Banner v-if="errorMessage" variant="danger" class="text-left">{{ errorMessage }}</Banner>
@@ -18,7 +18,7 @@
 
   <main v-else-if="screen === 'login'" class="login-page">
     <section class="login-card">
-      <div class="admin-brand centered"><span><Icon name="waveform" :size="24" /></span><div><strong>WebSpeak</strong><small>{{ t('adminConsoleTitle') }}</small></div></div>
+      <div class="admin-brand centered"><span><Icon name="waveform" :size="24" /></span><div><strong>{{ APP_NAME }}</strong><small>{{ t('adminConsoleTitle') }}</small></div></div>
       <header><h1>{{ t('welcomeAdmin') }}</h1><p>{{ t('loginLead') }}</p></header>
       <form @submit.prevent="$emit('login')">
         <Banner v-if="errorMessage" variant="danger" class="text-left">{{ errorMessage }}</Banner>
@@ -32,7 +32,7 @@
 
   <div v-else class="admin-shell">
     <aside class="admin-sidebar">
-      <div class="admin-brand"><span><Icon name="waveform" :size="22" /></span><div><strong>WebSpeak</strong><small>{{ t('adminConsoleTitle') }}</small></div></div>
+      <div class="admin-brand"><span><Icon name="waveform" :size="22" /></span><div><strong>{{ APP_NAME }}</strong><small>{{ t('adminConsoleTitle') }}</small></div></div>
       <nav><RouterLink to="/admin" exact-active-class="active"><Icon name="activity" :size="18" />{{ t('overview') }}</RouterLink><RouterLink to="/admin/server" active-class="active"><Icon name="server" :size="18" />{{ t('server') }}</RouterLink><RouterLink to="/admin/operations" active-class="active"><Icon name="users" :size="18" />{{ t('operations') }}</RouterLink></nav>
       <div class="sidebar-bottom">
         <Button as="a" variant="ghost" :class="sidebarActionClass + ' max-[850px]:hidden'" href="/" target="_blank"><Icon name="share" :size="16" />{{ t('openGuest') }}</Button>
@@ -50,6 +50,7 @@
 </template>
 
 <script setup lang="ts">
+import { APP_NAME } from "@/shared/lib/brand";
 import { RouterLink } from "vue-router";
 import { Banner } from "@/shared/ui/banner";
 import { Button } from "@/shared/ui/button";

@@ -1,8 +1,9 @@
 export const de: Record<string, string> = {
+  appDescription: "WebSpeak – TeamSpeak-Sprachraum im Browser",
+  appTitle: "WebSpeak · TeamSpeak-Webclient",
   close: "Schließen",
   connected: "Verbunden",
   languageMenu: "Sprache",
-  languageSwitch: "中文",
   notifications: "Benachrichtigungen",
   optional: "Optional",
   poke: "Anstupsen",
@@ -18,10 +19,10 @@ export const de: Record<string, string> = {
   switchToDarkTheme: "Zum dunklen Design wechseln",
   switchToLightTheme: "Zum hellen Design wechseln",
   textChannel: "TEXTKANAL",
-  themeDark: "Dunkles Design",
-  themeLight: "Helles Design",
-  themeSystem: "Systemdesign",
   voiceActivity: "SPRACHAKTIVITÄT",
   you: "Du",
   server: "Server",
 };
+
+/** What the app needs to know about this language besides its words (read by languages.ts). */
+export const meta = { endonym: "Deutsch", tag: "de", intl: "de-DE", flag: "🇩🇪" };

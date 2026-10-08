@@ -30,133 +30,99 @@ import { Skeleton } from "@/shared/ui/skeleton";
 import { Icon, iconNames } from "@/shared/ui/icon";
 import { applyTheme, getStoredTheme, saveTheme, type ThemeMode } from "@/shared/services/theme";
 
-type Lang = "en" | "zh" | "de" | "ru" | "ja";
+type Lang = "en" | "de" | "ru";
 
 const themes: ThemeMode[] = ["system", "light", "dark"];
 const languages: { value: Lang; label: string }[] = [
   { value: "en", label: "English" },
-  { value: "zh", label: "中文" },
   { value: "de", label: "Deutsch" },
   { value: "ru", label: "Русский" },
-  { value: "ja", label: "日本語" },
 ];
 
 // Sample copy for checking wrapping and clipping. Long German and Russian
 // strings are the worst case; components must tolerate 40% more than English.
 const samples: Record<Lang, { short: string; long: string }> = {
   en: { short: "Join channel", long: "Join the selected channel" },
-  zh: { short: "加入频道", long: "加入所选频道并开始语音" },
   de: { short: "Kanal beitreten", long: "Dem ausgewählten Sprachkanal beitreten" },
   ru: { short: "Войти в канал", long: "Присоединиться к выбранному каналу" },
-  ja: { short: "チャンネルに参加", long: "選択したチャンネルに参加する" },
 };
 
 const fieldSamples: Record<Lang, { region: string; regions: string[]; nick: string; nickHint: string; server: string; error: string; search: string }> = {
   en: { region: "Audio region", regions: ["Automatic (nearest)", "Europe", "North America"], nick: "Nickname", nickHint: "Shown to everyone in the channel.", server: "Server address", error: "Could not reach this server.", search: "Find a channel" },
-  zh: { region: "音频区域", regions: ["自动（就近）", "欧洲", "北美"], nick: "昵称", nickHint: "频道内所有人都能看到。", server: "服务器地址", error: "无法连接到该服务器。", search: "查找频道" },
   de: { region: "Bevorzugte Audioregion des Sprachservers", regions: ["Automatisch (nächstgelegene Region)", "Europa", "Nordamerika"], nick: "Benutzername", nickHint: "Für alle Teilnehmer im Kanal sichtbar, auch nach dem Verlassen.", server: "Serveradresse des Sprachservers", error: "Dieser Server ist derzeit nicht erreichbar.", search: "Kanal suchen" },
   ru: { region: "Регион обработки звука для голосового канала", regions: ["Автоматически (ближайший)", "Европа", "Северная Америка"], nick: "Псевдоним", nickHint: "Виден всем участникам канала.", server: "Адрес сервера голосовой связи", error: "Не удалось подключиться к этому серверу.", search: "Найти канал" },
-  ja: { region: "音声リージョン", regions: ["自動（最も近い）", "ヨーロッパ", "北アメリカ"], nick: "ニックネーム", nickHint: "チャンネルの全員に表示されます。", server: "サーバーアドレス", error: "このサーバーに接続できませんでした。", search: "チャンネルを検索" },
 };
 
 const switchSamples: Record<Lang, { noise: string; noiseHint: string; ptt: string; pttHint: string }> = {
   en: { noise: "Noise suppression", noiseHint: "Filters keyboard and fan noise from your mic.", ptt: "Push to talk", pttHint: "Hold Space to transmit." },
-  zh: { noise: "降噪", noiseHint: "过滤麦克风中的键盘声和风扇声。", ptt: "按键说话", pttHint: "按住空格键发言。" },
   de: { noise: "Geräuschunterdrückung", noiseHint: "Filtert Tastatur- und Lüftergeräusche aus dem Mikrofonsignal heraus.", ptt: "Push-to-Talk", pttHint: "Zum Sprechen die Leertaste gedrückt halten." },
   ru: { noise: "Шумоподавление", noiseHint: "Убирает шум клавиатуры и вентилятора из сигнала микрофона.", ptt: "Нажми и говори", pttHint: "Удерживайте пробел, чтобы говорить." },
-  ja: { noise: "ノイズ抑制", noiseHint: "キーボードやファンの音をマイクから除去します。", ptt: "プッシュトゥトーク", pttHint: "スペースキーを押している間だけ送信します。" },
 };
 const checkSamples: Record<Lang, { remember: string; all: string; modes: string; ptt: string; vox: string; always: string }> = {
   en: { remember: "Remember my nickname on this device", all: "Select all channels", modes: "Transmit mode", ptt: "Push to talk", vox: "Voice activity", always: "Always on" },
-  zh: { remember: "在此设备上记住我的昵称", all: "选择全部频道", modes: "发言模式", ptt: "按键说话", vox: "语音激活", always: "始终开启" },
   de: { remember: "Meinen Benutzernamen auf diesem Gerät für den nächsten Besuch merken", all: "Alle Kanäle auswählen", modes: "Übertragungsmodus", ptt: "Push-to-Talk", vox: "Sprachaktivierung", always: "Immer aktiv" },
   ru: { remember: "Запомнить мой псевдоним на этом устройстве для следующего входа", all: "Выбрать все каналы", modes: "Режим передачи", ptt: "Нажми и говори", vox: "По голосу", always: "Всегда включён" },
-  ja: { remember: "このデバイスでニックネームを記憶する", all: "すべてのチャンネルを選択", modes: "送信モード", ptt: "プッシュトゥトーク", vox: "音声検出", always: "常にオン" },
 };
 const sliderSamples: Record<Lang, { volume: string; threshold: string }> = {
   en: { volume: "Output volume", threshold: "Voice activity threshold" },
-  zh: { volume: "输出音量", threshold: "语音激活阈值" },
   de: { volume: "Ausgabelautstärke für alle Teilnehmer im Kanal", threshold: "Schwellenwert der Sprachaktivierung" },
   ru: { volume: "Громкость воспроизведения для всех участников канала", threshold: "Порог активации по голосу" },
-  ja: { volume: "出力音量", threshold: "音声検出のしきい値" },
 };
 const chipSamples: Record<Lang, { connected: string; unstable: string; muted: string; ptt: string; role: string; long: string; chat: string }> = {
   en: { connected: "Connected · 41 ms", unstable: "Unstable", muted: "Muted", ptt: "Push to talk", role: "Moderator", long: "Connection quality degraded for several minutes", chat: "Chat" },
-  zh: { connected: "已连接 · 41 ms", unstable: "不稳定", muted: "已静音", ptt: "按键说话", role: "管理员", long: "连接质量已下降数分钟", chat: "聊天" },
   de: { connected: "Verbunden · 41 ms", unstable: "Instabil", muted: "Stummgeschaltet", ptt: "Push-to-Talk", role: "Moderator", long: "Verbindungsqualität seit mehreren Minuten beeinträchtigt", chat: "Chat" },
   ru: { connected: "Подключено · 41 мс", unstable: "Нестабильно", muted: "Микрофон выключен", ptt: "Нажми и говори", role: "Модератор", long: "Качество соединения снижено уже несколько минут", chat: "Чат" },
-  ja: { connected: "接続済み · 41 ms", unstable: "不安定", muted: "ミュート中", ptt: "プッシュトゥトーク", role: "モデレーター", long: "接続品質が数分間低下しています", chat: "チャット" },
 };
 const tabSamples: Record<Lang, { label: string; voice: string; chat: string; settings: string; system: string; light: string; dark: string; members: string; files: string; log: string; panel: string }> = {
   en: { label: "Workspace sections", voice: "Voice", chat: "Chat", settings: "Settings", system: "System", light: "Light", dark: "Dark", members: "Members", files: "Files", log: "Log", panel: "Panel content for" },
-  zh: { label: "工作区分区", voice: "语音", chat: "聊天", settings: "设置", system: "系统", light: "浅色", dark: "深色", members: "成员", files: "文件", log: "日志", panel: "面板内容：" },
   de: { label: "Arbeitsbereich-Abschnitte", voice: "Sprachkanal", chat: "Kanalunterhaltung", settings: "Einstellungen und Audiogeräte", system: "Systemeinstellung", light: "Hell", dark: "Dunkel", members: "Teilnehmer", files: "Dateien", log: "Protokoll", panel: "Inhalt des Bereichs" },
   ru: { label: "Разделы рабочей области", voice: "Голосовой канал", chat: "Чат канала", settings: "Настройки и аудиоустройства", system: "Как в системе", light: "Светлая", dark: "Тёмная", members: "Участники", files: "Файлы", log: "Журнал", panel: "Содержимое раздела" },
-  ja: { label: "ワークスペースのセクション", voice: "ボイス", chat: "チャット", settings: "設定", system: "システム", light: "ライト", dark: "ダーク", members: "メンバー", files: "ファイル", log: "ログ", panel: "パネルの内容：" },
 };
 const cardSamples: Record<Lang, { title: string; body: string; long: string; edit: string; save: string; cancel: string; server: string; members: string }> = {
   en: { title: "Server status", body: "Nine members are online across four channels.", long: "Audio settings for this device", edit: "Edit", save: "Save", cancel: "Cancel", server: "Gateway", members: "Members" },
-  zh: { title: "服务器状态", body: "四个频道中共有九位成员在线。", long: "此设备的音频设置", edit: "编辑", save: "保存", cancel: "取消", server: "网关", members: "成员" },
   de: { title: "Serverstatus und Verbindungsqualität", body: "Neun Teilnehmer sind in vier Kanälen gleichzeitig online.", long: "Audioeinstellungen und Geräteauswahl für dieses Gerät", edit: "Bearbeiten", save: "Speichern", cancel: "Abbrechen", server: "Gateway", members: "Teilnehmer" },
   ru: { title: "Состояние сервера и качество соединения", body: "Девять участников находятся в сети в четырёх каналах.", long: "Настройки звука и выбор устройств для этого компьютера", edit: "Изменить", save: "Сохранить", cancel: "Отмена", server: "Шлюз", members: "Участники" },
-  ja: { title: "サーバーの状態", body: "4つのチャンネルに9人のメンバーがオンラインです。", long: "このデバイスの音声設定", edit: "編集", save: "保存", cancel: "キャンセル", server: "ゲートウェイ", members: "メンバー" },
 };
 const avatarSamples: Record<Lang, { name: string; long: string; speaking: string; title: string }> = {
   en: { name: "Kestrel", long: "Odin the Wanderer", speaking: "speaking", title: "Sizes" },
-  zh: { name: "凯斯特", long: "流浪者奥丁", speaking: "正在说话", title: "尺寸" },
   de: { name: "Kestrel", long: "Odin der Wanderer aus dem Norden", speaking: "spricht gerade", title: "Größen" },
   ru: { name: "Кестрел", long: "Один Странник Северный", speaking: "говорит", title: "Размеры" },
-  ja: { name: "ケストレル", long: "放浪者オーディン", speaking: "発言中", title: "サイズ" },
 };
 const meterSamples: Record<Lang, { input: string; live: string; threshold: string; start: string; stop: string; silence: string; loud: string }> = {
   en: { input: "Input level", live: "Live level", threshold: "Voice activation threshold", start: "Simulate input", stop: "Stop", silence: "Silence", loud: "Loud" },
-  zh: { input: "输入音量", live: "实时音量", threshold: "语音激活阈值", start: "模拟输入", stop: "停止", silence: "静音", loud: "过大" },
   de: { input: "Eingangspegel des Mikrofons", live: "Aktueller Pegel", threshold: "Schwellenwert der Sprachaktivierung", start: "Eingang simulieren", stop: "Stoppen", silence: "Stille", loud: "Zu laut" },
   ru: { input: "Уровень входного сигнала микрофона", live: "Текущий уровень", threshold: "Порог голосовой активации", start: "Имитировать ввод", stop: "Остановить", silence: "Тишина", loud: "Громко" },
-  ja: { input: "入力レベル", live: "現在のレベル", threshold: "音声検出のしきい値", start: "入力をシミュレート", stop: "停止", silence: "無音", loud: "大きい" },
 };
 const dialogSamples: Record<Lang, { open: string; small: string; medium: string; large: string; long: string; locked: string; title: string; longTitle: string; description: string; body: string; paragraph: string; password: string; cancel: string; join: string; close: string; lockedBody: string }> = {
   en: { open: "Open", small: "Small", medium: "Medium", large: "Large", long: "Long content", locked: "Not dismissible", title: "Channel password", longTitle: "Audio settings for this device", description: "This channel is protected.", body: "Enter the password to join.", paragraph: "Each browser user is an independent virtual client on the TeamSpeak server, so these settings only affect this tab.", password: "Password", cancel: "Cancel", join: "Join channel", close: "Close", lockedBody: "Esc, the backdrop and the X button do nothing here. Only the button below closes it." },
-  zh: { open: "打开", small: "小", medium: "中", large: "大", long: "长内容", locked: "不可关闭", title: "频道密码", longTitle: "此设备的音频设置", description: "该频道受密码保护。", body: "请输入密码以加入。", paragraph: "每个浏览器用户都是 TeamSpeak 服务器上独立的虚拟客户端，因此这些设置只影响当前标签页。", password: "密码", cancel: "取消", join: "加入频道", close: "关闭", lockedBody: "按 Esc、点击背景或关闭按钮都无效，只有下方按钮可以关闭。" },
   de: { open: "Öffnen", small: "Klein", medium: "Mittel", large: "Groß", long: "Langer Inhalt", locked: "Nicht schließbar", title: "Passwort für den Sprachkanal", longTitle: "Audioeinstellungen für dieses Gerät und diesen Browser", description: "Dieser Kanal ist durch ein Passwort geschützt.", body: "Geben Sie das Passwort ein, um dem Kanal beizutreten.", paragraph: "Jeder Browser-Benutzer ist ein eigenständiger virtueller Client auf dem TeamSpeak-Server, daher wirken sich diese Einstellungen nur auf diesen Tab aus.", password: "Passwort", cancel: "Abbrechen", join: "Kanal beitreten", close: "Schließen", lockedBody: "Esc, der Hintergrund und das X haben hier keine Wirkung. Nur die Schaltfläche unten schließt den Dialog." },
   ru: { open: "Открыть", small: "Малый", medium: "Средний", large: "Большой", long: "Длинное содержимое", locked: "Нельзя закрыть", title: "Пароль голосового канала", longTitle: "Настройки звука для этого устройства", description: "Этот канал защищён паролем.", body: "Введите пароль, чтобы присоединиться к каналу.", paragraph: "Каждый пользователь браузера — отдельный виртуальный клиент на сервере TeamSpeak, поэтому эти настройки действуют только в этой вкладке.", password: "Пароль", cancel: "Отмена", join: "Войти в канал", close: "Закрыть", lockedBody: "Esc, фон и крестик здесь ничего не делают. Закрыть окно можно только кнопкой ниже." },
-  ja: { open: "開く", small: "小", medium: "中", large: "大", long: "長い内容", locked: "閉じられない", title: "チャンネルのパスワード", longTitle: "このデバイスの音声設定", description: "このチャンネルはパスワードで保護されています。", body: "参加するにはパスワードを入力してください。", paragraph: "ブラウザの各ユーザーは TeamSpeak サーバー上の独立した仮想クライアントなので、この設定はこのタブにのみ適用されます。", password: "パスワード", cancel: "キャンセル", join: "チャンネルに参加", close: "閉じる", lockedBody: "Esc、背景、×ボタンでは閉じません。下のボタンだけで閉じられます。" },
 };
 const menuSamples: Record<Lang, { trigger: string; volume: string; label: string; moveHere: string; moveTo: string; mute: string; profile: string; disabled: string; kick: string; channels: string[]; last: string; inDialog: string; picked: string; none: string }> = {
   en: { trigger: "Member actions", volume: "Volume", label: "Actions for Kestrel", moveHere: "Move to my channel", moveTo: "Move to channel", mute: "Mute for me", profile: "View profile", disabled: "Send poke (no permission)", kick: "Kick from channel", channels: ["Lobby", "Raid Night", "AFK"], last: "Last action", inDialog: "Menu inside a dialog", picked: "Last action", none: "none" },
-  zh: { trigger: "成员操作", volume: "音量", label: "凯斯特的操作", moveHere: "移动到我的频道", moveTo: "移动到频道", mute: "为我静音", profile: "查看资料", disabled: "发送戳一下（无权限）", kick: "踢出频道", channels: ["大厅", "团战之夜", "挂机"], last: "上次操作", inDialog: "对话框中的菜单", picked: "上次操作", none: "无" },
   de: { trigger: "Aktionen für Mitglieder", volume: "Lautstärke", label: "Aktionen für Kestrel", moveHere: "In meinen Kanal verschieben", moveTo: "In einen anderen Kanal verschieben", mute: "Nur für mich stummschalten", profile: "Profil anzeigen", disabled: "Anstupsen senden (keine Berechtigung)", kick: "Aus dem Kanal werfen", channels: ["Empfang", "Raid-Nacht", "Abwesend"], last: "Letzte Aktion", inDialog: "Menü in einem Dialog", picked: "Letzte Aktion", none: "keine" },
   ru: { trigger: "Действия с участником", volume: "Громкость", label: "Действия для Кестрел", moveHere: "Переместить в мой канал", moveTo: "Переместить в другой канал", mute: "Отключить звук для меня", profile: "Посмотреть профиль", disabled: "Отправить толчок (нет прав)", kick: "Выгнать из канала", channels: ["Лобби", "Ночной рейд", "Отошёл"], last: "Последнее действие", inDialog: "Меню внутри диалога", picked: "Последнее действие", none: "нет" },
-  ja: { trigger: "メンバー操作", volume: "音量", label: "ケストレルの操作", moveHere: "自分のチャンネルに移動", moveTo: "チャンネルに移動", mute: "自分だけミュート", profile: "プロフィールを見る", disabled: "ポークを送る（権限なし）", kick: "チャンネルからキック", channels: ["ロビー", "レイドナイト", "離席中"], last: "最後の操作", inDialog: "ダイアログ内のメニュー", picked: "最後の操作", none: "なし" },
 };
 const popoverSamples: Record<Lang, { trigger: string; label: string; volume: string; done: string; hint: string; inDialog: string }> = {
   en: { trigger: "Output volume", label: "Output volume", volume: "Volume", done: "Done", hint: "Applies to everyone you hear in this tab.", inDialog: "Popover inside a dialog" },
-  zh: { trigger: "输出音量", label: "输出音量", volume: "音量", done: "完成", hint: "适用于此标签页中你听到的所有人。", inDialog: "对话框中的弹出层" },
   de: { trigger: "Ausgabelautstärke", label: "Ausgabelautstärke für alle Teilnehmer", volume: "Lautstärke", done: "Fertig", hint: "Gilt für alle Teilnehmer, die Sie in diesem Tab hören.", inDialog: "Popover in einem Dialog" },
   ru: { trigger: "Громкость вывода", label: "Громкость вывода для всех участников", volume: "Громкость", done: "Готово", hint: "Действует на всех, кого вы слышите в этой вкладке.", inDialog: "Всплывающая панель в диалоге" },
-  ja: { trigger: "出力音量", label: "出力音量", volume: "音量", done: "完了", hint: "このタブで聞こえるすべての人に適用されます。", inDialog: "ダイアログ内のポップオーバー" },
 };
 const tooltipSamples: Record<Lang, { mute: string; settings: string; long: string; inDialog: string; sides: Record<"top" | "right" | "bottom" | "left", string> }> = {
   en: { mute: "Mute microphone", settings: "Audio settings", long: "Applies to everyone you hear in this tab, not to other people connected to the server.", inDialog: "Tooltip inside a dialog", sides: { top: "Top", right: "Right", bottom: "Bottom", left: "Left" } },
-  zh: { mute: "静音麦克风", settings: "音频设置", long: "适用于此标签页中你听到的所有人，不影响连接到服务器的其他人。", inDialog: "对话框中的提示", sides: { top: "上", right: "右", bottom: "下", left: "左" } },
   de: { mute: "Mikrofon stummschalten", settings: "Audioeinstellungen", long: "Gilt für alle Teilnehmer, die Sie in diesem Tab hören, nicht für andere mit dem Server verbundene Personen.", inDialog: "Tooltip in einem Dialog", sides: { top: "Oben", right: "Rechts", bottom: "Unten", left: "Links" } },
   ru: { mute: "Отключить микрофон", settings: "Настройки звука", long: "Действует на всех, кого вы слышите в этой вкладке, но не на других людей, подключённых к серверу.", inDialog: "Подсказка в диалоге", sides: { top: "Сверху", right: "Справа", bottom: "Снизу", left: "Слева" } },
-  ja: { mute: "マイクをミュート", settings: "音声設定", long: "このタブで聞こえるすべての人に適用され、サーバーに接続している他の人には影響しません。", inDialog: "ダイアログ内のツールチップ", sides: { top: "上", right: "右", bottom: "下", left: "左" } },
 };
 type NoticeSample = { notifications: string; dismiss: string; connected: string; connectedBody: string; blocked: string; blockedBody: string; retry: string; copied: string; long: string; longBody: string; sticky: string; reconnecting: string; reconnectingBody: string; retryNow: string; failed: string; failedBody: string; degraded: string; degradedBody: string; poke: string; pokeBody: string; hidden: string; restore: string };
 const noticeSamples: Record<Lang, NoticeSample> = {
   en: { notifications: "Notifications", dismiss: "Dismiss", connected: "Connected to Raid Night", connectedBody: "Voice is live at 41 ms.", blocked: "Microphone blocked", blockedBody: "Allow mic access in your browser.", retry: "Retry", copied: "Link copied", long: "Could not move Kestrel to the channel", longBody: "You do not have permission to move members out of a password-protected channel on this server.", sticky: "Stays until dismissed", reconnecting: "Reconnecting", reconnectingBody: "Connection to the server was lost. Trying again in 3 s.", retryNow: "Retry now", failed: "Could not reconnect", failedBody: "The server did not answer after 5 attempts.", degraded: "Audio quality reduced", degradedBody: "Noise suppression is off because this browser is too busy.", poke: "Kestrel poked you", pokeBody: "Raid starts in five.", hidden: "Banner dismissed", restore: "Show again" },
-  zh: { notifications: "通知", dismiss: "关闭", connected: "已连接到团战之夜", connectedBody: "语音已就绪，延迟 41 毫秒。", blocked: "麦克风被阻止", blockedBody: "请在浏览器中允许使用麦克风。", retry: "重试", copied: "链接已复制", long: "无法将凯斯特移动到该频道", longBody: "你没有权限将成员移出此服务器上受密码保护的频道。", sticky: "需手动关闭", reconnecting: "正在重新连接", reconnectingBody: "与服务器的连接已断开，3 秒后重试。", retryNow: "立即重试", failed: "无法重新连接", failedBody: "服务器在 5 次尝试后仍未响应。", degraded: "音质已降低", degradedBody: "由于此浏览器负载过高，降噪已关闭。", poke: "凯斯特戳了你一下", pokeBody: "五分钟后开团。", hidden: "提示已关闭", restore: "再次显示" },
   de: { notifications: "Benachrichtigungen", dismiss: "Schließen", connected: "Mit Raid-Nacht verbunden", connectedBody: "Die Sprachverbindung steht mit 41 ms.", blocked: "Mikrofon blockiert", blockedBody: "Erlauben Sie den Mikrofonzugriff in Ihrem Browser.", retry: "Erneut versuchen", copied: "Link kopiert", long: "Kestrel konnte nicht in den Kanal verschoben werden", longBody: "Sie haben auf diesem Server keine Berechtigung, Mitglieder aus einem passwortgeschützten Kanal zu verschieben.", sticky: "Bleibt bis zum Schließen", reconnecting: "Verbindung wird wiederhergestellt", reconnectingBody: "Die Verbindung zum Server wurde unterbrochen. Neuer Versuch in 3 s.", retryNow: "Jetzt erneut versuchen", failed: "Wiederverbindung fehlgeschlagen", failedBody: "Der Server hat nach 5 Versuchen nicht geantwortet.", degraded: "Audioqualität verringert", degradedBody: "Die Rauschunterdrückung ist aus, weil dieser Browser zu stark ausgelastet ist.", poke: "Kestrel hat Sie angestupst", pokeBody: "Der Raid beginnt in fünf Minuten.", hidden: "Hinweis geschlossen", restore: "Wieder anzeigen" },
   ru: { notifications: "Уведомления", dismiss: "Закрыть", connected: "Подключено к каналу «Ночной рейд»", connectedBody: "Голосовая связь работает, задержка 41 мс.", blocked: "Микрофон заблокирован", blockedBody: "Разрешите доступ к микрофону в настройках браузера.", retry: "Повторить", copied: "Ссылка скопирована", long: "Не удалось переместить Кестрел в канал", longBody: "У вас нет прав перемещать участников из канала, защищённого паролем, на этом сервере.", sticky: "Остаётся, пока не закроете", reconnecting: "Переподключение", reconnectingBody: "Соединение с сервером потеряно. Повторная попытка через 3 с.", retryNow: "Повторить сейчас", failed: "Не удалось переподключиться", failedBody: "Сервер не ответил после 5 попыток.", degraded: "Качество звука снижено", degradedBody: "Шумоподавление отключено: браузер слишком загружен.", poke: "Кестрел толкнул вас", pokeBody: "Рейд начнётся через пять минут.", hidden: "Уведомление закрыто", restore: "Показать снова" },
-  ja: { notifications: "通知", dismiss: "閉じる", connected: "レイドナイトに接続しました", connectedBody: "音声は 41 ms で接続されています。", blocked: "マイクがブロックされています", blockedBody: "ブラウザでマイクへのアクセスを許可してください。", retry: "再試行", copied: "リンクをコピーしました", long: "ケストレルをチャンネルに移動できませんでした", longBody: "このサーバーでは、パスワード保護されたチャンネルからメンバーを移動する権限がありません。", sticky: "閉じるまで表示", reconnecting: "再接続中", reconnectingBody: "サーバーとの接続が切れました。3 秒後に再試行します。", retryNow: "今すぐ再試行", failed: "再接続できませんでした", failedBody: "5 回試行しましたが、サーバーから応答がありません。", degraded: "音質が低下しています", degradedBody: "このブラウザの負荷が高いため、ノイズ抑制をオフにしました。", poke: "ケストレルがあなたをポークしました", pokeBody: "5 分後にレイド開始です。", hidden: "バナーを閉じました", restore: "もう一度表示" },
 };
 const smallSamples: Record<Lang, { channels: string; members: string; mute: string; leave: string; loading: string; loadingMembers: string; mic: string; toggle: string }> = {
   en: { channels: "Channels", members: "Members", mute: "Mute", leave: "Leave channel", loading: "Loading", loadingMembers: "Loading members", mic: "Microphone", toggle: "Push to talk" },
-  zh: { channels: "频道", members: "成员", mute: "静音", leave: "离开频道", loading: "加载中", loadingMembers: "正在加载成员", mic: "麦克风", toggle: "按键说话" },
   de: { channels: "Kanäle", members: "Teilnehmer", mute: "Stummschalten", leave: "Kanal verlassen", loading: "Wird geladen", loadingMembers: "Teilnehmer werden geladen", mic: "Mikrofon", toggle: "Push-to-Talk" },
   ru: { channels: "Каналы", members: "Участники", mute: "Отключить звук", leave: "Покинуть канал", loading: "Загрузка", loadingMembers: "Загрузка участников", mic: "Микрофон", toggle: "Рация" },
-  ja: { channels: "チャンネル", members: "メンバー", mute: "ミュート", leave: "チャンネルから退出", loading: "読み込み中", loadingMembers: "メンバーを読み込み中", mic: "マイク", toggle: "プッシュトゥトーク" },
 };
 const { toast: raiseToast, dismiss: dismissToasts } = useToast();
 const bannerVisible = ref(true);
@@ -540,7 +506,7 @@ watch(theme, (value) => {
             <Avatar :name="avatarSamples[lang].name" size="md" />
             <Avatar :name="avatarSamples[lang].name" size="lg" />
             <Avatar :name="avatarSamples[lang].name" size="xl" />
-            <Avatar name="Logo" src="/网站图标.jpg" size="lg" />
+            <Avatar name="Logo" src="/site-icon.jpg" size="lg" />
             <Avatar name="Broken" src="/missing.png" size="lg" />
           </div>
           <div class="flex flex-wrap items-center gap-6 p-2">
@@ -548,7 +514,7 @@ watch(theme, (value) => {
             <Avatar :name="avatarSamples[lang].name" size="md" speaking />
             <Avatar :name="avatarSamples[lang].name" size="lg" speaking />
             <Avatar :name="avatarSamples[lang].name" size="xl" speaking />
-            <Avatar name="Logo" src="/网站图标.jpg" size="lg" speaking />
+            <Avatar name="Logo" src="/site-icon.jpg" size="lg" speaking />
           </div>
           <div class="flex flex-col gap-1 rounded-lg border border-line bg-surface-0 p-2">
             <div class="flex items-center gap-2 rounded-md p-2">

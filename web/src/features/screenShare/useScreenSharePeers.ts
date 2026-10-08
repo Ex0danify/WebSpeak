@@ -1,4 +1,6 @@
 import { storeToRefs } from "pinia";
+import { text } from "@/shared/i18n/localizedText";
+import { screenShareErrorMessage } from "./screenShareErrors";
 import { useScreenShareStore } from "./stores/screenShareStore";
 import { useSessionStore } from "@/features/session";
 import type { ScreenShareOutputSettings, ScreenShareSignal, ScreenShareStream } from "./screenShareTypes";
@@ -65,7 +67,7 @@ export function useScreenSharePeers() {
   async function startScreenShare(audio = true, settings?: ScreenShareOutputSettings): Promise<void> {
     if (ws.value?.readyState !== WebSocket.OPEN || screenShareActive.value || screenShareStarting.value) return;
     if (!navigator.mediaDevices?.getDisplayMedia) {
-      screenShareError.value = "当前浏览器不支持屏幕共享";
+      screenShareError.value = text("screenShareUnsupported");
       return;
     }
     screenShareErrorCode.value = "";
@@ -102,7 +104,7 @@ export function useScreenSharePeers() {
       screenShareRequestSequence = (screenShareRequestSequence + 1) % 1_000_000;
       screenSharePendingStartId = `screen-start-${screenShareRequestSequence}`;
       for (const track of stream.getTracks()) track.addEventListener("ended", () => { void stopScreenShare(); }, { once: true });
-      sendScreenShareMessage({ type: "screenShareStart", requestId: screenSharePendingStartId, audio: stream.getAudioTracks().length > 0, name: "我的屏幕" });
+      sendScreenShareMessage({ type: "screenShareStart", requestId: screenSharePendingStartId, audio: stream.getAudioTracks().length > 0 });
     } catch (error: unknown) {
       if (startGeneration !== screenShareStartGeneration) return;
       screenShareLocalStream?.getTracks().forEach((track) => track.stop());
@@ -111,8 +113,8 @@ export function useScreenSharePeers() {
       screenShareStarting.value = false;
       screenSharePendingStartId = "";
       screenShareStartCancelled = false;
-      if (error instanceof DOMException && error.name === "NotAllowedError") screenShareError.value = "你取消了屏幕共享或浏览器未授予权限";
-      else screenShareError.value = "无法开始屏幕共享，请检查浏览器权限";
+      if (error instanceof DOMException && error.name === "NotAllowedError") screenShareError.value = text("screenSharePermissionDenied");
+      else screenShareError.value = text("screenShareStartFailed");
     }
   }
 
@@ -267,7 +269,7 @@ export function useScreenSharePeers() {
     },
     screenShareError: (msg) => {
       screenShareErrorCode.value = typeof msg.code === "string" ? msg.code : "";
-      screenShareError.value = String(msg.message || "屏幕共享操作失败");
+      screenShareError.value = screenShareErrorMessage(screenShareErrorCode.value, msg.params);
       if (screenShareStarting.value) {
         screenShareStarting.value = false;
         clearPendingStart();

@@ -19,11 +19,11 @@ export function routeTextFrame(ctx: VoiceConnection, data: Buffer | string, deps
   const webRtcOffer = parseWebRtcOffer(rawMessage);
   if (webRtcOffer) {
     if (deps.getWebRtcOptions()?.enabled !== true) {
-      sendProtocolError(ctx.sendJson, "WEBRTC_DISABLED", "WebRTC 音频传输未启用");
+      sendProtocolError(ctx.sendJson, "WEBRTC_DISABLED", "WebRTC audio transport is not enabled");
       return;
     }
     if (!ctx.state.tsReady || ctx.session.state !== "connected") {
-      sendProtocolError(ctx.sendJson, "SESSION_NOT_READY", "TeamSpeak 会话尚未就绪");
+      sendProtocolError(ctx.sendJson, "SESSION_NOT_READY", "TeamSpeak session is not ready yet");
       return;
     }
     void handleWebRtcOffer(ctx, webRtcOffer, deps.getWebRtcOptions);
@@ -40,7 +40,7 @@ export function routeTextFrame(ctx: VoiceConnection, data: Buffer | string, deps
       return;
     }
     if (!ctx.state.tsReady || ctx.session.state !== "connected") {
-      sendProtocolError(ctx.sendJson, "SESSION_NOT_READY", "TeamSpeak 会话尚未就绪");
+      sendProtocolError(ctx.sendJson, "SESSION_NOT_READY", "TeamSpeak session is not ready yet");
       return;
     }
     deps.handleScreenShareMessage(ctx.entry, screenShareMessage, ctx.sendJson);
@@ -52,7 +52,7 @@ export function routeTextFrame(ctx: VoiceConnection, data: Buffer | string, deps
     return;
   }
   if (!ctx.state.tsReady || ctx.session.state !== "connected") {
-    sendProtocolError(ctx.sendJson, "SESSION_NOT_READY", "TeamSpeak 会话尚未就绪");
+    sendProtocolError(ctx.sendJson, "SESSION_NOT_READY", "TeamSpeak session is not ready yet");
     return;
   }
   void handleCommand(ctx.entry, command, ctx.sendJson);

@@ -128,11 +128,11 @@ describe("audio context", () => {
 describe("audio notices", () => {
   it("sets a sanitized code, and clears only a matching code when one is given", () => {
     const { session, output } = setup();
-    output.setAudioNotice("PLAYBACK_BLOCKED", "blocked");
+    output.setAudioNotice("PLAYBACK_BLOCKED");
     expect(session.state.audioNoticeCode).toBe("PLAYBACK_BLOCKED");
-    expect(session.state.audioNotice).toBe("blocked");
+    expect(session.state.audioNotice).toEqual({ key: "audioNoticePlaybackBlocked" });
     output.clearAudioNotice("OTHER");
-    expect(session.state.audioNotice).toBe("blocked");
+    expect(session.state.audioNotice).toEqual({ key: "audioNoticePlaybackBlocked" });
     output.clearAudioNotice("PLAYBACK_BLOCKED");
     expect(session.state.audioNotice).toBe("");
     expect(session.state.audioNoticeCode).toBe("");
@@ -140,7 +140,7 @@ describe("audio notices", () => {
 
   it("falls back to AUDIO_NOTICE for an empty code and clears everything without a code", () => {
     const { session, output } = setup();
-    output.setAudioNotice("", "x");
+    output.setAudioNotice("");
     expect(session.state.audioNoticeCode).toBe("AUDIO_NOTICE");
     output.clearAudioNotice();
     expect(session.state.audioNotice).toBe("");
@@ -159,18 +159,19 @@ describe("audio notices", () => {
     expect(session.state.audioNotice).toBe("");
   });
 
-  it("audioNoticeMessage names the encoder failure specially and appends a detail when there is one", () => {
-    const { output } = setup();
-    expect(output.audioNoticeMessage("AUDIO_ENCODER_UNAVAILABLE")).toContain("编码器不可用（错误代码：AUDIO_ENCODER_UNAVAILABLE），请联系管理员");
-    expect(output.audioNoticeMessage("AUDIO_X", "boom")).toBe("音频链路异常（错误代码：AUDIO_X）：boom，麦克风声音可能没有发送给其他成员");
-    expect(output.audioNoticeMessage("AUDIO_X")).toBe("音频链路异常（错误代码：AUDIO_X），麦克风声音可能没有发送给其他成员");
+  it("the gateway's audioError becomes the encoder notice, or the generic link notice, with the detail as a param", () => {
+    const { session, output } = setup();
+    output.handlers.audioError?.({ type: "audioError", code: "AUDIO_ENCODER_UNAVAILABLE" } as never);
+    expect(session.state.audioNotice).toEqual({ key: "audioNoticeEncoder", params: { code: "AUDIO_ENCODER_UNAVAILABLE" } });
+    output.handlers.audioError?.({ type: "audioError", code: "AUDIO_X", detail: "boom" } as never);
+    expect(session.state.audioNotice).toEqual({ key: "audioNoticeLinkDetail", params: { code: "AUDIO_X", detail: "boom" } });
   });
 });
 
 describe("setOutputDevice", () => {
   it("rejects a device that is not in the list without touching the selection", async () => {
     const { audio, output } = setup();
-    await expect(output.setOutputDevice("ghost")).rejects.toThrow("所选扬声器当前不可用");
+    await expect(output.setOutputDevice("ghost")).rejects.toMatchObject({ code: "SPEAKER_UNAVAILABLE", text: { key: "speakerUnavailable" } });
     expect(audio.selectedOutputDeviceId).toBe("");
   });
 
@@ -187,7 +188,7 @@ describe("setOutputDevice", () => {
     withoutMediaSink();
     const { audio, output } = setup();
     audio.outputDevices.push({ deviceId: "spk-1", label: "Speakers", groupId: "g" });
-    await expect(output.setOutputDevice("spk-1")).rejects.toThrow("当前浏览器不支持扬声器设备选择");
+    await expect(output.setOutputDevice("spk-1")).rejects.toMatchObject({ code: "SPEAKER_SELECTION_UNSUPPORTED", text: { key: "speakerSelectionUnsupported" } });
     expect(audio.selectedOutputDeviceId).toBe("");
     expect(saveAudioPreferences).not.toHaveBeenCalled();
   });
@@ -197,7 +198,7 @@ describe("WebRTC playback element", () => {
   it("plays, unmutes and clears the blocked notice", async () => {
     const { session, output } = setup();
     const element = fakeAudioElement();
-    output.setAudioNotice("PLAYBACK_BLOCKED", "blocked");
+    output.setAudioNotice("PLAYBACK_BLOCKED");
     output.attachWebRtcPlayback(element, new MediaStream());
     await output.syncWebRtcPlayback();
     expect(element.muted).toBe(false);

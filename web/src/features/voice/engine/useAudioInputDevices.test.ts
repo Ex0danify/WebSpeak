@@ -43,7 +43,7 @@ describe("refreshAudioDevices", () => {
     await mic.refreshAudioDevices();
     expect(audio.inputDevices).toHaveLength(0);
     expect(audio.outputDevices).toHaveLength(0);
-    expect(deps.setAudioNotice).toHaveBeenCalledWith("DEVICE_LIST_UNAVAILABLE", expect.stringContaining("无法读取音频设备列表"));
+    expect(deps.setAudioNotice).toHaveBeenCalledWith("DEVICE_LIST_UNAVAILABLE");
   });
 
   it("does the same when enumerateDevices rejects", async () => {
@@ -52,7 +52,7 @@ describe("refreshAudioDevices", () => {
     setEnumerateDevices(async () => { throw new Error("blocked"); });
     await mic.refreshAudioDevices();
     expect(audio.inputDevices).toHaveLength(0);
-    expect(deps.setAudioNotice).toHaveBeenCalledWith("DEVICE_LIST_UNAVAILABLE", expect.any(String));
+    expect(deps.setAudioNotice).toHaveBeenCalledWith("DEVICE_LIST_UNAVAILABLE");
     expect(deps.clearAudioNotice).toHaveBeenCalledTimes(1);
   });
 

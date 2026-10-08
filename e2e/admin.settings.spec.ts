@@ -6,10 +6,6 @@ import { TeamSpeakProbeError } from "../src/modules/teamspeak/teamSpeakProbe";
 // The admin console's Server page: what the administrator edits, what a save keeps, and what the
 // guests then see. Each test has a gateway of its own (`ownGateway`), the console is asked for English.
 
-test.beforeEach(async ({ page }) => {
-  await page.addInitScript(() => localStorage.setItem("webspeak:language", "en"));
-});
-
 /** Signs in and opens the Server page. */
 async function openServerPage(page: Page, gateway: Gateway): Promise<void> {
   await page.goto(`${gateway.url}/admin/login`);

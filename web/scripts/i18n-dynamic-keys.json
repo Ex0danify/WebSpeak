@@ -1,0 +1,22 @@
+{
+  "comment": "Files with t() calls whose key is not a string literal, and every key each can produce. check-i18n-keys.mjs fails on an unpinned dynamic call, on a key that is not defined, and on a key the file (or one of its `sources`) does not mention. Remove an entry when its last dynamic call goes (planned: I1.4 key builders, I3.6).",
+  "sites": [
+    {
+      "file": "features/admin/adminFormat.ts",
+      "keys": ["connectionActive", "connectionConnecting", "connectionDisconnected", "connectionFailed", "active", "expired", "exhausted", "revoked", "loginEvent", "logoutEvent", "settingsEvent", "initializedEvent", "importedEvent", "testEvent", "serverPasswordRequiredError", "invalidServerPasswordError", "serverAddress", "invalidNicknameError", "hostNotFoundError", "networkUnreachableError", "connectionRefusedError", "connectionResetError", "networkTimeoutError", "protocolFailureError", "serverRejectedError", "noAnswerError", "pingUnavailableError", "uptime", "stateConnecting", "stateAuthenticating", "stateSyncing", "stateConnected", "stateInterrupted", "stateReconnecting", "stateDisconnecting", "stateFailed", "stateIdle", "adminLoginFailedEvent", "connectionTestSucceededEvent", "connectionTestFailedEvent", "invalidPassword", "setupPasswordShort", "changePasswordLead", "rateLimited", "requestFailed", "adminErr_INVALID_WEBRTC_PORT_RANGE", "adminErr_WEBRTC_PORT_LOCKED", "adminErr_INVALID_RELAY_NAME", "adminErr_INVALID_RELAY_TARGET", "adminErr_INVALID_RELAY_TOKEN", "adminErr_INVALID_TARGET", "adminErr_PING_UNAVAILABLE", "adminErr_HOST_NOT_FOUND", "adminErr_UNREACHABLE", "adminErr_TIMEOUT", "adminErr_PROTOCOL_NEGOTIATION_FAILED", "adminErr_SERVER_REJECTED", "adminErr_TARGET_NOT_ALLOWED"]
+    },
+    {
+      "file": "features/admin/adminServerSettings.ts",
+      "keys": ["serverAddress", "invalidNicknameError", "hostNotFoundError", "networkUnreachableError", "connectionRefusedError", "connectionResetError", "networkTimeoutError", "serverPasswordRequiredError", "invalidServerPasswordError", "protocolFailureError", "serverRejectedError", "noAnswerError", "pingUnavailableError", "connectionFailed"]
+    },
+    {
+      "file": "features/room/audioSettings/useAudioSettingsPanel.ts",
+      "keys": ["accompanimentNeedsWebRtc", "accompanimentNoAudio", "accompanimentUnsupported", "accompanimentPermissionDenied"]
+    },
+    {
+      "file": "features/screenShare/ScreenShareSettingsDialog.vue",
+      "sources": ["features/screenShare/useScreenShare.ts"],
+      "keys": ["screenShareResolutionSource", "screenShareResolution720p", "screenShareResolution1080p"]
+    }
+  ]
+}

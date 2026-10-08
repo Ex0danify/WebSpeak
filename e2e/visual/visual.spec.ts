@@ -2,14 +2,15 @@ import { expect, test } from "../fixtures";
 import { connectedScenarios, installVoiceFixture, type ScriptedScenario } from "../fixtures/scripted-gateway";
 import { expectInRoom, submitJoin } from "../helpers";
 import { adminScreens, type Screen, useCannedApi } from "../fixtures/canned-api";
+import { discoveredLanguages, loadFolder } from "../helpers/translations";
 
 // Every shot has the name `<screen>-<language>-<theme>-<desktop|mobile>` (the room shots
-// `room-<state>-en-<theme>-<size>`), the same 62 names the old snapshot tool wrote.
+// `room-<state>-en-<theme>-<size>`, plus `room-connected-<language>-<theme>-<size>` for each other language).
 
 const themes = ["light", "dark"] as const;
 
 const screens: Screen[] = [
-  { id: "join", path: "/", langs: ["en", "zh", "de"] },
+  { id: "join", path: "/", langs: ["en", "de"] },
   { id: "demo", path: "/demo", langs: ["en"] },
   { id: "admin-login", path: "/admin/login", langs: ["en"] },
   ...adminScreens,
@@ -23,13 +24,16 @@ const scenarioText: Partial<Record<ScriptedScenario, string>> = {
   "audio-notice": "AUDIO_ENCODER_UNAVAILABLE",
 };
 
-const localeOf = (lang: string) => (lang === "zh" ? "zh-CN" : lang);
+// The connected room in every language other than the default (the `en` shots are the room table below).
+const otherLanguages = discoveredLanguages().filter((code) => code !== "en");
+const joinCatalog = await loadFolder("features/join/i18n");
+const roomCatalog = await loadFolder("features/room/i18n");
 
 for (const theme of themes) {
   for (const screen of screens) {
     for (const lang of screen.langs) {
       test.describe(`${screen.id} ${lang} ${theme}`, () => {
-        test.use({ locale: localeOf(lang), colorScheme: theme });
+        test.use({ locale: lang, colorScheme: theme });
         test("looks the same", async ({ page }, { project }) => {
           await useCannedApi(page, { lang, theme, admin: screen.admin });
           await page.goto(screen.path, { waitUntil: "networkidle" });
@@ -67,4 +71,24 @@ for (const theme of themes) {
       });
     }
   });
+  for (const lang of otherLanguages) {
+    test.describe(`room connected ${lang} ${theme}`, () => {
+      test.use({ colorScheme: theme, language: lang });
+      test("looks the same", async ({ page }, { project }) => {
+        await useCannedApi(page, { lang, theme });
+        const scripted = await installVoiceFixture(page.context());
+        try {
+          await page.goto("/");
+          await page.getByLabel(joinCatalog[lang]!.nickname!).fill("Snapshot Tester");
+          await page.getByRole("button", { name: joinCatalog[lang]!.enterVoice! }).click();
+          await expect(page.getByRole("textbox", { name: roomCatalog[lang]!.searchMembers! })).toBeVisible();
+          scripted.apply("connected");
+          if (project.name === "mobile") await page.getByRole("tab", { name: roomCatalog[lang]!.mobileVoice! }).click();
+          await expect(page).toHaveScreenshot(`room-connected-${lang}-${theme}-${project.name}.png`);
+        } finally {
+          scripted.stop();
+        }
+      });
+    });
+  }
 }

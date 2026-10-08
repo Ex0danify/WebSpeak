@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { avatarInitial, avatarStyle, formatTime, median, microphoneErrorMessage, serverKey } from "./format";
+import { avatarInitial, avatarStyle, formatTime, median, serverKey } from "./format";
 
 describe("median", () => {
   it("returns null for an empty list", () => {
@@ -46,7 +46,7 @@ describe("formatTime", () => {
   // A local-time timestamp, so the expectation holds in any time zone.
   const at = new Date(2026, 8, 26, 14, 5).getTime();
 
-  it.each(["zh", "de", "ru", "ja"] as const)("shows 24-hour HH:MM in %s", (language) => {
+  it.each(["de"] as const)("shows 24-hour HH:MM in %s", (language) => {
     expect(formatTime(at, language)).toBe("14:05");
   });
 
@@ -56,32 +56,6 @@ describe("formatTime", () => {
 
   it("pads the hour to two digits", () => {
     expect(formatTime(new Date(2026, 8, 26, 9, 7).getTime(), "de")).toBe("09:07");
-  });
-});
-
-describe("microphoneErrorMessage", () => {
-  it.each([
-    ["NotAllowedError", "浏览器未授予麦克风权限"],
-    ["NotFoundError", "未找到可用的麦克风"],
-    ["NotReadableError", "麦克风可能正被其他程序占用"],
-    ["OverconstrainedError", "所选麦克风当前不可用"],
-    ["SecurityError", "浏览器阻止了麦克风访问"],
-  ])("maps a %s DOMException to its reason", (name, reason) => {
-    expect(microphoneErrorMessage(new DOMException("x", name))).toBe(`麦克风访问失败：${reason}`);
-  });
-
-  it("uses the fallback for an unknown DOMException name", () => {
-    expect(microphoneErrorMessage(new DOMException("x", "AbortError"), "回退")).toBe("麦克风访问失败：回退");
-  });
-
-  it("uses the default fallback for a plain Error, even one named like a known reason", () => {
-    const error = new Error("denied");
-    error.name = "NotAllowedError";
-    expect(microphoneErrorMessage(error)).toBe("麦克风访问失败：请检查浏览器权限");
-  });
-
-  it.each([undefined, null, "NotAllowedError", { name: "NotAllowedError" }])("does not throw for %j", (value) => {
-    expect(microphoneErrorMessage(value)).toBe("麦克风访问失败：请检查浏览器权限");
   });
 });
 

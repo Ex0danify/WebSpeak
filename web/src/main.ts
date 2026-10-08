@@ -18,9 +18,10 @@ import { adminMessages } from "@/features/admin";
 import { demoMessages } from "@/features/demo";
 import { sessionMessages } from "@/features/session";
 import { screenShareMessages } from "@/features/screenShare";
+import { voiceMessages } from "@/features/voice";
 import { chatMessages } from "@/features/room";
 
-for (const messages of [commonMessages, roomMessages, joinMessages, adminMessages, demoMessages, sessionMessages, screenShareMessages, chatMessages]) registerMessages(messages);
+for (const messages of [commonMessages, roomMessages, joinMessages, adminMessages, demoMessages, sessionMessages, screenShareMessages, voiceMessages, chatMessages]) registerMessages(messages);
 
 const BASELINE_WIDTH = 1920;
 const BASELINE_HEIGHT = 1080;

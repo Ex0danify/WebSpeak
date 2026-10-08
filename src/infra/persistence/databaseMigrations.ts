@@ -1,6 +1,10 @@
 import type { DatabaseSync } from "node:sqlite";
 
-export const DATABASE_SCHEMA_VERSION = 7;
+export const DATABASE_SCHEMA_VERSION = 8;
+
+/** The relay name earlier builds stored when none was given, as escapes so this file stays free of CJK characters. */
+const LEGACY_RELAY_NAME = "\u4e2d\u7ee7\u52a0\u901f";
+const DEFAULT_RELAY_NAME = "Relay acceleration";
 
 interface Migration {
   /** Schema version this step upgrades from; it leaves the database at `from + 1`. */
@@ -150,7 +154,7 @@ const MIGRATIONS: Migration[] = [
             `INSERT INTO relay_nodes (id, name, enabled, host, port, token_encrypted, created_at, updated_at)
              VALUES ('relay-default', ?, ?, ?, ?, ?, ?, ?)`,
           ).run(
-            legacy.relay_name || "中继加速",
+            legacy.relay_name || DEFAULT_RELAY_NAME,
             legacy.relay_enabled === 1 ? 1 : 0,
             legacy.relay_host,
             legacy.relay_port || 39087,
@@ -171,6 +175,34 @@ const MIGRATIONS: Migration[] = [
           ALTER TABLE settings ADD COLUMN welcome_text_ja TEXT NOT NULL DEFAULT '';
         `);
         database.exec("PRAGMA user_version = 7");
+      },
+    },
+    {
+      from: 7,
+      up(database) {
+        // Welcome texts become rows keyed by language code, so a new language needs no schema change.
+        // Only English and German are carried over; the other languages stay in the schema-7 backup.
+        database.exec(`
+          CREATE TABLE welcome_texts (
+            language TEXT PRIMARY KEY,
+            text TEXT NOT NULL
+          );
+          INSERT INTO welcome_texts (language, text)
+            SELECT 'en', welcome_text_en FROM settings WHERE id = 1 AND trim(welcome_text_en) <> '';
+          INSERT INTO welcome_texts (language, text)
+            SELECT 'de', welcome_text_de FROM settings WHERE id = 1 AND trim(welcome_text_de) <> '';
+          ALTER TABLE settings DROP COLUMN welcome_text;
+          ALTER TABLE settings DROP COLUMN welcome_text_en;
+          ALTER TABLE settings DROP COLUMN welcome_text_de;
+          ALTER TABLE settings DROP COLUMN welcome_text_ru;
+          ALTER TABLE settings DROP COLUMN welcome_text_ja;
+        `);
+        // Stored defaults of the old Chinese build.
+        for (const table of ["relay_nodes", "settings"] as const) {
+          const column = table === "relay_nodes" ? "name" : "relay_name";
+          database.prepare(`UPDATE ${table} SET ${column} = ? WHERE ${column} = ?`).run(DEFAULT_RELAY_NAME, LEGACY_RELAY_NAME);
+        }
+        database.exec("PRAGMA user_version = 8");
       },
     },
 ];

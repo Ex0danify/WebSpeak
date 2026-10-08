@@ -22,7 +22,7 @@ export function useRoomSounds({ voiceState, chatMessages, pokeNotifications, pla
   watch(() => pokeNotifications.length, (length, previousLength) => {
     const latest = pokeNotifications[length - 1];
     if (!latest || length <= previousLength) return;
-    showToast(`${latest.invokerName} ${t("pokedYou")}${latest.message ? `：${latest.message}` : ""}`);
+    showToast(`${latest.invokerName} ${t("pokedYou")}${latest.message ? `: ${latest.message}` : ""}`);
     playNotification("poke");
     if (typeof Notification !== "undefined" && Notification.permission === "granted") new Notification(t("poke"), { body: `${latest.invokerName}: ${latest.message || t("pokedYou")}` });
   });

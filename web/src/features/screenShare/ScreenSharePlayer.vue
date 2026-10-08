@@ -23,12 +23,13 @@ import { Icon } from "@/shared/ui/icon";
 import { Slider } from "@/shared/ui/slider";
 import { useI18n } from "@/shared/i18n/useI18n.js";
 import { avatarInitial } from "@/shared/lib/format.js";
+import type { MaybeLocalizedText } from "@/shared/i18n/localizedText";
 import type { ScreenShareViewer } from "./screenShareTypes";
 
 defineProps<{
   viewing: boolean;
   remoteStream: MediaStream | null;
-  error: string;
+  error: MaybeLocalizedText;
   errorText: string;
   fullscreen: boolean;
   viewerCount: number;

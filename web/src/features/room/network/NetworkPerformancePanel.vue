@@ -1,17 +1,17 @@
 <template>
   <div class="network-performance">
-    <Button variant="outline" size="sm" class="gap-1.5 border-line bg-accent-soft px-[9px] text-accent hover:border-accent/35 hover:bg-accent-soft aria-expanded:border-accent/35 max-[740px]:size-9 max-[740px]:px-0 max-[391px]:size-8" :title="t('networkPerformance')" :aria-label="t('networkPerformance')" :aria-expanded="performancePanelOpen" @click.stop="$emit('toggle-panel')"><Icon name="activity" :size="16" /><span class="font-normal max-[740px]:hidden">{{ t('networkPerformance') }}</span><span v-if="performanceStats.ready && performanceStats.gatewayLatencyMs != null" class="font-mono text-[10px] font-normal text-fg-muted max-[740px]:hidden">{{ performanceStats.gatewayLatencyMs }} ms</span><span class="inline-flex max-[740px]:hidden"><Icon name="chevron-down" :size="13" /></span></Button>
+    <Button variant="outline" size="sm" class="gap-1.5 border-line bg-accent-soft px-[9px] text-accent hover:border-accent/35 hover:bg-accent-soft aria-expanded:border-accent/35 max-[740px]:size-9 max-[740px]:px-0 max-[391px]:size-8" :title="t('networkPerformance')" :aria-label="t('networkPerformance')" :aria-expanded="performancePanelOpen" @click.stop="$emit('toggle-panel')"><Icon name="activity" :size="16" /><span class="font-normal max-[740px]:hidden">{{ t('networkPerformance') }}</span><span v-if="performanceStats.ready && performanceStats.gatewayLatencyMs != null" class="font-mono text-[10px] font-normal text-fg-muted max-[740px]:hidden">{{ format.unit(performanceStats.gatewayLatencyMs, 'millisecond') }}</span><span class="inline-flex max-[740px]:hidden"><Icon name="chevron-down" :size="13" /></span></Button>
     <section v-if="performancePanelOpen" class="performance-panel" role="dialog" :aria-label="t('networkPerformance')" @click.stop>
       <header><div><strong>{{ t('networkPerformance') }}</strong><small>{{ t('networkPerformanceHint') }}</small></div><button type="button" class="performance-refresh" :title="t('measureNow')" :disabled="performanceRunning" @click="$emit('refresh')"><Icon name="refresh" :size="15" /></button></header>
       <div class="performance-route"><span>{{ t('browser') }}</span><i></i><span>{{ t('webSpeakGateway') }}</span><i></i><span>{{ t('teamSpeakServer') }}</span></div>
-      <div class="performance-metrics"><article><small>{{ t('browserToGateway') }}</small><strong>{{ performanceStats.gatewayLatencyMs == null ? '—' : `${performanceStats.gatewayLatencyMs} ms` }}</strong><span>{{ t('packetLoss') }} {{ performanceStats.gatewayLossPercent == null ? '—' : `${performanceStats.gatewayLossPercent}%` }}</span></article><article><small>{{ t('gatewayToTeamSpeak') }}</small><strong>{{ performanceStats.teamSpeakLatencyMs == null ? '—' : `${performanceStats.teamSpeakLatencyMs} ms` }}</strong><span>{{ t('packetLoss') }} {{ performanceStats.teamSpeakLossPercent == null ? '—' : `${performanceStats.teamSpeakLossPercent}%` }}</span></article></div>
+      <div class="performance-metrics"><article><small>{{ t('browserToGateway') }}</small><strong>{{ performanceStats.gatewayLatencyMs == null ? '—' : format.unit(performanceStats.gatewayLatencyMs, 'millisecond') }}</strong><span>{{ t('packetLoss') }} {{ performanceStats.gatewayLossPercent == null ? '—' : format.percent(performanceStats.gatewayLossPercent / 100, 2) }}</span></article><article><small>{{ t('gatewayToTeamSpeak') }}</small><strong>{{ performanceStats.teamSpeakLatencyMs == null ? '—' : format.unit(performanceStats.teamSpeakLatencyMs, 'millisecond') }}</strong><span>{{ t('packetLoss') }} {{ performanceStats.teamSpeakLossPercent == null ? '—' : format.percent(performanceStats.teamSpeakLossPercent / 100, 2) }}</span></article></div>
       <p class="performance-status">{{ performanceRunning ? t('measuring') : performanceStats.ready ? t('measureComplete') : t('measureUnavailable') }}</p>
       <section v-if="screenShareWebRtcStats.peers.length" class="webrtc-stats" aria-live="polite">
         <header><div><strong>{{ t('webrtcStats') }}</strong><small>{{ t('webrtcStatsHint') }}</small></div></header>
-        <div v-if="screenShareWebRtcStats.capture" class="webrtc-stats-capture"><span>{{ t('screenShareCapture') }}</span><strong>{{ screenShareWebRtcStats.capture.width ?? '—' }} × {{ screenShareWebRtcStats.capture.height ?? '—' }}</strong><small>{{ screenShareWebRtcStats.capture.frameRate == null ? '—' : `${screenShareWebRtcStats.capture.frameRate.toFixed(1)} FPS` }}</small></div>
+        <div v-if="screenShareWebRtcStats.capture" class="webrtc-stats-capture"><span>{{ t('screenShareCapture') }}</span><strong>{{ screenShareWebRtcStats.capture.width ?? '—' }} × {{ screenShareWebRtcStats.capture.height ?? '—' }}</strong><small>{{ screenShareWebRtcStats.capture.frameRate == null ? '—' : format.unit(screenShareWebRtcStats.capture.frameRate, 'frame-per-second', { maximumFractionDigits: 1, fallback: 'FPS' }) }}</small></div>
         <div v-for="peer in screenShareWebRtcStats.peers" :key="peer.peerId" class="webrtc-stats-peer">
           <div class="webrtc-stats-peer-heading"><strong>{{ peer.direction === 'outbound' ? t('screenShareSending') : t('screenShareReceiving') }}</strong><small>{{ peer.connectionState }} · {{ peer.candidateType ?? '—' }}</small></div>
-          <div class="webrtc-stats-values"><span>{{ peer.frameRate == null ? '—' : `${peer.frameRate.toFixed(1)} FPS` }}</span><span>{{ peer.bitrateKbps == null ? '—' : `${Math.round(peer.bitrateKbps)} kbps` }}</span><span>{{ peer.lossPercent == null ? '—' : `${peer.lossPercent.toFixed(2)}%` }} {{ t('packetLoss') }}</span><span>{{ peer.framesDropped == null ? '—' : peer.framesDropped }} {{ t('screenShareDroppedFrames') }}</span><span>{{ peer.jitterMs == null ? '—' : `${Math.round(peer.jitterMs)} ms` }} {{ t('screenShareJitter') }}</span><span>{{ peer.roundTripTimeMs == null ? '—' : `${Math.round(peer.roundTripTimeMs)} ms` }} {{ t('screenShareRtt') }}</span></div>
+          <div class="webrtc-stats-values"><span>{{ peer.frameRate == null ? '—' : format.unit(peer.frameRate, 'frame-per-second', { maximumFractionDigits: 1, fallback: 'FPS' }) }}</span><span>{{ peer.bitrateKbps == null ? '—' : format.unit(peer.bitrateKbps, 'kilobit-per-second', { maximumFractionDigits: 0 }) }}</span><span>{{ peer.lossPercent == null ? '—' : format.percent(peer.lossPercent / 100, 2) }} {{ t('packetLoss') }}</span><span>{{ peer.framesDropped == null ? '—' : peer.framesDropped }} {{ t('screenShareDroppedFrames') }}</span><span>{{ peer.jitterMs == null ? '—' : format.unit(peer.jitterMs, 'millisecond', { maximumFractionDigits: 0 }) }} {{ t('screenShareJitter') }}</span><span>{{ peer.roundTripTimeMs == null ? '—' : format.unit(peer.roundTripTimeMs, 'millisecond', { maximumFractionDigits: 0 }) }} {{ t('screenShareRtt') }}</span></div>
           <small v-if="peer.codec || peer.qualityLimitationReason" class="webrtc-stats-detail">{{ peer.codec ?? '—' }}<template v-if="peer.qualityLimitationReason"> · {{ peer.qualityLimitationReason }}</template></small>
         </div>
       </section>
@@ -23,6 +23,7 @@
 import { Icon } from "@/shared/ui/icon";
 import { Button } from "@/shared/ui/button";
 import { useI18n } from "@/shared/i18n/useI18n.js";
+import { useFormat } from "@/shared/i18n/useFormat.js";
 import type { NetworkPerformanceStats } from "./useNetworkPerformance.js";
 import type { ScreenShareWebRtcStats } from "@/features/screenShare";
 
@@ -39,6 +40,7 @@ defineEmits<{
 }>();
 
 const { t } = useI18n();
+const format = useFormat();
 </script>
 
 <style scoped>

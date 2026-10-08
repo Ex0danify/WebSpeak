@@ -1,4 +1,5 @@
 import type { TSDirectorySnapshot } from "../../teamspeak/index.js";
+import type { MessageParams } from "../../../shared/messageCodes.js";
 import type { ServerEvent, VoiceConnection, WebClientEntry } from "../voiceTypes.js";
 import { avatarDataUrl, isChannelRecord, mapChannelTree, normalizeDirectorySnapshot } from "./voiceDirectoryView.js";
 
@@ -37,7 +38,7 @@ export function registerVoiceDirectory(ctx: VoiceConnection, deps: VoiceDirector
     if (ctx.state.tsReady && ctx.state.initialStateSent) {
       ctx.sendJson({ type: "channelList", channels: ctx.entry.channelTree });
       if (!wasKnown) ctx.sendJson({ type: "memberEnter", id: info.id, nickname: info.nickname, uid: info.uid, isSelf: info.id === ctx.state.selfId });
-      if (!wasKnown && info.id !== ctx.state.selfId) addServerEvent(ctx, "joined", `${info.nickname || "未知用户"} 加入了服务器`, { nickname: info.nickname });
+      if (!wasKnown && info.id !== ctx.state.selfId) addServerEvent(ctx, "joined", `${info.nickname || "Unknown user"} joined the server`, { nickname: info.nickname });
       scheduleMemberAvatarRefresh(ctx);
     }
   });
@@ -52,7 +53,7 @@ export function registerVoiceDirectory(ctx: VoiceConnection, deps: VoiceDirector
     if (ctx.state.tsReady && ctx.state.initialStateSent && wasKnown) {
       ctx.sendJson({ type: "memberLeave", id: info.id });
       ctx.sendJson({ type: "channelList", channels: ctx.entry.channelTree });
-      if (info.id !== ctx.state.selfId) addServerEvent(ctx, "left", `${leavingMember?.nickname || "用户"} 离开了服务器`, { nickname: leavingMember?.nickname });
+      if (info.id !== ctx.state.selfId) addServerEvent(ctx, "left", `${leavingMember?.nickname || "A user"} left the server`, { nickname: leavingMember?.nickname });
     }
   });
 
@@ -65,7 +66,7 @@ export function registerVoiceDirectory(ctx: VoiceConnection, deps: VoiceDirector
     refreshDirectory(ctx);
     if (ctx.state.tsReady && ctx.state.initialStateSent) {
       ctx.sendJson({ type: "channelList", channels: ctx.entry.channelTree });
-      if (info.id !== ctx.state.selfId) addServerEvent(ctx, "moved", `${movedMember?.nickname || "用户"} 移动到了其他频道`, { nickname: movedMember?.nickname });
+      if (info.id !== ctx.state.selfId) addServerEvent(ctx, "moved", `${movedMember?.nickname || "A user"} moved to another channel`, { nickname: movedMember?.nickname });
     }
   });
 
@@ -81,10 +82,17 @@ function trackChannelEvents(ctx: VoiceConnection, previous: unknown[], next: unk
   const before = new Map(previous.filter(isChannelRecord).map((channel) => [channel.id, channel]));
   const after = new Map(next.filter(isChannelRecord).map((channel) => [channel.id, channel]));
   for (const channel of after.values()) {
-    if (!before.has(channel.id)) addServerEvent(ctx, "channelCreated", `频道「${channel.name}」已创建`, { channelName: channel.name });
-    else if (before.get(channel.id)?.name !== channel.name) addServerEvent(ctx, "channelRenamed", `频道已重命名为「${channel.name}」`, { channelName: channel.name });
+    if (!before.has(channel.id)) addServerEvent(ctx, "channelCreated", `Channel "${channel.name}" was created`, { channelName: channel.name });
+    else if (before.get(channel.id)?.name !== channel.name) addServerEvent(ctx, "channelRenamed", `Channel was renamed to "${channel.name}"`, { channelName: channel.name });
   }
-  for (const channel of before.values()) if (!after.has(channel.id)) addServerEvent(ctx, "channelDeleted", `频道「${channel.name}」已删除`, { channelName: channel.name });
+  for (const channel of before.values()) if (!after.has(channel.id)) addServerEvent(ctx, "channelDeleted", `Channel "${channel.name}" was deleted`, { channelName: channel.name });
+}
+
+function eventParams(extra: Partial<Pick<ServerEvent, "nickname" | "channelName">>): { params?: MessageParams } {
+  const params: MessageParams = {};
+  if (extra.nickname) params.nickname = extra.nickname;
+  if (extra.channelName !== undefined) params.channelName = extra.channelName;
+  return Object.keys(params).length ? { params } : {};
 }
 
 export function addServerEvent(ctx: VoiceConnection, kind: ServerEvent["kind"], message: string, extra: Partial<Pick<ServerEvent, "nickname" | "channelName">> = {}) {
@@ -93,6 +101,7 @@ export function addServerEvent(ctx: VoiceConnection, kind: ServerEvent["kind"], 
     kind,
     message,
     ...extra,
+    ...eventParams(extra),
     timestamp: Date.now(),
   };
   ctx.entry.eventLog.push(event);

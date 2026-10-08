@@ -45,6 +45,7 @@ export class ScreenShareHub {
       ...(typeof stream.ownerClientId === "number" ? { ownerClientId: stream.ownerClientId } : {}),
       ownerNickname: stream.ownerNickname,
       name: stream.name,
+      ...(stream.nameKind ? { nameKind: stream.nameKind } : {}),
       audio: stream.audio,
       createdAt: stream.createdAt,
       viewerCount: stream.viewerCount,

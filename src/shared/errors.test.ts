@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
+  BRIDGE_CONNECTION_FAILURE_CODES,
+  CLIENT_CONNECTION_FAILURE_CODES,
   TEAMSPEAK_SERVER_ERROR_IDS,
   WEBSPEAK_ERROR_MESSAGES,
   WebSpeakError,
@@ -236,6 +238,23 @@ describe("clientConnectionFailureCode", () => {
     expect(clientConnectionFailureCode(error, "")).toBe("SERVER_PASSWORD_REQUIRED");
     expect(clientConnectionFailureCode(error, "   ")).toBe("SERVER_PASSWORD_REQUIRED");
     expect(clientConnectionFailureCode(error, "secret")).toBe("INVALID_SERVER_PASSWORD");
+  });
+
+  it("returns nothing outside the ClientConnectionFailureCode list", () => {
+    const returned = new Set<string>(ALL_CODES.map((code) => clientConnectionFailureCode(new WebSpeakError(code, "x", false), "secret")));
+    returned.add(clientConnectionFailureCode(new WebSpeakError("authentication_failed", "x", false)));
+    expect([...returned].sort()).toEqual(CLIENT_CONNECTION_FAILURE_CODES.filter((code) => code !== "INVALID_PARAMETER").sort());
+  });
+
+  // IF4: INVALID_PARAMETER is in the union (and has a web message) but no WebSpeakErrorCode maps to it.
+  it.fails("IF4: every ClientConnectionFailureCode is reachable", () => {
+    const returned = new Set<string>(ALL_CODES.map((code) => clientConnectionFailureCode(new WebSpeakError(code, "x", false), "secret")));
+    returned.add(clientConnectionFailureCode(new WebSpeakError("authentication_failed", "x", false)));
+    expect([...returned].sort()).toEqual([...CLIENT_CONNECTION_FAILURE_CODES].sort());
+  });
+
+  it("keeps the bridge-level failure codes apart from the mapped ones", () => {
+    for (const code of BRIDGE_CONNECTION_FAILURE_CODES) expect(CLIENT_CONNECTION_FAILURE_CODES).not.toContain(code);
   });
 
   it("keeps the identity, ban and flood families distinct", () => {

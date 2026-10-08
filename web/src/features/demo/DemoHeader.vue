@@ -1,11 +1,12 @@
 <template>
   <header class="demo-header">
-    <div class="demo-brand"><span><Icon name="waveform" :size="21" /></span><div><strong>WebSpeak</strong><small>{{ t('demoBrowserClient') }}</small></div></div>
+    <div class="demo-brand"><span><Icon name="waveform" :size="21" /></span><div><strong>{{ APP_NAME }}</strong><small>{{ t('demoBrowserClient') }}</small></div></div>
     <div class="demo-tools"><span class="demo-badge">{{ t('demoBadge') }}</span><LanguageSwitcher v-model="language" :menu-label="t('languageMenu')" @change="persistLanguage" /><Button as="a" href="/" variant="outline" size="sm" class="demo-back-full">{{ t('demoBack') }}</Button><Button as="a" href="/" variant="outline" size="sm" icon-only :aria-label="t('demoBack')" class="demo-back-compact"><Icon name="home" :size="16" /></Button></div>
   </header>
 </template>
 
 <script setup lang="ts">
+import { APP_NAME } from "@/shared/lib/brand";
 import { Button } from "@/shared/ui/button";
 import { Icon } from "@/shared/ui/icon";
 import LanguageSwitcher from "@/shared/components/LanguageSwitcher.vue";

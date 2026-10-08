@@ -1,12 +1,13 @@
 // Step V1.2: the failure-code and failure-message mapping, pure functions and lookup tables.
 import { describe, expect, it } from "vitest";
 import {
-  CONNECTION_FAILURE_MESSAGES,
-  NICKNAME_LENGTH_MESSAGE,
+  CONNECTION_FAILURE_CODES,
+  errorKey,
   NICKNAME_LENGTH_SIGNATURE,
   normalizedClientErrorCode,
   safeClientErrorCode,
   safeClientErrorDetail,
+  visibleErrorCode,
 } from "./sessionErrors";
 
 describe("safeClientErrorCode", () => {
@@ -84,21 +85,49 @@ describe("NICKNAME_LENGTH_SIGNATURE", () => {
   });
 });
 
-describe("CONNECTION_FAILURE_MESSAGES", () => {
-  it("has a non-empty message for every code and uses only normalized code keys", () => {
-    for (const [code, message] of Object.entries(CONNECTION_FAILURE_MESSAGES)) {
-      expect(message.length).toBeGreaterThan(0);
-      expect(safeClientErrorCode(code)).toBe(code);
-    }
+describe("CONNECTION_FAILURE_CODES", () => {
+  it("lists only normalized codes", () => {
+    for (const code of CONNECTION_FAILURE_CODES) expect(safeClientErrorCode(code)).toBe(code);
   });
 
   it("explains the codes the aliases map to", () => {
     for (const alias of ["PASSWORD_REQUIRED", "INVALID_PASSWORD", "AUTHENTICATION_FAILED", "GATEWAY_FULL", "TS_CONNECT_FAILED", "ADMIN-TERMINATED"]) {
-      expect(CONNECTION_FAILURE_MESSAGES[normalizedClientErrorCode(alias)]).toBeTruthy();
+      expect(CONNECTION_FAILURE_CODES.has(normalizedClientErrorCode(alias))).toBe(true);
     }
   });
+});
 
-  it("shares the nickname message with INVALID_NICKNAME", () => {
-    expect(CONNECTION_FAILURE_MESSAGES.INVALID_NICKNAME).toBe(NICKNAME_LENGTH_MESSAGE);
+describe("errorKey", () => {
+  it("derives the key from the wire code and the context prefix", () => {
+    expect(errorKey("SERVER_FULL")).toBe("err_SERVER_FULL");
+    expect(errorKey("BANNED", "opErr")).toBe("opErr_BANNED");
+    expect(errorKey("INVITE_INVALID", "joinErr")).toBe("joinErr_INVITE_INVALID");
+  });
+});
+
+describe("visibleErrorCode", () => {
+  it.each([
+    ["server_full", "SERVER_FULL"],
+    ["  banned  ", "BANNED"],
+    ["not allowed!", "NOT_ALLOWED"],
+    ["a..b", "A_B"],
+    ["--x--", "--X--"],
+    ["__x__", "X"],
+    ["ünï", "N"],
+  ])("normalizes %j to %j", (input, expected) => {
+    expect(visibleErrorCode(input)).toBe(expected);
+  });
+
+  it.each(["", "   ", "***", "___"])("uses CONNECTION_FAILED when %j leaves nothing", (input) => {
+    expect(visibleErrorCode(input)).toBe("CONNECTION_FAILED");
+  });
+
+  it("caps the length at 64", () => {
+    expect(visibleErrorCode("a".repeat(100))).toHaveLength(64);
+  });
+
+  it("copes with a non-string", () => {
+    expect(visibleErrorCode(undefined as unknown as string)).toBe("CONNECTION_FAILED");
+    expect(visibleErrorCode(404 as unknown as string)).toBe("404");
   });
 });

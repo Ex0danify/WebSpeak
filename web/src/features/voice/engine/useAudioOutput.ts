@@ -3,6 +3,8 @@ import { writeStorage } from "@/shared/services/safeStorage";
 import { useVoiceAudioStore } from "../stores/voiceAudioStore";
 import { useSessionStore } from "@/features/session";
 import { safeClientErrorCode, safeClientErrorDetail } from "@/features/session";
+import { LocalizedError, text, type TextParams } from "@/shared/i18n/localizedText";
+import { audioNoticeText } from "../voiceErrors";
 import type { SinkAudioContext, SinkAudioElement } from "../voiceTypes";
 import type { MessageHandlers } from "@/features/session";
 
@@ -74,9 +76,10 @@ export function useAudioOutput(deps: AudioOutputDeps) {
   }
 
   /** Non-fatal audio notice (WebRTC fallback, blocked autoplay, device list failure...). */
-  function setAudioNotice(code: string, message: string): void {
-    state.audioNoticeCode = safeClientErrorCode(code) || "AUDIO_NOTICE";
-    state.audioNotice = message;
+  function setAudioNotice(code: string, params?: TextParams): void {
+    const noticeCode = safeClientErrorCode(code) || "AUDIO_NOTICE";
+    state.audioNoticeCode = noticeCode;
+    state.audioNotice = audioNoticeText(noticeCode, params);
   }
 
   function clearAudioNotice(code?: string): void {
@@ -88,25 +91,17 @@ export function useAudioOutput(deps: AudioOutputDeps) {
   /** A suspended AudioContext silently swallows capture: say so instead of pretending. */
   function syncAudioContextNotice(): void {
     if (audioCtx && audioCtx.state === "suspended") {
-      setAudioNotice("AUDIO_CONTEXT_SUSPENDED", "浏览器的音频处理被暂停（需要一次页面交互），麦克风与扬声器可能无声：请点击页面任意位置后重试");
+      setAudioNotice("AUDIO_CONTEXT_SUSPENDED");
     } else {
       clearAudioNotice("AUDIO_CONTEXT_SUSPENDED");
     }
-  }
-
-  function audioNoticeMessage(code: string, detail?: unknown): string {
-    const detailText = safeClientErrorDetail(detail);
-    if (code === "AUDIO_ENCODER_UNAVAILABLE") {
-      return `麦克风声音未能发送：语音网关的音频编码器不可用（错误代码：${code}）${detailText ? `：${detailText}` : ""}，请联系管理员`;
-    }
-    return `音频链路异常（错误代码：${code}）${detailText ? `：${detailText}` : ""}，麦克风声音可能没有发送给其他成员`;
   }
 
   async function setAudioSink(ctx: SinkAudioContext, deviceId: string): Promise<void> {
     const mediaSinkSupported = typeof (HTMLMediaElement.prototype as SinkAudioElement).setSinkId === "function";
     if (!ctx.setSinkId && !mediaSinkSupported) {
       outputDeviceSupported.value = false;
-      if (deviceId) throw new Error("当前浏览器不支持扬声器设备选择，将使用默认输出设备");
+      if (deviceId) throw new LocalizedError(text("speakerSelectionUnsupported"), "SPEAKER_SELECTION_UNSUPPORTED");
       return;
     }
     outputDeviceSupported.value = true;
@@ -117,7 +112,7 @@ export function useAudioOutput(deps: AudioOutputDeps) {
   async function setOutputDevice(deviceId: string): Promise<void> {
     const previousDeviceId = selectedOutputDeviceId.value;
     if (deviceId && !outputDevices.some((device) => device.deviceId === deviceId)) {
-      throw new Error("所选扬声器当前不可用");
+      throw new LocalizedError(text("speakerUnavailable"), "SPEAKER_UNAVAILABLE");
     }
     selectedOutputDeviceId.value = deviceId;
     writeStorage("webspeak:output-device", deviceId);
@@ -164,7 +159,7 @@ export function useAudioOutput(deps: AudioOutputDeps) {
       // Mobile and privacy-focused browsers can require a gesture even for a
       // MediaStream. Keep retrying after the next real interaction, but tell the
       // user why the remote audio is missing instead of staying silent.
-      setAudioNotice("PLAYBACK_BLOCKED", "浏览器阻止了音频自动播放，暂时听不到其他成员的声音：请点击页面任意位置，或在地址栏允许本站播放声音");
+      setAudioNotice("PLAYBACK_BLOCKED");
       installWebRtcPlaybackRetry();
     }
   }
@@ -214,7 +209,8 @@ export function useAudioOutput(deps: AudioOutputDeps) {
       // The gateway could not encode our microphone audio (for example its Opus
       // encoder is unavailable): say it instead of dropping frames silently.
       const audioCode = safeClientErrorCode(msg.code) || "AUDIO_ERROR";
-      setAudioNotice(audioCode, audioNoticeMessage(audioCode, msg.detail));
+      const detail = safeClientErrorDetail(msg.detail);
+      setAudioNotice(audioCode, detail ? { detail } : undefined);
     },
   };
 
@@ -229,7 +225,6 @@ export function useAudioOutput(deps: AudioOutputDeps) {
     setAudioNotice,
     clearAudioNotice,
     syncAudioContextNotice,
-    audioNoticeMessage,
     setAudioSink,
     setOutputDevice,
     syncWebRtcPlayback,

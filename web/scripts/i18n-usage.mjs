@@ -21,7 +21,6 @@ import { fileURLToPath } from "node:url";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const srcDir = join(root, "src");
-const languages = ["zh", "en", "de", "ru", "ja"];
 const KEY = /^ {2}(?:([A-Za-z_$][\w$]*)|"([^"]+)"):/gm;
 
 const args = process.argv.slice(2);
@@ -41,7 +40,7 @@ const all = walk(srcDir).map((file) => relative(srcDir, file).split(sep).join("/
 
 // i18n modules: every folder holding an index.ts next to <lang>.ts files, old or relocated.
 const moduleDirs = [...new Set(all
-  .filter((file) => /(^|\/)i18n\/(?:[^/]+\/)?zh\.ts$/.test(file))
+  .filter((file) => /(^|\/)i18n\/(?:[^/]+\/)?en\.ts$/.test(file))
   .map((file) => dirname(file)))].sort();
 
 // key -> { module, languages declared in }
@@ -49,7 +48,7 @@ const keys = new Map();
 for (const dir of moduleDirs) {
   const moduleName = dir.replace(/^(?:.*\/)?i18n\/?/, "") || basename(dirname(dir));
   const label = dir.includes("features/") || dir.includes("shared/") ? dir.replace(/\/i18n(\/|$)/, "$1").replace(/\/$/, "") : moduleName;
-  for (const language of languages) {
+  for (const language of readdirSync(join(srcDir, dir)).filter((name) => name.endsWith(".ts") && name !== "index.ts" && !name.endsWith(".test.ts")).map((name) => name.slice(0, -3))) {
     const path = join(srcDir, dir, `${language}.ts`);
     let source;
     try { source = readFileSync(path, "utf8"); } catch { continue; }

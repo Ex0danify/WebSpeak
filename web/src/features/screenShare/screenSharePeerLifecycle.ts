@@ -1,4 +1,5 @@
 import type { Ref } from "vue";
+import { text, type LocalizedText, type MaybeLocalizedText } from "@/shared/i18n/localizedText";
 import { SCREEN_SHARE_NEGOTIATION_TIMEOUT_MS, getScreenShareIceServers } from "@/features/session";
 import type { ScreenShareOutputSettings, ScreenShareStream } from "./screenShareTypes";
 import { configureScreenShareVideoSender, preferScreenShareCodecs } from "./screenShareSender";
@@ -16,7 +17,7 @@ export interface ScreenSharePeerContext {
   viewing: Ref<boolean>;
   viewingStreamId: Ref<string>;
   remoteStream: Ref<MediaStream | null>;
-  error: Ref<string>;
+  error: Ref<MaybeLocalizedText>;
   errorCode: Ref<string>;
   send: (message: Record<string, unknown>) => void;
   localStream: () => MediaStream | null;
@@ -39,7 +40,7 @@ export function createScreenSharePeerLifecycle(ctx: ScreenSharePeerContext) {
     peerTimers.set(peerId, setTimeout(() => {
       peerTimers.delete(peerId);
       if (!ctx.peers.has(peerId)) return;
-      failScreenSharePeer(peerId, "屏幕共享直连协商超时，请确认双方网络允许浏览器直连");
+      failScreenSharePeer(peerId, text("screenShareP2PTimeout"));
     }, SCREEN_SHARE_NEGOTIATION_TIMEOUT_MS));
   }
 
@@ -59,12 +60,12 @@ export function createScreenSharePeerLifecycle(ctx: ScreenSharePeerContext) {
     for (const peerId of [...ctx.peers.keys()]) closeScreenSharePeer(peerId);
   }
 
-  function setScreenShareP2PError(message = "直连 P2P 失败，当前网络无法建立浏览器之间的直接连接") {
+  function setScreenShareP2PError(message: LocalizedText = text("screenShareP2PFailed")) {
     ctx.errorCode.value = "";
     ctx.error.value = message;
   }
 
-  function failScreenSharePeer(peerId: string, message?: string): void {
+  function failScreenSharePeer(peerId: string, message?: LocalizedText): void {
     const viewingStream = ctx.streams.find((stream) => stream.streamId === ctx.viewingStreamId.value && stream.ownerPeerId === peerId);
     if (viewingStream) ctx.send({ type: "screenShareLeave", streamId: viewingStream.streamId });
     closeScreenSharePeer(peerId);

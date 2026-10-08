@@ -15,7 +15,7 @@ describe("startWebRtcTransport", () => {
   it("throws without RTCPeerConnection", async () => {
     delete (globalThis as Record<string, unknown>).RTCPeerConnection;
     const { transport } = setup();
-    await expect(transport.startWebRtcTransport(3, socketStub())).rejects.toThrow("当前浏览器不支持 WebRTC");
+    await expect(transport.startWebRtcTransport(3, socketStub())).rejects.toThrow("This browser does not support WebRTC");
   });
 
   it("does nothing when the sequence moved on, the socket closed or no microphone is open", async () => {
@@ -33,7 +33,7 @@ describe("startWebRtcTransport", () => {
   it("throws when the microphone stream has no audio track", async () => {
     rtc.micStream = new FakeMediaStream([]);
     const { transport } = setup();
-    await expect(transport.startWebRtcTransport(3, socketStub())).rejects.toThrow("没有可用的麦克风音轨");
+    await expect(transport.startWebRtcTransport(3, socketStub())).rejects.toThrow("No microphone track is available");
   });
 
   it("stops the PCM capture, sends the mixed track and offers over the socket", async () => {
@@ -107,7 +107,7 @@ describe("startWebRtcTransport", () => {
     peer.connectionState = "failed";
     peer.onconnectionstatechange?.();
     await vi.waitFor(() => expect(sentTypes(socket)).toContain("webrtcStop"));
-    expect(deps.setAudioNotice).toHaveBeenCalledWith("WEBRTC_FALLBACK", expect.stringContaining("WEBRTC_CONNECTION_FAILED"));
+    expect(deps.setAudioNotice).toHaveBeenCalledWith("WEBRTC_FALLBACK", { code: "WEBRTC_CONNECTION_FAILED" });
   });
 
   it("falls back after eight seconds without an answer, but not once an answer was applied", async () => {
@@ -117,7 +117,7 @@ describe("startWebRtcTransport", () => {
     expect(sentTypes(silent.socket)).toEqual(["webrtcOffer"]);
     await vi.advanceTimersByTimeAsync(1);
     expect(sentTypes(silent.socket)).toContain("webrtcStop");
-    expect(silent.deps.setAudioNotice).toHaveBeenCalledWith("WEBRTC_FALLBACK", expect.stringContaining("WEBRTC_ANSWER_TIMEOUT"));
+    expect(silent.deps.setAudioNotice).toHaveBeenCalledWith("WEBRTC_FALLBACK", { code: "WEBRTC_ANSWER_TIMEOUT" });
 
     const answered = await started();
     await answered.transport.applyWebRtcAnswer({ type: "answer", sdp: "x" });
@@ -134,7 +134,7 @@ describe("startWebRtcTransport", () => {
     made.session.state.connected = true;
     await expect(made.transport.startWebRtcTransport(3, socket)).rejects.toBe(failure);
     expect(sentTypes(socket)).toEqual(["webrtcStop"]);
-    expect(made.deps.setAudioNotice).toHaveBeenCalledWith("WEBRTC_FALLBACK", expect.stringContaining("WEBRTC_NEGOTIATION_FAILED"));
+    expect(made.deps.setAudioNotice).toHaveBeenCalledWith("WEBRTC_FALLBACK", { code: "WEBRTC_NEGOTIATION_FAILED" });
   });
 
   it("sends no offer when the sequence moved on during negotiation", async () => {
@@ -180,7 +180,7 @@ describe("applyWebRtcAnswer", () => {
     const { deps, socket, transport } = await started();
     await transport.applyWebRtcAnswer({ type: "answer", sdp: "x" });
     expect(sentTypes(socket)).toContain("webrtcStop");
-    expect(deps.setAudioNotice).toHaveBeenCalledWith("WEBRTC_FALLBACK", expect.stringContaining("WEBRTC_ANSWER_REJECTED"));
+    expect(deps.setAudioNotice).toHaveBeenCalledWith("WEBRTC_FALLBACK", { code: "WEBRTC_ANSWER_REJECTED" });
 
     const unknown = await started({ hasLastConnection: () => false });
     await unknown.transport.applyWebRtcAnswer({ type: "answer", sdp: "x" });
@@ -215,7 +215,7 @@ describe("fallbackFromWebRtc", () => {
     expect(deps.webrtcActive.value).toBe(false);
     expect(peer.closed).toBe(true);
     expect(rtc.order).toEqual(["playback"]);
-    expect(deps.setAudioNotice).toHaveBeenCalledWith("WEBRTC_FALLBACK", expect.stringContaining("WEBRTC_UNAVAILABLE"));
+    expect(deps.setAudioNotice).toHaveBeenCalledWith("WEBRTC_FALLBACK", { code: "WEBRTC_UNAVAILABLE" });
     expect(deps.startMicrophone).toHaveBeenCalledTimes(1);
   });
 
@@ -253,7 +253,7 @@ describe("fallbackFromWebRtc", () => {
     const { deps, session, socket, transport } = await started();
     session.state.connected = true;
     await transport.fallbackFromWebRtc(3, socket, "WEBRTC_X");
-    expect(deps.setAudioNotice.mock.calls[0]![1]).toContain("WEBRTC_X");
+    expect(deps.setAudioNotice).toHaveBeenCalledWith("WEBRTC_FALLBACK", { code: "WEBRTC_X" });
   });
 });
 
@@ -311,7 +311,7 @@ describe("mix stream", () => {
     const idle = setup();
     await expect(idle.transport.replaceWebRtcAudioTrack()).resolves.toBeUndefined();
     const { transport } = await started();
-    await expect(transport.replaceWebRtcAudioTrack()).rejects.toThrow("WebRTC 音频轨道尚未就绪");
+    await expect(transport.replaceWebRtcAudioTrack()).rejects.toThrow("The WebRTC audio track is not ready");
   });
 
   it("stopWebRtcMix disconnects the mix and forgets the microphone gain", async () => {

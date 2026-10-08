@@ -1,6 +1,6 @@
 # WebSpeak · English
 
-[Project home](../README.md) · [简体中文](./README.zh-CN.md) · [Deutsch](./README.de.md) · [Русский](./README.ru.md) · [日本語](./README.ja.md)
+[Project home](../README.md) · [Deutsch](./README.de.md) · [Русский](./README.ru.md)
 
 WebSpeak is a self-hosted browser client and voice gateway for TeamSpeak 3 and TeamSpeak 6. Visitors can join channels without installing a desktop client, while administrators manage the target servers, access policy, and runtime state from the web console.
 

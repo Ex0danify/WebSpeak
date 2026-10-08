@@ -4,11 +4,8 @@ export type AccessMode = "fixed" | "open";
 
 export interface PersistedSettings {
   siteName: string;
-  welcomeText: string;
-  welcomeTextEn: string;
-  welcomeTextDe: string;
-  welcomeTextRu: string;
-  welcomeTextJa: string;
+  /** Non-empty welcome texts by language code. */
+  welcomeTexts: Record<string, string>;
   accessMode: AccessMode;
   tsHost: string;
   tsPort: number;
@@ -31,11 +28,8 @@ export interface PersistedSettings {
 
 export interface SettingsUpdate {
   siteName: string;
-  welcomeText: string;
-  welcomeTextEn?: string;
-  welcomeTextDe?: string;
-  welcomeTextRu?: string;
-  welcomeTextJa?: string;
+  /** Replaces the stored welcome texts; empty values are not stored. */
+  welcomeTexts?: Record<string, string>;
   accessMode: AccessMode;
   tsHost: string;
   tsPort: number;

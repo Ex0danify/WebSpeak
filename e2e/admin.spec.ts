@@ -4,11 +4,7 @@ import { TEST_ADMIN_PASSWORD, type Gateway } from "../test/helpers/gateway";
 
 // The admin console against a gateway of its own (`ownGateway`), because these tests change what
 // every visitor sees and use up the login rate limit. The console follows the stored language, else the
-// browser's; the tests store English.
-
-test.beforeEach(async ({ page }) => {
-  await page.addInitScript(() => localStorage.setItem("webspeak:language", "en"));
-});
+// browser's; the fixtures store English.
 
 async function submitLogin(page: Page, gateway: Gateway, password: string, username = "admin"): Promise<void> {
   await page.goto(`${gateway.url}/admin`);
@@ -137,7 +133,6 @@ test.describe("language", () => {
     const gateway = await ownGateway();
     await page.goto(`${gateway.url}/admin`);
     await expect(page.getByRole("heading", { name: "Welcome back" })).toBeVisible();
-    await expect(page.getByRole("heading", { name: "欢迎回来" })).toBeHidden();
   });
 
   test("a browser in another language gets the console in that language, and the stored language wins over it (F28)", async ({ browser, ownGateway }) => {
@@ -151,10 +146,11 @@ test.describe("language", () => {
     await expect(germanPage.getByRole("heading", { name: "Welcome back" })).toBeVisible();
     await german.close();
 
+    // A retired language (zh) is not offered any more: the browser falls back to English.
     const chinese = await browser.newContext({ locale: "zh-CN" });
     const chinesePage = await chinese.newPage();
     await chinesePage.goto(`${gateway.url}/admin`);
-    await expect(chinesePage.getByRole("heading", { name: "欢迎回来" })).toBeVisible();
+    await expect(chinesePage.getByRole("heading", { name: "Welcome back" })).toBeVisible();
     await chinese.close();
   });
 });

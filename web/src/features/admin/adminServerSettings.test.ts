@@ -3,7 +3,8 @@ import { createPinia, setActivePinia } from "pinia";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useI18n } from "@/shared/i18n/useI18n";
 import { createAdminFormat } from "./adminFormat";
-import { createRelayNode, DEFAULT_WELCOME_TEXTS, mapRelayNodes, useAdminServerSettingsStore } from "./adminServerSettings";
+import { createRelayNode, DEFAULT_WELCOME_TEXTS, mapRelayNodes, useAdminServerSettingsStore, welcomeLanguageOptions } from "./adminServerSettings";
+import { LANGUAGES } from "@/shared/i18n/languages";
 import { useAdminOverviewStore } from "./adminOverview";
 import { useAdminSessionStore } from "./adminSession";
 
@@ -43,10 +44,10 @@ describe("mapRelayNodes / createRelayNode", () => {
 describe("useAdminServerSettingsStore", () => {
   it("loadServerSettings splits the target and fills defaults", async () => {
     const s = setup();
-    s.getJson.mockResolvedValue({ target: "ts.example.com:9988", accessMode: "open", welcomeTextDe: "Hallo", webRtcUdpStart: 0, relayNodes: [{ id: "r", name: "R", target: "t" }] });
+    s.getJson.mockResolvedValue({ target: "ts.example.com:9988", accessMode: "open", welcomeTexts: { de: "Hallo" }, webRtcUdpStart: 0, relayNodes: [{ id: "r", name: "R", target: "t" }] });
     await s.st.loadServerSettings();
     expect(s.getJson).toHaveBeenCalledWith("/api/admin/server");
-    expect(s.st.serverForm).toMatchObject({ address: "ts.example.com", port: "9988", accessMode: "open", welcomeTextDe: "Hallo", webRtcUdpStart: 40000, passwordAction: "keep" });
+    expect(s.st.serverForm).toMatchObject({ address: "ts.example.com", port: "9988", accessMode: "open", welcomeTexts: { de: "Hallo" }, webRtcUdpStart: 40000, passwordAction: "keep" });
     expect(s.st.serverForm.relayNodes).toHaveLength(1);
     expect(s.st.serverForm.welcomeDefaults.en).toBe(DEFAULT_WELCOME_TEXTS.en);
   });
@@ -55,9 +56,16 @@ describe("useAdminServerSettingsStore", () => {
     const s = setup();
     s.st.welcomeLanguage = "de";
     s.st.selectedWelcomeText = "Hallo";
-    expect(s.st.serverForm.welcomeTextDe).toBe("Hallo");
+    expect(s.st.serverForm.welcomeTexts.de).toBe("Hallo");
     expect(s.st.selectedWelcomeLanguageLabel).toBe("Deutsch");
     expect(s.st.selectedWelcomeDefault).toBe(DEFAULT_WELCOME_TEXTS.de);
+  });
+
+  it("offers every discovered language and falls back to the English default for one without a template", () => {
+    const s = setup();
+    expect(welcomeLanguageOptions.map((option) => option.value)).toEqual(LANGUAGES.map((info) => info.code));
+    s.st.welcomeLanguage = "xx";
+    expect(s.st.selectedWelcomeDefault).toBe(DEFAULT_WELCOME_TEXTS.en);
   });
 
   it("marks relay settings touched when nodes are added or removed", () => {

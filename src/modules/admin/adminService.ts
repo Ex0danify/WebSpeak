@@ -85,21 +85,12 @@ export class AdminService {
 
   getPublicConfig(): Record<string, unknown> {
     const settings = this.database.getSettings();
-    const welcomeTexts = resolveWelcomeTexts({
-      zh: settings.welcomeText,
-      en: settings.welcomeTextEn,
-      de: settings.welcomeTextDe,
-      ru: settings.welcomeTextRu,
-      ja: settings.welcomeTextJa,
-    });
+    const welcomeTexts = resolveWelcomeTexts(settings.welcomeTexts);
     return {
       version: this.version,
       initialized: this.isInitialized(),
       siteName: settings.siteName,
-      // Keep the old fields for older clients, but return the complete,
-      // already-fallback-resolved map for current clients.
-      welcomeText: welcomeTexts.zh,
-      welcomeTextEn: welcomeTexts.en,
+      // The complete map, with the built-in default filled in for every language without a stored text.
       welcomeTexts,
       accessMode: settings.accessMode,
       target: formatTeamSpeakTarget({ host: settings.tsHost, port: settings.tsPort }),
@@ -113,11 +104,7 @@ export class AdminService {
       hasPassword: Boolean(settings.tsPasswordEncrypted),
       accessMode: settings.accessMode,
       siteName: settings.siteName,
-      welcomeText: settings.welcomeText,
-      welcomeTextEn: settings.welcomeTextEn,
-      welcomeTextDe: settings.welcomeTextDe,
-      welcomeTextRu: settings.welcomeTextRu,
-      welcomeTextJa: settings.welcomeTextJa,
+      welcomeTexts: settings.welcomeTexts,
       welcomeDefaults: DEFAULT_WELCOME_TEXTS,
       lastTestAt: settings.lastTestAt,
       lastTestLatencyMs: settings.lastTestLatencyMs,

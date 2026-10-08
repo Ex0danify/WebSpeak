@@ -81,4 +81,13 @@ describe("ServerMessage contract with the gateway", () => {
     const all = unionTypes();
     expect(new Set(all).size).toBe(all.length);
   });
+
+  // Step I0.6/I2: the optional `params` next to `code`/`message` is the only addition to these frames.
+  it.each([
+    ["error", /type: "error";[^\n]*error: \{[^}]*params\?: MessageParams/],
+    ["screenShareError", /type: "screenShareError";[^\n]*params\?: MessageParams/],
+    ["serverEvent payload", /export interface ServerEvent \{[^}]*params\?: MessageParams/],
+  ])("accepts optional params on %s", (_name, pattern) => {
+    expect(sessionTypesSource).toMatch(pattern);
+  });
 });

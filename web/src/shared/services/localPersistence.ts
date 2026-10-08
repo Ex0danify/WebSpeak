@@ -1,3 +1,4 @@
+import type { Language } from "../i18n/languages.js";
 const DB_NAME = "webspeak-local";
 const DB_VERSION = 1;
 const CURRENT_IDENTITY_KEY = "current";
@@ -36,7 +37,7 @@ export interface LocalPreferences {
   microphoneMuted?: boolean;
   noiseSuppressionEnabled?: boolean;
   voxThreshold?: number;
-  language?: "zh" | "en" | "de" | "ru" | "ja";
+  language?: Language;
   preferredInputDeviceId?: string;
   preferredOutputDeviceId?: string;
   inputGain?: number;
@@ -87,11 +88,19 @@ async function request<T>(storeName: string, mode: IDBTransactionMode, action: (
   });
 }
 
+const DEFAULT_IDENTITY_LABEL = "This device";
+// The label this default had before the app became English-only (escaped to keep the file free of CJK).
+const LEGACY_IDENTITY_LABEL = "\u6b64\u8bbe\u5907";
+
 export async function loadStoredIdentity(): Promise<StoredIdentity | null> {
   try {
     return await request<StoredIdentity | null>("identities", "readonly", (store, resolve, reject) => {
       const get = store.get(CURRENT_IDENTITY_KEY);
-      get.onsuccess = () => resolve((get.result as StoredIdentity | undefined) ?? null);
+      get.onsuccess = () => {
+        const identity = get.result as StoredIdentity | undefined;
+        if (identity?.label === LEGACY_IDENTITY_LABEL) identity.label = DEFAULT_IDENTITY_LABEL;
+        resolve(identity ?? null);
+      };
       get.onerror = () => reject(get.error);
     });
   } catch {
@@ -99,7 +108,7 @@ export async function loadStoredIdentity(): Promise<StoredIdentity | null> {
   }
 }
 
-export async function saveStoredIdentity(privateMaterial: string, label = "此设备"): Promise<boolean> {
+export async function saveStoredIdentity(privateMaterial: string, label = DEFAULT_IDENTITY_LABEL): Promise<boolean> {
   try {
     const existing = await loadStoredIdentity();
     await request("identities", "readwrite", (store, resolve, reject) => {

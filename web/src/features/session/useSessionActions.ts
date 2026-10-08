@@ -1,5 +1,6 @@
 import { storeToRefs } from "pinia";
 import { useSessionStore } from "./sessionStore";
+import { LocalizedError, text, type LocalizedText } from "@/shared/i18n/localizedText";
 import { normalizedClientErrorCode } from "./sessionErrors";
 import type { LatencyProbeResult } from "./sessionTypes";
 import type { MessageHandlers } from "./messageRouter";
@@ -8,13 +9,15 @@ import type { MessageHandlers } from "./messageRouter";
  *  poke, away and whisper. Reads the session store directly. The pending maps are returned so the
  *  message router (still one switch until Step V6.2) can settle them. */
 export interface RoomActionsDeps {
-  protocolErrorMessage: (code: string, fallback: string) => string;
+  protocolErrorMessage: (code: string, fallback: string) => LocalizedText;
 }
 
 export function useSessionActions(deps: RoomActionsDeps) {
   const session = useSessionStore();
   const { ws, whisperActive } = storeToRefs(session);
-  const { state, chatMessages, whisperTargetIds } = session;
+  const { state, chatMessages, whisperTargetIds, members } = session;
+  // A message of your own is flagged isSelf and rendered as "You"; the name only feeds avatars.
+  const selfName = () => members.find((member) => member.isSelf)?.nickname ?? "";
   let latencyProbeSequence = 0;
   const pendingLatencyProbes = new Map<string, { startedAt: number; resolve: (result: LatencyProbeResult | null) => void; timer: ReturnType<typeof setTimeout> }>();
   let commandSequence = 0;
@@ -25,12 +28,12 @@ export function useSessionActions(deps: RoomActionsDeps) {
   }
 
   function sendCommandAndWait(type: string, payload: Record<string, unknown>, timeoutMs = 8_000): Promise<void> {
-    if (ws.value?.readyState !== WebSocket.OPEN) return Promise.reject(new Error("语音连接尚未就绪"));
+    if (ws.value?.readyState !== WebSocket.OPEN) return Promise.reject(new LocalizedError(text("voiceConnectionNotReady"), "VOICE_CONNECTION_NOT_READY"));
     const requestId = `command-${Date.now().toString(36)}-${(commandSequence++).toString(36)}`;
     return new Promise((resolve, reject) => {
       const timer = setTimeout(() => {
         pendingCommands.delete(requestId);
-        reject(new Error("操作超时，请稍后重试"));
+        reject(new LocalizedError(text("commandTimeout"), "COMMAND_TIMEOUT"));
       }, timeoutMs);
       pendingCommands.set(requestId, { resolve, reject, timer });
       sendCmd(type, payload, requestId);
@@ -87,7 +90,7 @@ export function useSessionActions(deps: RoomActionsDeps) {
       scope: "channel",
       ...(targetId ? { targetId } : {}),
       senderId: state.tsClientId,
-      invokerName: "你",
+      invokerName: selfName(),
       message: trimmed,
       timestamp: Date.now(),
       isSelf: true,
@@ -98,14 +101,14 @@ export function useSessionActions(deps: RoomActionsDeps) {
     const trimmed = message.trim();
     if (!trimmed || trimmed.length > 500) return;
     sendCmd("sendServerMessage", { message: trimmed });
-    chatMessages.push({ id: `self-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`, scope: "server", senderId: state.tsClientId, invokerName: "你", message: trimmed, timestamp: Date.now(), isSelf: true });
+    chatMessages.push({ id: `self-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`, scope: "server", senderId: state.tsClientId, invokerName: selfName(), message: trimmed, timestamp: Date.now(), isSelf: true });
   }
 
   function sendPrivateMessage(clientId: number, message: string, targetId = ""): void {
     const trimmed = message.trim();
     if (!trimmed || trimmed.length > 500) return;
     sendCmd("sendPrivateMessage", { clientId, message: trimmed });
-    chatMessages.push({ id: `self-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`, scope: "private", targetId, conversationId: String(clientId), senderId: state.tsClientId, invokerName: "你", message: trimmed, timestamp: Date.now(), isSelf: true });
+    chatMessages.push({ id: `self-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`, scope: "private", targetId, conversationId: String(clientId), senderId: state.tsClientId, invokerName: selfName(), message: trimmed, timestamp: Date.now(), isSelf: true });
   }
 
   function sendPoke(clientId: number, message = ""): void {
@@ -173,16 +176,14 @@ export function useSessionActions(deps: RoomActionsDeps) {
     },
     error: (msg) => {
       state.errorCode = normalizedClientErrorCode(msg.error?.code, "OPERATION_FAILED");
-      state.error = deps.protocolErrorMessage(state.errorCode, String(msg.error?.message || msg.message || "操作失败"));
+      state.error = deps.protocolErrorMessage(state.errorCode, String(msg.error?.message || msg.message || ""));
       {
         const requestId = typeof msg.requestId === "string" ? msg.requestId : "";
         const pending = requestId ? pendingCommands.get(requestId) : undefined;
         if (pending) {
           clearTimeout(pending.timer);
           pendingCommands.delete(requestId);
-          const error = new Error(state.error);
-          Object.assign(error, { code: state.errorCode });
-          pending.reject(error);
+          pending.reject(new LocalizedError(deps.protocolErrorMessage(state.errorCode, String(msg.error?.message || msg.message || "")), state.errorCode));
         }
       }
     },

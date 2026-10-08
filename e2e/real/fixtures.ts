@@ -76,7 +76,6 @@ async function startRealGateway(server: RealServer, options: { webRtc?: boolean 
     target: `${server.host}:${server.voicePort}`,
     accessMode: "fixed",
     siteName: "WebSpeak real-server test",
-    welcomeText: "",
     webRtcEnabled: options.webRtc === true,
   });
   return gateway;

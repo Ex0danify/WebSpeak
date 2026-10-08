@@ -143,7 +143,7 @@ describe("useAdminSessionStore", () => {
     expect(operations.operations.sessions).toEqual([]);
     expect(operations.createdInvite).toBeNull();
     expect(server.serverForm.address).toBe("");
-    expect(server.welcomeLanguage).toBe("zh");
+    expect(server.welcomeLanguage).toBe("en");
     expect(server.testResult).toBeNull();
   });
 

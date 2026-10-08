@@ -6,7 +6,7 @@ import { installPeerEnvironment, makeStream, setupPeers } from "@/testSupport/sc
 
 let stubs: BrowserStubs;
 
-const NEGOTIATION_TIMEOUT = "屏幕共享直连协商超时，请确认双方网络允许浏览器直连";
+const NEGOTIATION_TIMEOUT = { key: "screenShareP2PTimeout" };
 
 beforeEach(() => {
   stubs = installPeerEnvironment();
@@ -56,7 +56,7 @@ describe("startScreenShareViewer", () => {
     await context.module.startScreenShareViewer(register(context, { source: "teamspeak" }));
     expect(context.sent).toEqual([]);
     await vi.advanceTimersByTimeAsync(15_000);
-    expect(context.store.screenShareError).toBe(NEGOTIATION_TIMEOUT);
+    expect(context.store.screenShareError).toEqual(NEGOTIATION_TIMEOUT);
   });
 
   it("replaces every earlier peer and clears the previous error", async () => {
@@ -82,7 +82,7 @@ describe("startScreenShareViewer", () => {
     expect(context.store.screenShareViewing).toBe(false);
     expect(context.store.screenShareViewingStreamId).toBe("");
     expect(context.store.screenShareRemoteStream).toBeNull();
-    expect(context.store.screenShareError).toBe(NEGOTIATION_TIMEOUT);
+    expect(context.store.screenShareError).toEqual(NEGOTIATION_TIMEOUT);
     expect(context.store.screenShareErrorCode).toBe("");
     expect(context.peers[0].closed).toBe(true);
   });
@@ -91,7 +91,7 @@ describe("startScreenShareViewer", () => {
     const context = setupPeers();
     vi.spyOn(FakeRTCPeerConnection.prototype, "createOffer").mockRejectedValue(new Error("no"));
     await context.module.startScreenShareViewer(register(context));
-    expect(context.store.screenShareError).toBe("无法创建屏幕共享直连请求，请重试");
+    expect(context.store.screenShareError).toEqual({ key: "screenShareP2POfferFailed" });
     expect(context.sent).toEqual([{ type: "screenShareLeave", streamId: "s1" }]);
     expect(context.store.screenShareViewing).toBe(false);
   });
@@ -131,7 +131,7 @@ describe("startNativeScreenShareViewer", () => {
     context.store.screenShareActiveStreamId = "mine";
     vi.spyOn(FakeRTCPeerConnection.prototype, "createOffer").mockRejectedValue(new Error("no"));
     await context.module.startNativeScreenShareViewer("mine", "ts-viewer-1");
-    expect(context.store.screenShareError).toBe("无法为 TeamSpeak 观看端创建屏幕共享直连");
+    expect(context.store.screenShareError).toEqual({ key: "screenShareP2PTsViewerFailed" });
     expect(context.peers[0].closed).toBe(true);
     expect(context.sent).toEqual([]);
   });
@@ -195,7 +195,7 @@ describe("handleScreenShareSignal", () => {
     await context.module.startScreenShareViewer(register(context, { source: "teamspeak" }));
     vi.spyOn(FakeRTCPeerConnection.prototype, "setRemoteDescription").mockRejectedValue(new Error("bad"));
     await context.module.handleScreenShareSignal("s1", "owner-1", { kind: "offer", sdp: "ts-offer" });
-    expect(context.store.screenShareError).toBe("无法回复 TeamSpeak 屏幕共享的直连请求");
+    expect(context.store.screenShareError).toEqual({ key: "screenShareP2PTsAnswerFailed" });
     expect(context.store.screenShareViewing).toBe(false);
   });
 
@@ -208,7 +208,7 @@ describe("handleScreenShareSignal", () => {
     expect(context.peers[0].remoteDescription).toBeNull();
     vi.spyOn(FakeRTCPeerConnection.prototype, "setRemoteDescription").mockRejectedValue(new Error("bad"));
     await context.module.handleScreenShareSignal("s1", "owner-1", { kind: "answer", sdp: "a" });
-    expect(context.store.screenShareError).toBe("观看端无法完成屏幕共享直连协商");
+    expect(context.store.screenShareError).toEqual({ key: "screenShareP2PViewerNegotiationFailed" });
   });
 
   it("applies a TeamSpeak viewer's answer to the own share's peer, or fails with its text", async () => {
@@ -220,7 +220,7 @@ describe("handleScreenShareSignal", () => {
     expect(context.peers[0].remoteDescription).toEqual({ type: "answer", sdp: "a" });
     vi.spyOn(FakeRTCPeerConnection.prototype, "setRemoteDescription").mockRejectedValue(new Error("bad"));
     await context.module.handleScreenShareSignal("mine", "ts-viewer-1", { kind: "answer", sdp: "b" });
-    expect(context.store.screenShareError).toBe("TeamSpeak 观看端无法完成屏幕共享直连协商");
+    expect(context.store.screenShareError).toEqual({ key: "screenShareP2PTsNegotiationFailed" });
     expect(context.peers[0].closed).toBe(true);
   });
 
@@ -249,7 +249,7 @@ describe("handleScreenShareSignal", () => {
     context.store.screenShareActiveStreamId = "mine";
     vi.spyOn(FakeRTCPeerConnection.prototype, "setRemoteDescription").mockRejectedValue(new Error("bad"));
     await context.module.handleScreenShareSignal("mine", "viewer-1", { kind: "offer", sdp: "viewer-offer" });
-    expect(context.store.screenShareError).toBe("共享端无法完成观看者的直连协商");
+    expect(context.store.screenShareError).toEqual({ key: "screenShareP2POwnerNegotiationFailed" });
     expect(context.peers[0].closed).toBe(false);
   });
 

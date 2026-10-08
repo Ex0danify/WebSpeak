@@ -8,6 +8,7 @@ import {
   MAX_AUDIO_BUFFERED_BYTES,
   micCaptureWorkletUrl,
 } from "../audioConstants";
+import { text, type LocalizedText, type TextParams } from "@/shared/i18n/localizedText";
 import { normalizeMicrophoneFailure } from "../voiceErrors";
 import type { SinkAudioContext } from "../voiceTypes";
 import { useAudioInputDevices } from "./useAudioInputDevices";
@@ -17,7 +18,7 @@ import { useMicrophoneTest } from "./useMicrophoneTest";
 /** Late-bound pieces owned by other modules or still in the assembler (V-D2): resolved at call time. */
 export interface MicrophoneDeps {
   saveAudioPreferences(): Promise<void>;
-  setAudioNotice(code: string, message: string): void;
+  setAudioNotice(code: string, params?: TextParams): void;
   clearAudioNotice(code?: string): void;
   existingAudioCtx(): SinkAudioContext | null;
   setAudioSink(ctx: SinkAudioContext, deviceId: string): Promise<void>;
@@ -73,12 +74,12 @@ export function useMicrophone(deps: MicrophoneDeps) {
   const devices = useAudioInputDevices(deps, { isOpen: () => micStream !== null, startMicrophone: () => startMicrophone() });
   const { refreshAudioDevices, refreshInputDevices, prepareInputDevices, setInputDevice } = devices;
 
-  function checkSupport(): string | null {
+  function checkSupport(): LocalizedText | null {
     if (typeof window === "undefined") return null;
-    if (!window.isSecureContext) return "语音功能需要 HTTPS 安全连接";
-    if (!navigator.mediaDevices?.getUserMedia) return "当前浏览器不支持麦克风访问";
-    if (typeof AudioContext === "undefined") return "当前浏览器不支持 Web Audio 音频处理";
-    if (typeof AudioDecoder === "undefined") return "当前浏览器不支持音频解码，请使用最新版 Chrome 或 Edge";
+    if (!window.isSecureContext) return text("voiceNeedsHttps");
+    if (!navigator.mediaDevices?.getUserMedia) return text("microphoneUnsupported");
+    if (typeof AudioContext === "undefined") return text("webAudioUnsupported");
+    if (typeof AudioDecoder === "undefined") return text("audioDecodingUnsupported");
     return null;
   }
 
@@ -100,11 +101,11 @@ export function useMicrophone(deps: MicrophoneDeps) {
    * Microphone failures are a degraded state, not a connection failure: the room
    * stays joined, so they get their own slot instead of taking over `error`.
    */
-  function setMicrophoneError(error: unknown): string {
+  function setMicrophoneError(error: unknown): LocalizedText {
     const failure = normalizeMicrophoneFailure(error);
     state.microphoneErrorCode = failure.code;
-    state.microphoneError = failure.message;
-    return failure.message;
+    state.microphoneError = failure.text;
+    return failure.text;
   }
 
   function clearMicrophoneError(): void {
@@ -236,7 +237,7 @@ export function useMicrophone(deps: MicrophoneDeps) {
     deps.syncAudioContextNotice();
   }
 
-  // 导出给 RoomView：开麦前先 await 此函数完成真实采集，避免出现“假成功”
+  // Exported to RoomView: await this before enabling the microphone so a failed capture is never reported as success
   async function ensureMicrophone(): Promise<void> {
     if (micStream) return;
     if (!microphoneStartPromise) {

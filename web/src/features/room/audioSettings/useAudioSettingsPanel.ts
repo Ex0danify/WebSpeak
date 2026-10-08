@@ -1,9 +1,10 @@
+import type { MessageKey } from "@/shared/i18n/messageKeys";
 import { computed, ref, watch } from "vue";
 import { Meter } from "@/shared/ui/meter";
 import { useI18n } from "@/shared/i18n/useI18n.js";
-import { microphoneErrorMessage } from "@/shared/lib/format.js";
-import { localizeMessage } from "@/shared/lib/localizeMessage.js";
 import { toast as raiseToast } from "@/shared/composables/useToast.js";
+import { errorText, text, type MaybeLocalizedText } from "@/shared/i18n/localizedText.js";
+import { microphoneErrorText } from "@/features/voice";
 import type { RoomSession } from "../roomTypes";
 
 export interface UseAudioSettingsPanelOptions {
@@ -27,24 +28,20 @@ export function useAudioSettingsPanel(options: UseAudioSettingsPanelOptions) {
     audioContextState, micLevel, setInputDevice, setOutputDevice, startMicrophoneTest, stopMicrophoneTest,
     setMicrophoneMuted, prepareInputDevices, startAccompaniment, stopAccompaniment,
   } = options.audio;
-  const { language, t } = useI18n();
+  const { t } = useI18n();
 
   function showToast(message: string, variant: "success" | "danger" = "success") {
     raiseToast({ title: message, variant, duration: 2800 });
   }
 
-  function localizedMessage(message: string): string {
-    return localizeMessage(message, language.value);
-  }
-
   const settingsOpen = ref(false);
-  const audioSettingsError = ref("");
+  const audioSettingsError = ref<MaybeLocalizedText>("");
 
   watch(settingsOpen, (open) => {
     if (open) {
       audioSettingsError.value = "";
       prepareInputDevices().catch((error: unknown) => {
-        audioSettingsError.value = microphoneErrorMessage(error);
+        audioSettingsError.value = microphoneErrorText(error);
       });
     } else {
       stopMicrophoneTest();
@@ -56,7 +53,7 @@ export function useAudioSettingsPanel(options: UseAudioSettingsPanelOptions) {
     try {
       await setInputDevice(String(deviceId ?? ""));
     } catch (error: unknown) {
-      audioSettingsError.value = microphoneErrorMessage(error, "无法切换麦克风");
+      audioSettingsError.value = microphoneErrorText(error, "micSwitchFailed");
     }
   }
 
@@ -65,7 +62,7 @@ export function useAudioSettingsPanel(options: UseAudioSettingsPanelOptions) {
     try {
       await setOutputDevice(String(deviceId ?? ""));
     } catch (error: unknown) {
-      audioSettingsError.value = localizedMessage(error instanceof Error ? error.message : "无法切换扬声器");
+      audioSettingsError.value = errorText(error, text("speakerSwitchFailed"));
     }
   }
 
@@ -75,7 +72,7 @@ export function useAudioSettingsPanel(options: UseAudioSettingsPanelOptions) {
       if (microphoneTestActive.value) stopMicrophoneTest();
       else await startMicrophoneTest();
     } catch (error: unknown) {
-      audioSettingsError.value = microphoneErrorMessage(error);
+      audioSettingsError.value = microphoneErrorText(error);
     }
   }
 
@@ -116,7 +113,7 @@ export function useAudioSettingsPanel(options: UseAudioSettingsPanelOptions) {
       await startAccompaniment();
       if (accompanimentActive.value) showToast(t("accompanimentStarted"));
     } catch {
-      const messageKey = accompanimentErrorCode.value === "needsWebRtc"
+      const messageKey: MessageKey = accompanimentErrorCode.value === "needsWebRtc"
         ? "accompanimentNeedsWebRtc"
         : accompanimentErrorCode.value === "noAudio"
           ? "accompanimentNoAudio"

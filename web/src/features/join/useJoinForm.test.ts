@@ -260,8 +260,8 @@ describe("loadPublicConfig (run on mount)", () => {
     expect(vm.browserError).toBe("");
   });
 
-  it("surfaces checkSupport's message as browserError", async () => {
-    const { vm } = await mountUseJoinForm({ checkSupport: vi.fn(() => "no webcodecs") });
-    expect(vm.browserError).toBe("no webcodecs");
+  it("surfaces checkSupport's text as browserError", async () => {
+    const { vm } = await mountUseJoinForm({ checkSupport: vi.fn(() => ({ key: "audioDecodingUnsupported" as const })) });
+    expect(vm.browserError).toEqual({ key: "audioDecodingUnsupported" });
   });
 });

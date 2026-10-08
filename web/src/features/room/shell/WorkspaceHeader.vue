@@ -1,6 +1,6 @@
 <template>
   <header class="workspace-header">
-    <div class="breadcrumbs"><span class="mobile-brand">TeamSpeak <em>Web</em></span><span class="crumb-muted">{{ t('serverBreadcrumb') }}</span><Icon name="chevron-right" :size="14" /><strong>{{ currentChannelName }}</strong></div>
+    <div class="breadcrumbs"><span class="mobile-brand">{{ TEAMSPEAK_NAME }} <em>{{ WEB_LABEL }}</em></span><span class="crumb-muted">{{ t('serverBreadcrumb') }}</span><Icon name="chevron-right" :size="14" /><strong>{{ currentChannelName }}</strong></div>
     <div class="workspace-actions">
       <slot name="network-performance" />
       <Button variant="ghost" size="sm" icon-only :class="headerActionClass" :title="t('copyInvite')" :aria-label="t('copyInvite')" @click="$emit('share')"><Icon name="share" /></Button>
@@ -14,6 +14,7 @@
 </template>
 
 <script setup lang="ts">
+import { TEAMSPEAK_NAME, WEB_LABEL } from "@/shared/lib/brand";
 import { Button } from "@/shared/ui/button";
 import { Icon } from "@/shared/ui/icon";
 import LanguageSwitcher from "@/shared/components/LanguageSwitcher.vue";

@@ -1,8 +1,10 @@
 <template>
-  <aside class="demo-actions-panel" :aria-label="t('simulationControls')"><div class="demo-panel-title"><span>{{ t('voice') }}</span><strong>{{ t('simulationControls') }}</strong></div><Button variant="outline" class="justify-start" @click="emit('toggleSpeaking')"><Icon name="mic" :size="17" /> {{ speakingId ? t('stopSpeaking') : t('simulateSpeaking') }}</Button><Button variant="outline" class="justify-start" @click="emit('poke')"><Icon name="bell" :size="17" /> {{ t('poke') }}</Button><Button variant="outline" class="justify-start" @click="emit('reconnect')"><Icon name="refresh" :size="17" /> {{ t('simulateReconnect') }}</Button><div class="demo-note"><Icon name="shield" :size="16" /><span>{{ t('demoNote') }}</span></div><Separator class="demo-user-rule" /><div class="demo-user"><Avatar name="illusia" size="md" /><div><strong>illusia</strong><small>{{ t('you') }} · {{ t('ready') }}</small></div><span class="demo-green-dot"></span></div></aside>
+  <aside class="demo-actions-panel" :aria-label="t('simulationControls')"><div class="demo-panel-title"><span>{{ t('voice') }}</span><strong>{{ t('simulationControls') }}</strong></div><Button variant="outline" class="justify-start" @click="emit('toggleSpeaking')"><Icon name="mic" :size="17" /> {{ speakingId ? t('stopSpeaking') : t('simulateSpeaking') }}</Button><Button variant="outline" class="justify-start" @click="emit('poke')"><Icon name="bell" :size="17" /> {{ t('poke') }}</Button><Button variant="outline" class="justify-start" @click="emit('reconnect')"><Icon name="refresh" :size="17" /> {{ t('simulateReconnect') }}</Button><div class="demo-note"><Icon name="shield" :size="16" /><span>{{ t('demoNote') }}</span></div><Separator class="demo-user-rule" /><div class="demo-user"><Avatar name="illusia" size="md" /><div><strong>{{ DEMO_USER_NAME }}</strong><small>{{ t('you') }} · {{ t('ready') }}</small></div><span class="demo-green-dot"></span></div></aside>
 </template>
 
 <script setup lang="ts">
+import {  } from "@/shared/lib/brand";
+const DEMO_USER_NAME = "illusia";
 import { Avatar } from "@/shared/ui/avatar";
 import { Button } from "@/shared/ui/button";
 import { Icon } from "@/shared/ui/icon";

@@ -21,7 +21,6 @@ export function settingsInput(overrides: Partial<AdminSettingsInput> = {}): Admi
     target: "ts.example.org:9988",
     accessMode: "open",
     siteName: "Test site",
-    welcomeText: "welcome",
     webRtcEnabled: false,
     ...overrides,
   };

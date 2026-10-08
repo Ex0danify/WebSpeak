@@ -1,5 +1,5 @@
 import { fileURLToPath } from "node:url";
-import { test as base, expect } from "@playwright/test";
+import { test as base, expect, type BrowserContext } from "@playwright/test";
 import { Session } from "../helpers/session";
 import { type Gateway, type GatewayOptions, startGateway } from "../../test/helpers/gateway";
 import type { FakeRemoteMember } from "../../test/helpers/fakeTsClient";
@@ -46,7 +46,28 @@ export interface Script {
 // Ids for the channels of a test. One counter per worker, above the fake server's own (1 to 3).
 let nextChannelId = 100n;
 
+/**
+ * Stores the language before the first script of every page of `context`, so a test reads the same
+ * text whatever the browser's locale. Only a first visit: a test that switches language (or removes
+ * the stored value) must still see its own choice after a reload. Failing storage is not an error.
+ */
+async function pinLanguage(context: BrowserContext, language: string | null): Promise<void> {
+  if (language === null) return;
+  await context.addInitScript((code) => {
+    try {
+      if (!localStorage.getItem("webspeak:language")) localStorage.setItem("webspeak:language", code);
+    } catch {
+      // storage unavailable
+    }
+  }, language);
+}
+
 interface TestFixtures {
+  /**
+   * The language every page of the test starts in (default `en`), stored before navigation. Set it
+   * with `test.use({ language: "de" })`, or `null` for a test that checks detection from the browser.
+   */
+  language: string | null;
   /** The page of the test, with its socket frames recorded from the first navigation on. */
   session: Session;
   /**
@@ -66,6 +87,11 @@ interface TestFixtures {
 }
 
 export const test = base.extend<TestFixtures, WorkerFixtures>({
+  language: ["en", { option: true }],
+  context: async ({ context, language }, use) => {
+    await pinLanguage(context, language);
+    await use(context);
+  },
   gateway: [
     async ({}, use) => {
       const options: GatewayOptions = { staticDir };
@@ -117,7 +143,7 @@ export const test = base.extend<TestFixtures, WorkerFixtures>({
     });
     for (const gateway of started) await gateway.close();
   },
-  openSession: async ({ browser, baseURL }, use, testInfo) => {
+  openSession: async ({ browser, baseURL, language }, use, testInfo) => {
     const { use: project } = testInfo.project;
     const contexts: { close(): Promise<void> }[] = [];
     await use(async () => {
@@ -132,6 +158,7 @@ export const test = base.extend<TestFixtures, WorkerFixtures>({
         reducedMotion: project.reducedMotion,
       });
       contexts.push(context);
+      await pinLanguage(context, language);
       return Session.attach(await context.newPage());
     });
     for (const context of contexts) await context.close();

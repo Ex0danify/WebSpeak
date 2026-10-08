@@ -2,7 +2,7 @@ import { computed, nextTick, ref, watch, type Ref } from "vue";
 import { useI18n } from "@/shared/i18n/useI18n.js";
 import { formatTime as formatTimestamp } from "@/shared/lib/format.js";
 import type { TreeChannel } from "../roomTypes.js";
-import type { ChannelMember, ServerEvent } from "@/features/session";
+import { nicknameText, type ChannelMember, type ServerEvent } from "@/features/session";
 import type { RoomSession } from "../roomTypes.js";
 
 export interface UseChatOptions {
@@ -101,20 +101,21 @@ export function useChat(options: UseChatOptions) {
     nextTick(scrollChatToEnd);
   }
 
-  // F24: the gateway used to write the event log itself, in Chinese, and the client showed `message`
-  // as it is. A gateway that sends `nickname` or `channelName` lets the sentence be built here with
-  // t() instead, in the page's own language; an older gateway sends neither, and `message` is shown
-  // unchanged (English and German among the entries showed no bug of their own before this).
+  // The gateway sends the kind and the names (an empty one with `unnamed`); the sentence is built
+  // here, so the log follows the language. `message` (English) is only shown for a kind this
+  // client does not know.
   function eventText(event: ServerEvent): string {
+    const nickname = nicknameText(event.nickname ?? "", t);
+    const channel = event.channelName || t("unnamedChannel");
     switch (event.kind) {
       case "connection": return t("eventConnected");
-      case "joined": return event.nickname ? t("eventMemberJoined", { nickname: event.nickname }) : event.message;
-      case "left": return event.nickname ? t("eventMemberLeft", { nickname: event.nickname }) : event.message;
-      case "moved": return event.nickname ? t("eventMemberMoved", { nickname: event.nickname }) : event.message;
-      case "poke": return event.nickname ? `${event.nickname} ${t("pokedYou")}` : event.message;
-      case "channelCreated": return event.channelName ? t("eventChannelCreated", { channel: event.channelName }) : event.message;
-      case "channelRenamed": return event.channelName ? t("eventChannelRenamed", { channel: event.channelName }) : event.message;
-      case "channelDeleted": return event.channelName ? t("eventChannelDeleted", { channel: event.channelName }) : event.message;
+      case "joined": return t("eventMemberJoined", { nickname });
+      case "left": return t("eventMemberLeft", { nickname });
+      case "moved": return t("eventMemberMoved", { nickname });
+      case "poke": return `${nickname} ${t("pokedYou")}`;
+      case "channelCreated": return t("eventChannelCreated", { channel });
+      case "channelRenamed": return t("eventChannelRenamed", { channel });
+      case "channelDeleted": return t("eventChannelDeleted", { channel });
       default: return event.message;
     }
   }

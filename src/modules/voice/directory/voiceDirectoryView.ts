@@ -13,7 +13,8 @@ export function mapChannelTree(snapshot: TSDirectorySnapshot, avatarCache = new 
     id: String(channel.id),
     parentID: String(channel.parentID),
     order: String(channel.order),
-    name: channel.name || "未命名频道",
+    name: channel.name,
+    ...(channel.name ? {} : { unnamed: true }),
     description: channel.description || "",
     members: snapshot.clients
       .filter((client) => client.channelID === channel.id)
@@ -21,7 +22,8 @@ export function mapChannelTree(snapshot: TSDirectorySnapshot, avatarCache = new 
         const avatar = client.uid ? avatarCache.get(client.uid) : undefined;
         return {
           id: client.id,
-          nickname: client.nickname || "未知用户",
+          nickname: client.nickname,
+          ...(client.nickname ? {} : { unnamed: true }),
           uid: client.uid,
           ...(avatar ? { avatar } : {}),
           away: client.away,

@@ -11,7 +11,7 @@
   "scripts": {
     "check:gateway-size": "node scripts/check-gateway-size.mjs",
     "dev": "tsx src/index.ts",
-    "build": "tsc && npm run check:gateway-size && npm run check:gateway-names && npm run check:gateway-deps",
+    "build": "tsc && npm run check:gateway-size && npm run check:gateway-names && npm run check:gateway-deps && npm run check:gateway-literals",
     "start": "node dist/index.js",
     "web:dev": "cd web && npx vite --host",
     "web:build": "npm --prefix web run build",
@@ -29,7 +29,9 @@
     "test:a11y": "NODE_OPTIONS=--disable-warning=ExperimentalWarning playwright test -c e2e/a11y/playwright.config.ts",
     "test:full": "npm --prefix web run build && npm test && npm run test:e2e && npm run test:visual && npm run test:a11y",
     "check:gateway-deps": "depcruise src --config .dependency-cruiser.cjs",
-    "check:gateway-names": "node scripts/check-gateway-names.mjs"
+    "check:gateway-names": "node scripts/check-gateway-names.mjs",
+    "check:gateway-literals": "node scripts/check-gateway-literals.mjs",
+    "i18n:create": "node web/scripts/create-language.mjs"
   },
   "dependencies": {
     "@discordjs/opus": "^0.10.0",

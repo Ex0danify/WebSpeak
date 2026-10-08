@@ -22,8 +22,6 @@ export interface VoiceConnectionDeps {
  * Registers the kick and disconnect listeners. Call it before connect().
  */
 export function registerVoiceConnection(ctx: VoiceConnection, hooks: VoiceConnectionDeps): void {
-  // 被踢/封禁对本会话是终态：把服务器给出的原因回放给浏览器并拆除会话，
-  // 而不是像以前那样因原因被丢弃而反复重连、再次撞上同一踢出。
   // A kick or ban is terminal for this session: replay the reason the server
   // sent instead of reconnecting, which is what used to happen once the reason
   // message was dropped (the browser kept retrying straight into the kick).
@@ -165,7 +163,7 @@ export function sendInitialState(ctx: VoiceConnection, hooks: VoiceConnectionDep
   ctx.state.reconnectAttempt = 0;
   ctx.state.reconnectStartedAt = 0;
   if (!wasReconnecting) {
-    ctx.entry.eventLog.push({ id: `event-${Date.now().toString(36)}-connected`, kind: "connection", message: "已连接到服务器", timestamp: Date.now() });
+    ctx.entry.eventLog.push({ id: `event-${Date.now().toString(36)}-connected`, kind: "connection", message: "Connected to the server", timestamp: Date.now() });
     ctx.logger.info({
       entryId: ctx.entry.id,
       nickname: ctx.entry.nickname,

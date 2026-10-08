@@ -1,6 +1,7 @@
 import { storeToRefs } from "pinia";
 import { computed, onMounted, reactive, ref, type Ref } from "vue";
 import { useI18n } from "@/shared/i18n/useI18n.js";
+import type { LocalizedText, MaybeLocalizedText } from "@/shared/i18n/localizedText.js";
 import { serverKey } from "@/shared/lib/format.js";
 import { readStorage, removeStorage, writeStorage } from "@/shared/services/safeStorage.js";
 import { toast as raiseToast } from "@/shared/composables/useToast.js";
@@ -25,7 +26,7 @@ export interface UseJoinFormOptions {
   connect: (target: string, channel: string, nickname: string, serverPassword?: string, identity?: string, rememberIdentity?: boolean, inviteToken?: string, accelerated?: boolean, accelerationRelayId?: string) => void;
   disconnect: (preserveConnection?: boolean) => void;
   clearError: () => void;
-  checkSupport: () => string | null;
+  checkSupport: () => LocalizedText | null;
   setThemeMode: (mode: ThemeMode) => void;
 }
 
@@ -34,7 +35,7 @@ export interface UseJoinFormOptions {
  *  because it writes directly into `identityMaterial`, which this composable only reads. */
 export function useJoinForm(options: UseJoinFormOptions) {
   const { voiceState, identityMaterial, connect, disconnect, clearError, checkSupport, setThemeMode } = options;
-  const { language, t } = useI18n();
+  const { language, setSiteName, t } = useI18n();
 
   const query = new URLSearchParams(location.search);
   const inviteToken = query.get("invite") ?? "";
@@ -45,30 +46,19 @@ export function useJoinForm(options: UseJoinFormOptions) {
   const recentServers = ref<RecentServer[]>([]);
   const initialized = ref(false);
   const siteName = ref("WebSpeak");
-  const welcomeTextZh = ref("");
-  const welcomeTextEn = ref("");
-  const welcomeTextDe = ref("");
-  const welcomeTextRu = ref("");
-  const welcomeTextJa = ref("");
+  const welcomeTexts = ref<Record<string, string>>({});
   const appVersion = ref("0.2.4");
   const visitorNumber = ref<number | null>(null);
   const visitorTotal = ref<number | null>(null);
   const accelerationRelays = ref<Array<{ id: string; name: string }>>([]);
   const accelerationRelayId = ref("");
   const accelerationAvailable = computed(() => accelerationRelays.value.length > 0);
-  const browserError = ref("");
+  const browserError = ref<MaybeLocalizedText>("");
   const serverConfigLoading = ref(true);
   const serverPasswordDialog = reactive({ open: false, password: "", errorCode: "" });
 
   const localizedWelcomeText = computed(() => {
-    const customText = {
-      zh: welcomeTextZh.value,
-      en: welcomeTextEn.value,
-      de: welcomeTextDe.value,
-      ru: welcomeTextRu.value,
-      ja: welcomeTextJa.value,
-    }[language.value];
-    return customText || t("joinDescription");
+    return welcomeTexts.value[language.value] || t("joinDescription");
   });
 
   function notify(message: string, variant: "success" | "danger" = "success") {
@@ -126,21 +116,14 @@ export function useJoinForm(options: UseJoinFormOptions) {
     try {
       const response = await fetch("/api/public-config", { headers: { accept: "application/json" } });
       if (!response.ok) return;
-      const config = await response.json() as { version?: unknown; initialized?: unknown; siteName?: unknown; welcomeText?: unknown; welcomeTextEn?: unknown; welcomeTexts?: unknown; accessMode?: unknown; target?: unknown; visitorNumber?: unknown; visitorTotal?: unknown; accelerationAvailable?: unknown; accelerationRelays?: unknown };
+      const config = await response.json() as { version?: unknown; initialized?: unknown; siteName?: unknown; welcomeTexts?: unknown; accessMode?: unknown; target?: unknown; visitorNumber?: unknown; visitorTotal?: unknown; accelerationAvailable?: unknown; accelerationRelays?: unknown };
       if (typeof config.version === "string" && config.version.trim()) appVersion.value = config.version.trim();
       visitorNumber.value = Number.isSafeInteger(config.visitorNumber) && Number(config.visitorNumber) > 0 ? Number(config.visitorNumber) : null;
       visitorTotal.value = Number.isSafeInteger(config.visitorTotal) && Number(config.visitorTotal) > 0 ? Number(config.visitorTotal) : null;
       initialized.value = config.initialized === true;
-      if (typeof config.siteName === "string" && config.siteName.trim()) siteName.value = config.siteName.trim();
-      if (typeof config.welcomeText === "string") welcomeTextZh.value = config.welcomeText;
-      if (typeof config.welcomeTextEn === "string") welcomeTextEn.value = config.welcomeTextEn;
+      if (typeof config.siteName === "string" && config.siteName.trim()) { siteName.value = config.siteName.trim(); setSiteName(siteName.value); }
       if (config.welcomeTexts && typeof config.welcomeTexts === "object" && !Array.isArray(config.welcomeTexts)) {
-        const welcomeTexts = config.welcomeTexts as Record<string, unknown>;
-        if (typeof welcomeTexts.zh === "string") welcomeTextZh.value = welcomeTexts.zh;
-        if (typeof welcomeTexts.en === "string") welcomeTextEn.value = welcomeTexts.en;
-        if (typeof welcomeTexts.de === "string") welcomeTextDe.value = welcomeTexts.de;
-        if (typeof welcomeTexts.ru === "string") welcomeTextRu.value = welcomeTexts.ru;
-        if (typeof welcomeTexts.ja === "string") welcomeTextJa.value = welcomeTexts.ja;
+        welcomeTexts.value = Object.fromEntries(Object.entries(config.welcomeTexts).filter((entry): entry is [string, string] => typeof entry[1] === "string"));
       }
       accessMode.value = config.accessMode === "open" ? "open" : "fixed";
       accelerationRelays.value = Array.isArray(config.accelerationRelays)
@@ -222,11 +205,7 @@ export function useJoinForm(options: UseJoinFormOptions) {
     recentServers,
     initialized,
     siteName,
-    welcomeTextZh,
-    welcomeTextEn,
-    welcomeTextDe,
-    welcomeTextRu,
-    welcomeTextJa,
+    welcomeTexts,
     localizedWelcomeText,
     appVersion,
     visitorNumber,

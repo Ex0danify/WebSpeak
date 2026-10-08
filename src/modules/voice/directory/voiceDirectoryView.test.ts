@@ -50,9 +50,9 @@ describe("mapChannelTree", () => {
 
   it("stringifies ids, groups members and applies fallbacks", () => {
     const tree = mapChannelTree(snap, new Map([["u7", "data:x"]])) as Array<Record<string, unknown>>;
-    expect(tree.map((c) => [c.id, c.parentID, c.order, c.name])).toEqual([["1", "0", "0", "未命名频道"], ["2", "1", "1", "Two"]]);
+    expect(tree.map((c) => [c.id, c.parentID, c.order, c.name])).toEqual([["1", "0", "0", ""], ["2", "1", "1", "Two"]]);
     expect(tree[0]!.members).toEqual([
-      { id: 7, nickname: "未知用户", uid: "u7", avatar: "data:x", away: false, awayMessage: "", inputMuted: false, outputMuted: false, channelCommander: false },
+      { id: 7, nickname: "", unnamed: true, uid: "u7", avatar: "data:x", away: false, awayMessage: "", inputMuted: false, outputMuted: false, channelCommander: false },
     ]);
     expect((tree[1]!.members as Array<Record<string, unknown>>)[0]).not.toHaveProperty("avatar");
   });

@@ -31,6 +31,13 @@ describe("identity", () => {
     expect(await store.loadStoredIdentity()).toMatchObject({ id: "current", label: "Laptop", privateMaterial: "secret-material" });
   });
 
+  it("labels a default save 'This device' and renames the old Chinese default on read", async () => {
+    await store.saveStoredIdentity("a");
+    expect(await store.loadStoredIdentity()).toMatchObject({ label: "This device" });
+    await store.saveStoredIdentity("b", "\u6b64\u8bbe\u5907");
+    expect(await store.loadStoredIdentity()).toMatchObject({ label: "This device" });
+  });
+
   it("replaces the identity on a second save but keeps createdAt", async () => {
     vi.useFakeTimers({ toFake: ["Date"] });
     vi.setSystemTime(1_000);

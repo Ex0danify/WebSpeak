@@ -58,7 +58,7 @@ describe("startScreenShare", () => {
     expect(getDisplayMedia).toHaveBeenCalledWith({
       video: true, audio: false, systemAudio: "include", windowAudio: "window", selfBrowserSurface: "exclude",
     });
-    expect(context.sent).toEqual([{ type: "screenShareStart", requestId: "screen-start-1", audio: true, name: "我的屏幕" }]);
+    expect(context.sent).toEqual([{ type: "screenShareStart", requestId: "screen-start-1", audio: true }]);
     expect(context.store.screenShareStarting).toBe(true);
     expect(context.store.screenShareActive).toBe(false);
   });
@@ -67,7 +67,7 @@ describe("startScreenShare", () => {
     const context = setupPeers();
     picker(async () => display().stream);
     await context.module.startScreenShare();
-    expect(context.sent).toEqual([{ type: "screenShareStart", requestId: "screen-start-1", audio: false, name: "我的屏幕" }]);
+    expect(context.sent).toEqual([{ type: "screenShareStart", requestId: "screen-start-1", audio: false }]);
   });
 
   it("hints detail for a browser tab and motion for anything else", async () => {
@@ -103,7 +103,7 @@ describe("startScreenShare", () => {
     (navigator.mediaDevices as unknown as { getDisplayMedia: unknown }).getDisplayMedia = undefined;
     context.store.screenShareErrorCode = "OLD";
     await context.module.startScreenShare();
-    expect(context.store.screenShareError).toBe("当前浏览器不支持屏幕共享");
+    expect(context.store.screenShareError).toEqual({ key: "screenShareUnsupported" });
     expect(context.store.screenShareStarting).toBe(false);
   });
 
@@ -131,11 +131,11 @@ describe("startScreenShare", () => {
     const context = setupPeers();
     picker(async () => { throw new DOMException("no", "NotAllowedError"); });
     await context.module.startScreenShare();
-    expect(context.store.screenShareError).toBe("你取消了屏幕共享或浏览器未授予权限");
+    expect(context.store.screenShareError).toEqual({ key: "screenSharePermissionDenied" });
     expect(context.store.screenShareStarting).toBe(false);
     picker(async () => { throw new Error("boom"); });
     await context.module.startScreenShare();
-    expect(context.store.screenShareError).toBe("无法开始屏幕共享，请检查浏览器权限");
+    expect(context.store.screenShareError).toEqual({ key: "screenShareStartFailed" });
     expect(context.sent).toEqual([]);
   });
 
@@ -144,7 +144,7 @@ describe("startScreenShare", () => {
     const shot = display({ video: false, audio: true });
     picker(async () => shot.stream);
     await context.module.startScreenShare();
-    expect(context.store.screenShareError).toBe("无法开始屏幕共享，请检查浏览器权限");
+    expect(context.store.screenShareError).toEqual({ key: "screenShareStartFailed" });
     expect(context.store.screenShareStarting).toBe(false);
     expect(context.sent).toEqual([]);
   });

@@ -1,30 +1,24 @@
 import type { Page } from "@playwright/test";
-import { translations as commonTranslations } from "../../web/src/shared/i18n/common";
-import { translations as joinTranslations } from "../../web/src/features/join/i18n";
-import { translations as roomTranslations } from "../../web/src/features/room/i18n";
+import { loadJoinRoomTranslations } from "../helpers/translations";
 
-// Step 8.2 split the one i18n module the old WebClient view used into `join` (pre-connect screen) and
-// `room` (connected view); step 8.6 pulled out `common`, the strings every view agreed on.
-// A key lives in exactly one of the three, so this merge is complete and lossless for every
-// language, matching what useI18n.ts's own t() resolves for the join page.
-const translations: Record<string, Record<string, string>> = Object.fromEntries(
-  Object.keys(roomTranslations).map((language) => [language, { ...commonTranslations[language], ...joinTranslations[language], ...roomTranslations[language] }]),
-);
 import { expect, test } from "../fixtures";
 import { adminScreens, useCannedApi } from "../fixtures/canned-api";
 import { installVoiceFixture } from "../fixtures/scripted-gateway";
 import { overflowScan } from "../helpers";
 
+// The merged common, join and room messages per language (a key lives in exactly one of the three).
+const translations = await loadJoinRoomTranslations();
+
 // No text is cut off or sits outside the screen at 390 px, and the page never scrolls sideways, in
 // all five languages: the join page, the demo, the admin console, and the room on each of the
-// phone's four panels. Layer 4 has the same check for German and Russian on the join page and the
+// phone's four panels. Layer 4 has the same check for German on the join page and the
 // room (`appearance.spec.ts`); this one adds the other pages and languages. What the scan finds today
 // is listed below with its finding: the test fails on anything else, and on a row that no longer
 // happens.
 
 const known: Record<string, { finding: string; clipped: string[] }> = {};
 
-const languages = ["en", "zh", "de", "ru", "ja"] as const;
+const languages = ["en", "de"] as const;
 
 const visit = (path: string) => async (page: Page) => {
   await page.goto(path, { waitUntil: "networkidle" });

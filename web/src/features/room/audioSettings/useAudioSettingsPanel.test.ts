@@ -2,10 +2,14 @@ import { flushPromises, mount } from "@vue/test-utils";
 import { defineComponent, reactive, ref } from "vue";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { VoiceState } from "@/features/session";
+import { LocalizedError, text } from "@/shared/i18n/localizedText";
+
+// The voice barrel loads the audio engine, whose noise suppressor extends AudioWorkletNode (happy-dom has none).
+vi.hoisted(() => { vi.stubGlobal("AudioWorkletNode", class {}); });
 
 type Exposed = {
   settingsOpen: boolean;
-  audioSettingsError: string;
+  audioSettingsError: unknown;
   onInputDeviceChange: (deviceId: string | number | undefined) => Promise<void>;
   onOutputDeviceChange: (deviceId: string | number | undefined) => Promise<void>;
   toggleMicTest: () => Promise<void>;
@@ -104,7 +108,7 @@ describe("onInputDeviceChange", () => {
   it("reports a mic-switch error on failure", async () => {
     const { vm } = await mountUseAudioSettingsPanel({ setInputDevice: vi.fn(async () => { throw new Error("denied"); }) });
     await vm.onInputDeviceChange("device-2");
-    expect(vm.audioSettingsError).not.toBe("");
+    expect(vm.audioSettingsError).toEqual({ key: "micSwitchFailed" });
   });
 });
 
@@ -117,7 +121,13 @@ describe("onOutputDeviceChange", () => {
     expect(vm.audioSettingsError).toBe("");
   });
 
-  it("localizes an Error's message on failure", async () => {
+  it("keeps the LocalizedText of a LocalizedError, so the message follows the language", async () => {
+    const { vm } = await mountUseAudioSettingsPanel({ setOutputDevice: vi.fn(async () => { throw new LocalizedError(text("speakerUnavailable")); }) });
+    await vm.onOutputDeviceChange("device-3");
+    expect(vm.audioSettingsError).toEqual({ key: "speakerUnavailable" });
+  });
+
+  it("shows another Error's message as is", async () => {
     const { vm } = await mountUseAudioSettingsPanel({ setOutputDevice: vi.fn(async () => { throw new Error("boom"); }) });
     await vm.onOutputDeviceChange("device-3");
     expect(vm.audioSettingsError).toBe("boom");
@@ -126,7 +136,7 @@ describe("onOutputDeviceChange", () => {
   it("falls back to a generic message for a non-Error throw", async () => {
     const { vm } = await mountUseAudioSettingsPanel({ setOutputDevice: vi.fn(async () => { throw "nope"; }) });
     await vm.onOutputDeviceChange("device-3");
-    expect(vm.audioSettingsError).not.toBe("");
+    expect(vm.audioSettingsError).toEqual({ key: "speakerSwitchFailed" });
   });
 });
 

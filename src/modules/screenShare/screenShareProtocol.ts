@@ -7,6 +7,8 @@
  * module never handles the resulting media packets.
  */
 
+import type { MessageCode } from "../../shared/messageCodes.js";
+
 export interface ScreenShareIceServer {
   urls: string | string[];
   username?: string;
@@ -92,6 +94,8 @@ export interface ScreenShareStreamDescription {
   ownerClientId?: number;
   ownerNickname: string;
   name: string;
+  /** Set when `name` is a default the gateway filled in; the browser renders its own text for it. */
+  nameKind?: "teamspeakNative" | "ownerScreen";
   audio: boolean;
   createdAt: number;
   viewerCount: number;
@@ -132,7 +136,7 @@ export type ScreenShareClientMessage =
 
 export type ScreenShareMessageParseResult =
   | ScreenShareClientMessage
-  | { error: { code: string; message: string } };
+  | { error: { code: MessageCode; message: string } };
 
 const MAX_STREAM_ID_LENGTH = 128;
 const MAX_PEER_ID_LENGTH = 128;
@@ -149,15 +153,15 @@ export function parseScreenShareMessage(raw: string): ScreenShareMessageParseRes
   }
   if (!isRecord(value) || typeof value.type !== "string" || !value.type.startsWith("screenShare")) return null;
   const requestId = parseRequestId(value.requestId);
-  if (requestId === false) return invalid("INVALID_SCREEN_SHARE_REQUEST", "屏幕共享请求标识无效");
+  if (requestId === false) return invalid("INVALID_SCREEN_SHARE_REQUEST", "Screen share request id is invalid");
 
   switch (value.type) {
     case "screenShareList":
       return { type: "screenShareList" };
     case "screenShareStart": {
       const name = value.name === undefined ? undefined : parseName(value.name);
-      if (name === false) return invalid("INVALID_SCREEN_SHARE_NAME", "屏幕共享名称无效");
-      if (value.audio !== undefined && typeof value.audio !== "boolean") return invalid("INVALID_SCREEN_SHARE_AUDIO", "共享音频选项无效");
+      if (name === false) return invalid("INVALID_SCREEN_SHARE_NAME", "Screen share name is invalid");
+      if (value.audio !== undefined && typeof value.audio !== "boolean") return invalid("INVALID_SCREEN_SHARE_AUDIO", "Share audio option is invalid");
       return {
         type: "screenShareStart",
         ...(requestId ? { requestId } : {}),
@@ -169,7 +173,7 @@ export function parseScreenShareMessage(raw: string): ScreenShareMessageParseRes
     case "screenShareJoin":
     case "screenShareLeave": {
       const streamId = parseIdentifier(value.streamId, MAX_STREAM_ID_LENGTH);
-      if (!streamId) return invalid("INVALID_SCREEN_SHARE_STREAM", "屏幕共享标识无效");
+      if (!streamId) return invalid("INVALID_SCREEN_SHARE_STREAM", "Screen share id is invalid");
       return {
         type: value.type,
         ...(requestId ? { requestId } : {}),
@@ -180,13 +184,13 @@ export function parseScreenShareMessage(raw: string): ScreenShareMessageParseRes
       const streamId = parseIdentifier(value.streamId, MAX_STREAM_ID_LENGTH);
       const targetPeerId = parseIdentifier(value.targetPeerId, MAX_PEER_ID_LENGTH);
       const signal = parseSignal(value.signal);
-      if (!streamId) return invalid("INVALID_SCREEN_SHARE_STREAM", "屏幕共享标识无效");
-      if (!targetPeerId) return invalid("INVALID_SCREEN_SHARE_PEER", "屏幕共享对端无效");
-      if (!signal) return invalid("INVALID_SCREEN_SHARE_SIGNAL", "屏幕共享信令无效");
+      if (!streamId) return invalid("INVALID_SCREEN_SHARE_STREAM", "Screen share id is invalid");
+      if (!targetPeerId) return invalid("INVALID_SCREEN_SHARE_PEER", "Screen share peer is invalid");
+      if (!signal) return invalid("INVALID_SCREEN_SHARE_SIGNAL", "Screen share signal is invalid");
       return { type: "screenShareSignal", streamId, targetPeerId, signal };
     }
     default:
-      return invalid("UNKNOWN_SCREEN_SHARE_MESSAGE", "不支持的屏幕共享消息");
+      return invalid("UNKNOWN_SCREEN_SHARE_MESSAGE", "Unsupported screen share message");
   }
 }
 
@@ -225,7 +229,7 @@ function parseIdentifier(value: unknown, maxLength: number): string | null {
   return value;
 }
 
-function invalid(code: string, message: string): { error: { code: string; message: string } } {
+function invalid(code: MessageCode, message: string): { error: { code: MessageCode; message: string } } {
   return { error: { code, message } };
 }
 

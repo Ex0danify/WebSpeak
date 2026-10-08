@@ -16,11 +16,6 @@ export interface ManagedInviteRow extends Record<string, unknown> {
 
 export interface SettingsRow extends Record<string, unknown> {
   site_name: string;
-  welcome_text: string;
-  welcome_text_en: string;
-  welcome_text_de: string;
-  welcome_text_ru: string;
-  welcome_text_ja: string;
   access_mode: string;
   ts_host: string;
   ts_port: number;
@@ -40,6 +35,11 @@ export interface SettingsRow extends Record<string, unknown> {
   relay_port: number;
   relay_token_encrypted: string | null;
   updated_at: string;
+}
+
+export interface WelcomeTextRow extends Record<string, unknown> {
+  language: string;
+  text: string;
 }
 
 export interface RelayNodeRow extends Record<string, unknown> {

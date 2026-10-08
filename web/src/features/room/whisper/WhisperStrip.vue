@@ -1,6 +1,6 @@
 <template>
   <div v-if="whisperTargetIds.size" class="whisper-strip">
-    <div class="whisper-strip-copy"><strong><Icon name="users" :size="15" /> {{ t('whisperTargets') }}</strong><span>{{ whisperTargets.map((member) => member.nickname).join('、') }}</span></div>
+    <div class="whisper-strip-copy"><strong><Icon name="users" :size="15" /> {{ t('whisperTargets') }}</strong><span>{{ list(whisperTargets.map((member) => member.nickname)) }}</span></div>
     <button type="button" class="text-button" @click="$emit('clear-targets')">{{ t('clearWhisperTargets') }}</button>
     <button type="button" class="whisper-ptt-button" :class="{ active: whisperPttActive || whisperActive }" :aria-pressed="whisperPttActive || whisperActive" @pointerdown.prevent="$emit('ptt-down', $event)" @pointerup.prevent="$emit('ptt-up', $event)" @pointercancel.prevent="$emit('ptt-up', $event)" @lostpointercapture="$emit('ptt-up', $event)"><Icon name="mic" :size="18" /> {{ whisperPttActive || whisperActive ? t('releaseWhisper') : t('whisperHoldToTalk') }}</button>
   </div>
@@ -9,6 +9,7 @@
 <script setup lang="ts">
 import { Icon } from "@/shared/ui/icon";
 import { useI18n } from "@/shared/i18n/useI18n.js";
+import { useFormat } from "@/shared/i18n/useFormat.js";
 import type { ChannelMember } from "@/features/session";
 
 defineProps<{
@@ -25,6 +26,7 @@ defineEmits<{
 }>();
 
 const { t } = useI18n();
+const { list } = useFormat();
 </script>
 
 <style scoped>

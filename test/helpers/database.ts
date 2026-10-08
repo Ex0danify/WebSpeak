@@ -57,11 +57,7 @@ export const credential: AdminCredential = {
 export function settings(overrides: Partial<SettingsUpdate> = {}): SettingsUpdate {
   return {
     siteName: "Test site",
-    welcomeText: "zh",
-    welcomeTextEn: "en",
-    welcomeTextDe: "de",
-    welcomeTextRu: "ru",
-    welcomeTextJa: "ja",
+    welcomeTexts: { en: "en", de: "de" },
     accessMode: "open",
     tsHost: "ts.example.org",
     tsPort: 9988,

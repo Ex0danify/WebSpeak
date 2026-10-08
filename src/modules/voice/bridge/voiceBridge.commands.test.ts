@@ -139,7 +139,7 @@ describe("poke", () => {
     bob.poke(session.client, "over here");
     const received = await session.socket.waitForMessage("pokeReceived", { after });
     expect(received).toEqual({ type: "pokeReceived", invokerId: bob.id, invokerUid: "remote-bob", invokerName: "bob", message: "over here", timestamp: expect.any(Number) });
-    expect((await session.socket.waitForMessage("serverEvent", { after })).event).toMatchObject({ kind: "poke", message: "bob 戳了你一下", nickname: "bob" });
+    expect((await session.socket.waitForMessage("serverEvent", { after })).event).toMatchObject({ kind: "poke", message: "bob poked you", nickname: "bob" });
   });
 });
 
@@ -169,7 +169,7 @@ describe("away and mute", () => {
     gateway.ts.failNext("setAway", new ServerError("2568", "insufficient client permissions"));
     expect(errorOf(await ask(session, "setAway", { away: true }))).toMatchObject({ code: "PERMISSION_DENIED" });
     gateway.ts.failNext("setAway", new Error("the wire caught fire"));
-    expect(errorOf(await ask(session, "setAway", { away: true }))).toMatchObject({ code: "OPERATION_FAILED", message: "操作失败" });
+    expect(errorOf(await ask(session, "setAway", { away: true }))).toMatchObject({ code: "OPERATION_FAILED", message: "Operation failed" });
   });
 });
 

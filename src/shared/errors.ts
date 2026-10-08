@@ -22,30 +22,18 @@ export type WebSpeakErrorCode =
   | "protocol_negotiation_failed"
   | "unknown";
 
-export type ClientConnectionFailureCode =
-  | "INVALID_TARGET"
-  | "INVALID_NICKNAME"
-  | "NICKNAME_IN_USE"
-  | "HOST_NOT_FOUND"
-  | "UNREACHABLE"
-  | "CONNECTION_REFUSED"
-  | "CONNECTION_RESET"
-  | "TIMEOUT"
-  | "SERVER_PASSWORD_REQUIRED"
-  | "INVALID_SERVER_PASSWORD"
-  | "CHANNEL_PASSWORD_REQUIRED"
-  | "IDENTITY_SECURITY_LEVEL_TOO_LOW"
-  | "IDENTITY_LIMIT_REACHED"
-  | "CLIENT_VERSION_OUTDATED"
-  | "FLOOD_PROTECTION"
-  | "BANNED"
-  | "KICKED"
-  | "SERVER_SHUTTING_DOWN"
-  | "SERVER_FULL"
-  | "INVALID_PARAMETER"
-  | "PROTOCOL_NEGOTIATION_FAILED"
-  | "CONNECTION_INITIALISATION_FAILED"
-  | "CONNECTION_FAILED";
+/** Every code `clientConnectionFailureCode` can return, as a runtime list so tests and the web completeness check can enumerate it. */
+export const CLIENT_CONNECTION_FAILURE_CODES = [
+  "INVALID_TARGET", "INVALID_NICKNAME", "NICKNAME_IN_USE", "HOST_NOT_FOUND", "UNREACHABLE", "CONNECTION_REFUSED", "CONNECTION_RESET", "TIMEOUT",
+  "SERVER_PASSWORD_REQUIRED", "INVALID_SERVER_PASSWORD", "CHANNEL_PASSWORD_REQUIRED", "IDENTITY_SECURITY_LEVEL_TOO_LOW", "IDENTITY_LIMIT_REACHED",
+  "CLIENT_VERSION_OUTDATED", "FLOOD_PROTECTION", "BANNED", "KICKED", "SERVER_SHUTTING_DOWN", "SERVER_FULL", "INVALID_PARAMETER",
+  "PROTOCOL_NEGOTIATION_FAILED", "CONNECTION_INITIALISATION_FAILED", "CONNECTION_FAILED",
+] as const;
+
+export type ClientConnectionFailureCode = (typeof CLIENT_CONNECTION_FAILURE_CODES)[number];
+
+/** `connectionFailed` codes the bridge sends before a TeamSpeak session exists; they never pass through `clientConnectionFailureCode`. */
+export const BRIDGE_CONNECTION_FAILURE_CODES = ["IDENTITY_INVALID", "TEAM_SPEAK_CLIENT_UNAVAILABLE"] as const;
 
 export interface TeamSpeakErrorDiagnostics {
   name?: string;
@@ -151,9 +139,6 @@ export const WEBSPEAK_ERROR_MESSAGES: Readonly<Record<WebSpeakErrorCode, string>
   unknown: "TeamSpeak connection failed",
 };
 
-// 不可重连的错误码集合：这些错误原样重连必然失败（如被封禁、昵称被占用等），
-// 集合与消息表相邻存放便于审计重连决策；unknown 保持不可重连，防止未映射的
-// 服务器拒绝演变成无限重连循环。
 /**
  * Codes for which reconnecting unchanged cannot succeed. Keeping the list next to
  * the messages makes the retry decision auditable; `unknown` stays non-retryable
@@ -193,8 +178,8 @@ export function teamSpeakServerErrorCode(id: unknown): WebSpeakErrorCode | null 
   return null;
 }
 
-// 归一化入口：按「服务器错误ID → 关键词启发式 → 异常类名 → 传输层特征」的
-// 优先级，把 SDK/Node 抛出的原始错误收敛为带稳定错误码的 WebSpeakError。
+// Normalisation entry point: reduces a raw SDK/Node error to a WebSpeakError with a stable code, trying in
+// order the server error id, keyword heuristics, the exception class name and transport-level traits.
 export function normalizeTeamSpeakError(error: unknown): WebSpeakError {
   if (error instanceof WebSpeakError) return error;
 

@@ -2,11 +2,12 @@ import { storeToRefs } from "pinia";
 import { writeStorage } from "@/shared/services/safeStorage";
 import { useVoiceAudioStore } from "../stores/voiceAudioStore";
 import { useSessionStore } from "@/features/session";
+import type { TextParams } from "@/shared/i18n/localizedText";
 import type { SinkAudioContext } from "../voiceTypes";
 
 export interface AudioInputDevicesDeps {
   saveAudioPreferences(): Promise<void>;
-  setAudioNotice(code: string, message: string): void;
+  setAudioNotice(code: string, params?: TextParams): void;
   clearAudioNotice(code?: string): void;
   existingAudioCtx(): SinkAudioContext | null;
   setAudioSink(ctx: SinkAudioContext, deviceId: string): Promise<void>;
@@ -37,7 +38,7 @@ export function useAudioInputDevices(deps: AudioInputDevicesDeps, mic: AudioInpu
     if (!navigator.mediaDevices?.enumerateDevices) {
       inputDevices.length = 0;
       outputDevices.length = 0;
-      deps.setAudioNotice("DEVICE_LIST_UNAVAILABLE", "无法读取音频设备列表，将使用浏览器默认音频设备：请在系统或浏览器隐私设置中允许读取设备信息");
+      deps.setAudioNotice("DEVICE_LIST_UNAVAILABLE");
       return;
     }
     let devices: MediaDeviceInfo[];
@@ -49,7 +50,7 @@ export function useAudioInputDevices(deps: AudioInputDevicesDeps, mic: AudioInpu
       // locked-down iframe). Use the browser defaults and explain the limitation.
       inputDevices.length = 0;
       outputDevices.length = 0;
-      deps.setAudioNotice("DEVICE_LIST_UNAVAILABLE", "无法读取音频设备列表，将使用浏览器默认音频设备：请在系统或浏览器隐私设置中允许读取设备信息");
+      deps.setAudioNotice("DEVICE_LIST_UNAVAILABLE");
       return;
     }
     const microphones = devices

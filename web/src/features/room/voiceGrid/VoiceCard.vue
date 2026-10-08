@@ -6,7 +6,7 @@
       <span v-if="stream" class="screen-share-live-indicator"><span class="screen-share-wave" aria-hidden="true"><i v-for="bar in screenShareIndicatorBars" :key="bar" :style="{ height: `${bar}px` }"></i></span><span>{{ t('sharingScreen') }}</span></span>
       <button v-if="member.isSelf && (screenShareActive || screenShareStarting)" type="button" class="screen-share-stop-button" :aria-label="t('stopScreenShare')" :title="t('stopScreenShare')" @click.stop="$emit('stop-screen-share')"><Icon name="close" :size="14" /></button>
     </div>
-    <strong>{{ member.isSelf ? t('you') : member.nickname }}</strong><span>{{ speaking ? t('speaking') : member.isSelf ? t('connectedYou') : t('connected') }}</span>
+    <strong>{{ member.isSelf ? t('you') : nicknameText(member.nickname, t, member.unnamed) }}</strong><span>{{ speaking ? t('speaking') : member.isSelf ? t('connectedYou') : t('connected') }}</span>
     <div v-if="member.isSelf || stream" class="screen-share-card-actions">
       <template v-if="member.isSelf && !screenShareActive && !screenShareStarting">
         <div class="screen-share-start-actions">
@@ -23,7 +23,7 @@
 import { Icon } from "@/shared/ui/icon";
 import { useI18n } from "@/shared/i18n/useI18n.js";
 import { avatarInitial, avatarStyle } from "@/shared/lib/format.js";
-import type { ChannelMember } from "@/features/session";
+import { nicknameText, type ChannelMember } from "@/features/session";
 import type { ScreenShareStream } from "@/features/screenShare";
 
 defineProps<{

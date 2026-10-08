@@ -47,6 +47,10 @@ describe("memberDisplayName", () => {
     expect(memberDisplayName(member(1, "Lucas", { isSelf: true }), t)).toBe("Lucas (You)");
   });
 
+  it("shows the unnamed label for a nameless member", () => {
+    expect(memberDisplayName(member(3, "", { unnamed: true }), t)).toBe("unnamedMember");
+  });
+
   it("returns the plain nickname for other members", () => {
     expect(memberDisplayName(member(2, "Ana"), t)).toBe("Ana");
   });

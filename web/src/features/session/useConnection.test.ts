@@ -28,7 +28,7 @@ function setup() {
     applyWhisperState: vi.fn(),
     syncKnownMemberVolumes: vi.fn(),
     ensureMicrophone: vi.fn(async () => {}),
-    setMicrophoneError: vi.fn(() => ""),
+    setMicrophoneError: vi.fn(() => ({ key: "micFailedGeneric" as const })),
     startWebRtcTransport: vi.fn(async () => {}),
     sendScreenShareMessage: vi.fn(),
     isMicrophoneMuted: vi.fn(() => false),
@@ -63,7 +63,7 @@ describe("disconnect", () => {
     connection.disconnect();
     expect(calls).toEqual([
       "clearLatencyProbes",
-      "rejectPendingCommands:语音连接已关闭",
+      "rejectPendingCommands:The voice connection was closed",
       "stopMicrophone",
       "clearMicrophoneError",
       "clearAudioNotice",
@@ -146,7 +146,7 @@ describe("connect", () => {
     const { connection, session } = setup();
     connection.connect("ts.example", "1", "guest");
     await vi.waitFor(() => expect(session.state.errorCode).toBe("RATE_LIMITED"));
-    expect(session.state.error).toBe("请求过于频繁，请稍后重试");
+    expect(session.state.error).toEqual({ key: "err_RATE_LIMITED" });
     expect(session.state.connecting).toBe(false);
   });
 
@@ -181,7 +181,7 @@ describe("socket close", () => {
     calls.length = 0;
     socket.onclose?.({ code: 4005, reason: "" });
     expect(session.state.errorCode).toBe("IDENTITY_IN_USE");
-    expect(calls).toEqual(["clearLatencyProbes", "rejectPendingCommands:语音连接已关闭", "stopWebRtcTransport", "stopMicrophone", "clearMicrophoneError", "clearAudioNotice"]);
+    expect(calls).toEqual(["clearLatencyProbes", "rejectPendingCommands:The voice connection was closed", "stopWebRtcTransport", "stopMicrophone", "clearMicrophoneError", "clearAudioNotice"]);
   });
 
   it("stays silent on a plain 1000 leave but not on admin-terminated", async () => {
@@ -207,7 +207,7 @@ describe("socket close", () => {
   it("uses the full-server message for a bare 4004", async () => {
     const { connection, session } = setup();
     (await connectAndOpen(connection)).onclose?.({ code: 4004, reason: "" });
-    expect(session.state.error).toBe("服务器当前已满或拒绝了连接，请稍后重试");
+    expect(session.state.error).toEqual({ key: "closeServerFullOrRejected" });
   });
 });
 
@@ -244,14 +244,19 @@ describe("reconnectNow and identity", () => {
 describe("error messages", () => {
   it("connectionFailureMessage falls back to the generic text with a safe code", () => {
     const { connection } = setup();
-    expect(connection.connectionFailureMessage("RATE_LIMITED")).toBeTruthy();
-    expect(connection.connectionFailureMessage("weird code!", "detail")).toContain("错误代码");
+    expect(connection.connectionFailureMessage("RATE_LIMITED")).toEqual({ key: "err_RATE_LIMITED" });
+    expect(connection.connectionFailureMessage("weird code!")).toEqual({ key: "connectionFailedUnknown", params: { code: "WEIRD_CODE" } });
+    expect(connection.connectionFailureMessage("weird code!", "detail")).toEqual({
+      key: "connectionFailedUnknownDetail",
+      params: { code: "WEIRD_CODE", detail: "detail" },
+    });
   });
 
   it("protocolErrorMessage maps known codes and wraps unknown ones", () => {
     const { connection } = setup();
-    expect(connection.protocolErrorMessage("CHANNEL_FULL", "x")).toBe("该频道已满");
-    expect(connection.protocolErrorMessage("NOPE", "boom")).toContain("错误代码");
-    expect(connection.protocolErrorMessage("NOPE", "boom")).toContain("boom");
+    expect(connection.protocolErrorMessage("CHANNEL_FULL", "x")).toEqual({ key: "err_CHANNEL_FULL" });
+    expect(connection.protocolErrorMessage("BANNED", "x")).toEqual({ key: "opErr_BANNED" });
+    expect(connection.protocolErrorMessage("NOPE", "boom")).toEqual({ key: "operationFailedUnknownDetail", params: { code: "NOPE", detail: "boom" } });
+    expect(connection.protocolErrorMessage("NOPE", "")).toEqual({ key: "operationFailedUnknown", params: { code: "NOPE" } });
   });
 });

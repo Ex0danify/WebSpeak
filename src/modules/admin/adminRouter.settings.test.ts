@@ -23,8 +23,7 @@ describe("GET /server", () => {
     expect(Object.keys(settings).sort()).toEqual([
       "accessMode", "hasPassword", "hasRelayToken", "internalPort", "lastTestAt", "lastTestError", "lastTestLatencyMs",
       "relayConfigured", "relayEnabled", "relayName", "relayNodes", "relayTarget", "siteName", "target", "updatedAt",
-      "webRtcEnabled", "webRtcUdpEnd", "webRtcUdpStart", "welcomeDefaults", "welcomeText", "welcomeTextDe",
-      "welcomeTextEn", "welcomeTextJa", "welcomeTextRu",
+      "webRtcEnabled", "webRtcUdpEnd", "webRtcUdpStart", "welcomeDefaults", "welcomeTexts",
     ]);
     expect(settings).toMatchObject({ hasPassword: false, hasRelayToken: false, webRtcEnabled: false, siteName: "WebSpeak", internalPort: 3040 });
   });
@@ -33,10 +32,10 @@ describe("GET /server", () => {
 describe("PUT /server", () => {
   it("saves, answers with the saved settings, and audits it", async () => {
     const { gateway, admin } = await start();
-    const response = await admin.put("server", settingsInput({ siteName: "Renamed", welcomeText: "hallo", welcomeTextEn: "hello", welcomeTextDe: "hallo de", welcomeTextRu: "privet", welcomeTextJa: "konnichiwa" }));
+    const response = await admin.put("server", settingsInput({ siteName: "Renamed", welcomeTexts: { en: "hello", de: "hallo de", fr: "salut" } }));
     const saved = await json(response);
     expect(response.status).toBe(200);
-    expect(saved).toMatchObject({ ok: true, settings: { siteName: "Renamed", target: "ts.example.org:9988", accessMode: "open", welcomeText: "hallo", welcomeTextEn: "hello", welcomeTextDe: "hallo de", welcomeTextRu: "privet", welcomeTextJa: "konnichiwa" } });
+    expect(saved).toMatchObject({ ok: true, settings: { siteName: "Renamed", target: "ts.example.org:9988", accessMode: "open", welcomeTexts: { en: "hello", de: "hallo de", fr: "salut" } } });
     expect(await json(await admin.get("server"))).toEqual(saved.settings);
     expect(audit(gateway)[0]).toBe("SETTINGS_CHANGED");
   });
@@ -46,8 +45,7 @@ describe("PUT /server", () => {
     await admin.put("server", settingsInput({ passwordAction: "replace", serverPassword: "keep-me" }));
     const before = await json(await admin.get("server"));
     const body = {
-      target: before.target, accessMode: before.accessMode, siteName: before.siteName, welcomeText: before.welcomeText,
-      welcomeTextEn: before.welcomeTextEn, welcomeTextDe: before.welcomeTextDe, welcomeTextRu: before.welcomeTextRu, welcomeTextJa: before.welcomeTextJa,
+      target: before.target, accessMode: before.accessMode, siteName: before.siteName, welcomeTexts: before.welcomeTexts,
       webRtcEnabled: before.webRtcEnabled, webRtcUdpStart: before.webRtcUdpStart, webRtcUdpEnd: before.webRtcUdpEnd,
     };
     expect((await admin.put("server", body)).status).toBe(200);
@@ -112,9 +110,10 @@ describe("PUT /server", () => {
 
   it("cuts a welcome text to 500 characters instead of refusing it, and reads a non-boolean webRtcEnabled as off", async () => {
     const { admin } = await start();
-    const saved = await json(await admin.put("server", { ...settingsInput(), welcomeText: "w".repeat(600), welcomeTextEn: "e".repeat(501), webRtcEnabled: "yes" }));
-    expect(saved.settings.welcomeText).toHaveLength(500);
-    expect(saved.settings.welcomeTextEn).toHaveLength(500);
+    const saved = await json(await admin.put("server", { ...settingsInput(), welcomeTexts: { en: "e".repeat(501), de: "d".repeat(600), "not a language": "x", fr: 5 }, webRtcEnabled: "yes" }));
+    expect(saved.settings.welcomeTexts.en).toHaveLength(500);
+    expect(saved.settings.welcomeTexts.de).toHaveLength(500);
+    expect(Object.keys(saved.settings.welcomeTexts).sort()).toEqual(["de", "en"]);
     expect(saved.settings.webRtcEnabled).toBe(false);
   });
 

@@ -28,19 +28,19 @@ describe("/api/public-config", () => {
     const config = await response.json() as Record<string, unknown>;
     expect(Object.keys(config).sort()).toEqual([
       "accelerationAvailable", "accelerationRelays", "accessMode", "initialized", "siteName", "target",
-      "version", "visitorNumber", "visitorTotal", "welcomeText", "welcomeTextEn", "welcomeTexts",
+      "version", "visitorNumber", "visitorTotal", "welcomeTexts",
     ]);
     expect(config).toMatchObject({ version: "9.9.9", initialized: true, siteName: "WebSpeak", accelerationAvailable: false, accelerationRelays: [] });
-    expect(Object.keys(config.welcomeTexts as object).sort()).toEqual(["de", "en", "ja", "ru", "zh"]);
+    expect(Object.keys(config.welcomeTexts as object).sort()).toEqual(["de", "en"]);
   });
 
   it("reflects what the administrator saves", async () => {
     const gateway = await gateways.start();
     const admin = await gateway.adminLogin();
-    const saved = await admin.put("server", settingsInput({ siteName: "Renamed", welcomeText: "hallo", welcomeTextEn: "hello", target: "voice.example.org:9988", accessMode: "fixed" }));
+    const saved = await admin.put("server", settingsInput({ siteName: "Renamed", welcomeTexts: { de: "hallo", en: "hello" }, target: "voice.example.org:9988", accessMode: "fixed" }));
     expect(saved.status).toBe(200);
     const config = await (await gateway.request("/api/public-config")).json();
-    expect(config).toMatchObject({ siteName: "Renamed", welcomeText: "hallo", welcomeTextEn: "hello", accessMode: "fixed", target: "voice.example.org:9988" });
+    expect(config).toMatchObject({ siteName: "Renamed", welcomeTexts: { de: "hallo", en: "hello" }, accessMode: "fixed", target: "voice.example.org:9988" });
   });
 
   it("never contains the server password or a relay token after they are saved", async () => {

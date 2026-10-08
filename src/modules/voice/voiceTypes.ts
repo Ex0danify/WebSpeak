@@ -3,6 +3,7 @@ import type { DirectorySynchronizer, TSClient } from "../teamspeak/index.js";
 import type { Logger } from "../../shared/logger.js";
 import type { WebSpeakError } from "../../shared/errors.js";
 import type { TeamSpeakTarget } from "../../shared/teamSpeakTarget.js";
+import type { MessageParams } from "../../shared/messageCodes.js";
 import type { AccelerationRelayOptions } from "../relay/index.js";
 import type { ManagedSession } from "./session/voiceSessionManager.js";
 import type { WebRtcAudioSession } from "./webrtc/webrtcAudioSession.js";
@@ -82,10 +83,11 @@ export interface ServerEvent {
   id: string;
   kind: "joined" | "left" | "moved" | "poke" | "connection" | "channelCreated" | "channelRenamed" | "channelDeleted";
   message: string;
-  // The gateway builds `message` itself, in Chinese; the browser needs these to build its own
-  // sentence with t() instead (F24). `message` stays as a fallback for an older gateway.
+  // `message` is English and only a fallback; the browser renders `event_<kind>` from these
+  // (F24, docs/design/i18n-plan.md I2.5). `params` repeats the values for that sentence.
   nickname?: string;
   channelName?: string;
+  params?: MessageParams;
   timestamp: number;
 }
 
@@ -107,7 +109,7 @@ export interface WebClientEntry {
   avatarCache: Map<string, string | null>;
   eventLog: ServerEvent[];
   opusEncoder: { encode(pcm: Buffer): Buffer } | null;
-  opusEncoderWarnedAt: number; // Opus 编码器不可用告警的时间戳，用于限流避免反复刷屏
+  opusEncoderWarnedAt: number; // time of the last "Opus encoder unavailable" warning, used to rate-limit it
   whisperTargetIds: Set<number>;
   whisperActive: boolean;
   isAlive: boolean;

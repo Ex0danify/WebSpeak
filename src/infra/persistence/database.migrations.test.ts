@@ -62,8 +62,7 @@ describe("migrations", () => {
   it("seeds the default settings row on first use", () => {
     expect(fx.open().getSettings()).toMatchObject({
       siteName: "WebSpeak",
-      welcomeText: "",
-      welcomeTextEn: "",
+      welcomeTexts: {},
       accessMode: "fixed",
       tsHost: "127.0.0.1",
       tsPort: 9987,
@@ -99,13 +98,11 @@ describe("migrations", () => {
     expect(database.schemaVersion).toBe(DATABASE_SCHEMA_VERSION);
     expect(database.getSettings()).toMatchObject({
       siteName: "Legacy site",
-      welcomeText: "legacy welcome",
+      welcomeTexts: {},
       accessMode: "open",
       tsHost: "legacy.example.org",
       tsPort: 9000,
       webRtcUdpStart: 40000,
-      welcomeTextDe: "",
-      welcomeTextJa: "",
       relayConfigured: false,
     });
     expect(database.listRelayNodes()).toEqual([]);
@@ -131,6 +128,12 @@ describe("migrations", () => {
     const nodes = fx.open().listRelayNodes();
     expect(nodes).toHaveLength(1);
     expect(nodes[0]).toMatchObject({ id: "relay-default", name: "Frankfurt", enabled: true, host: "relay.example.org", port: 39100, tokenEncrypted: "enc:relay" });
+  });
+
+  it("names a schema 5 relay that had no name with the English default", () => {
+    mkdirSyncFor(fx.path);
+    createLegacyDatabase(fx.path, 5, { name: "", host: "relay.example.org", port: 39100, token: "enc:relay" });
+    expect(fx.open().listRelayNodes()[0]).toMatchObject({ id: "relay-default", name: "Relay acceleration" });
   });
 
   it("does not create a relay node when the legacy relay has no host or token", () => {

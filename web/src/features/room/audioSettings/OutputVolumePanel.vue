@@ -15,7 +15,7 @@
       <div class="flex items-center justify-between gap-3"><Label for="notification-volume">{{ t('notificationVolume') }}</Label><strong class="text-[12.5px] text-accent">{{ Math.round(notificationVolume * 100) }}%</strong></div>
       <Slider id="notification-volume" :model-value="Math.round(notificationVolume * 100)" :value-text="`${Math.round(notificationVolume * 100)}%`" class="mb-2" @update:model-value="$emit('set-notification-volume', $event / 100)" />
       <div class="mt-2.5 flex items-center justify-between gap-3 text-xs text-fg-muted"><span>{{ t('audioStatus') }}</span><Chip :variant="audioStatus.variant">{{ audioStatus.label }}</Chip></div>
-      <Hint v-if="microphoneError" invalid class="mt-2.5">{{ localizedMessage(microphoneError) }}</Hint>
+      <Hint v-if="microphoneError" invalid class="mt-2.5">{{ resolveText(microphoneError) }}</Hint>
       <p class="mt-2.5 flex items-start gap-2 rounded-md bg-surface-0 p-3 text-[12.5px] leading-normal text-fg-muted"><Icon name="shield" :size="16" class="shrink-0 text-accent" /><span>{{ t('audioPrivacy') }}</span></p>
     </section>
 </template>
@@ -27,7 +27,7 @@ import { Icon } from "@/shared/ui/icon";
 import { Select } from "@/shared/ui/select";
 import { Slider } from "@/shared/ui/slider";
 import { useI18n } from "@/shared/i18n/useI18n.js";
-import { localizeMessage } from "@/shared/lib/localizeMessage.js";
+import { resolveText, type MaybeLocalizedText } from "@/shared/i18n/localizedText.js";
 import type { AudioOutputDevice } from "@/features/voice";
 
 defineProps<{
@@ -38,7 +38,7 @@ defineProps<{
   outputVolume: number;
   notificationVolume: number;
   audioStatus: { variant: "success" | "warning" | "danger" | "neutral"; label: string };
-  microphoneError: string;
+  microphoneError: MaybeLocalizedText;
 }>();
 
 defineEmits<{
@@ -47,11 +47,7 @@ defineEmits<{
   (e: "set-notification-volume", volume: number): void;
 }>();
 
-const { language, t } = useI18n();
-
-function localizedMessage(message: string) {
-  return localizeMessage(message, language.value);
-}
+const { t } = useI18n();
 </script>
 
 <style scoped>

@@ -6,10 +6,6 @@ import { TEST_ADMIN_PASSWORD, type Gateway } from "../test/helpers/gateway";
 // The admin console's Operations page: the live sessions, the invite links, and the pages at a
 // phone's width. Each test has a gateway of its own (`ownGateway`), the console is asked for English.
 
-test.beforeEach(async ({ page }) => {
-  await page.addInitScript(() => localStorage.setItem("webspeak:language", "en"));
-});
-
 /** Signs in and opens the given admin page. */
 async function openAdmin(page: Page, gateway: Gateway, path: "" | "/server" | "/operations"): Promise<void> {
   await page.goto(`${gateway.url}/admin/login`);

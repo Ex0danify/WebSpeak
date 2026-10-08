@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { ref } from "vue";
 import type { Language } from "@/shared/i18n/common";
+import { useI18n } from "@/shared/i18n/useI18n";
 import { createAdminFormat } from "./adminFormat";
 
 function setup(initial: Language = "en") {
@@ -9,16 +10,23 @@ function setup(initial: Language = "en") {
   return { language, format: createAdminFormat(language, t) };
 }
 
+/** The same formatters over the real catalog, for text that must render in each language. */
+function setupReal(initial: Language) {
+  const { language, t, setLanguage } = useI18n();
+  setLanguage(initial);
+  return { language, setLanguage, format: createAdminFormat(language, t) };
+}
+
 describe("createAdminFormat", () => {
   it("formats durations per language and follows a language switch", () => {
-    const { language, format } = setup("en");
+    const { setLanguage, format } = setupReal("en");
     expect(format.formatUptime(3720)).toBe("Up 1h 2m");
     expect(format.formatAge(45)).toBe("45s");
     expect(format.formatAge(125)).toBe("2m");
     expect(format.formatAge(3900)).toBe("1h 5m");
     expect(format.formatAge(null)).toBe("—");
-    language.value = "de";
-    expect(format.formatUptime(3720)).toBe("1 Std. 2 Min. aktiv");
+    setLanguage("de");
+    expect(format.formatUptime(3720)).toBe("1h 2 Min. aktiv");
     expect(format.formatAge(45)).toBe("45 Sek.");
   });
 
@@ -30,18 +38,18 @@ describe("createAdminFormat", () => {
     expect(setup().format.formatContext({ a: 1, b: "x", c: true })).toBe("a=1 · b=x · c=true");
   });
 
-  it("labels session states, falling back to the raw state and to English for ru/ja", () => {
-    const { language, format } = setup("de");
+  it("labels session states, falling back to the raw state", () => {
+    const { setLanguage, format } = setupReal("de");
     expect(format.sessionStateLabel("connected")).toBe("Verbunden");
     expect(format.sessionStateLabel("mystery")).toBe("mystery");
-    language.value = "ja";
+    setLanguage("en");
     expect(format.sessionStateLabel("connected")).toBe("Connected");
   });
 
   it("names audit events, falling back to the event code", () => {
-    const { format } = setup("en");
+    const { format } = setupReal("en");
     expect(format.eventName("ADMIN_LOGIN_FAILED")).toBe("Administrator login failed");
-    expect(format.eventName("ADMIN_LOGOUT")).toBe("logoutEvent");
+    expect(format.eventName("ADMIN_LOGOUT")).toBe("Administrator signed out");
     expect(format.eventName("SOME_NEW_EVENT")).toBe("SOME NEW EVENT");
   });
 
@@ -53,11 +61,11 @@ describe("createAdminFormat", () => {
   });
 
   it("maps error codes to text, and connection failures fall through to errorText", () => {
-    const { format } = setup("en");
-    expect(format.errorText("RATE_LIMITED")).toBe("rateLimited");
+    const { format } = setupReal("en");
+    expect(format.errorText("RATE_LIMITED")).toBe("Too many attempts. Try again later.");
     expect(format.errorText("HOST_NOT_FOUND")).toBe("The server hostname could not be resolved.");
-    expect(format.errorText("nope")).toBe("requestFailed");
-    expect(format.connectionFailureText("TIMEOUT")).toBe("networkTimeoutError");
+    expect(format.errorText("nope")).toBe("The request failed. Check the fields and try again.");
+    expect(format.connectionFailureText("TIMEOUT")).toBe("Network request timed out");
     expect(format.connectionFailureText("TARGET_NOT_ALLOWED")).toBe("This target is not allowed in open mode.");
   });
 });

@@ -25,20 +25,20 @@ describe("checkSupport", () => {
   it("names the first missing requirement, in order", () => {
     const { mic } = setup();
     Object.defineProperty(window, "isSecureContext", { value: false, configurable: true });
-    expect(mic.checkSupport()).toBe("语音功能需要 HTTPS 安全连接");
+    expect(mic.checkSupport()).toEqual({ key: "voiceNeedsHttps" });
     Object.defineProperty(window, "isSecureContext", { value: true, configurable: true });
     const original = navigator.mediaDevices;
     Object.defineProperty(navigator, "mediaDevices", { value: undefined, configurable: true });
-    expect(mic.checkSupport()).toBe("当前浏览器不支持麦克风访问");
+    expect(mic.checkSupport()).toEqual({ key: "microphoneUnsupported" });
     Object.defineProperty(navigator, "mediaDevices", { value: original, configurable: true });
     const target = globalThis as unknown as Record<string, unknown>;
     const audioContext = target.AudioContext;
     delete target.AudioContext;
-    expect(mic.checkSupport()).toBe("当前浏览器不支持 Web Audio 音频处理");
+    expect(mic.checkSupport()).toEqual({ key: "webAudioUnsupported" });
     target.AudioContext = audioContext;
     const decoder = target.AudioDecoder;
     delete target.AudioDecoder;
-    expect(mic.checkSupport()).toBe("当前浏览器不支持音频解码，请使用最新版 Chrome 或 Edge");
+    expect(mic.checkSupport()).toEqual({ key: "audioDecodingUnsupported" });
     target.AudioDecoder = decoder;
   });
 });
@@ -94,10 +94,11 @@ describe("microphone failures", () => {
     expect(audio.audioPermission).toBe("unknown");
   });
 
-  it("setMicrophoneError returns the message it stores, clearMicrophoneError empties both slots", () => {
+  it("setMicrophoneError returns the text it stores, clearMicrophoneError empties both slots", () => {
     const { session, mic } = setup();
-    const message = mic.setMicrophoneError(new DOMException("x", "NotFoundError"));
-    expect(session.state.microphoneError).toBe(message);
+    const failure = mic.setMicrophoneError(new DOMException("x", "NotFoundError"));
+    expect(failure).toEqual({ key: "micFailedNotFound" });
+    expect(session.state.microphoneError).toEqual(failure);
     expect(session.state.microphoneErrorCode).not.toBe("");
     mic.clearMicrophoneError();
     expect(session.state.microphoneError).toBe("");

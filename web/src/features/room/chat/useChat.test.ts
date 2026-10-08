@@ -291,9 +291,10 @@ describe("setChatListElement", () => {
 });
 
 describe("eventText", () => {
-  it("returns the raw message when the gateway sends neither nickname nor channelName", async () => {
+  it("renders a nameless client and an unnamed channel from keys, not from the English message", async () => {
     const { vm } = await mountUseChat();
-    expect(vm.eventText({ id: "1", kind: "joined", message: "原始消息", timestamp: 0 })).toBe("原始消息");
+    expect(vm.eventText({ id: "1", kind: "joined", message: "Unknown user joined the server", timestamp: 0 })).toBe("Unnamed user joined the server");
+    expect(vm.eventText({ id: "2", kind: "channelDeleted", message: "x", channelName: "", timestamp: 0 })).toBe('Channel "Unnamed channel" was deleted');
   });
 
   it("builds a translated sentence when the gateway sends a nickname", async () => {

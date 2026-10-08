@@ -27,7 +27,7 @@ describe("screenShareList", () => {
     await push(socket, { type: "screenShareList", streams: [stream(), { streamId: "bad" }, null, { streamId: "s2", ownerPeerId: "ts-1", source: "teamspeak", ownerClientId: 4 }] });
     expect(harness.voice.screenShare.screenShareStreams.map((s) => s.streamId)).toEqual(["s1", "s2"]);
     expect(harness.voice.screenShare.screenShareStreams[0]).toMatchObject({ source: "browser", ownerNickname: "Ana", name: "Ana's screen", audio: true, createdAt: 10, viewerCount: 0, viewers: [] });
-    expect(harness.voice.screenShare.screenShareStreams[1]).toMatchObject({ source: "teamspeak", ownerClientId: 4, ownerNickname: "TeamSpeak 用户", name: "屏幕共享", audio: false, viewerCount: 0 });
+    expect(harness.voice.screenShare.screenShareStreams[1]).toMatchObject({ source: "teamspeak", ownerClientId: 4, ownerNickname: "", name: "", audio: false, viewerCount: 0 });
     await push(socket, { type: "screenShareList" });
     expect(harness.voice.screenShare.screenShareStreams).toHaveLength(0);
   });
@@ -203,9 +203,9 @@ describe("screenShareError", () => {
   it("records the code and message and abandons a pending start", async () => {
     const socket = await connected();
     await harness.voice.screenShare.startScreenShare();
-    await push(socket, { type: "screenShareError", code: "SCREEN_SHARE_LIMIT", message: "too many" });
-    expect(harness.voice.screenShare.screenShareErrorCode.value).toBe("SCREEN_SHARE_LIMIT");
-    expect(harness.voice.screenShare.screenShareError.value).toBe("too many");
+    await push(socket, { type: "screenShareError", code: "SCREEN_SHARE_ALREADY_ACTIVE", message: "never shown" });
+    expect(harness.voice.screenShare.screenShareErrorCode.value).toBe("SCREEN_SHARE_ALREADY_ACTIVE");
+    expect(harness.voice.screenShare.screenShareError.value).toEqual({ key: "err_SCREEN_SHARE_ALREADY_ACTIVE" });
     expect(harness.voice.screenShare.screenShareStarting.value).toBe(false);
   });
 
@@ -213,7 +213,7 @@ describe("screenShareError", () => {
     const socket = await connected();
     await push(socket, { type: "screenShareJoined", stream: stream() });
     await push(socket, { type: "screenShareError" });
-    expect(harness.voice.screenShare.screenShareError.value).toBe("屏幕共享操作失败");
+    expect(harness.voice.screenShare.screenShareError.value).toEqual({ key: "screenShareOperationFailed" });
     expect(harness.voice.screenShare.screenShareErrorCode.value).toBe("");
     expect(harness.voice.screenShare.screenShareViewing.value).toBe(false);
     expect(socket.sentOfType("screenShareLeave")).toEqual([{ type: "screenShareLeave", streamId: "s1" }]);

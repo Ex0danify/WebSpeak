@@ -6,7 +6,7 @@ import { StatsPeer, displayStream, installPeerEnvironment, makeStream, setupPeer
 
 let stubs: BrowserStubs;
 
-const DEFAULT_P2P_ERROR = "直连 P2P 失败，当前网络无法建立浏览器之间的直接连接";
+const DEFAULT_P2P_ERROR = { key: "screenShareP2PFailed" };
 
 beforeEach(() => {
   stubs = installPeerEnvironment();
@@ -84,7 +84,7 @@ describe("peer events", () => {
     expect(context.store.screenShareError).toBe("");
     peer.connectionState = "failed";
     peer.onconnectionstatechange?.();
-    expect(context.store.screenShareError).toBe(DEFAULT_P2P_ERROR);
+    expect(context.store.screenShareError).toEqual(DEFAULT_P2P_ERROR);
     expect(context.sent).toEqual([{ type: "screenShareLeave", streamId: "s1" }]);
     expect(peer.closed).toBe(true);
   });

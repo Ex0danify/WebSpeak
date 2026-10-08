@@ -1,3 +1,5 @@
+import type { MaybeLocalizedText } from "@/shared/i18n/localizedText";
+
 export interface VoiceState {
   connected: boolean;
   connecting: boolean;
@@ -5,16 +7,17 @@ export interface VoiceState {
   reconnectAttempt: number;
   reconnectFailed: boolean;
   tsClientId: number;
-  error: string;
+  /** Rendered at the edge with `resolveText`, so a language switch re-renders it. */
+  error: MaybeLocalizedText;
   errorCode: string;
   /**
    * Non-fatal audio diagnostics. Unlike error/errorCode these never take over
    * the connect form: they explain a degraded microphone or playback path while
    * the voice room itself stays joined and usable.
    */
-  microphoneError: string;
+  microphoneError: MaybeLocalizedText;
   microphoneErrorCode: string;
-  audioNotice: string;
+  audioNotice: MaybeLocalizedText;
   audioNoticeCode: string;
   channelSwitchedChannelId: string;
 }
@@ -30,6 +33,8 @@ export interface ChannelMember {
   inputMuted?: boolean;
   outputMuted?: boolean;
   channelCommander?: boolean;
+  /** The gateway sends an empty nickname with this flag; the view renders `unnamedMember`. */
+  unnamed?: boolean;
 }
 
 export interface ChannelInfo {
@@ -37,8 +42,10 @@ export interface ChannelInfo {
   parentID: string;
   order?: string;
   name: string;
+  /** Empty `name` plus this flag: the view renders `unnamedChannel`. */
+  unnamed?: boolean;
   description?: string;
-  members?: { id: number; nickname: string; uid?: string; avatar?: string; away?: boolean; awayMessage?: string; inputMuted?: boolean; outputMuted?: boolean; channelCommander?: boolean }[];
+  members?: { id: number; nickname: string; unnamed?: boolean; uid?: string; avatar?: string; away?: boolean; awayMessage?: string; inputMuted?: boolean; outputMuted?: boolean; channelCommander?: boolean }[];
 }
 
 export interface ChatMessage {
@@ -54,6 +61,9 @@ export interface ChatMessage {
   isSelf?: boolean;
 }
 
+/** Values a gateway code is rendered with; the same shape in every frame that carries them. */
+export type MessageParams = Record<string, string | number | boolean>;
+
 export interface ServerEvent {
   id: string;
   kind: string;
@@ -62,6 +72,8 @@ export interface ServerEvent {
   // gateway sends neither, and `message` is shown as it is.
   nickname?: string;
   channelName?: string;
+  // Optional values for rendering the sentence in the user's language (I2).
+  params?: MessageParams;
   timestamp: number;
 }
 
@@ -138,7 +150,7 @@ export type ServerMessage =
   | { type: "channelSwitched"; requestId?: string; channelId: string | number }
   | { type: "commandCompleted"; requestId: string }
   | { type: "whisperTargets"; targetIds: number[]; active: boolean }
-  | { type: "error"; requestId?: string; error: { code: string; message: string; recoverable: boolean }; message?: string }
+  | { type: "error"; requestId?: string; error: { code: string; message: string; recoverable: boolean; params?: MessageParams }; message?: string }
   | {
       type: "latencyPong";
       sequence: string;
@@ -163,6 +175,6 @@ export type ServerMessage =
   | { type: "screenShareNativeViewerJoined"; streamId: string; viewerPeerId: string; viewerClientId: number }
   | { type: "screenShareViewerLeft"; streamId: string; viewerPeerId: string }
   | { type: "screenShareSignal"; streamId: string; fromPeerId: string; signal: ScreenShareSignalPayload }
-  | { type: "screenShareError"; requestId?: string; code: string; message: string };
+  | { type: "screenShareError"; requestId?: string; code: string; message: string; params?: MessageParams };
 
 export type ServerMessageType = ServerMessage["type"];
