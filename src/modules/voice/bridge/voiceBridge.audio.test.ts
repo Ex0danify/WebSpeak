@@ -72,7 +72,7 @@ describe("browser to TeamSpeak: PCM in, Opus out", () => {
     expect(alice.client.sentWhispers.map((sent) => [sent.clientIds, sent.codec])).toEqual([[[bob.id], 4], [[bob.id], 4], [[bob.id], 4]]);
   });
 
-  it("drops a frame of any other size, answers INVALID_AUDIO_FRAME and counts it, and keeps accepting good frames", async () => {
+  it("drops a frame of any other size, answers INVALID_AUDIO_FRAME once and counts each, and keeps accepting good frames", async () => {
     const gateway = await gateways.start();
     const alice = await joinVoice(gateway, { nickname: "alice" });
     const [good] = sineFrames(440, 1);
@@ -81,22 +81,45 @@ describe("browser to TeamSpeak: PCM in, Opus out", () => {
     sendFrames(alice, [...bad, good!]);
     await settle(alice);
     const errors = alice.socket.messages.slice(after).filter((message) => message.type === "error");
-    expect(errors).toHaveLength(bad.length);
-    expect(errors.map((message) => errorOf(message).code)).toEqual(bad.map(() => "INVALID_AUDIO_FRAME"));
+    expect(errors.map((message) => errorOf(message).code)).toEqual(["INVALID_AUDIO_FRAME"]);
     expect(alice.client.sentVoice).toHaveLength(1);
     expect(await counters(gateway, "alice")).toMatchObject({ ingressFrames: 1, ingressDroppedFrames: bad.length, tsSendFrames: 1, tsSendErrors: 0 });
   });
 
-  it("drops a frame that arrives before TeamSpeak has connected, answers INVALID_AUDIO_FRAME and counts it", async () => {
+  it("drops a frame that arrives before TeamSpeak has connected and counts it", async () => {
     const gateway = await gateways.start();
     const release = gateway.ts.holdConnects();
     const socket = await gateway.openVoice(gateway.ticket({ nickname: "alice" }));
     socket.sendRaw(sineFrames(440, 1)[0]!);
-    expect(errorOf(await socket.waitForMessage("error")).code).toBe("INVALID_AUDIO_FRAME");
+    await vi.waitFor(async () => expect(await counters(gateway, "alice")).toMatchObject({ ingressDroppedFrames: 1 }));
     release();
     await socket.waitForMessage("connected");
     expect(gateway.ts.created[0]!.sentVoice).toEqual([]);
     expect(await counters(gateway, "alice")).toMatchObject({ ingressFrames: 0, ingressDroppedFrames: 1 });
+  });
+
+  it("RV6: drops frames silently while TeamSpeak is not ready, counting them without answering each one", async () => {
+    const gateway = await gateways.start();
+    const release = gateway.ts.holdConnects();
+    const socket = await gateway.openVoice(gateway.ticket({ nickname: "alice" }));
+    const frames = sineFrames(440, 5);
+    frames.forEach((frame) => socket.sendRaw(frame));
+    await vi.waitFor(async () => expect(await counters(gateway, "alice")).toMatchObject({ ingressDroppedFrames: 5 }));
+    release();
+    await socket.waitForMessage("connected");
+    expect(socket.messages.filter((message) => message.type === "error")).toEqual([]);
+    expect(await counters(gateway, "alice")).toMatchObject({ ingressFrames: 0, ingressDroppedFrames: 5 });
+  });
+
+  it("RV6: answers a wrong frame length with INVALID_AUDIO_FRAME at most once per 5 s", async () => {
+    const gateway = await gateways.start();
+    const alice = await joinVoice(gateway, { nickname: "alice" });
+    const after = alice.socket.mark();
+    sendFrames(alice, Array.from({ length: 5 }, () => Buffer.alloc(FRAME_BYTES - 1)));
+    await settle(alice);
+    const errors = alice.socket.messages.slice(after).filter((message) => message.type === "error");
+    expect(errors).toHaveLength(1);
+    expect(await counters(gateway, "alice")).toMatchObject({ ingressDroppedFrames: 5 });
   });
 
   it("has no uplink cap of its own: a burst of 25 frames all go to TeamSpeak (the 10-frame cap lives in the browser)", async () => {

@@ -1,4 +1,5 @@
 import type { ProtocolCode } from "../../../shared/messageCodes.js";
+import { isRecord } from "../../../shared/typeGuards.js";
 
 export interface ClientCommand {
   type: "switchChannel" | "moveClient" | "sendTextMessage" | "sendServerMessage" | "sendPrivateMessage" | "poke" | "setAway" | "setWhisperTargets" | "setWhisperActive" | "setMicrophoneMuted" | "setAccompanimentActive" | "setMemberVolume" | "latencyProbe";
@@ -84,8 +85,4 @@ export function parseClientCommand(raw: string): ClientCommandResult {
     ...(typeof value.requestId === "string" ? { requestId: value.requestId } : {}),
     payload: value.payload,
   };
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }

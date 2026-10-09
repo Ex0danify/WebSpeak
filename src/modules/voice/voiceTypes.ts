@@ -110,6 +110,7 @@ export interface WebClientEntry {
   eventLog: ServerEvent[];
   opusEncoder: { encode(pcm: Buffer): Buffer } | null;
   opusEncoderWarnedAt: number; // time of the last "Opus encoder unavailable" warning, used to rate-limit it
+  invalidFrameWarnedAt: number; // time of the last INVALID_AUDIO_FRAME answer, used to rate-limit it
   whisperTargetIds: Set<number>;
   whisperActive: boolean;
   isAlive: boolean;

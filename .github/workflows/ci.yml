@@ -30,6 +30,54 @@ jobs:
         run: |
           npm run build
           npm --prefix web run build
+      - name: Unit tests
+        run: npm test -- --maxWorkers=4
+      - name: Upload test reports
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: verify-test-results
+          path: test-results/
+          if-no-files-found: ignore
+
+  # Playwright against the real gateway with a fake TeamSpeak client, plus axe.
+  # test:visual is deliberately not run here: its baseline is local and gitignored.
+  # test:real needs a disposable TeamSpeak server and is never run in CI.
+  e2e:
+    needs: verify
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.22.2
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            web/package-lock.json
+      - name: Install dependencies
+        run: |
+          npm ci --ignore-scripts --no-audit --no-fund
+          npm run prepare:sdk
+          npm rebuild @discordjs/opus --foreground-scripts --no-audit --no-fund
+          npm --prefix web ci --no-audit --no-fund
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Build application
+        run: |
+          npm run build
+          npm --prefix web run build
+      - name: End-to-end tests
+        run: npm run test:e2e -- --workers=2
+      - name: Accessibility tests
+        run: npm run test:a11y -- --workers=2
+      - name: Upload test reports and traces
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-test-results
+          path: test-results/
+          if-no-files-found: ignore
 
   docker-smoke:
     needs: verify

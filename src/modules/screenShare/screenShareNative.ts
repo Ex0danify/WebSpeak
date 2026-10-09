@@ -1,15 +1,12 @@
+import { isRecord } from "../../shared/typeGuards.js";
 import { formatTeamSpeakTarget, teamSpeakTargetKey } from "../../shared/teamSpeakTarget.js";
 import type { TSRawNotification } from "../teamspeak/index.js";
 import type { ScreenSharePeerSignal } from "./screenShareProtocol.js";
 import { ScreenShareHub, screenStreamKey, type ScreenStreamRecord } from "./screenShareHub.js";
 import type { ScreenShareParticipant } from "./screenShareTypes.js";
 
-// The screen-share module sits below voice and may not import it, so these two
-// are private copies of voice's `isRecord` and `parseNumber`.
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
-}
-
+// The screen-share module sits below voice and may not import it, so this is
+// a private copy of voice's `parseNumber`.
 function parseNumber(value: string | undefined): number | undefined {
   if (!value || !/^\d+$/.test(value)) return undefined;
   const parsed = Number(value);

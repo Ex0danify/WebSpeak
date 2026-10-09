@@ -8,6 +8,7 @@
  */
 
 import type { MessageCode } from "../../shared/messageCodes.js";
+import { isRecord } from "../../shared/typeGuards.js";
 
 export interface ScreenShareIceServer {
   urls: string | string[];
@@ -231,8 +232,4 @@ function parseIdentifier(value: unknown, maxLength: number): string | null {
 
 function invalid(code: MessageCode, message: string): { error: { code: MessageCode; message: string } } {
   return { error: { code, message } };
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }

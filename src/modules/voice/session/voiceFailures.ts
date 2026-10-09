@@ -1,6 +1,6 @@
 import { normalizeTeamSpeakError, teamSpeakServerErrorCode } from "../../../shared/errors.js";
 import type { MessageCode, MessageParams } from "../../../shared/messageCodes.js";
-import { isRecord } from "../directory/voiceDirectoryView.js";
+import { isRecord } from "../../../shared/typeGuards.js";
 
 export function publicFailureDetail(error: ReturnType<typeof normalizeTeamSpeakError>): string | undefined {
   const serverMessage = error.diagnostics.serverMessage?.trim();

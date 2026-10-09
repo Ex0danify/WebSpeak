@@ -1,5 +1,6 @@
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { dirname } from "node:path";
+import { isRecord } from "../shared/typeGuards.js";
 import {
   DEFAULT_TEAM_SPEAK_PORT,
   parseTeamSpeakTargetParts,
@@ -63,10 +64,6 @@ export function saveConfig(path: string, config: AppConfig): void {
   } catch {
     // config.json may be read-only (e.g. running under systemd as non-root)
   }
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 function toPortValue(value: unknown): string | number | undefined {

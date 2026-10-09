@@ -54,6 +54,20 @@ describe("normalizeSettings", () => {
     expect(codeOf(() => normalizeSettings(settingsInput(overrides), stored(), MASTER_SECRET))).toBe(code);
   });
 
+  it("RV8: rejects a welcome-text map that grows past 16 languages over repeated requests", () => {
+    let current = stored({ welcomeTexts: {} });
+    let code = "";
+    for (let request = 0; request < 20 && !code; request += 1) {
+      const welcomeTexts = Object.fromEntries(Array.from({ length: 8 }, (_, index) => [`x${String.fromCharCode(97 + request)}${String.fromCharCode(97 + index)}`, "text"]));
+      try {
+        current = stored({ welcomeTexts: normalizeSettings(settingsInput({ welcomeTexts }), current, MASTER_SECRET).welcomeTexts });
+      } catch (error) {
+        code = (error as AdminInputError).code;
+      }
+    }
+    expect(code).toBe("INVALID_WELCOME_TEXT");
+  });
+
   it("keeps a language's welcome text when the form omits it and clears it when the form sends an empty one", () => {
     const kept = normalizeSettings(settingsInput({ welcomeTexts: { fr: "salut" } }), stored(), MASTER_SECRET);
     expect(kept.welcomeTexts).toEqual({ en: "en", de: "de", fr: "salut" });

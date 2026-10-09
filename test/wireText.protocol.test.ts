@@ -129,7 +129,7 @@ describe("router and uplink protocol errors", () => {
 
   it("INVALID_AUDIO_FRAME", () => {
     const sendJson = vi.fn();
-    const ctx = { sendJson, state: { tsReady: true }, entry: { audio: { ingressDroppedFrames: 0 } } } as unknown as VoiceConnection;
+    const ctx = { sendJson, state: { tsReady: true }, entry: { audio: { ingressDroppedFrames: 0 }, invalidFrameWarnedAt: 0 } } as unknown as VoiceConnection;
     handleUplinkFrame(ctx, Buffer.alloc(10));
     expect(sent(sendJson)).toEqual([error("INVALID_AUDIO_FRAME", "Audio frame format is invalid")]);
   });

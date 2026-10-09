@@ -2,13 +2,23 @@ import type { VoiceConnection } from "../voiceTypes.js";
 import { sendProtocolError } from "../session/voiceFailures.js";
 
 const AUDIO_FRAME_BYTES = 1_920;
+const INVALID_FRAME_WARN_INTERVAL_MS = 5_000;
 
 /** Hot path: runs once per 20 ms browser PCM frame per session. No allocation beyond what the encoder needs, no await. */
 export function handleUplinkFrame(ctx: VoiceConnection, data: Buffer | string): void {
   const frame = typeof data === "string" ? Buffer.from(data) : data;
-  if (!ctx.state.tsReady || frame.length !== AUDIO_FRAME_BYTES) {
+  if (!ctx.state.tsReady) {
+    // The browser keeps sending during a reconnect: count, do not answer 50 times a second.
     ctx.entry.audio.ingressDroppedFrames++;
-    sendProtocolError(ctx.sendJson, "INVALID_AUDIO_FRAME", "Audio frame format is invalid");
+    return;
+  }
+  if (frame.length !== AUDIO_FRAME_BYTES) {
+    ctx.entry.audio.ingressDroppedFrames++;
+    const now = Date.now();
+    if (now - ctx.entry.invalidFrameWarnedAt > INVALID_FRAME_WARN_INTERVAL_MS) {
+      ctx.entry.invalidFrameWarnedAt = now;
+      sendProtocolError(ctx.sendJson, "INVALID_AUDIO_FRAME", "Audio frame format is invalid");
+    }
     return;
   }
   const now = Date.now();

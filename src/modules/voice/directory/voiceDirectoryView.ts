@@ -1,9 +1,5 @@
 import type { TSDirectorySnapshot } from "../../teamspeak/index.js";
 
-export function isRecord(value: unknown): value is Record<string, unknown> {
-  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
-}
-
 export function isChannelRecord(value: unknown): value is { id: string; name: string } {
   return Boolean(value) && typeof value === "object" && typeof (value as { id?: unknown }).id === "string" && typeof (value as { name?: unknown }).name === "string";
 }

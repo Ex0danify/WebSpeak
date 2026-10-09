@@ -39,12 +39,18 @@ export interface RelayNodeInput {
   tokenAction?: "keep" | "replace" | "remove";
 }
 
+/** Cap on distinct welcome-text languages, per request and in the stored map. */
+export const WELCOME_LANGUAGE_MAX = 16;
+
 function mergeWelcomeTexts(current: Record<string, string>, input: Record<string, string> | undefined): Record<string, string> {
   const merged = { ...current };
   for (const [language, text] of Object.entries(input ?? {})) {
     const trimmed = text.trim();
     if (trimmed) merged[language] = trimmed;
     else delete merged[language];
+  }
+  if (Object.keys(merged).length > WELCOME_LANGUAGE_MAX) {
+    throw new AdminInputError("INVALID_WELCOME_TEXT", `Welcome texts cannot cover more than ${WELCOME_LANGUAGE_MAX} languages`);
   }
   return merged;
 }

@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 import { FakeTeamSpeakServer } from "../../../../test/helpers/fakeTsClient.js";
 import { type Gateway, useGateway } from "../../../../test/helpers/gateway.js";
 import { joinVoice } from "../../../../test/helpers/voice.js";
+import { MAX_ACTIVE_SESSIONS } from "../../../shared/constants.js";
 import type { JoinTicketPayload } from "../../join/joinTicket.js";
 
 const gateways = useGateway();
@@ -89,6 +90,29 @@ describe("a join the gateway refuses before TeamSpeak", () => {
     const { messages, closed } = await failedJoin(gateway);
     expect(messages).toEqual([{ type: "connectionFailed", code: "TEAM_SPEAK_CLIENT_UNAVAILABLE", detail: "TeamSpeak client unavailable" }]);
     expect(closed).toEqual({ code: 4003, reason: "TEAM_SPEAK_CLIENT_UNAVAILABLE" });
+  });
+
+  describe("when the client cannot be created", () => {
+    class BrokenServer extends FakeTeamSpeakServer {
+      override readonly createClient = () => { throw new Error("no native library"); };
+    }
+    const activeSessions = async (gateway: Gateway) => {
+      const admin = await gateway.adminLogin();
+      return (await (await admin.get("overview")).json()).sessions.active as number;
+    };
+
+    it("RV1: keeps no session behind", async () => {
+      const gateway = await gateways.start({ ts: new BrokenServer() });
+      await failedJoin(gateway);
+      expect(await activeSessions(gateway)).toBe(0);
+    });
+
+    it("RV1: still admits a join after MAX_ACTIVE_SESSIONS such failures", async () => {
+      const gateway = await gateways.start({ ts: new BrokenServer() });
+      for (let i = 0; i < MAX_ACTIVE_SESSIONS; i++) await failedJoin(gateway, { nickname: `n${i}` });
+      const { closed } = await failedJoin(gateway, { nickname: "last" });
+      expect(closed.code).toBe(4003);
+    }, 60_000);
   });
 
   it("closes the second session that uses the same identity on the same server with 4005 and no message, and leaves the first alone", async () => {

@@ -27,6 +27,10 @@ beforeAll(async () => {
   vi.stubGlobal("AudioWorkletNode", class {});
   vi.stubGlobal("fetch", vi.fn(async () => new Response("{}", { status: 200, headers: { "content-type": "application/json" } })));
   store = await import("@/shared/services/localPersistence");
+  // mountClient() imports the router and JoinView lazily; under CPU load that cold import alone
+  // exceeds the 5 s test default for the first test, so it is paid here against the 30 s budget.
+  await import("@/views/clientRoutes");
+  await import("@/views/JoinView.vue");
 }, 30_000);
 
 beforeEach(async () => {

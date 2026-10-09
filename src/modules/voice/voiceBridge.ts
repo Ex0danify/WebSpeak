@@ -1,27 +1,17 @@
 import { WebSocketServer, WebSocket } from "ws";
 import type { IncomingMessage, Server } from "node:http";
-import { identityFromString } from "@echosixhiya/teamspeak-client";
-import { DirectorySynchronizer } from "../teamspeak/index.js";
-import { TSClient, type TSClientOptions, type TSVoiceData, type TSRawNotification } from "../teamspeak/index.js";
+import { TSClient, IdentityLeaseStore, type TSClientOptions } from "../teamspeak/index.js";
 import type { Logger as LoggerType } from "../../shared/logger.js";
-import { formatTeamSpeakTarget, teamSpeakTargetKey } from "../../shared/teamSpeakTarget.js";
 import { JoinTicketStore, type JoinTicketPayload } from "../join/index.js";
-import { IdentityLeaseStore } from "../teamspeak/index.js";
-import { SessionManager, type ManagedSession, type SessionTeardownReason } from "./session/voiceSessionManager.js";
-import type { AdminSessionSummary, AudioFlowStats, VoiceConnection, WebClientEntry } from "./voiceTypes.js";
-import { createAudioFlowStats } from "./audio/audioStats.js";
-import { handleVoiceData } from "./audio/audioDownlink.js";
-import { handleUplinkFrame } from "./audio/audioUplink.js";
-import { createUplinkOpusEncoder } from "./audio/opusEncoder.js";
-import { registerVoiceDirectory, type VoiceDirectoryDeps } from "./directory/voiceDirectory.js";
-import { connectTeamSpeak, registerVoiceConnection, sendInitialState } from "./session/voiceConnection.js";
-import { registerVoiceChat } from "./messages/voiceChat.js";
-import { resolveClientIp, resolveWebRtcPublicHost } from "./session/voiceRequestInfo.js";
+import { SessionManager, type SessionTeardownReason } from "./session/voiceSessionManager.js";
+import type { AdminSessionSummary, WebClientEntry } from "./voiceTypes.js";
+import { type VoiceDirectoryDeps } from "./directory/voiceDirectory.js";
+import { sendInitialState } from "./session/voiceConnection.js";
+import { admitConnection, type AdmissionDeps, type ConnectionHooks } from "./voiceAdmission.js";
 import type { WebRtcAudioOptions } from "../../config/webrtcConfig.js";
-import { routeTextFrame } from "./messages/voiceMessageRouter.js";
 import { cleanupEntry, getSessionSummaries, terminateSession, type SessionCleanupDeps } from "./session/voiceSessionAdmin.js";
-import type { AccelerationRelayOptions, ConfiguredAccelerationRelay } from "../relay/index.js";
-import { ScreenShareHub, discoverExistingTeamSpeakStreams, handleRawScreenNotification, handleScreenShareMessage, normalizeScreenShareIceServers, type ScreenShareClientMessage, type ScreenShareIceServer } from "../screenShare/index.js";
+import type { ConfiguredAccelerationRelay } from "../relay/index.js";
+import { ScreenShareHub, discoverExistingTeamSpeakStreams, handleScreenShareMessage, normalizeScreenShareIceServers, type ScreenShareIceServer } from "../screenShare/index.js";
 
 const HEARTBEAT_INTERVAL_MS = 30_000;
 
@@ -38,16 +28,6 @@ export interface VoiceBridgeOptions {
 
 const DIRECTORY_SYNC_TIMEOUT_MS = 15_000;
 
-/** What the per-connection functions still need from the bridge. */
-interface ConnectionHooks {
-  teardown(entryId: string, reason: SessionTeardownReason): Promise<void>;
-  getWebRtcOptions(): WebRtcAudioOptions | undefined;
-  handleScreenShareMessage(entry: WebClientEntry, message: ScreenShareClientMessage, sendJson: (message: Record<string, unknown>) => void): void;
-  getScreenShareIceServers(): ScreenShareIceServer[];
-  directorySyncTimeoutMs(): number;
-  discoverExistingTeamSpeakStreams(entry: WebClientEntry): Promise<void>;
-}
-
 export class VoiceBridge {
   private readonly sessionManager = new SessionManager();
   private readonly entries = new Map<string, WebClientEntry>();
@@ -59,6 +39,7 @@ export class VoiceBridge {
   private readonly hooks: ConnectionHooks;
   private readonly directoryDeps: VoiceDirectoryDeps;
   private readonly cleanupDeps: SessionCleanupDeps;
+  private readonly admissionDeps: AdmissionDeps;
 
   constructor(
     private options: VoiceBridgeOptions,
@@ -94,6 +75,20 @@ export class VoiceBridge {
         this.screenHub.screenStreamDiscoveryTargets.clear();
       },
     };
+    this.admissionDeps = {
+      logger: this.logger,
+      sessionManager: this.sessionManager,
+      entries: this.entries,
+      identityLeases: this.identityLeases,
+      screenHub: this.screenHub,
+      hooks: this.hooks,
+      directoryDeps: this.directoryDeps,
+      createClient: this.options.createClient,
+      resolveConnection: (url) => this.resolveConnection(url),
+      getAccelerationOptions: (relayId) => this.getAccelerationOptions(relayId),
+      teardown: (entryId, reason) => this.teardown(entryId, reason),
+      cleanupEntry: (entry, reason) => this.cleanupEntry(entry, reason),
+    };
   }
 
   attach(server: Server): void {
@@ -103,178 +98,7 @@ export class VoiceBridge {
     this.startHeartbeat();
 
     this.wss.on("connection", (ws: WebSocket, req: IncomingMessage) => {
-      const url = new URL(req.url ?? "/", `https://${req.headers.host ?? "localhost"}`);
-      const connection = this.resolveConnection(url);
-      if (!connection) {
-        ws.close(4001, "Join ticket required");
-        return;
-      }
-
-      const { target, serverPassword, nickname } = connection;
-      const channelName = connection.channel;
-      const acceleration = connection.accelerated ? this.getAccelerationOptions(connection.accelerationRelayId) : undefined;
-      if (connection.accelerated && !acceleration) {
-        ws.close(4006, "ACCELERATION_UNAVAILABLE");
-        return;
-      }
-      const clientIp = resolveClientIp(req);
-      const webrtcPublicHost = resolveWebRtcPublicHost(req);
-      let identity;
-      try {
-        identity = connection.identity ? identityFromString(connection.identity) : undefined;
-      } catch {
-        // Send a structured failure before the close so the browser can tell
-        // an invalid remembered identity apart from a real connection failure.
-        if (ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ type: "connectionFailed", code: "IDENTITY_INVALID", detail: "Invalid identity" }));
-        ws.close(4003, "IDENTITY_INVALID");
-        return;
-      }
-      const entryId = `w-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
-      let admitted: VoiceConnection | null = null;
-      const session = this.sessionManager.admit(entryId, async (reason) => {
-        // No context yet while the identity lease or client creation is still failing.
-        if (!admitted) return;
-        if (admitted.state.directoryTimer) clearTimeout(admitted.state.directoryTimer);
-        admitted.state.directoryTimer = null;
-        await this.cleanupEntry(admitted.entry, reason);
-      });
-      if (!session) {
-        this.logger.warn({ max: this.sessionManager.maxSessions }, "Max clients reached");
-        ws.close(4004, "GATEWAY_FULL");
-        return;
-      }
-
-      const identityLeaseKey = identity
-        ? `${teamSpeakTargetKey(target)}:${identity.toString()}`
-        : "";
-      if (identityLeaseKey && !this.identityLeases.acquire(identityLeaseKey, entryId)) {
-        this.logger.warn({ entryId, nickname, target: formatTeamSpeakTarget(target) }, "TeamSpeak identity already in use");
-        void this.sessionManager.teardown(entryId, "teamSpeak-connect-failed");
-        ws.close(4005, "IDENTITY_IN_USE");
-        return;
-      }
-
-      this.logger.info({
-        entryId,
-        nickname,
-        clientIp,
-        channel: channelName,
-        target: formatTeamSpeakTarget(target),
-        ...(acceleration ? { relayName: acceleration.name, relayTarget: formatTeamSpeakTarget({ host: acceleration.relayHost, port: acceleration.relayPort }) } : {}),
-      }, "WebClient connecting");
-      let tsClient: TSClient;
-      try {
-        const clientOptions: TSClientOptions = { target, nickname, serverPassword, defaultChannel: channelName, identity, ...(acceleration ? { acceleration } : {}) };
-        tsClient = this.options.createClient ? this.options.createClient(clientOptions, this.logger) : new TSClient(clientOptions, this.logger);
-      } catch (error: unknown) {
-        if (identityLeaseKey) this.identityLeases.release(identityLeaseKey, entryId);
-        this.logger.error({ err: error, entryId }, "Could not create TeamSpeak client");
-        // A 4003 with a bare close used to be reported as "identity rejected".
-        // Send a structured failure so the browser says the TeamSpeak client
-        // could not be created (server down / unreachable) instead.
-        if (ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ type: "connectionFailed", code: "TEAM_SPEAK_CLIENT_UNAVAILABLE", detail: "TeamSpeak client unavailable" }));
-        ws.close(4003, "TEAM_SPEAK_CLIENT_UNAVAILABLE");
-        return;
-      }
-      const entry: WebClientEntry = {
-        id: entryId,
-        session,
-        tsClient,
-        ws,
-        nickname,
-        rememberIdentity: connection.rememberIdentity === true,
-        clientIp,
-        target,
-        ...(acceleration ? { accelerationRelay: { name: acceleration.name, target: formatTeamSpeakTarget({ host: acceleration.relayHost, port: acceleration.relayPort }) } } : {}),
-        ...(acceleration ? { acceleration } : {}),
-        ...(identityLeaseKey ? { identityLeaseKey } : {}),
-        ...(webrtcPublicHost ? { webrtcPublicHost } : {}),
-        channelTree: [],
-        members: new Map(),
-        avatarCache: new Map(),
-        eventLog: [],
-        opusEncoder: null,
-        opusEncoderWarnedAt: 0,
-        whisperTargetIds: new Set(),
-        whisperActive: false,
-        isAlive: true,
-        reconnectTimer: null,
-        audio: createAudioFlowStats(),
-        webrtc: null,
-        lastLatencyProbeAt: 0,
-        screenPeerId: entryId,
-      };
-      const ctx: VoiceConnection = {
-        entry,
-        session,
-        ws,
-        tsClient,
-        logger: this.logger,
-        channelName,
-        serverPassword,
-        directory: new DirectorySynchronizer(),
-        avatarRequests: new Set<string>(),
-        sendJson: (message) => { if (ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(message)); },
-        state: {
-          tsReady: false, selfId: 0, selfChannelId: 0n, initialStateSent: false, audioReady: true, realtimeReady: false,
-          hasConnectedOnce: false, pendingKickReason: null, reconnectStartedAt: 0, reconnectAttempt: 0,
-          directoryTimer: null, avatarRefreshTimer: null, avatarRefreshRunning: false,
-        },
-      };
-      admitted = ctx;
-      this.entries.set(entryId, ctx.entry);
-      try {
-        ctx.entry.opusEncoder = createUplinkOpusEncoder();
-      } catch (error: unknown) {
-        this.logger.error({ err: error, entryId }, "Could not create Opus encoder");
-        void this.teardown(entryId, "teamSpeak-connect-failed");
-        return;
-      }
-
-      // Register every directory listener before connect().
-      ctx.state.realtimeReady = true;
-      registerVoiceDirectory(ctx, this.directoryDeps);
-
-      ctx.tsClient.on("rawNotification", (notification: TSRawNotification) => {
-        handleRawScreenNotification(this.screenHub, ctx.entry, notification);
-      });
-
-      ctx.tsClient.on("voiceData", (data: TSVoiceData) => handleVoiceData(ctx, data));
-
-      registerVoiceChat(ctx);
-
-      registerVoiceConnection(ctx, this.hooks);
-
-      ctx.ws.on("pong", () => { ctx.entry.isAlive = true; });
-      ctx.ws.on("message", (data: Buffer | string, isBinary: boolean) => {
-        if (isBinary) {
-          handleUplinkFrame(ctx, data);
-          return;
-        }
-
-        routeTextFrame(ctx, data, this.hooks);
-      });
-
-      ctx.ws.on("close", () => {
-        ctx.logger.info({ entryId }, "WebSocket closed");
-        void this.teardown(entryId, "websocket-close");
-      });
-
-      ctx.ws.on("error", (error) => {
-        ctx.logger.error({ err: error, entryId }, "WebSocket error");
-        void this.teardown(entryId, "websocket-error");
-      });
-
-      try {
-        ctx.session.transition("connecting");
-        ctx.session.transition("authenticating");
-      } catch (error: unknown) {
-        ctx.logger.error({ err: error instanceof Error ? error.message : String(error), entryId }, "Session state initialization failed");
-        void this.teardown(entryId, "protocol-error");
-        return;
-      }
-
-      void connectTeamSpeak(ctx, this.hooks, false);
+      admitConnection(this.admissionDeps, ws, req);
     });
 
     this.wss.on("error", (error) => {

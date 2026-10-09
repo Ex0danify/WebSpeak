@@ -1,5 +1,5 @@
 // CJK-line budget for the gateway side (a ratchet, i18n plan I0.5). For every text file under
-// src/, test/, e2e/ (never e2e/legacy/) and scripts/ it counts lines holding a CJK character,
+// src/, test/, e2e/ and scripts/ it counts lines holding a CJK character,
 // comments included, and fails when a count exceeds the file's budget in
 // scripts/gateway-literals-budget.json. Files without an entry have a budget of 0.
 //
@@ -20,7 +20,7 @@ const init = process.argv.includes("--init");
 const update = process.argv.includes("--update") || init;
 
 const SCOPE = ["src", "test", "e2e", "scripts"];
-const SKIP_DIRS = new Set(["node_modules", "dist", ".git", "legacy"]);
+const SKIP_DIRS = new Set(["node_modules", "dist", ".git"]);
 const TEXT_FILE = /\.(ts|mts|cts|js|mjs|cjs|json|md|html|css|yml|yaml|sh|txt)$/;
 
 // CJK ideographs, kana, CJK punctuation, fullwidth forms, Hangul.

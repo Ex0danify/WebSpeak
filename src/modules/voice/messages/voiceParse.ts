@@ -1,4 +1,4 @@
-import { isRecord } from "../directory/voiceDirectoryView.js";
+import { isRecord } from "../../../shared/typeGuards.js";
 import type { WebRtcSessionDescription } from "../webrtc/webrtcAudioSession.js";
 
 export function parseWebRtcOffer(raw: string): WebRtcSessionDescription | null {

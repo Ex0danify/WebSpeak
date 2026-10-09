@@ -1,4 +1,5 @@
 import type { NextFunction, Request, Response } from "express";
+import { isSameOrigin } from "../../shared/http/sameOrigin.js";
 import { AdminInputError, type AdminService } from "./adminService.js";
 import type { AdminSessionStore } from "./adminSession.js";
 
@@ -33,11 +34,7 @@ export function requireSameOrigin(request: Request, response: Response, next: Ne
     response.status(415).json({ ok: false, code: "JSON_REQUIRED" });
     return;
   }
-  const origin = request.header("origin");
-  const host = request.header("host");
-  try {
-    if (!origin || !host || new URL(origin).host !== host) throw new Error("origin mismatch");
-  } catch {
+  if (!isSameOrigin(request)) {
     response.status(403).json({ ok: false, code: "ORIGIN_REJECTED" });
     return;
   }

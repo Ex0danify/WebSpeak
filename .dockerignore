@@ -8,7 +8,6 @@ web/dist
 data
 certs
 release-artifacts
-scripts/acceleration-poc
 *.tar.gz
 *.tar.xz
 claude.pem

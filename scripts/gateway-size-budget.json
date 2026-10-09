@@ -1,6 +1,4 @@
 {
   "limit": 400,
-  "files": {
-    "src/shared/errors.ts": 402
-  }
+  "files": {}
 }

@@ -1,6 +1,6 @@
 import { pingTeamSpeakSession } from "../../relay/index.js";
 import type { WebClientEntry } from "../voiceTypes.js";
-import { isRecord } from "../directory/voiceDirectoryView.js";
+import { isRecord } from "../../../shared/typeGuards.js";
 import { classifyOperationError } from "../session/voiceFailures.js";
 import type { ClientCommand } from "./voiceProtocol.js";
 

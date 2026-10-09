@@ -51,6 +51,8 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           npm run build
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          npm test -- --maxWorkers=4
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           npm prune --omit=dev --no-audit --no-fund
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Package and smoke-test Windows x64
@@ -144,6 +146,7 @@ jobs:
           fi
           npm --prefix web run build
           npm run build
+          npm test -- --maxWorkers=4
           npm prune --omit=dev --no-audit --no-fund
       - name: Package and smoke-test Linux x64
         env:

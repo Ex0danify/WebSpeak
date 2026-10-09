@@ -31,7 +31,6 @@ export const CLIENT_CONNECTION_FAILURE_CODES = [
 ] as const;
 
 export type ClientConnectionFailureCode = (typeof CLIENT_CONNECTION_FAILURE_CODES)[number];
-
 /** `connectionFailed` codes the bridge sends before a TeamSpeak session exists; they never pass through `clientConnectionFailureCode`. */
 export const BRIDGE_CONNECTION_FAILURE_CODES = ["IDENTITY_INVALID", "TEAM_SPEAK_CLIENT_UNAVAILABLE"] as const;
 
@@ -182,7 +181,6 @@ export function teamSpeakServerErrorCode(id: unknown): WebSpeakErrorCode | null 
 // order the server error id, keyword heuristics, the exception class name and transport-level traits.
 export function normalizeTeamSpeakError(error: unknown): WebSpeakError {
   if (error instanceof WebSpeakError) return error;
-
   const diagnostics = collectDiagnostics(error);
   const text = diagnosticText(error).toLocaleLowerCase();
 

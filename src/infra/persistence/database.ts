@@ -1,4 +1,4 @@
-import { copyFileSync, existsSync, mkdirSync, readFileSync, unlinkSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, readFileSync, rmSync, unlinkSync } from "node:fs";
 import { randomBytes } from "node:crypto";
 import { dirname } from "node:path";
 import { DatabaseSync } from "node:sqlite";
@@ -159,9 +159,20 @@ export class WebSpeakDatabase {
       throw new Error(`Database schema ${version} is newer than this WebSpeak build`);
     }
     if (existed && version > 0) {
-      copyFileSync(this.path, `${this.path}.schema-${version}.bak`);
+      this.writeSchemaBackup(`${this.path}.schema-${version}.bak`);
     }
     runMigrations(this.database, version, (action) => this.transaction(action));
+  }
+
+  /** VACUUM INTO reads a consistent snapshot including the WAL, unlike copying the main file. */
+  private writeSchemaBackup(target: string): void {
+    rmSync(target, { force: true });
+    this.database.prepare("VACUUM INTO ?").run(target);
+    try {
+      chmodSync(target, 0o600);
+    } catch {
+      // Windows and some container filesystems do not expose POSIX permissions.
+    }
   }
 
   private transaction(action: () => void): void {

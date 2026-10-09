@@ -1,19 +1,12 @@
 import { describe, expect, it } from "vitest";
 import type { TSDirectorySnapshot } from "../../teamspeak/index.js";
-import { avatarDataUrl, isChannelRecord, isRecord, mapChannelTree, normalizeDirectorySnapshot } from "./voiceDirectoryView.js";
+import { avatarDataUrl, isChannelRecord, mapChannelTree, normalizeDirectorySnapshot } from "./voiceDirectoryView.js";
 
 function snapshot(channels: Array<Record<string, unknown>>, clients: Array<Record<string, unknown>>): TSDirectorySnapshot {
   return { channels, clients } as unknown as TSDirectorySnapshot;
 }
 
-describe("isRecord / isChannelRecord", () => {
-  it("accepts plain objects only", () => {
-    expect(isRecord({})).toBe(true);
-    expect(isRecord([])).toBe(false);
-    expect(isRecord(null)).toBe(false);
-    expect(isRecord("x")).toBe(false);
-  });
-
+describe("isChannelRecord", () => {
   it("needs a string id and name", () => {
     expect(isChannelRecord({ id: "1", name: "a" })).toBe(true);
     expect(isChannelRecord({ id: 1, name: "a" })).toBe(false);

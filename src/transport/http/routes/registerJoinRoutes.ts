@@ -2,6 +2,8 @@ import express from "express";
 import { identityFromString } from "@echosixhiya/teamspeak-client";
 import { resolveSafeOpenTarget } from "../../../infra/security/openTargetPolicy.js";
 import type { JoinRateLimiter } from "../../../modules/join/index.js";
+import { isRecord } from "../../../shared/typeGuards.js";
+import { isSameOrigin } from "../../../shared/http/sameOrigin.js";
 import { parseTeamSpeakTarget, teamSpeakTargetKey } from "../../../shared/teamSpeakTarget.js";
 import type { WebServerOptions } from "../webServerOptions.js";
 import { resolveAccelerationOptions } from "./accelerationOptions.js";
@@ -97,18 +99,4 @@ export function registerJoinRoutes(app: express.Express, options: WebServerOptio
     });
     response.status(201).json({ ok: true, ticket });
   });
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
-}
-
-function isSameOrigin(request: express.Request): boolean {
-  const origin = request.header("origin");
-  const host = request.header("host");
-  try {
-    return Boolean(origin && host && new URL(origin).host === host);
-  } catch {
-    return false;
-  }
 }
