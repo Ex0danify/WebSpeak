@@ -5,3 +5,4 @@ export { default as DemoHeader } from "./DemoHeader.vue";
 export { default as DemoVoiceSection } from "./DemoVoiceSection.vue";
 export type { DemoChannel, DemoMember, DemoMessage, DemoTab } from "./demoTypes";
 export { translations as demoMessages } from "./i18n";
+export { demoPanel } from "./demoPanel";

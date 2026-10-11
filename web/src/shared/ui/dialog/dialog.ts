@@ -3,7 +3,7 @@ import { cva, type VariantProps } from "class-variance-authority";
 // The overlay is a full-viewport frame that dims the page and centres the
 // panel. Legacy page CSS goes up to z-index 40; menus, popovers and tooltips
 // (z-50) must open above a dialog, so the overlay sits in between.
-export const dialogOverlayClass = "fixed inset-0 z-[45] box-border flex items-center justify-center bg-scrim/60 p-4";
+export const dialogOverlayClass = "fixed inset-0 z-45 box-border flex items-center justify-center bg-scrim/60 p-4";
 
 export const dialogPanelVariants = cva(
   "flex max-h-full min-h-0 w-full flex-col overflow-hidden rounded-lg border border-line bg-surface-1 font-sans text-sm text-fg shadow-lg",

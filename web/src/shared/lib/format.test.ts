@@ -69,7 +69,7 @@ describe("avatarStyle", () => {
   });
 
   it("gives self an accent gradient instead of a palette color", () => {
-    expect(avatarStyle("Lucas", true).background).toContain("var(--ws-accent)");
+    expect(avatarStyle("Lucas", true).background).toContain("var(--color-accent)");
   });
 
   it("layers an avatar image over the fallback background when given one", () => {

@@ -4,5 +4,4 @@ export const APP_NAME = "WebSpeak";
 export const TEAMSPEAK_NAME = "TeamSpeak";
 export const WEB_LABEL = "Web";
 export const BRAND_GLYPH = "B";
-export const NOTICE_GLYPH = "i";
 export const VERSION_PREFIX = "v";

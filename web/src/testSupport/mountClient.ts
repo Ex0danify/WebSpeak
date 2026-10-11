@@ -3,6 +3,12 @@ import { createPinia } from "pinia";
 import { h } from "vue";
 import { createMemoryHistory, createRouter, RouterView } from "vue-router";
 
+/** Loads the modules mountClient() needs, so a test can pay the cold import in `beforeAll`. */
+export async function warmClient(): Promise<void> {
+  await import("@/views/clientRoutes");
+  await import("@/views/JoinView.vue");
+}
+
 /** Mounts the client the way main.ts does: ClientLayout owns the session and the routes swap the join page
  *  and the room. `page` is the join page, which is what shows until a session is connected. */
 export async function mountClient(): Promise<{ wrapper: VueWrapper; page: unknown }> {

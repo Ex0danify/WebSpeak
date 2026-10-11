@@ -1,6 +1,6 @@
 <template>
   <svg
-    class="ui-icon"
+    class="ui-icon block shrink-0"
     :width="px"
     :height="px"
     viewBox="0 0 24 24"
@@ -92,16 +92,14 @@
     <path v-else-if="name === 'fullscreen-exit'" d="M9 4v5H4M20 9h-5V4M15 20v-5h5M4 15h5v5" />
     <path v-else-if="name === 'github'" fill="currentColor" stroke="none" d="M12 .5C5.65.5.5 5.65.5 12c0 5.08 3.29 9.39 7.86 10.91.58.11.79-.25.79-.56 0-.28-.01-1.02-.02-2-3.2.7-3.88-1.54-3.88-1.54-.53-1.33-1.28-1.68-1.28-1.68-1.04-.71.08-.7.08-.7 1.15.08 1.75 1.18 1.75 1.18 1.02 1.75 2.68 1.24 3.33.95.1-.74.4-1.24.73-1.52-2.55-.29-5.23-1.28-5.23-5.68 0-1.25.45-2.27 1.18-3.07-.12-.29-.51-1.45.11-3.03 0 0 .96-.31 3.15 1.17.91-.25 1.88-.38 2.85-.38.97 0 1.94.13 2.85.38 2.19-1.48 3.15-1.17 3.15-1.17.62 1.58.23 2.74.11 3.03.73.8 1.18 1.82 1.18 3.07 0 4.41-2.69 5.38-5.25 5.67.41.35.78 1.04.78 2.1 0 1.52-.01 2.75-.01 3.12 0 .3.21.67.8.56C20.71 21.39 24 17.08 24 12 24 5.65 18.35.5 12 .5Z" />
     <template v-else-if="name === 'qq'">
-      <!-- style-budget: allow qq-logo -->
-      <ellipse cx="12" cy="12.3" rx="7.25" ry="8.85" fill="#202a2a" stroke="none" />
-      <ellipse cx="12" cy="14.8" rx="4.1" ry="5.55" fill="#fff" stroke="none" />
-      <circle cx="9.45" cy="9.55" r="1.35" fill="#fff" stroke="none" />
-      <circle cx="14.55" cy="9.55" r="1.35" fill="#fff" stroke="none" />
-      <circle cx="9.45" cy="9.55" r=".52" fill="#202a2a" stroke="none" />
-      <circle cx="14.55" cy="9.55" r=".52" fill="#202a2a" stroke="none" />
-      <path d="m10 11.15 2-1.05 2 1.05-2 1.45z" fill="#f2a53d" stroke="none" />
-      <path d="m5.8 18.55-2.1 2.1 3.75-.45m10.75-1.65 2.1 2.1-3.75-.45" fill="#f2a53d" stroke="#f2a53d" stroke-width="1.5" />
-      <!-- style-budget: end -->
+      <ellipse cx="12" cy="12.3" rx="7.25" ry="8.85" class="fill-brand-qq-body stroke-none" />
+      <ellipse cx="12" cy="14.8" rx="4.1" ry="5.55" class="fill-brand-qq-belly stroke-none" />
+      <circle cx="9.45" cy="9.55" r="1.35" class="fill-brand-qq-eye stroke-none" />
+      <circle cx="14.55" cy="9.55" r="1.35" class="fill-brand-qq-eye stroke-none" />
+      <circle cx="9.45" cy="9.55" r=".52" class="fill-brand-qq-body stroke-none" />
+      <circle cx="14.55" cy="9.55" r=".52" class="fill-brand-qq-body stroke-none" />
+      <path d="m10 11.15 2-1.05 2 1.05-2 1.45z" class="fill-brand-qq-beak stroke-none" />
+      <path d="m5.8 18.55-2.1 2.1 3.75-.45m10.75-1.65 2.1 2.1-3.75-.45" stroke-width="1.5" class="fill-brand-qq-beak stroke-brand-qq-beak" />
     </template>
     <template v-else-if="name === 'alert'">
       <path d="M12 4 2.5 20h19z" />
@@ -119,10 +117,3 @@ import { iconSizes, type IconName, type IconSize } from "./icon";
 const props = withDefaults(defineProps<{ name: IconName; size?: IconSize }>(), { size: "md" });
 const px = computed(() => (typeof props.size === "number" ? props.size : iconSizes[props.size]));
 </script>
-
-<style scoped>
-.ui-icon {
-  display: block;
-  flex: 0 0 auto;
-}
-</style>

@@ -3,7 +3,7 @@ import { inject, provide, type InjectionKey } from "vue";
 export type TabValue = string;
 
 export interface TabsContext {
-  variant: "underline" | "segmented";
+  variant: "underline" | "segmented" | "pills" | "bar";
 }
 
 const tabsKey: InjectionKey<TabsContext> = Symbol("ui-tabs");

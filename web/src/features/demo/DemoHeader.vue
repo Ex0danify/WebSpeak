@@ -1,13 +1,14 @@
 <template>
-  <header class="demo-header">
-    <div class="demo-brand"><span><Icon name="waveform" :size="21" /></span><div><strong>{{ APP_NAME }}</strong><small>{{ t('demoBrowserClient') }}</small></div></div>
-    <div class="demo-tools"><span class="demo-badge">{{ t('demoBadge') }}</span><LanguageSwitcher v-model="language" :menu-label="t('languageMenu')" @change="persistLanguage" /><Button as="a" href="/" variant="outline" size="sm" class="demo-back-full">{{ t('demoBack') }}</Button><Button as="a" href="/" variant="outline" size="sm" icon-only :aria-label="t('demoBack')" class="demo-back-compact"><Icon name="home" :size="16" /></Button></div>
+  <header class="mx-auto flex min-h-20.5 w-full max-w-345 items-center justify-between max-demo:min-h-17">
+    <div class="flex items-center gap-2.5"><span class="grid size-9.75 place-items-center rounded-lg bg-accent text-accent-fg"><Icon name="waveform" :size="21" /></span><div class="flex items-center"><div><strong class="block text-lg text-accent">{{ APP_NAME }}</strong><small class="mt-0.5 block text-2xs text-fg-muted">{{ t('demoBrowserClient') }}</small></div></div></div>
+    <div class="flex items-center gap-3.75 text-xs text-fg-muted max-demo:gap-1.5 max-demo:text-2xs"><span class="font-bold text-success max-demo:hidden">{{ t('demoBadge') }}</span><LanguageSwitcher v-model="language" :menu-label="t('languageMenu')" @change="persistLanguage" /><Button as="a" href="/" variant="outline" size="sm" class="max-phone-lg:hidden">{{ t('demoBack') }}</Button><Tooltip :text="t('demoBack')"><Button as="a" href="/" variant="outline" size="sm" icon-only :aria-label="t('demoBack')" class="hidden max-phone-lg:inline-flex"><Icon name="home" :size="16" /></Button></Tooltip></div>
   </header>
 </template>
 
 <script setup lang="ts">
 import { APP_NAME } from "@/shared/lib/brand";
 import { Button } from "@/shared/ui/button";
+import { Tooltip } from "@/shared/ui/tooltip";
 import { Icon } from "@/shared/ui/icon";
 import LanguageSwitcher from "@/shared/components/LanguageSwitcher.vue";
 import { useI18n } from "@/shared/i18n/useI18n";
@@ -16,25 +17,3 @@ const { language, t, setLanguage } = useI18n();
 
 function persistLanguage() { setLanguage(language.value); }
 </script>
-
-<style scoped>
-.demo-header { display: flex; align-items: center; justify-content: space-between; width: min(1380px, 100%); min-height: 82px; margin: 0 auto; }
-.demo-brand, .demo-tools, .demo-brand > div, .demo-tools { display: flex; align-items: center; }
-.demo-brand { gap: 10px; }
-.demo-brand > span { display: grid; place-items: center; width: 39px; height: 39px; color: var(--ws-accent-fg); background: var(--ws-accent); border-radius: 12px; }
-.demo-brand strong, .demo-brand small { display: block; }
-.demo-brand strong { color: var(--ws-accent); font-size: 18px; }
-.demo-brand small { margin-top: 2px; color: var(--ws-fg-muted); font-size: 10px; }
-.demo-tools { gap: 15px; color: var(--ws-fg-muted); font-size: 12px; }
-.demo-badge { color: var(--ws-success); font-weight: 700; }
-.demo-back-compact { display: none; }
-@media (max-width: 720px) {
-  .demo-header { min-height: 68px; }
-  .demo-tools { gap: 6px; font-size: 10px; }
-  .demo-badge { display: none; }
-}
-@media (max-width: 420px) {
-  .demo-back-full { display: none; }
-  .demo-back-compact { display: inline-flex; }
-}
-</style>

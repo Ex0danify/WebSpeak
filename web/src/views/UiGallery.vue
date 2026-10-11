@@ -3,6 +3,7 @@
 // Every components/ui component adds its own section here with all variants.
 import { onBeforeUnmount, ref, watch } from "vue";
 import { Button } from "@/shared/ui/button";
+import TokenSwatches from "@/shared/components/TokenSwatches.vue";
 import { Field } from "@/shared/ui/field";
 import { Input } from "@/shared/ui/input";
 import { Select } from "@/shared/ui/select";
@@ -24,9 +25,7 @@ import { Toaster } from "@/shared/ui/toast";
 import { useToast } from "@/shared/composables/useToast";
 import { Menu, MenuItem, MenuSlider, MenuSub, MenuSeparator, MenuLabel } from "@/shared/ui/menu";
 import { Separator } from "@/shared/ui/separator";
-import { Kbd } from "@/shared/ui/kbd";
 import { Spinner } from "@/shared/ui/spinner";
-import { Skeleton } from "@/shared/ui/skeleton";
 import { Icon, iconNames } from "@/shared/ui/icon";
 import { applyTheme, getStoredTheme, saveTheme, type ThemeMode } from "@/shared/services/theme";
 
@@ -197,7 +196,7 @@ watch(theme, (value) => {
   <div class="min-h-screen bg-surface-0 font-sans text-sm text-fg" :lang="lang">
     <header class="sticky top-0 z-10 flex flex-wrap items-center gap-x-6 gap-y-2 border-b border-line bg-surface-1 px-6 py-3">
       <h1 class="text-lg font-semibold">UI gallery</h1>
-      <span class="font-mono text-[11px] uppercase tracking-widest text-fg-muted">dev only</span>
+      <span class="font-mono text-caption uppercase tracking-widest text-fg-muted">dev only</span>
       <div class="ml-auto flex flex-wrap items-center gap-4">
         <label class="flex items-center gap-2">
           <span class="text-fg-muted">Theme</span>
@@ -218,7 +217,7 @@ watch(theme, (value) => {
       <section aria-labelledby="gallery-button" class="rounded-lg border border-line bg-surface-1 p-6">
         <div class="mb-4 flex items-baseline justify-between gap-3">
           <h2 id="gallery-button" class="text-base font-semibold">Button</h2>
-          <span class="font-mono text-[11px] uppercase tracking-widest text-fg-muted">5 variants · 3 sizes · icon · pressed · loading · link</span>
+          <span class="font-mono text-caption uppercase tracking-widest text-fg-muted">15 variants · 8 sizes · icon · pressed tones · loading · link</span>
         </div>
         <div class="flex flex-col gap-4">
           <div class="flex flex-wrap items-center gap-3">
@@ -226,7 +225,7 @@ watch(theme, (value) => {
             <Button variant="secondary">Cancel</Button>
             <Button variant="outline">Settings</Button>
             <Button variant="ghost">Skip</Button>
-            <Button variant="danger">Leave</Button>
+            <Button variant="danger">Leave</Button><Button variant="soft">Soft</Button><Button variant="accentSoft">Accent</Button><Button variant="inverse">Inverse</Button><Button variant="warning">Away</Button><Button variant="tinted">Tinted</Button><Button variant="dangerSoft">Stop</Button><Button variant="pill" size="xs">Pill</Button><Button variant="success">Talking</Button><Button variant="link" size="inline">Link</Button><Button variant="soft" size="row" aria-current="true" class="w-32">Row</Button><span class="inline-flex bg-media p-2"><Button variant="media" icon-only aria-label="Close"><Icon name="close" /></Button></span><Button variant="secondary" size="xs" pressed pressed-tone="accent">On</Button>
           </div>
           <div class="flex flex-wrap items-center gap-3">
             <Button size="sm">Small</Button>
@@ -268,9 +267,9 @@ watch(theme, (value) => {
       <section aria-labelledby="gallery-field" class="rounded-lg border border-line bg-surface-1 p-6">
         <div class="mb-4 flex items-baseline justify-between gap-3">
           <h2 id="gallery-field" class="text-base font-semibold">Field · Input · Select · Textarea</h2>
-          <span class="font-mono text-[11px] uppercase tracking-widest text-fg-muted">hint · error · leading icon · disabled</span>
+          <span class="font-mono text-caption uppercase tracking-widest text-fg-muted">hint · error · leading icon · disabled</span>
         </div>
-        <div class="grid gap-5 sm:grid-cols-2">
+        <div class="grid gap-5 narrow:grid-cols-2">
           <Field :label="fieldSamples[lang].nick" :hint="fieldSamples[lang].nickHint">
             <Input v-model="nickname" autocomplete="off" />
           </Field>
@@ -295,11 +294,11 @@ watch(theme, (value) => {
               <option value="eu">{{ fieldSamples[lang].regions[1] }}</option>
             </Select>
           </Field>
-          <Field :label="fieldSamples[lang].nick" :hint="fieldSamples[lang].nickHint" class="sm:col-span-2">
+          <Field :label="fieldSamples[lang].nick" :hint="fieldSamples[lang].nickHint" class="narrow:col-span-2">
             <Textarea v-model="notes" :rows="3" maxlength="500" />
           </Field>
           <div class="flex flex-col gap-1.5">
-            <span class="text-[13px] font-medium">Without Field</span>
+            <span class="text-ui font-medium">Without Field</span>
             <Input v-model="query" :placeholder="fieldSamples[lang].search" aria-label="Search channels">
               <template #leading><Icon name="search" /></template>
             </Input>
@@ -311,7 +310,7 @@ watch(theme, (value) => {
       <section aria-labelledby="gallery-switch" class="rounded-lg border border-line bg-surface-1 p-6">
         <div class="mb-4 flex items-baseline justify-between gap-3">
           <h2 id="gallery-switch" class="text-base font-semibold">Switch</h2>
-          <span class="font-mono text-[11px] uppercase tracking-widest text-fg-muted">on · off · disabled</span>
+          <span class="font-mono text-caption uppercase tracking-widest text-fg-muted">on · off · disabled</span>
         </div>
         <div class="flex max-w-md flex-col gap-4">
           <div class="flex items-center justify-between gap-3">
@@ -339,9 +338,9 @@ watch(theme, (value) => {
       <section aria-labelledby="gallery-check" class="rounded-lg border border-line bg-surface-1 p-6">
         <div class="mb-4 flex items-baseline justify-between gap-3">
           <h2 id="gallery-check" class="text-base font-semibold">Checkbox · Radio</h2>
-          <span class="font-mono text-[11px] uppercase tracking-widest text-fg-muted">boolean · array · indeterminate · group</span>
+          <span class="font-mono text-caption uppercase tracking-widest text-fg-muted">boolean · array · indeterminate · group</span>
         </div>
-        <div class="grid gap-6 sm:grid-cols-2">
+        <div class="grid gap-6 narrow:grid-cols-2">
           <div class="flex max-w-sm flex-col gap-1">
             <Checkbox v-model="remember">{{ checkSamples[lang].remember }}</Checkbox>
             <Checkbox :model-value="false" disabled>Disabled</Checkbox>
@@ -356,7 +355,7 @@ watch(theme, (value) => {
             </div>
           </div>
           <div class="flex max-w-sm flex-col gap-1">
-            <span id="mode-label" class="mb-1 text-[13px] font-medium">{{ checkSamples[lang].modes }}</span>
+            <span id="mode-label" class="mb-1 text-ui font-medium">{{ checkSamples[lang].modes }}</span>
             <RadioGroup v-model="mode" aria-labelledby="mode-label">
               <Radio value="ptt">{{ checkSamples[lang].ptt }}</Radio>
               <Radio value="vox">{{ checkSamples[lang].vox }}</Radio>
@@ -370,13 +369,13 @@ watch(theme, (value) => {
       <section aria-labelledby="gallery-slider" class="rounded-lg border border-line bg-surface-1 p-6">
         <div class="mb-4 flex items-baseline justify-between gap-3">
           <h2 id="gallery-slider" class="text-base font-semibold">Slider</h2>
-          <span class="font-mono text-[11px] uppercase tracking-widest text-fg-muted">fill · negative range · disabled</span>
+          <span class="font-mono text-caption uppercase tracking-widest text-fg-muted">fill · negative range · disabled</span>
         </div>
         <div class="flex max-w-md flex-col gap-5">
           <div class="flex flex-col gap-1">
             <div class="flex items-baseline justify-between gap-3">
-              <label for="sl-vol" class="min-w-0 text-[13px] font-medium">{{ sliderSamples[lang].volume }}</label>
-              <span class="font-mono text-[13px] text-fg-muted">{{ volume }}%</span>
+              <label for="sl-vol" class="min-w-0 text-ui font-medium">{{ sliderSamples[lang].volume }}</label>
+              <span class="font-mono text-ui text-fg-muted">{{ volume }}%</span>
             </div>
             <div class="flex items-center gap-2 text-fg-muted">
               <Icon name="volume" />
@@ -385,8 +384,8 @@ watch(theme, (value) => {
           </div>
           <div class="flex flex-col gap-1">
             <div class="flex items-baseline justify-between gap-3">
-              <label for="sl-thr" class="min-w-0 text-[13px] font-medium">{{ sliderSamples[lang].threshold }}</label>
-              <span class="font-mono text-[13px] text-fg-muted">{{ threshold }} dB</span>
+              <label for="sl-thr" class="min-w-0 text-ui font-medium">{{ sliderSamples[lang].threshold }}</label>
+              <span class="font-mono text-ui text-fg-muted">{{ threshold }} dB</span>
             </div>
             <Slider id="sl-thr" v-model="threshold" :min="-60" :max="0" :step="2" :value-text="`${threshold} decibels`" />
           </div>
@@ -397,7 +396,7 @@ watch(theme, (value) => {
       <section aria-labelledby="gallery-chip" class="rounded-lg border border-line bg-surface-1 p-6">
         <div class="mb-4 flex items-baseline justify-between gap-3">
           <h2 id="gallery-chip" class="text-base font-semibold">Chip and Count</h2>
-          <span class="font-mono text-[11px] uppercase tracking-widest text-fg-muted">status · icon on warning and danger</span>
+          <span class="font-mono text-caption uppercase tracking-widest text-fg-muted">status · icon on warning and danger</span>
         </div>
         <div class="flex flex-col gap-5">
           <div class="flex flex-wrap items-center gap-2">
@@ -405,7 +404,7 @@ watch(theme, (value) => {
             <Chip variant="warning">{{ chipSamples[lang].unstable }}</Chip>
             <Chip variant="danger"><template #icon><Icon name="mic-off" :size="13" /></template>{{ chipSamples[lang].muted }}</Chip>
             <Chip variant="accent">{{ chipSamples[lang].ptt }}</Chip>
-            <Chip>{{ chipSamples[lang].role }}</Chip>
+            <Chip>{{ chipSamples[lang].role }}</Chip><Chip variant="highlight" size="hero">{{ chipSamples[lang].role }}</Chip>
           </div>
           <div class="max-w-[16rem]">
             <Chip variant="warning">{{ chipSamples[lang].long }}</Chip>
@@ -421,7 +420,7 @@ watch(theme, (value) => {
       <section aria-labelledby="gallery-tabs" class="rounded-lg border border-line bg-surface-1 p-6">
         <div class="mb-4 flex items-baseline justify-between gap-3">
           <h2 id="gallery-tabs" class="text-base font-semibold">Tabs and Segmented</h2>
-          <span class="font-mono text-[11px] uppercase tracking-widest text-fg-muted">arrow keys · Home and End · tablist or radiogroup</span>
+          <span class="font-mono text-caption uppercase tracking-widest text-fg-muted">arrow keys · Home and End · tablist or radiogroup</span>
         </div>
         <div class="flex flex-col gap-6">
           <Tabs v-model="tabValue" class="max-w-md">
@@ -447,7 +446,7 @@ watch(theme, (value) => {
                 <Tab value="files">{{ tabSamples[lang].files }}</Tab>
                 <Tab value="log">{{ tabSamples[lang].log }}</Tab>
               </TabList>
-            </Tabs>
+            </Tabs><Tabs v-model="segView" variant="pills"><TabList :aria-label="tabSamples[lang].label"><Tab value="members"><Icon name="users" :size="15" /> {{ tabSamples[lang].members }}</Tab><Tab value="files">{{ tabSamples[lang].files }}</Tab><Tab value="log">{{ tabSamples[lang].log }}</Tab></TabList></Tabs>
           </div>
           <div class="max-w-xs">
             <Segmented v-model="segTheme" fill :aria-label="tabSamples[lang].settings">
@@ -463,10 +462,10 @@ watch(theme, (value) => {
       <section aria-labelledby="gallery-card" class="rounded-lg border border-line bg-surface-1 p-6">
         <div class="mb-4 flex items-baseline justify-between gap-3">
           <h2 id="gallery-card" class="text-base font-semibold">Card</h2>
-          <span class="font-mono text-[11px] uppercase tracking-widest text-fg-muted">1 px line border · no shadow · optional header</span>
+          <span class="font-mono text-caption uppercase tracking-widest text-fg-muted">1 px line border · no shadow · optional header</span>
         </div>
         <div class="grid gap-4 md:grid-cols-2">
-          <Card>{{ cardSamples[lang].body }}</Card>
+          <Card>{{ cardSamples[lang].body }}</Card><Card raised padding="dense" body-class="grid gap-1">{{ cardSamples[lang].body }}</Card>
           <Card as="section" :title="cardSamples[lang].title">
             {{ cardSamples[lang].body }}
             <template #actions>
@@ -496,7 +495,7 @@ watch(theme, (value) => {
       <section aria-labelledby="gallery-avatar" class="rounded-lg border border-line bg-surface-1 p-6">
         <div class="mb-4 flex items-baseline justify-between gap-3">
           <h2 id="gallery-avatar" class="text-base font-semibold">Avatar</h2>
-          <span class="font-mono text-[11px] uppercase tracking-widest text-fg-muted">initial fallback · speaking ring</span>
+          <span class="font-mono text-caption uppercase tracking-widest text-fg-muted">initial fallback · speaking ring</span>
         </div>
         <div class="flex flex-col gap-6">
           <div class="flex flex-wrap items-center gap-4">
@@ -506,14 +505,12 @@ watch(theme, (value) => {
             <Avatar :name="avatarSamples[lang].name" size="md" />
             <Avatar :name="avatarSamples[lang].name" size="lg" />
             <Avatar :name="avatarSamples[lang].name" size="xl" />
-            <Avatar name="Logo" src="/site-icon.jpg" size="lg" />
-            <Avatar name="Broken" src="/missing.png" size="lg" />
+            <Avatar name="Logo" src="/site-icon.jpg" size="lg" /><Avatar name="Broken" src="/missing.png" size="lg" /><Avatar :name="avatarSamples[lang].name" size="row" tint /><Avatar :name="avatarSamples[lang].name" size="message" tint self /><Avatar :name="avatarSamples[lang].long" size="tile" tint speaking /><span class="inline-flex bg-media pl-1"><Avatar name="Ann" size="viewer" tint stack /><Avatar name="Bo" size="viewer" tint stack /></span>
           </div>
           <div class="flex flex-wrap items-center gap-6 p-2">
             <Avatar :name="avatarSamples[lang].name" size="sm" speaking :speaking-label="avatarSamples[lang].speaking" :label="avatarSamples[lang].name" />
             <Avatar :name="avatarSamples[lang].name" size="md" speaking />
-            <Avatar :name="avatarSamples[lang].name" size="lg" speaking />
-            <Avatar :name="avatarSamples[lang].name" size="xl" speaking />
+            <Avatar :name="avatarSamples[lang].name" size="lg" speaking /><Avatar :name="avatarSamples[lang].name" size="xl" speaking />
             <Avatar name="Logo" src="/site-icon.jpg" size="lg" speaking />
           </div>
           <div class="flex flex-col gap-1 rounded-lg border border-line bg-surface-0 p-2">
@@ -532,7 +529,7 @@ watch(theme, (value) => {
       <section aria-labelledby="gallery-meter" class="rounded-lg border border-line bg-surface-1 p-6">
         <div class="mb-4 flex items-baseline justify-between gap-3">
           <h2 id="gallery-meter" class="text-base font-semibold">Meter</h2>
-          <span class="font-mono text-[11px] uppercase tracking-widest text-fg-muted">level · threshold tick · live</span>
+          <span class="font-mono text-caption uppercase tracking-widest text-fg-muted">level · threshold tick · live</span>
         </div>
         <div class="flex max-w-xl flex-col gap-6">
           <div class="flex flex-col gap-3">
@@ -578,7 +575,7 @@ watch(theme, (value) => {
       <section aria-labelledby="gallery-dialog" class="rounded-lg border border-line bg-surface-1 p-6">
         <div class="mb-4 flex items-baseline justify-between gap-3">
           <h2 id="gallery-dialog" class="text-base font-semibold">Dialog</h2>
-          <span class="font-mono text-[11px] uppercase tracking-widest text-fg-muted">reka-ui dialog · focus trap · Esc · backdrop</span>
+          <span class="font-mono text-caption uppercase tracking-widest text-fg-muted">reka-ui dialog · focus trap · Esc · backdrop</span>
         </div>
         <div class="flex flex-wrap items-center gap-3">
           <Button variant="outline" @click="dialogSm = true">{{ dialogSamples[lang].small }}</Button>
@@ -608,7 +605,7 @@ watch(theme, (value) => {
         <Dialog v-model="dialogLg" size="lg" :title="dialogSamples[lang].longTitle" :close-label="dialogSamples[lang].close">
           <div class="flex flex-col gap-4">
             <p class="m-0 text-fg-muted">{{ dialogSamples[lang].paragraph }}</p>
-            <div class="grid grid-cols-2 gap-4 max-[740px]:grid-cols-1">
+            <div class="grid grid-cols-2 gap-4 max-compact:grid-cols-1">
               <Field :label="dialogSamples[lang].password"><Input v-model="dialogPassword" autocomplete="off" /></Field>
               <Field :label="fieldSamples[lang].region">
                 <Select v-model="region">
@@ -641,7 +638,7 @@ watch(theme, (value) => {
       <section aria-labelledby="gallery-menu" class="rounded-lg border border-line bg-surface-1 p-6">
         <div class="mb-4 flex items-baseline justify-between gap-3">
           <h2 id="gallery-menu" class="text-base font-semibold">Menu</h2>
-          <span class="font-mono text-[11px] uppercase tracking-widest text-fg-muted">arrow keys · typeahead · submenu · danger · sheet at 740 px</span>
+          <span class="font-mono text-caption uppercase tracking-widest text-fg-muted">arrow keys · typeahead · submenu · danger · sheet at 740 px</span>
         </div>
         <div class="flex flex-wrap items-center gap-4">
           <Menu :label="menuSamples[lang].label" :close-label="dialogSamples[lang].close">
@@ -685,7 +682,7 @@ watch(theme, (value) => {
       <section aria-labelledby="gallery-popover" class="rounded-lg border border-line bg-surface-1 p-6">
         <div class="mb-4 flex items-baseline justify-between gap-3">
           <h2 id="gallery-popover" class="text-base font-semibold">Popover</h2>
-          <span class="font-mono text-[11px] uppercase tracking-widest text-fg-muted">anchored panel · non-modal · Esc</span>
+          <span class="font-mono text-caption uppercase tracking-widest text-fg-muted">anchored panel · non-modal · Esc</span>
         </div>
         <div class="flex flex-wrap items-center gap-4">
           <Popover :label="popoverSamples[lang].label">
@@ -703,7 +700,7 @@ watch(theme, (value) => {
                 <Button size="sm" variant="secondary" class="self-end" @click="close">{{ popoverSamples[lang].done }}</Button>
               </div>
             </template>
-          </Popover>
+          </Popover><Popover trigger="hover" side="top" :label="popoverSamples[lang].volume"><template #trigger><Button variant="outline" icon-only :aria-label="popoverSamples[lang].volume"><Icon name="volume" /></Button></template><Slider v-model="volume" :aria-label="popoverSamples[lang].volume" /></Popover>
           <Button variant="outline" @click="popoverDialog = true">{{ popoverSamples[lang].inDialog }}</Button>
         </div>
 
@@ -720,7 +717,7 @@ watch(theme, (value) => {
       <section aria-labelledby="gallery-tooltip" class="rounded-lg border border-line bg-surface-1 p-6">
         <div class="mb-4 flex items-baseline justify-between gap-3">
           <h2 id="gallery-tooltip" class="text-base font-semibold">Tooltip</h2>
-          <span class="font-mono text-[11px] uppercase tracking-widest text-fg-muted">hover · focus · Esc · never interactive</span>
+          <span class="font-mono text-caption uppercase tracking-widest text-fg-muted">hover · focus · Esc · never interactive</span>
         </div>
         <div class="flex flex-wrap items-center gap-4">
           <Tooltip :text="tooltipSamples[lang].mute" shortcut="M">
@@ -748,7 +745,7 @@ watch(theme, (value) => {
       <section aria-labelledby="gallery-notice" class="rounded-lg border border-line bg-surface-1 p-6">
         <div class="mb-4 flex items-baseline justify-between gap-3">
           <h2 id="gallery-notice" class="text-base font-semibold">Toast and Banner</h2>
-          <span class="font-mono text-[11px] uppercase tracking-widest text-fg-muted">toast: event · banner: state · useToast()</span>
+          <span class="font-mono text-caption uppercase tracking-widest text-fg-muted">toast: event · banner: state · useToast()</span>
         </div>
         <div class="flex flex-wrap items-center gap-3">
           <Button variant="outline" @click="raiseToast({ title: noticeSamples[lang].connected, description: noticeSamples[lang].connectedBody, variant: 'success' })">{{ noticeSamples[lang].connected }}</Button>
@@ -781,8 +778,8 @@ watch(theme, (value) => {
 
       <section aria-labelledby="gallery-small" class="rounded-lg border border-line bg-surface-1 p-6">
         <div class="mb-4 flex items-baseline justify-between gap-3">
-          <h2 id="gallery-small" class="text-base font-semibold">Separator · Kbd · Spinner · Skeleton</h2>
-          <span class="font-mono text-[11px] uppercase tracking-widest text-fg-muted">small parts</span>
+          <h2 id="gallery-small" class="text-base font-semibold">Separator · Spinner</h2>
+          <span class="font-mono text-caption uppercase tracking-widest text-fg-muted">small parts</span>
         </div>
 
         <div class="flex flex-col gap-6">
@@ -795,16 +792,6 @@ watch(theme, (value) => {
           </div>
           <Separator />
 
-          <div class="flex flex-wrap items-center gap-x-6 gap-y-3 text-sm">
-            <span class="inline-flex items-center gap-2">{{ smallSamples[lang].mute }} <Kbd>M</Kbd></span>
-            <span class="inline-flex items-center gap-2">{{ smallSamples[lang].toggle }} <Kbd>Space</Kbd></span>
-            <span class="inline-flex items-center gap-1">
-              <Kbd>Ctrl</Kbd><span class="text-fg-muted" aria-hidden="true">+</span><Kbd>Shift</Kbd><span class="text-fg-muted" aria-hidden="true">+</span><Kbd>M</Kbd>
-            </span>
-            <Kbd>Esc</Kbd>
-          </div>
-          <Separator />
-
           <div class="flex flex-wrap items-center gap-6">
             <Spinner size="sm" />
             <Spinner />
@@ -813,40 +800,23 @@ watch(theme, (value) => {
             <span class="inline-flex items-center gap-2 text-sm text-accent"><Spinner :label="smallSamples[lang].loadingMembers" />{{ smallSamples[lang].loadingMembers }}</span>
             <Button variant="secondary" loading>{{ smallSamples[lang].leave }}</Button>
           </div>
-          <Separator />
-
-          <div class="grid gap-6 sm:grid-cols-2" aria-busy="true">
-            <ul class="m-0 flex list-none flex-col gap-3 p-0">
-              <li v-for="n in 3" :key="n" class="flex items-center gap-3">
-                <Skeleton shape="circle" class="size-8" />
-                <div class="flex min-w-0 flex-1 flex-col gap-1.5">
-                  <Skeleton shape="text" :class="n === 2 ? 'w-2/5' : 'w-3/5'" />
-                  <Skeleton shape="text" class="h-3 w-1/4" />
-                </div>
-              </li>
-            </ul>
-            <div class="flex flex-col gap-3">
-              <Skeleton class="h-24 w-full" />
-              <Skeleton shape="text" />
-              <Skeleton shape="text" class="w-4/5" />
-            </div>
-          </div>
         </div>
       </section>
 
       <section aria-labelledby="gallery-icon" class="rounded-lg border border-line bg-surface-1 p-6">
         <div class="mb-4 flex items-baseline justify-between gap-3">
           <h2 id="gallery-icon" class="text-base font-semibold">Icon</h2>
-          <span class="font-mono text-[11px] uppercase tracking-widest text-fg-muted">md 18 px (default) · sm 15 px (dense rows)</span>
+          <span class="font-mono text-caption uppercase tracking-widest text-fg-muted">md 18 px (default) · sm 15 px (dense rows)</span>
         </div>
         <ul class="m-0 grid list-none grid-cols-[repeat(auto-fill,minmax(11rem,1fr))] gap-2 p-0">
           <li v-for="name in iconNames" :key="name" class="flex items-center gap-3 rounded-md border border-line px-3 py-2">
             <Icon :name="name" />
             <Icon :name="name" size="sm" class="text-fg-muted" />
-            <span class="min-w-0 truncate font-mono text-[11px] text-fg-muted">{{ name }}</span>
+            <span class="min-w-0 truncate font-mono text-caption text-fg-muted">{{ name }}</span>
           </li>
         </ul>
       </section>
+      <TokenSwatches />
     </main>
     <Toaster :label="noticeSamples[lang].notifications" :dismiss-label="noticeSamples[lang].dismiss" />
   </div>

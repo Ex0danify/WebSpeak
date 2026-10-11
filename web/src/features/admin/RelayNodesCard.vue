@@ -1,17 +1,17 @@
 <template>
-    <article class="settings-card relay-card">
-      <div><h3>{{ t('relaySettings') }}</h3><p class="card-help">{{ t('relaySettingsLead') }}</p></div>
-      <div v-if="!serverForm.relayNodes.length" class="relay-empty">{{ t('relayNodeEmpty') }}</div>
-      <div class="relay-node-list">
-        <div v-for="(relay, index) in serverForm.relayNodes" :key="relay.id" class="relay-node">
-          <div class="relay-node-heading">
+    <Card as="article" padding="sm" body-class="grid content-start gap-3" class="col-span-full">
+      <div><h3 class="m-0 text-md font-bold">{{ t('relaySettings') }}</h3><p class="mt-1.25 mb-0 text-2xs leading-normal text-fg-muted">{{ t('relaySettingsLead') }}</p></div>
+      <div v-if="!serverForm.relayNodes.length" class="rounded-md border border-dashed border-line bg-surface-0 px-3 py-2.5 text-caption text-fg-muted">{{ t('relayNodeEmpty') }}</div>
+      <div class="grid gap-2.5">
+        <div v-for="(relay, index) in serverForm.relayNodes" :key="relay.id" class="grid min-w-0 gap-2.5 rounded-lg border border-line bg-surface-0 p-3">
+          <div class="flex min-w-0 items-center justify-between gap-2.5">
             <Checkbox v-model="relay.enabled" class="min-w-0"><strong class="block truncate text-xs">{{ relay.name || t('relayUnnamed') }}</strong></Checkbox>
-            <Button variant="ghost" size="sm" class="text-[var(--color-danger)] hover:bg-danger-soft" @click="removeRelayNode(index)">{{ t('remove') }}</Button>
+            <Button variant="dangerSoft" size="sm" @click="removeRelayNode(index)">{{ t('remove') }}</Button>
           </div>
-          <div class="relay-fields">
+          <div class="grid min-w-0 grid-cols-1 gap-3 desktop:grid-cols-2">
             <Field :label="t('relayName')"><Input v-model.trim="relay.name" maxlength="80" :placeholder="t('relayNamePlaceholder')" /></Field>
             <Field :label="t('relayTarget')"><Input v-model.trim="relay.target" maxlength="300" :placeholder="t('relayTargetPlaceholder')" /></Field>
-            <div class="password-row">
+            <div class="col-span-full grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-end gap-2.25 max-narrow:grid-cols-1">
               <Field :label="t('relayToken')"><Input v-model="relay.token" type="password" autocomplete="off" :disabled="relay.tokenAction !== 'replace'" :placeholder="relay.hasToken ? t('relayTokenConfigured') : t('relayTokenPlaceholder')" /></Field>
               <Segmented v-model="relay.tokenAction" :aria-label="t('relayToken')" class="h-10 items-center self-end justify-self-start">
                 <Segment value="replace">{{ t('change') }}</Segment>
@@ -21,12 +21,13 @@
           </div>
         </div>
       </div>
-      <Button variant="secondary" size="sm" class="relay-add" @click="addRelayNode()">{{ t('relayAdd') }}</Button>
-      <small class="field-help">{{ t('relayManagedHint') }}</small>
-    </article>
+      <Button variant="secondary" size="sm" class="justify-self-start" @click="addRelayNode()">{{ t('relayAdd') }}</Button>
+      <small class="-mt-2 text-2xs leading-[1.55] text-fg-muted">{{ t('relayManagedHint') }}</small>
+    </Card>
 </template>
 
 <script setup lang="ts">
+import { Card } from "@/shared/ui/card";
 import { Button } from "@/shared/ui/button";
 import { Checkbox } from "@/shared/ui/checkbox";
 import { Field } from "@/shared/ui/field";
@@ -41,27 +42,3 @@ const { serverForm } = storeToRefs(settings);
 const { addRelayNode, removeRelayNode } = settings;
 const { t } = useI18n();
 </script>
-
-<style scoped>
-.settings-card h3 { margin: 0; font-size: 15px; font-weight: 700; }
-.password-row { display: grid; grid-template-columns: minmax(0,1fr) auto; align-items: end; gap: 9px; }
-@media (max-width: 520px) {
-  .password-row { grid-template-columns: 1fr; }
-}
-.field-help { margin-top: -8px; color: var(--ws-fg-muted); font-size: 10px; }
-.relay-card .card-help{margin:5px 0 0;color:var(--ws-fg-muted);font-size:10px;line-height:1.5}
-.relay-node-list{display:grid;gap:10px}
-.relay-node{display:grid;gap:10px;padding:12px;background:var(--ws-surface-0);border:1px solid var(--ws-line);border-radius:10px}
-.relay-node-heading{display:flex;align-items:center;justify-content:space-between;gap:10px}
-.relay-empty{padding:10px 12px;color:var(--ws-fg-muted);background:var(--ws-surface-0);border:1px dashed var(--ws-line);border-radius:9px;font-size:11px}
-.relay-add{justify-self:start;min-height:34px;padding-inline:13px}
-.relay-fields{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-.relay-fields .password-row{grid-column:1 / -1}
-.relay-card .field-help{line-height:1.55}
-@media(max-width:850px){.relay-fields{grid-template-columns:1fr}.relay-fields .password-row{grid-column:auto}}
-.server-page .settings-card input{height:40px}
-.relay-node,.relay-fields,.relay-node-heading,.password-row{min-width:0}
-@media(min-width:851px){
-  .relay-fields{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
-}
-</style>

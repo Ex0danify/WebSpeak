@@ -23,7 +23,7 @@ const switchId = computed(() => props.id ?? field?.id.value);
     :class="
       cn(
         'group relative box-border inline-block h-6 w-10 shrink-0 cursor-pointer rounded-full border-0 bg-line-strong p-0 transition-colors motion-reduce:transition-none',
-        'max-[740px]:h-11 max-[740px]:w-[76px]',
+        'max-compact:h-11 max-compact:w-[76px]',
         'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent',
         'aria-checked:bg-accent disabled:cursor-not-allowed disabled:opacity-50',
         props.class,
@@ -32,7 +32,7 @@ const switchId = computed(() => props.id ?? field?.id.value);
   >
     <SwitchThumb
       aria-hidden="true"
-      class="absolute left-[3px] top-[3px] size-[18px] rounded-full bg-surface-1 shadow-sm transition-transform motion-reduce:transition-none group-aria-checked:translate-x-4 group-aria-checked:bg-accent-fg max-[740px]:size-[38px] max-[740px]:group-aria-checked:translate-x-8"
+      class="absolute left-[3px] top-[3px] size-[18px] rounded-full bg-surface-1 shadow-sm transition-transform motion-reduce:transition-none group-aria-checked:translate-x-4 group-aria-checked:bg-accent-fg max-compact:size-[38px] max-compact:group-aria-checked:translate-x-8"
     />
   </SwitchRoot>
 </template>

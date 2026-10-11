@@ -14,12 +14,11 @@ export function avatarInitial(name: string) {
   return (name.trim()[0] || "?").toUpperCase();
 }
 
-// Fixed pastel identity colors picked by nickname hash. A user must keep the same
-// color in every theme, so they cannot be theme tokens (see style-budget.json).
-const avatarColors = ["#9edbd4", "#b9d4c5", "#e8c6a8", "#c5c7e8", "#edd2d4", "#c8d9e9", "#e4d3b8"];
+// Fixed pastel identity colors (`--color-avatar-N` in tokens.css) picked by nickname hash.
+const avatarColors = Array.from({ length: 7 }, (_, index) => `var(--color-avatar-${index + 1})`);
 
 export function avatarStyle(name: string, isSelf = false, avatar = ""): Record<string, string> {
-  const fallback = isSelf ? "linear-gradient(135deg, var(--ws-accent), color-mix(in srgb, var(--ws-accent) 75%, var(--ws-fg)))" : "";
+  const fallback = isSelf ? "linear-gradient(135deg, var(--color-accent), color-mix(in srgb, var(--color-accent) 75%, var(--color-fg)))" : "";
   let hash = 0;
   for (let index = 0; index < name.length; index++) hash = name.charCodeAt(index) + ((hash << 5) - hash);
   return {

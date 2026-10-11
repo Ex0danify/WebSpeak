@@ -21,8 +21,9 @@ const sections = [
   "Popover",
   "Tooltip",
   "Toast and Banner",
-  "Separator · Kbd · Spinner · Skeleton",
+  "Separator · Spinner",
   "Icon",
+  "Fixed colors",
 ];
 
 test("the gallery shows a section for each ui component without errors", async ({ page, galleryUrl }) => {

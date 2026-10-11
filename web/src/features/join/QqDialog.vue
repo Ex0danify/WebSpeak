@@ -1,8 +1,8 @@
 <template>
   <Dialog v-model="open" size="sm" :title="t('qqGroup')" :close-label="t('close')">
     <img class="mx-auto block max-h-[min(55vh,520px)] w-full max-w-[360px] rounded-lg object-contain" src="/qq-group-qr.jpg" :alt="t('qqGroupQrAlt')" />
-    <p class="mb-2 mt-4 text-[13px] text-fg-muted">{{ t('qqJoinDirect') }}</p>
-    <Button as="a" variant="outline" class="mb-2 h-auto w-full justify-start whitespace-normal break-all py-2.5 text-left font-normal text-accent" :href="qqJoinUrl" :aria-label="t('joinQqGroup')" target="_blank" rel="noreferrer">{{ qqJoinUrl }}</Button>
+    <p class="mb-2 mt-4 text-ui text-fg-muted">{{ t('qqJoinDirect') }}</p>
+    <Button as="a" variant="tinted" size="row" class="mb-2 whitespace-normal break-all" :href="qqJoinUrl" :aria-label="t('joinQqGroup')" target="_blank" rel="noreferrer">{{ qqJoinUrl }}</Button>
   </Dialog>
 </template>
 

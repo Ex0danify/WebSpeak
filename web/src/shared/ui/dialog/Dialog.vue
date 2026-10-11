@@ -82,7 +82,7 @@ function keepOpen(event: Event) {
           @pointer-down-outside="keepOpen"
           @interact-outside="keepOpen"
         >
-          <header v-if="hasHeader" class="flex shrink-0 items-start gap-3 px-6 pt-5 pb-3 max-[740px]:px-4">
+          <header v-if="hasHeader" class="flex shrink-0 items-start gap-3 px-6 pt-5 pb-3 max-compact:px-4">
             <div class="min-w-0 flex-1">
               <DialogTitle v-if="hasTitle" class="m-0 break-words text-lg font-semibold leading-snug text-fg">
                 <slot name="title">{{ title }}</slot>
@@ -94,7 +94,7 @@ function keepOpen(event: Event) {
               data-dialog-close
               variant="ghost"
               icon-only
-              class="-mr-2 -mt-1 shrink-0 max-[740px]:size-11"
+              class="-mr-2 -mt-1 shrink-0 max-compact:size-11"
               :aria-label="closeLabel"
               @click="open = false"
             >
@@ -103,10 +103,10 @@ function keepOpen(event: Event) {
           </header>
           <!-- Reka names the dialog from its title, so a `label` is rendered as a hidden one. -->
           <DialogTitle v-if="!hasTitle" class="sr-only">{{ label }}</DialogTitle>
-          <div data-dialog-body class="min-h-0 flex-1 overflow-y-auto px-6 py-3 max-[740px]:px-4">
+          <div data-dialog-body class="min-h-0 flex-1 overflow-y-auto px-6 py-3 max-compact:px-4">
             <slot />
           </div>
-          <footer v-if="slots.footer" class="flex shrink-0 flex-wrap items-center justify-end gap-2 border-t border-line px-6 py-4 max-[740px]:px-4">
+          <footer v-if="slots.footer" class="flex shrink-0 flex-wrap items-center justify-end gap-2 border-t border-line px-6 py-4 max-compact:px-4">
             <slot name="footer" />
           </footer>
         </DialogContent>

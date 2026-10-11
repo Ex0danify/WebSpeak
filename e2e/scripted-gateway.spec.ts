@@ -16,7 +16,7 @@ async function scriptedJoin(page: Page, options?: ScriptedGatewayOptions) {
 async function joinedRoom(page: Page) {
   const scripted = await scriptedJoin(page);
   await expectInRoom(page, "Snapshot Tester");
-  const voiceTab = page.locator(".mobile-nav").getByText("Voice", { exact: true });
+  const voiceTab = page.getByRole("navigation", { name: "Mobile navigation" }).getByRole("tab", { name: "Voice" });
   if (await voiceTab.isVisible()) await voiceTab.click();
   return scripted;
 }

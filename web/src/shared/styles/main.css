@@ -30,3 +30,129 @@
     border: 0;
   }
 }
+
+/*
+ * Admin viewport lock. The document never scrolls on desktop (each admin page is its own
+ * scroll surface) and grows on narrow screens. Utilities cannot reach html/body/#app from a
+ * component.
+ */
+@layer components {
+  html:has(.admin-root),
+  html:has(.admin-root) body,
+  html:has(.admin-root) #app {
+    width: 100%;
+    height: 100dvh;
+    min-height: 0;
+    max-height: 100dvh;
+    overflow: hidden;
+  }
+
+  @media (width >= theme(--breakpoint-desktop)) {
+    html:has(.admin-root) #app {
+      height: calc(100dvh / var(--ui-scale));
+      min-height: calc(100dvh / var(--ui-scale));
+      max-height: calc(100dvh / var(--ui-scale));
+    }
+  }
+
+  @media (width < theme(--breakpoint-desktop)) {
+    html:has(.admin-root),
+    html:has(.admin-root) body,
+    html:has(.admin-root) #app {
+      height: auto;
+      min-height: 100%;
+      max-height: none;
+      overflow: auto;
+    }
+  }
+}
+
+/*
+ * Native scroll surfaces use the palette everywhere (a pseudo-element has no utility).
+ */
+@layer base {
+  * {
+    scrollbar-color: var(--color-line-strong) transparent;
+    scrollbar-width: thin;
+  }
+
+  *::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  *::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  *::-webkit-scrollbar-thumb {
+    background: var(--color-line-strong);
+    background-clip: padding-box;
+    border: 2px solid transparent;
+    border-radius: 999px;
+  }
+
+  *::-webkit-scrollbar-thumb:hover {
+    background: var(--color-fg-muted);
+    background-clip: padding-box;
+    border-width: 1px;
+  }
+}
+
+/*
+ * Document frame and focus ring. Deliberately outside every layer: they must keep beating
+ * the utilities, as the scoped global rules of ClientLayout did.
+ *
+ * The document itself never becomes the scroll surface; each view owns its scroll area so
+ * headers, controls and the mobile navigation stay fixed. main.ts sets --ui-scale (> 1 only on
+ * large viewports) and App.vue zooms #app by it, so #app divides its height by the scale to land
+ * on exactly one viewport while html and body stay pinned to the real one. Phones use svh so the
+ * browser toolbar does not resize the layout.
+ */
+:root {
+  --ui-scale: 1;
+}
+
+/*
+ * The complete application scales from the 1920x1080 reference viewport, so typography, spacing,
+ * controls and icons grow together on a high-resolution viewport instead of drifting apart.
+ */
+#app {
+  zoom: var(--ui-scale);
+}
+
+html,
+body,
+#app {
+  width: 100%;
+  height: 100dvh;
+  min-height: 0;
+  max-height: 100dvh;
+  overflow: hidden;
+}
+
+@media (width >= theme(--breakpoint-desktop)) {
+  #app {
+    height: calc(100dvh / var(--ui-scale));
+    max-height: calc(100dvh / var(--ui-scale));
+  }
+}
+
+@media (width < theme(--breakpoint-compact)) {
+  html,
+  body,
+  #app {
+    height: 100svh;
+    min-height: 100svh;
+    max-height: 100svh;
+  }
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--color-accent) 55%, transparent);
+  outline-offset: 2px;
+}

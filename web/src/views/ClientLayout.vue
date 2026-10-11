@@ -1,7 +1,7 @@
 <template>
-  <div class="client-layout">
+  <div class="h-dvh max-h-dvh min-h-0 overflow-hidden bg-surface-0 leading-[normal] text-fg outline-none desktop:h-[calc(100dvh/var(--ui-scale))] desktop:max-h-[calc(100dvh/var(--ui-scale))] max-compact:h-svh max-compact:max-h-svh max-compact:min-h-svh">
     <RouterView />
-    <Toaster :label="t('notifications')" :dismiss-label="t('close')" class="p-6 min-[851px]:p-[calc(24px/var(--ui-scale))]" />
+    <Toaster :label="t('notifications')" :dismiss-label="t('close')" class="p-6 desktop:p-[calc(24px/var(--ui-scale))]" />
   </div>
 </template>
 
@@ -55,49 +55,3 @@ onUnmounted(() => {
   room.session.disconnect();
 });
 </script>
-
-<style scoped>
-:global(*) { box-sizing: border-box; }
-:global(body) { margin: 0; background: var(--ws-surface-0); color: var(--ws-fg); font-family: var(--font-sans); }
-
-.client-layout { min-height: 100dvh; outline: none; background: var(--ws-surface-0); color: var(--ws-fg); line-height: normal; }
-
-:global(html), :global(body), :global(#app) { width: 100%; height: 100dvh; min-height: 0; max-height: 100dvh; }
-:global(body) { overflow-x: hidden; overflow-y: auto; }
-.client-layout { height: 100dvh; min-height: 0; max-height: 100dvh; }
-.client-layout { overflow: hidden; }
-
-.client-layout { background: var(--ws-surface-0); color: var(--ws-fg); }
-:global(button:focus-visible), :global(a:focus-visible), :global(input:focus-visible), :global(select:focus-visible), :global(textarea:focus-visible) { outline: 3px solid color-mix(in srgb, var(--ws-accent) 55%, transparent); outline-offset: 2px; }
-
-/* The document itself never becomes the scroll surface. Each view owns its
-   content scroll area so headers, controls and mobile navigation stay fixed. */
-:global(html), :global(body), :global(#app) { width: 100%; height: 100dvh; min-height: 0; max-height: 100dvh; overflow: hidden; }
-
-/* Desktop zoom compensation. main.ts sets --ui-scale (>1 only on large
-   viewports) and App.vue applies zoom:var(--ui-scale) on #app. html/body stay
-   pinned to the real viewport (100dvh) while the zoomed roots divide their
-   height by the scale so the rendered result lands on exactly one viewport.
-   Without this a 2K/4K viewport would render a 1.5x-tall shell, clipping the
-   bottom of the workspace and leaving blank space under the control dock.
-   Non-zero fixed offsets (poke banner stack, in the template) are divided back to CSS pixels
-   because zoom also scales fixed coordinates against the viewport. */
-@media (min-width: 851px) {
-  :global(html), :global(body) { height: 100dvh; max-height: 100dvh; }
-  :global(#app), .client-layout { height: calc(100dvh / var(--ui-scale)); min-height: 0; max-height: calc(100dvh / var(--ui-scale)); }
-}
-
-/* Match every native scroll surface to the WebSpeak palette. */
-:global(*) { scrollbar-color: var(--ws-line-strong) transparent; scrollbar-width: thin; }
-:global(*::-webkit-scrollbar) { width: 8px; height: 8px; }
-:global(*::-webkit-scrollbar-track) { background: transparent; }
-:global(*::-webkit-scrollbar-thumb) { background: var(--ws-line-strong); background-clip: padding-box; border: 2px solid transparent; border-radius: 999px; }
-:global(*::-webkit-scrollbar-thumb:hover) { background: var(--ws-fg-muted); background-clip: padding-box; border-width: 1px; }
-
-/* Mobile interaction pass: keep the browser viewport fixed and give each
-   mobile surface its own touch-friendly scroll area. */
-@media (max-width: 740px) {
-  :global(html), :global(body), :global(#app) { height: 100dvh; height: 100svh; min-height: 100dvh; min-height: 100svh; max-height: 100dvh; max-height: 100svh; }
-  .client-layout { height: 100dvh; height: 100svh; min-height: 100dvh; min-height: 100svh; max-height: 100dvh; max-height: 100svh; }
-}
-</style>

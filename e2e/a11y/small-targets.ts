@@ -20,7 +20,6 @@ export const smallTargetRows: SmallTargetRow[] = [
   { target: "button Language", min: 32 },
   // Channels tab
   { target: "button Available", min: 34 },
-  { target: "button More member options", min: 34, count: 4 },
   // Room header, Voice and Chat tabs
   { target: "button Network performance", min: 32 },
   { target: "button Copy invite link", min: 32 },
@@ -29,9 +28,6 @@ export const smallTargetRows: SmallTargetRow[] = [
   { target: "button Exit", min: 32 },
   { target: "button Share screen", min: 25 },
   { target: "button Share settings", min: 25 },
-  { target: "button Raid Night", min: 31 },
-  { target: "button Server", min: 31 },
-  { target: "button Event log", min: 31 },
   // Audio settings dialog and the member sheet (a slider's thumb is 22 px; its track is the target)
   { target: "button Start test", min: 32 },
   { target: "span input-volume", min: 22 },

@@ -1,6 +1,9 @@
 <template>
-  <section class="join-page">
+  <section
+    class="flex h-dvh min-h-0 flex-col overflow-hidden bg-surface-0 text-fg desktop:h-[calc(100dvh/var(--ui-scale))] desktop:max-h-[calc(100dvh/var(--ui-scale))] max-compact:h-svh max-compact:max-h-svh max-compact:min-h-svh motion-reduce:**:animate-none motion-reduce:**:transition-none"
+  >
     <JoinHeader
+      class="relative z-10 mx-auto flex min-h-18 w-[min(1240px,calc(100%-64px))] animate-join-fade-up items-center justify-between max-compact:min-h-[calc(62px+env(safe-area-inset-top,0px))] max-compact:w-[min(100%-28px,560px)] max-compact:pt-[env(safe-area-inset-top,0px)] max-phone-lg:w-[calc(100%-20px)] max-phone-lg:gap-1.5"
       :site-name="siteName"
       :app-version="appVersion"
       :theme-icon="themeIcon"
@@ -10,7 +13,9 @@
       @language-change="persistLanguage"
     />
 
-    <main class="join-content">
+    <main
+      class="relative z-1 mx-auto grid min-h-0 w-[min(1240px,calc(100%-64px))] flex-1 grid-cols-[minmax(0,1fr)_minmax(480px,520px)] items-center gap-[clamp(40px,6vw,88px)] overflow-y-auto pt-7 pb-9 max-medium:gap-10 max-compact:flex max-compact:w-[min(100%-28px,560px)] max-compact:flex-col max-compact:items-stretch max-compact:justify-start max-compact:gap-6 max-compact:pt-6 max-compact:pb-7 max-phone:gap-4.5"
+    >
       <JoinHero
         :welcome-text="localizedWelcomeText"
         :visitor-number="visitorNumber"
@@ -46,7 +51,7 @@
       />
     </main>
 
-    <JoinFooter @clear-local-data="clearBrowserData" />
+    <JoinFooter class="animate-join-fade-up-late" @clear-local-data="clearBrowserData" />
 
     <QqDialog v-model="qqModalOpen" />
   </section>
@@ -130,68 +135,3 @@ const {
 const { identityReady } = useJoinIdentity({ identityMaterial, rememberIdentity });
 const { qqModalOpen } = useJoinScreen({ voiceState, serverPasswordDialog, clearError });
 </script>
-
-<style scoped>
-.join-page { min-height: 100dvh; display: flex; flex-direction: column; overflow: hidden; background: var(--ws-surface-0); }
-.join-header, .join-content { width: min(1240px, calc(100% - 64px)); margin: 0 auto; }
-.join-header, .join-content { position: relative; z-index: 1; }
-.join-header { z-index: 10; }
-.join-header { min-height: 84px; display: flex; align-items: center; justify-content: space-between; }
-.language-switch { min-width: 50px; min-height: 28px; padding: 0 9px; color: var(--ws-accent); background: var(--ws-accent-soft); border: 1px solid var(--ws-line); border-radius: 7px; font-size: 10px; font-weight: 700; cursor: pointer; transition: .18s; }
-.language-switch:hover { color: var(--ws-accent-fg); background: var(--ws-accent); border-color: var(--ws-accent); }
-.join-content { flex: 1; display: grid; grid-template-columns: minmax(0, 1fr) minmax(480px, 520px); align-items: center; gap: clamp(40px, 6vw, 88px); padding: 38px 0 56px; }
-
-@keyframes join-fade-up { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
-@keyframes join-title-in { from { opacity: 0; letter-spacing: -.02em; transform: translateY(18px) scale(.98); } to { opacity: 1; letter-spacing: -.075em; transform: translateY(0) scale(1); } }
-@keyframes join-accent-breathe { 0%, 100% { transform: translateY(0); text-shadow: 0 0 0 color-mix(in srgb, var(--ws-accent) 0%, transparent); } 50% { transform: translateY(-2px); text-shadow: 0 5px 18px color-mix(in srgb, var(--ws-accent) 16%, transparent); } }
-@keyframes join-accent-breathe-dark { 0%, 100% { transform: translateY(0); text-shadow: 0 0 8px color-mix(in srgb, var(--ws-success) 28%, transparent), 0 0 18px color-mix(in srgb, var(--ws-accent) 14%, transparent); } 50% { transform: translateY(-2px); text-shadow: 0 0 13px color-mix(in srgb, var(--ws-success) 50%, transparent), 0 0 26px color-mix(in srgb, var(--ws-accent) 22%, transparent); } }
-@keyframes join-dot-pulse { 0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 color-mix(in srgb, var(--ws-success) 28%, transparent); } 50% { transform: scale(1.18); box-shadow: 0 0 0 6px color-mix(in srgb, var(--ws-success) 0%, transparent); } }
-.join-page .join-header { animation: join-fade-up .55s cubic-bezier(.22, 1, .36, 1) both; }
-@media (prefers-reduced-motion: reduce) {
-  .join-page *, .join-page *::before, .join-page *::after { animation: none !important; transition-duration: .01ms !important; }
-}
-
-@media (max-width: 980px) { .join-content { gap: 40px; } }
-@media (max-width: 740px) { .join-header, .join-content { width: min(100% - 32px, 560px); }.join-header { min-height: 70px; }.join-content { display: flex; flex-direction: column; align-items: stretch; justify-content: center; gap: 35px; padding: 36px 0 48px; } }
-
-.join-page .language-switch { font-size: 12.5px; }
-
-.join-page { height: 100dvh; min-height: 0; overflow-y: auto; }
-
-.join-page { background-color: var(--ws-surface-0); color: var(--ws-fg); }
-
-/* Keep the desktop join card comfortable without making the welcome page
-   taller than the browser. Smaller viewports can scroll inside the card. */
-@media (min-width: 741px) {
-  .join-header { min-height: 72px; }
-  .join-content { padding: 28px 0 36px; }
-}
-
-.join-page { height: 100dvh; min-height: 0; overflow: hidden; }
-.join-content { min-height: 0; overflow-y: auto; }
-
-/* Desktop zoom compensation, see ClientLayout.vue. */
-@media (min-width: 851px) {
-  .join-page { height: calc(100dvh / var(--ui-scale)); min-height: 0; max-height: calc(100dvh / var(--ui-scale)); }
-}
-
-@media (max-width: 740px) {
-  .join-content { overflow-y: auto; }
-}
-
-@media (max-width: 740px) {
-  .join-page { height: 100dvh; height: 100svh; min-height: 100dvh; min-height: 100svh; max-height: 100dvh; max-height: 100svh; }
-  .join-header { min-height: calc(62px + env(safe-area-inset-top, 0px)); padding-top: env(safe-area-inset-top, 0px); box-sizing: border-box; }
-  .join-content { align-items: stretch; justify-content: flex-start; gap: 24px; width: min(100% - 28px, 560px); padding: 24px 0 28px; overflow-y: auto; }
-}
-
-@media (max-width: 390px) {
-  .join-content { gap: 18px; }
-}
-
-/* Keep every welcome-page action inside the viewport on narrow phones. */
-@media (max-width: 420px) {
-  .join-page .join-header { width: calc(100% - 20px); gap: 6px; }
-  .join-page .language-switcher { min-width: 58px; }
-}
-</style>

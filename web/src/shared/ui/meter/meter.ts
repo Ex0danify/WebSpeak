@@ -17,7 +17,7 @@ export const meterVariants = cva("relative block w-full min-w-0 overflow-hidden 
 export type MeterVariants = VariantProps<typeof meterVariants>;
 
 export const meterFillClass =
-  "absolute inset-0 rounded-full bg-[linear-gradient(90deg,var(--ws-success)_0_70%,var(--ws-warning)_92%)] [clip-path:inset(0_calc((1-var(--level,0))*100%)_0_0)]";
+  "absolute inset-0 rounded-full bg-[linear-gradient(90deg,var(--color-success)_0_70%,var(--color-warning)_92%)] [clip-path:inset(0_calc((1-var(--level,0))*100%)_0_0)]";
 
 // A thin tick, for example the VOX threshold. It is a shape as well as a
 // color, so the position reads without telling hues apart.

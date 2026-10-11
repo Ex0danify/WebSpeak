@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { PopoverContent, PopoverPortal, PopoverRoot, PopoverTrigger } from "reka-ui";
+import { computed, nextTick, onBeforeUnmount, watch } from "vue";
+import { PopoverAnchor, PopoverContent, PopoverPortal, PopoverRoot, PopoverTrigger } from "reka-ui";
 import { cn } from "../../lib/cn";
 import { popoverContentClass } from "./popover";
 
@@ -19,17 +20,91 @@ import { popoverContentClass } from "./popover";
 // The trigger slot takes exactly one element. `label` names the panel for
 // assistive tech. `v-model:open` opens it from code. Width is `w-72`; pass a
 // `class` to change it.
+//
+// `trigger="hover"` is for a control that keeps its own click action (a mute
+// button) and shows a panel next to it: the panel opens while the pointer or
+// keyboard focus is on the trigger or the panel, closes shortly after both
+// have left, and Esc closes it until they leave. Focus is never moved into
+// the panel (Tab from the trigger enters it, because the panel is rendered
+// right after the trigger, not in a portal) and a click on the trigger does
+// not toggle it.
 const props = withDefaults(
   defineProps<{
     label?: string;
     side?: "top" | "right" | "bottom" | "left";
     align?: "start" | "center" | "end";
+    trigger?: "click" | "hover";
     class?: string;
   }>(),
-  { side: "bottom", align: "center" },
+  { side: "bottom", align: "center", trigger: "click" },
 );
 
 const open = defineModel<boolean>("open", { default: false });
+
+const hover = computed(() => props.trigger === "hover");
+
+// Hover mode: the panel is open while the pointer or focus is on the trigger or the panel. A short
+// delay on the way out lets the pointer cross the gap between them and focus move from one to the other.
+const CLOSE_DELAY_MS = 150;
+let pointerIn = false;
+let focusIn = false;
+let dismissed = false;
+let closeTimer: ReturnType<typeof setTimeout> | undefined;
+
+function settle(): void {
+  clearTimeout(closeTimer);
+  if (pointerIn || focusIn) {
+    if (!dismissed) open.value = true;
+    return;
+  }
+  closeTimer = setTimeout(() => {
+    dismissed = false;
+    open.value = false;
+  }, CLOSE_DELAY_MS);
+}
+
+// Esc stays in force while the pointer or focus that was there when it was pressed is still there.
+function enter(kind: "pointer" | "focus"): void {
+  if (!pointerIn && !focusIn) dismissed = false;
+  if (kind === "pointer") pointerIn = true;
+  else focusIn = true;
+  settle();
+}
+
+function leave(kind: "pointer" | "focus"): void {
+  if (kind === "pointer") pointerIn = false;
+  else focusIn = false;
+  settle();
+}
+
+const hoverEvents = {
+  onPointerenter: () => enter("pointer"),
+  onPointerleave: () => leave("pointer"),
+  onFocusin: () => enter("focus"),
+  onFocusout: () => leave("focus"),
+};
+
+function dismiss(): void {
+  dismissed = true;
+  open.value = false;
+}
+
+// Hover mode keeps the panel open on outside interaction and focus changes: only the pointer and
+// focus state above, and Esc, close it.
+function keepOpen(event: Event): void {
+  if (hover.value) event.preventDefault();
+}
+
+// reka-ui puts two tabbable guard spans at the edges of the document while any panel is open. In
+// click mode focus has moved into the panel, so they never matter; in hover mode a Tab round would
+// stop on them (an empty stop with no ring) once the keyboard opened a panel.
+watch(open, async (isOpen) => {
+  if (!isOpen || !hover.value) return;
+  await nextTick();
+  document.querySelectorAll<HTMLElement>("[data-reka-focus-guard]").forEach((guard) => (guard.tabIndex = -1));
+});
+
+onBeforeUnmount(() => clearTimeout(closeTimer));
 
 const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
@@ -55,12 +130,28 @@ function releaseTabAtEdges(event: KeyboardEvent): void {
 
 <template>
   <PopoverRoot v-model:open="open">
-    <PopoverTrigger as-child>
+    <PopoverAnchor v-if="hover" as-child v-bind="hoverEvents">
+      <slot name="trigger" />
+    </PopoverAnchor>
+    <PopoverTrigger v-else as-child>
       <slot name="trigger" />
     </PopoverTrigger>
-    <PopoverPortal>
-      <div @keydown.capture="releaseTabAtEdges">
-        <PopoverContent :side="side" :align="align" :side-offset="8" :collision-padding="8" :aria-label="label" :class="cn(popoverContentClass, props.class)">
+    <PopoverPortal :disabled="hover">
+      <div class="contents" @keydown.capture="releaseTabAtEdges">
+        <PopoverContent
+          :side="side"
+          :align="align"
+          :side-offset="8"
+          :collision-padding="8"
+          :aria-label="label"
+          :class="cn(popoverContentClass, props.class)"
+          v-bind="hover ? hoverEvents : {}"
+          @open-auto-focus="keepOpen"
+          @close-auto-focus="keepOpen"
+          @interact-outside="keepOpen"
+          @focus-outside="keepOpen"
+          @escape-key-down="hover && dismiss()"
+        >
           <slot :close="() => (open = false)" />
         </PopoverContent>
       </div>

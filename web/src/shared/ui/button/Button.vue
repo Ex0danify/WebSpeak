@@ -7,6 +7,10 @@ const props = withDefaults(
   defineProps<{
     variant?: ButtonVariants["variant"];
     size?: ButtonVariants["size"];
+    /** Look of the pressed state: `danger` (default, mute and deafen), `accent` (a feature that is on) or `none`. */
+    pressedTone?: ButtonVariants["pressedTone"];
+    /** Square icon button on a phone; hide the label there. */
+    squareOnPhone?: boolean;
     type?: "button" | "submit" | "reset";
     /** Render a link (`<a>`); pass `href` as a normal attribute. */
     as?: "button" | "a";
@@ -29,7 +33,7 @@ if (import.meta.env.DEV && props.iconOnly && !attrs["aria-label"] && !attrs["ari
 
 const classes = computed(() =>
   cn(
-    buttonVariants({ variant: props.variant, size: props.size, iconOnly: props.iconOnly }),
+    buttonVariants({ variant: props.variant, size: props.size, iconOnly: props.iconOnly, pressedTone: props.pressedTone, squareOnPhone: props.squareOnPhone }),
     props.loading && "pointer-events-none",
     props.class,
   ),

@@ -2,10 +2,13 @@
 import { computed } from "vue";
 import { AvatarFallback, AvatarImage, AvatarRoot } from "reka-ui";
 import { cn } from "../../lib/cn";
+import { avatarStyle } from "../../lib/format";
 import { avatarVariants, type AvatarVariants } from "./avatar";
 
 // A member picture, or the first letter of their name when there is none, it
-// is still loading or it fails to load. Built on reka-ui Avatar. `speaking` draws a 2 px success ring offset by a 2 px gap in
+// is still loading or it fails to load. Built on reka-ui Avatar. `tint` paints the fallback
+// with the color derived from the name (`self` gives your own the accent gradient), `stack` overlaps
+// avatars on the media surface. `speaking` draws a 2 px success ring offset by a 2 px gap in
 // the surface color (set `surface` to what the avatar sits on). The ring is
 // not the only cue: pass `speakingLabel` and it is read out as text.
 // Without `label` the avatar is decorative and hidden from assistive tech, for
@@ -17,23 +20,29 @@ const props = withDefaults(
     size?: AvatarVariants["size"];
     surface?: AvatarVariants["surface"];
     speaking?: boolean;
+    tint?: boolean;
+    /** With `tint`: the member is the local user. */
+    self?: boolean;
+    stack?: boolean;
     /** Accessible name. Leave out when the name is visible beside the avatar. */
     label?: string;
     /** Text read out while `speaking`, for example "speaking". */
     speakingLabel?: string;
     class?: string;
   }>(),
-  { speaking: false },
+  { speaking: false, tint: false, self: false, stack: false },
 );
 
 // Array.from keeps a surrogate pair (emoji, rare CJK) in one piece.
 const initial = computed(() => (Array.from(props.name.trim())[0] ?? "?").toUpperCase());
+const tintStyle = computed(() => (props.tint ? avatarStyle(props.name, props.self) : undefined));
 const decorative = computed(() => !props.label && !(props.speaking && props.speakingLabel));
 </script>
 
 <template>
   <AvatarRoot
-    :class="cn(avatarVariants({ size, surface, speaking }), props.class)"
+    :class="cn(avatarVariants({ size, surface, speaking, tint, stack }), props.class)"
+    :style="tintStyle"
     :role="decorative ? undefined : 'img'"
     :aria-hidden="decorative ? true : undefined"
     :aria-label="decorative ? undefined : [label, speaking ? speakingLabel : undefined].filter(Boolean).join(', ')"

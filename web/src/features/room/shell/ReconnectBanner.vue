@@ -3,7 +3,7 @@
     v-if="reconnecting || reconnectFailed"
     :variant="reconnectFailed ? 'danger' : 'warning'"
     :title="reconnectFailed ? t('reconnectFailed') : t('connectionInterrupted')"
-    class="mx-auto mt-3.5 w-[min(950px,calc(100%-64px))] max-[740px]:w-[calc(100%-30px)]"
+    class="mx-auto mt-3.5 w-[min(950px,calc(100%-64px))] max-compact:w-[calc(100%-30px)]"
   >
     {{ reconnecting ? t('reconnectingAttempt', { attempt: reconnectAttempt }) : resolveText(error) }}
     <template #actions>

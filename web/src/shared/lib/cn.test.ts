@@ -25,4 +25,10 @@ describe("cn", () => {
   it("returns an empty string for no input", () => {
     expect(cn()).toBe("");
   });
+
+  it("treats the theme font sizes as sizes, not colors", () => {
+    expect(cn("text-fg-muted text-caption")).toBe("text-fg-muted text-caption");
+    expect(cn("text-ui text-accent")).toBe("text-ui text-accent");
+    expect(cn("text-caption", "text-ui")).toBe("text-ui");
+  });
 });

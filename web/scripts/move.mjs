@@ -13,7 +13,7 @@
 //   .ts/.tsx/.vue/.mjs/.cjs/.js/.css file outside e2e/legacy/. That covers `from`, dynamic
 //   `import()`, `typeof import()`, `vi.mock()`, `vi.importActual()` and `new URL()`.
 //   Importers that move get their own relative specifiers fixed too.
-//   The keys of scripts/style-budget.json and scripts/view-budget.json ("src/...").
+//   The keys of scripts/token-budget.json ("src/...").
 //
 // Specifier style
 //   Inside web/src, a specifier is relative when importer and target share a unit and "@/..."
@@ -33,7 +33,7 @@ const repo = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const webSrc = join(repo, "web", "src");
 const CODE_EXT = new Set([".ts", ".tsx", ".vue", ".mjs", ".cjs", ".js", ".css"]);
 const RESOLVE_EXT = [".ts", ".tsx", ".vue", ".js", ".mjs", ".json", ".css"];
-const BUDGETS = ["web/scripts/style-budget.json", "web/scripts/view-budget.json"];
+const BUDGETS = ["web/scripts/token-budget.json"];
 
 const args = process.argv.slice(2);
 const dryRun = args.includes("--dry-run");

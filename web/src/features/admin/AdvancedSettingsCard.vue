@@ -1,22 +1,23 @@
 <template>
-    <article class="settings-card advanced-card">
-      <div><h3>{{ t('advancedSettings') }}</h3><p class="card-help">{{ t('advancedSettingsLead') }}</p></div>
+    <Card as="article" padding="sm" body-class="grid content-start gap-3" class="col-span-full">
+      <div><h3 class="m-0 text-md font-bold">{{ t('advancedSettings') }}</h3><p class="mt-1.25 mb-0 text-2xs leading-normal text-fg-muted">{{ t('advancedSettingsLead') }}</p></div>
       <Checkbox v-model="serverForm.webRtcEnabled" :class="choiceClass" @update:model-value="handleWebRtcToggle()">
         <span class="block text-xs font-bold">{{ t('webrtcEnabled') }}</span>
-        <span class="mt-1 block text-[10px] leading-[1.45] text-fg-muted">{{ t('webrtcEnabledLead') }}</span>
+        <span class="mt-1 block text-2xs leading-[1.45] text-fg-muted">{{ t('webrtcEnabledLead') }}</span>
       </Checkbox>
-      <div class="webrtc-port-fields">
-        <div class="port-fields-heading"><strong>{{ t('webrtcPortRange') }}</strong><small>{{ t('webrtcPortRangeLead') }}</small></div>
-        <div class="port-inputs">
+      <div class="grid gap-2 rounded-lg border border-line bg-surface-0 p-3">
+        <div><strong class="block text-caption">{{ t('webrtcPortRange') }}</strong><small class="mt-1 block text-2xs leading-[1.45] text-fg-muted">{{ t('webrtcPortRangeLead') }}</small></div>
+        <div class="grid grid-cols-2 gap-2.5 max-narrow:grid-cols-1">
           <Field :label="t('webrtcPortStart')"><Input v-model.number="serverForm.webRtcUdpStart" type="number" inputmode="numeric" min="1024" max="65535" :disabled="serverForm.webRtcEnabled" /></Field>
           <Field :label="t('webrtcPortEnd')"><Input v-model.number="serverForm.webRtcUdpEnd" type="number" inputmode="numeric" min="1024" max="65535" :disabled="serverForm.webRtcEnabled" /></Field>
         </div>
       </div>
-      <small class="field-help">{{ t('webrtcApplyHint') }}</small>
-    </article>
+      <small class="-mt-2 text-2xs text-fg-muted">{{ t('webrtcApplyHint') }}</small>
+    </Card>
 </template>
 
 <script setup lang="ts">
+import { Card } from "@/shared/ui/card";
 import { Checkbox } from "@/shared/ui/checkbox";
 import { Field } from "@/shared/ui/field";
 import { Input } from "@/shared/ui/input";
@@ -30,17 +31,3 @@ const { handleWebRtcToggle } = settings;
 const { t } = useI18n();
 const choiceClass = "w-full rounded-md border border-line p-2.5 has-[[data-state=checked]]:border-accent has-[[data-state=checked]]:bg-surface-0";
 </script>
-
-<style scoped>
-.settings-card h3 { margin: 0; font-size: 15px; font-weight: 700; }
-.field-help { margin-top: -8px; color: var(--ws-fg-muted); font-size: 10px; }
-.advanced-card .card-help{margin:5px 0 0;color:var(--ws-fg-muted);font-size:10px;line-height:1.5}
-.webrtc-port-fields{display:grid;gap:10px;padding:14px;background:var(--ws-surface-0);border:1px solid var(--ws-line);border-radius:10px}
-.port-fields-heading strong,.port-fields-heading small{display:block}
-.port-fields-heading strong{font-size:11px}
-.port-fields-heading small{margin-top:4px;color:var(--ws-fg-muted);font-size:10px;line-height:1.45}
-.port-inputs{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-@media(max-width:520px){.port-inputs{grid-template-columns:1fr}}
-.server-page .settings-card input{height:40px}
-.server-page .webrtc-port-fields{padding:12px;gap:8px}
-</style>

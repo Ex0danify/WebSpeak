@@ -1,5 +1,5 @@
 <template>
-  <div v-if="currentMembers.length" class="voice-grid">
+  <div v-if="currentMembers.length" class="mt-4.25 grid grid-cols-[repeat(auto-fill,minmax(142px,1fr))] gap-3 max-compact:mt-3.5 max-compact:grid-cols-2 max-compact:gap-2.5">
     <VoiceCard
       v-for="member in roomMembers"
       :key="member.id"
@@ -17,14 +17,23 @@
       @start-screen-share="$emit('start-screen-share')"
       @toggle-screen-share="$emit('toggle-screen-share', member)"
     />
-    <article v-if="currentMembers.length > roomMembers.length" class="voice-card more-card"><div class="more-count">+{{ currentMembers.length - roomMembers.length }}</div><strong>{{ t('moreMembers') }}</strong><span>{{ t('viewLeft') }}</span></article>
+    <VoiceTile v-if="currentMembers.length > roomMembers.length" class="grid place-content-center place-items-center">
+      <div class="mb-2.75 grid size-13.5 place-items-center rounded-full bg-accent-soft text-flag font-bold text-accent">+{{ currentMembers.length - roomMembers.length }}</div>
+      <strong :class="voiceTileNameClass">{{ t('moreMembers') }}</strong>
+      <span :class="voiceTileStatusVariants()">{{ t('viewLeft') }}</span>
+    </VoiceTile>
   </div>
-  <div v-else class="voice-empty"><span class="empty-icon"><Icon name="users" :size="20" /></span><strong>{{ t('waitingForMembers') }}</strong><span>{{ t('prepareMicrophone') }}</span></div>
+  <div v-else class="mt-4.25 flex items-center gap-2.75 rounded-lg border border-dashed border-line p-4.5 text-sm text-fg-muted">
+    <span class="grid size-8.5 place-items-center rounded-lg bg-accent-soft text-accent"><Icon name="users" :size="20" /></span>
+    <strong>{{ t('waitingForMembers') }}</strong>
+    <span class="ml-auto">{{ t('prepareMicrophone') }}</span>
+  </div>
 </template>
 
 <script setup lang="ts">
 import { Icon } from "@/shared/ui/icon";
 import VoiceCard from "./VoiceCard.vue";
+import { VoiceTile, voiceTileNameClass, voiceTileStatusVariants } from "@/shared/ui/voiceTile";
 import { useI18n } from "@/shared/i18n/useI18n.js";
 import { isSpeaking } from "@/features/session";
 import type { ChannelMember } from "@/features/session";
@@ -53,40 +62,3 @@ const screenShareSettingsOpen = defineModel<boolean>("screenShareSettingsOpen", 
 
 const { t } = useI18n();
 </script>
-
-<style scoped>
-.voice-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(142px, 1fr)); gap: 12px; margin-top: 17px; }
-.voice-card { min-height: 152px; padding: 17px 11px 13px; border: 1px solid var(--ws-line); border-radius: 13px; background: var(--ws-surface-1); box-shadow: var(--shadow-sm); text-align: center; transition: .18s; }
-.voice-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-sm); }
-.voice-card.speaking { border-color: var(--ws-success); box-shadow: 0 0 14px color-mix(in srgb, var(--ws-success) 35%, transparent); }
-.voice-card > strong, .voice-card > span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.voice-card > strong { color: var(--ws-fg); font-size: 12px; }
-.voice-card > span { margin-top: 5px; color: var(--ws-fg-muted); font-size: 10px; }
-.voice-card.speaking > span { color: var(--ws-success); }
-.more-card { display: grid; place-items: center; align-content: center; }
-.more-count { display: grid; place-items: center; width: 54px; height: 54px; margin-bottom: 11px; color: var(--ws-accent); background: var(--ws-accent-soft); border-radius: 50%; font-size: 14px; font-weight: 700; }
-.empty-icon { display: grid; place-items: center; width: 34px; height: 34px; margin: 0 auto 9px; color: var(--ws-accent); background: var(--ws-accent-soft); border-radius: 10px; }
-.voice-empty { display: flex; align-items: center; gap: 11px; margin-top: 17px; padding: 18px; color: var(--ws-fg-muted); border: 1px dashed var(--ws-line); border-radius: 12px; font-size: 11px; }
-.voice-empty .empty-icon { margin: 0; width: 34px; height: 34px; }
-.voice-empty strong { color: var(--ws-fg-muted); }
-.voice-empty span:last-child { margin-left: auto; }
-
-@media (max-width: 740px) { .voice-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }.voice-card { min-height: 143px; } }
-@media (max-width: 420px) { .voice-grid { gap: 8px; }.voice-card { padding-inline: 6px; } }
-
-/* Increase connected-view typography by 25%, matching the .app-shell scale in RoomWorkspace. */
-.app-shell .voice-card > strong { font-size: 15px; }
-.app-shell .voice-card > span { font-size: 12.5px; }
-.app-shell .more-count { font-size: 17.5px; }
-.app-shell .voice-empty { font-size: 13.75px; }
-
-.voice-card { background: var(--ws-surface-1); border-color: var(--ws-line); }
-.voice-card { box-shadow: 0 7px 18px color-mix(in srgb, var(--ws-fg) 8%, transparent); }
-
-@media (max-width: 740px) {
-  .voice-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-top: 14px; }
-  .voice-card { position: relative; min-height: 136px; padding: 18px 8px 14px; border-radius: 16px; }
-  .app-shell .voice-card > strong { max-width: 100%; font-size: 14px; }
-  .app-shell .voice-card > span { margin-top: 4px; font-size: 11px; }
-}
-</style>

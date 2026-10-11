@@ -1,5 +1,5 @@
 <template>
-  <div v-if="visiblePokes.length" class="fixed right-6 top-[82px] z-[35] flex w-[380px] max-w-[calc(100%-48px)] flex-col gap-2 min-[851px]:right-[calc(24px/var(--ui-scale))] min-[851px]:top-[calc(82px/var(--ui-scale))]">
+  <div v-if="visiblePokes.length" class="fixed right-6 top-[82px] z-35 flex w-[380px] max-w-[calc(100%-48px)] flex-col gap-2 desktop:right-[calc(24px/var(--ui-scale))] desktop:top-[calc(82px/var(--ui-scale))]">
     <Banner
       v-for="poke in visiblePokes"
       :key="poke.id"
@@ -8,7 +8,7 @@
       :title="`${poke.invokerName} ${t('pokedYou')}`"
       dismissible
       :dismiss-label="t('close')"
-      class="shadow-lg"
+      floating
       @dismiss="$emit('dismiss', poke.id)"
     >
       <template v-if="poke.message">{{ poke.message }}</template>

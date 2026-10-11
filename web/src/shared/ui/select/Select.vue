@@ -45,7 +45,7 @@ defineExpose({ focus: () => selectEl.value?.focus(), el: selectEl });
     >
       <slot />
     </select>
-    <span class="pointer-events-none absolute right-3 top-0 flex h-10 items-center text-fg-muted max-[740px]:h-11 peer-disabled:opacity-50">
+    <span class="pointer-events-none absolute right-3 top-0 flex h-10 items-center text-fg-muted max-compact:h-11 peer-disabled:opacity-50">
       <Icon name="chevron-down" />
     </span>
   </div>

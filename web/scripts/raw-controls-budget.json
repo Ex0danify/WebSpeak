@@ -1,0 +1,10 @@
+{
+  "entries": [
+    {
+      "file": "src/features/join/JoinForm.vue",
+      "pattern": "details",
+      "max": 1,
+      "reason": "native disclosure of the device identity options: the library has no disclosure component, and <details>/<summary> give the toggle, keyboard and aria-expanded for free"
+    }
+  ]
+}

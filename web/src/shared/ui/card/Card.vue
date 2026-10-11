@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, useId, useSlots } from "vue";
 import { cn } from "../../lib/cn";
+import { cardBodyVariants, cardVariants, type CardVariants } from "./card";
 
 // A surface with a 1 px border and no shadow. The optional header holds a
 // title (or the `header` slot) and an `actions` slot; `footer` sits below the
@@ -14,9 +15,14 @@ const props = withDefaults(
     headingTag?: "h2" | "h3" | "h4";
     /** Drop the body padding, for lists and tables that run edge to edge. */
     flush?: boolean;
+    /** Body padding when not `flush`: `md` (default), `dense`, `sm`, `lg` (shrinks on a phone) or `xl` (login box). */
+    padding?: NonNullable<CardVariants["padding"]>;
+    raised?: boolean;
+    /** Layout of the body (a grid, a flex column); padding comes from `padding`. */
+    bodyClass?: string;
     class?: string;
   }>(),
-  { as: "div", headingTag: "h3", flush: false },
+  { as: "div", headingTag: "h3", flush: false, padding: "md", raised: false },
 );
 
 const slots = useSlots();
@@ -29,7 +35,7 @@ const labelled = computed(() => props.as === "section" && Boolean(props.title));
   <component
     :is="as"
     :aria-labelledby="labelled ? titleId : undefined"
-    :class="cn('box-border flex min-w-0 flex-col rounded-lg border border-line bg-surface-1 font-sans text-sm text-fg', props.class)"
+    :class="cn(cardVariants({ raised }), props.class)"
   >
     <header v-if="hasHeader" class="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 border-b border-line px-5 py-3.5">
       <slot name="header">
@@ -37,7 +43,7 @@ const labelled = computed(() => props.as === "section" && Boolean(props.title));
       </slot>
       <div v-if="$slots.actions" class="flex shrink-0 items-center gap-2"><slot name="actions" /></div>
     </header>
-    <div :class="cn('min-w-0 flex-1', !flush && 'p-5')"><slot /></div>
+    <div :class="cn(cardBodyVariants({ padding: flush ? 'none' : padding }), bodyClass)"><slot /></div>
     <footer v-if="$slots.footer" class="flex flex-wrap items-center justify-end gap-2 border-t border-line px-5 py-3.5">
       <slot name="footer" />
     </footer>

@@ -1,19 +1,20 @@
 <template>
-  <header class="join-header" role="banner">
-    <div class="brand-lockup">
-      <img class="brand-mark" src="/site-icon.jpg" :alt="APP_NAME" />
-      <div>
-        <strong>{{ siteName }}</strong>
-        <small>{{ t('browserWorkspace') }}</small>
+  <header role="banner">
+    <div class="flex items-center gap-3 max-phone-lg:min-w-0 max-phone-lg:flex-auto max-phone-lg:gap-1.75 max-phone-xs:w-8 max-phone-xs:flex-none">
+      <img class="block size-10 rounded-lg bg-accent object-cover shadow-sm max-phone-lg:size-8 max-phone-lg:rounded-md" src="/site-icon.jpg" :alt="APP_NAME" />
+      <div class="max-phone-xs:hidden">
+        <strong class="block text-xl tracking-brand text-accent max-phone-lg:truncate max-phone-lg:text-ui">{{ siteName }}</strong>
+        <small class="mt-0.5 block text-caption uppercase tracking-label text-fg-muted max-phone-lg:hidden">{{ t('browserWorkspace') }}</small>
       </div>
     </div>
-    <div class="header-tools"><div class="header-note"><span class="tiny-dot"></span> {{ t('secureGateway') }}</div><Button as="a" size="sm" class="bg-fg text-surface-1 hover:bg-accent hover:text-accent-fg" :class="joinActionClass" href="https://github.com/EchoSixHIYA/WebSpeak-client-for-TeamSpeak" target="_blank" rel="noreferrer" :title="t('githubRepository')" :aria-label="t('githubRepository')"><Icon name="github" /><span class="max-[740px]:hidden">{{ t('githubRepository') }}</span></Button><Button variant="outline" size="sm" class="text-accent" :class="joinActionClass" :title="t('qqGroup')" :aria-label="t('qqGroup')" aria-haspopup="dialog" @click="$emit('qq-open')"><Icon name="qq" /><span class="max-[740px]:hidden">{{ t('qqGroup') }}</span></Button><Button as="a" variant="outline" size="sm" class="border-danger/30 bg-danger-soft text-danger hover:bg-danger-soft" :class="joinActionClass" href="https://space.bilibili.com/25414873" target="_blank" rel="noreferrer" :title="t('bilibiliProfile')" :aria-label="t('bilibiliProfile')"><span class="grid size-[18px] place-items-center rounded-[5px] bg-danger text-[11px] leading-none text-accent-fg">{{ BRAND_GLYPH }}</span><span class="max-[740px]:hidden">{{ t('bilibiliProfile') }}</span></Button><Chip variant="accent" class="h-[30px] max-[420px]:min-w-7 max-[420px]:justify-center max-[420px]:px-1 max-[420px]:text-[9px]" :title="`${t('currentVersion')}: v${appVersion}`" :aria-label="`${t('currentVersion')}: v${appVersion}`">{{ VERSION_PREFIX }}{{ appVersion }}</Chip><Button as="a" variant="outline" size="sm" class="text-accent" :class="joinActionClass" href="https://github.com/EchoSixHIYA/WebSpeak-client-for-TeamSpeak/blob/master/CHANGELOG.md" target="_blank" rel="noreferrer" :title="t('viewChangelog')" :aria-label="t('viewChangelog')"><Icon name="clock" size="sm" /><span class="max-[740px]:hidden">{{ t('viewChangelog') }}</span></Button><Button as="a" variant="outline" size="sm" class="text-accent" :class="joinActionClass" href="/admin" :title="t('adminConsole')" :aria-label="t('adminConsole')"><Icon name="settings" size="sm" /><span class="max-[740px]:hidden">{{ t('adminConsole') }}</span></Button><Button variant="ghost" size="sm" icon-only class="max-[420px]:hidden" :title="themeLabel" :aria-label="themeLabel" @click="$emit('cycle-theme')"><Icon :name="themeIcon" /></Button><LanguageSwitcher v-model="language" class="join-language-switcher" :menu-label="t('languageMenu')" :close-label="t('close')" @change="$emit('language-change')" /></div>
+    <div class="flex items-center gap-4.25 max-compact:gap-1.75 max-phone-lg:min-w-0 max-phone-lg:flex-none max-phone-lg:gap-0.5"><div class="flex items-center gap-2 text-caption text-fg-muted max-compact:hidden"><span class="inline-block size-1.75 rounded-full bg-success ring-4 ring-success/14"></span> {{ t('secureGateway') }}</div><Button as="a" variant="inverse" size="sm" :class="joinActionClass" href="https://github.com/EchoSixHIYA/WebSpeak-client-for-TeamSpeak" target="_blank" rel="noreferrer" :title="t('githubRepository')" :aria-label="t('githubRepository')"><Icon name="github" /><span class="max-compact:hidden">{{ t('githubRepository') }}</span></Button><Button variant="tinted" size="sm" :class="joinActionClass" :title="t('qqGroup')" :aria-label="t('qqGroup')" aria-haspopup="dialog" @click="$emit('qq-open')"><Icon name="qq" /><span class="max-compact:hidden">{{ t('qqGroup') }}</span></Button><Button as="a" variant="dangerSoft" size="sm" :class="joinActionClass" href="https://space.bilibili.com/25414873" target="_blank" rel="noreferrer" :title="t('bilibiliProfile')" :aria-label="t('bilibiliProfile')"><span class="grid size-[18px] place-items-center rounded-sm bg-danger text-caption leading-none text-accent-fg">{{ BRAND_GLYPH }}</span><span class="max-compact:hidden">{{ t('bilibiliProfile') }}</span></Button><Chip variant="accent" class="h-[30px] max-phone-lg:min-w-7 max-phone-lg:justify-center" :title="`${t('currentVersion')}: v${appVersion}`" :aria-label="`${t('currentVersion')}: v${appVersion}`">{{ VERSION_PREFIX }}{{ appVersion }}</Chip><Button as="a" variant="tinted" size="sm" :class="joinActionClass" href="https://github.com/EchoSixHIYA/WebSpeak-client-for-TeamSpeak/blob/master/CHANGELOG.md" target="_blank" rel="noreferrer" :title="t('viewChangelog')" :aria-label="t('viewChangelog')"><Icon name="clock" size="sm" /><span class="max-compact:hidden">{{ t('viewChangelog') }}</span></Button><Button as="a" variant="tinted" size="sm" :class="joinActionClass" href="/admin" :title="t('adminConsole')" :aria-label="t('adminConsole')"><Icon name="settings" size="sm" /><span class="max-compact:hidden">{{ t('adminConsole') }}</span></Button><Tooltip :text="themeLabel"><Button variant="ghost" size="sm" icon-only class="max-phone-lg:hidden" :aria-label="themeLabel" @click="$emit('cycle-theme')"><Icon :name="themeIcon" /></Button></Tooltip><LanguageSwitcher v-model="language" :menu-label="t('languageMenu')" :close-label="t('close')" @change="$emit('language-change')" /></div>
   </header>
 </template>
 
 <script setup lang="ts">
 import { APP_NAME, BRAND_GLYPH, VERSION_PREFIX } from "@/shared/lib/brand";
 import { Button } from "@/shared/ui/button";
+import { Tooltip } from "@/shared/ui/tooltip";
 import { Chip } from "@/shared/ui/chip";
 import { Icon } from "@/shared/ui/icon";
 import LanguageSwitcher from "@/shared/components/LanguageSwitcher.vue";
@@ -35,58 +36,5 @@ defineEmits<{
 const { language, t } = useI18n();
 
 // Labels wrap (de and ru are long) and hide on narrow screens, where the buttons shrink to squares.
-const joinActionClass = "h-auto min-h-8 whitespace-normal py-1 text-left text-[11px] leading-[1.15] max-[740px]:w-8 max-[740px]:px-0 max-[740px]:py-0 max-[420px]:size-7 max-[420px]:min-h-7";
+const joinActionClass = "h-auto min-h-8 whitespace-normal py-1 text-left text-caption leading-[1.15] max-compact:w-8 max-compact:px-0 max-compact:py-0 max-phone-lg:size-7 max-phone-lg:min-h-7";
 </script>
-
-<style scoped>
-.brand-lockup { display: flex; align-items: center; gap: 12px; }
-.brand-mark { display: grid; place-items: center; color: var(--ws-accent-fg); background: var(--ws-accent); box-shadow: 0 8px 18px color-mix(in srgb, var(--ws-accent) 15%, transparent); }
-.brand-mark { display: block; width: 40px; height: 40px; border-radius: 12px; object-fit: cover; }
-.brand-lockup strong { display: block; color: var(--ws-accent); font-size: 18px; letter-spacing: -.04em; }
-.brand-lockup strong span { color: var(--ws-fg); font-weight: 500; }
-.brand-lockup small { display: block; margin-top: 2px; color: var(--ws-fg-muted); font-size: 10px; letter-spacing: .08em; text-transform: uppercase; }
-.header-tools { display: flex; align-items: center; gap: 17px; }
-.header-note { display: flex; align-items: center; gap: 8px; color: var(--ws-fg-muted); font-size: 12px; }
-.tiny-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--ws-success); box-shadow: 0 0 0 4px color-mix(in srgb, var(--ws-success) 14%, transparent); }
-
-.header-tools { align-items: center; }
-
-@media (max-width: 740px) {
-  .header-tools { gap: 7px; }
-  .header-note { display: none; }
-}
-
-.join-page .brand-lockup strong { font-size: 22.5px; }
-.join-page .brand-lockup small, .join-page .header-note { font-size: 12.5px; }
-
-.header-note { color: var(--ws-fg-muted); }
-
-@media (max-width: 390px) {
-  .join-page .header-tools { gap: 4px; }
-}
-
-@media (max-width: 420px) {
-  .join-page .brand-lockup { min-width: 0; flex: 1 1 auto; gap: 7px; }
-  .join-page .brand-mark { width: 32px; height: 32px; border-radius: 9px; }
-  .join-page .brand-lockup strong { overflow: hidden; font-size: 15px; text-overflow: ellipsis; white-space: nowrap; }
-  .join-page .brand-lockup small { display: none; }
-  .join-page .header-tools { min-width: 0; flex: 0 0 auto; gap: 2px; }
-}
-
-@media (max-width: 360px) {
-  .join-page .brand-lockup > div { display: none; }
-  .join-page .brand-lockup { flex: 0 0 32px; }
-}
-
-:root[lang="en"] .brand-lockup strong,
-:root[lang="de"] .brand-lockup strong { font-size: 19.8px; }
-:root[lang="en"] .brand-lockup small,
-:root[lang="en"] .header-note,
-:root[lang="de"] .brand-lockup small,
-:root[lang="de"] .header-note { font-size: 11px; }
-
-@media (max-width: 420px) {
-  :root[lang="en"] .brand-lockup strong,
-  :root[lang="de"] .brand-lockup strong { font-size: 13.2px; }
-}
-</style>

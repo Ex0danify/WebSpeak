@@ -15,10 +15,12 @@ import { menuItemVariants, menuSheetItemClass, type MenuItemVariants } from "./m
 const props = withDefaults(
   defineProps<{
     tone?: MenuItemVariants["tone"];
+    /** The option that is in effect: tinted and marked with aria-current. */
+    current?: boolean;
     disabled?: boolean;
     class?: string;
   }>(),
-  { tone: "default", disabled: false },
+  { tone: "default", current: false, disabled: false },
 );
 
 const emit = defineEmits<{ select: [event: Event] }>();
@@ -34,11 +36,11 @@ function onSheetClick() {
 </script>
 
 <template>
-  <button v-if="menu?.sheet.value" type="button" :disabled="disabled" :class="cn(menuItemVariants({ tone }), menuSheetItemClass, props.class)" @click="onSheetClick">
+  <button v-if="menu?.sheet.value" type="button" :aria-current="current ? 'true' : undefined" :disabled="disabled" :class="cn(menuItemVariants({ tone, current }), menuSheetItemClass, props.class)" @click="onSheetClick">
     <slot />
   </button>
-  <DropdownMenuItem v-else :disabled="disabled" :class="cn(menuItemVariants({ tone }), props.class)" @select="emit('select', $event)">
+  <DropdownMenuItem v-else :aria-current="current ? 'true' : undefined" :disabled="disabled" :class="cn(menuItemVariants({ tone, current }), props.class)" @select="emit('select', $event)">
     <slot />
-    <span v-if="$slots.shortcut" class="ml-auto pl-3 font-mono text-[11px] text-fg-muted"><slot name="shortcut" /></span>
+    <span v-if="$slots.shortcut" class="ml-auto pl-3 font-mono text-caption text-fg-muted"><slot name="shortcut" /></span>
   </DropdownMenuItem>
 </template>

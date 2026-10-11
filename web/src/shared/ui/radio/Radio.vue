@@ -12,7 +12,7 @@ const props = defineProps<{ value: string | number; class?: string }>();
 
 <template>
   <label :class="cn(checkRowClass, props.class)">
-    <RadioGroupItem v-bind="$attrs" :value="value" :class="cn(checkBoxClass, 'rounded-full data-[state=checked]:shadow-[inset_0_0_0_1px_var(--color-accent)]')">
+    <RadioGroupItem v-bind="$attrs" :value="value" :class="cn(checkBoxClass, 'rounded-full data-[state=checked]:shadow-ring-accent')">
       <RadioGroupIndicator class="block size-2.5 rounded-full bg-accent" />
     </RadioGroupItem>
     <span v-if="$slots.default" class="min-w-0"><slot /></span>

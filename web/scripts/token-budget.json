@@ -1,0 +1,127 @@
+{
+  "files": {
+    "src/features/admin/AccessIdentityCard.vue": {
+      "arbitrary": 5
+    },
+    "src/features/admin/AdminOperationsPage.vue": {
+      "arbitrary": 2
+    },
+    "src/features/admin/AdminOverviewPage.vue": {
+      "arbitrary": 1
+    },
+    "src/features/admin/AdminShell.vue": {
+      "arbitrary": 7
+    },
+    "src/features/admin/AdvancedSettingsCard.vue": {
+      "arbitrary": 4
+    },
+    "src/features/admin/RelayNodesCard.vue": {
+      "arbitrary": 2
+    },
+    "src/features/admin/TeamSpeakTargetCard.vue": {
+      "arbitrary": 2
+    },
+    "src/features/admin/adminPage.ts": {
+      "arbitrary": 4
+    },
+    "src/features/demo/DemoVoiceSection.vue": {
+      "arbitrary": 1
+    },
+    "src/features/join/JoinFooter.vue": {
+      "arbitrary": 2
+    },
+    "src/features/join/JoinForm.vue": {
+      "arbitrary": 1
+    },
+    "src/features/join/JoinHeader.vue": {
+      "arbitrary": 3
+    },
+    "src/features/join/JoinHero.vue": {
+      "arbitrary": 3
+    },
+    "src/features/join/QqDialog.vue": {
+      "arbitrary": 2
+    },
+    "src/features/room/audioSettings/AudioSettingsDialog.vue": {
+      "arbitrary": 2
+    },
+    "src/features/room/chat/ChatPanel.vue": {
+      "arbitrary": 3
+    },
+    "src/features/room/members/MemberContextMenu.vue": {
+      "arbitrary": 1
+    },
+    "src/features/room/members/MemberRow.vue": {
+      "arbitrary": 1
+    },
+    "src/features/room/shell/AudioNoticeBanner.vue": {
+      "arbitrary": 2
+    },
+    "src/features/room/shell/MobileNav.vue": {
+      "arbitrary": 1
+    },
+    "src/features/room/shell/ReconnectBanner.vue": {
+      "arbitrary": 2
+    },
+    "src/features/room/shell/RoomWorkspace.vue": {
+      "arbitrary": 14
+    },
+    "src/features/room/shell/WorkspaceHeader.vue": {
+      "arbitrary": 2
+    },
+    "src/features/room/voiceGrid/VoiceGrid.vue": {
+      "arbitrary": 1
+    },
+    "src/features/room/whisper/PokeStack.vue": {
+      "arbitrary": 5
+    },
+    "src/shared/ui/dialog/dialog.ts": {
+      "arbitrary": 4
+    },
+    "src/shared/ui/input/Input.vue": {
+      "arbitrary": 1
+    },
+    "src/shared/ui/menu/menu.ts": {
+      "arbitrary": 3
+    },
+    "src/shared/ui/meter/meter.ts": {
+      "arbitrary": 1
+    },
+    "src/shared/ui/popover/popover.ts": {
+      "arbitrary": 2
+    },
+    "src/shared/ui/shared/checkControl.ts": {
+      "arbitrary": 3
+    },
+    "src/shared/ui/slider/slider.ts": {
+      "arbitrary": 2
+    },
+    "src/shared/ui/switch/Switch.vue": {
+      "arbitrary": 5
+    },
+    "src/shared/ui/toast/Toaster.vue": {
+      "arbitrary": 2
+    },
+    "src/shared/ui/toast/toast.ts": {
+      "arbitrary": 1
+    },
+    "src/shared/ui/tooltip/tooltip.ts": {
+      "arbitrary": 1
+    },
+    "src/views/AdminView.vue": {
+      "arbitrary": 4
+    },
+    "src/views/ClientLayout.vue": {
+      "arbitrary": 4
+    },
+    "src/views/DemoView.vue": {
+      "arbitrary": 7
+    },
+    "src/views/JoinView.vue": {
+      "arbitrary": 11
+    },
+    "src/views/UiGallery.vue": {
+      "arbitrary": 2
+    }
+  }
+}

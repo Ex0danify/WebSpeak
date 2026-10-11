@@ -2,7 +2,7 @@ import { flushPromises, mount, type VueWrapper } from "@vue/test-utils";
 import { IDBFactory } from "fake-indexeddb";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type * as Persistence from "@/shared/services/localPersistence";
-import { mountClient } from "@/testSupport/mountClient";
+import { mountClient, warmClient } from "@/testSupport/mountClient";
 
 // The remembered-identity flow of the join view, tested on the real component:
 // identity restore on mount, save when the gateway hands one out, and the
@@ -29,8 +29,7 @@ beforeAll(async () => {
   store = await import("@/shared/services/localPersistence");
   // mountClient() imports the router and JoinView lazily; under CPU load that cold import alone
   // exceeds the 5 s test default for the first test, so it is paid here against the 30 s budget.
-  await import("@/views/clientRoutes");
-  await import("@/views/JoinView.vue");
+  await warmClient();
 }, 30_000);
 
 beforeEach(async () => {

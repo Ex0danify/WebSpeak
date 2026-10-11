@@ -24,18 +24,20 @@ const props = withDefaults(
     variant?: NonNullable<BannerVariants["variant"]>;
     title?: string;
     icon?: IconName;
+    /** Floats over the page (a poke): adds a shadow. */
+    floating?: boolean;
     dismissible?: boolean;
     dismissLabel?: string;
     class?: string;
   }>(),
-  { variant: "info", dismissible: false, dismissLabel: "Dismiss" },
+  { variant: "info", floating: false, dismissible: false, dismissLabel: "Dismiss" },
 );
 
 defineEmits<{ dismiss: [] }>();
 </script>
 
 <template>
-  <div :role="variant === 'danger' ? 'alert' : 'status'" :class="cn(bannerVariants({ variant }), props.class)">
+  <div :role="variant === 'danger' ? 'alert' : 'status'" :class="cn(bannerVariants({ variant }), floating && 'shadow-lg', props.class)">
     <Icon :name="icon ?? statusIconName[variant]" :size="18" :class="cn('mt-0.5 shrink-0', statusTextClass[variant])" />
     <div class="min-w-0 flex-1 basis-48 break-words">
       <p v-if="title" class="m-0 font-semibold">{{ title }}</p>
@@ -47,7 +49,7 @@ defineEmits<{ dismiss: [] }>();
       variant="ghost"
       size="sm"
       icon-only
-      class="-my-1 -mr-2 max-[740px]:h-11 max-[740px]:w-11"
+      class="-my-1 -mr-2 max-compact:h-11 max-compact:w-11"
       :aria-label="dismissLabel"
       @click="$emit('dismiss')"
     >

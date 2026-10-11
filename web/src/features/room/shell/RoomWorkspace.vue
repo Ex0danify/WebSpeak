@@ -1,6 +1,6 @@
 <template>
-  <div :class="['app-shell', `mobile-view-${mobileSection}`]">
-    <main class="workspace">
+  <div :class="shellClass">
+    <main :class="[workspaceClass, mobileSection === 'more' || mobileSection === 'channels' ? 'max-compact:hidden' : '']">
       <h1 v-if="!isMobileViewport || (mobileSection !== 'channels' && mobileSection !== 'more')" class="sr-only">{{ t('voiceSpace') }}</h1>
       <WorkspaceHeader
         :current-channel-name="currentChannelName"
@@ -47,9 +47,9 @@
       <AudioNoticeBanner :audio-notice="voiceState.audioNotice" />
       <PokeStack :pokes="pokeNotifications" @dismiss="dismissPoke" />
 
-      <div class="workspace-scroll">
-        <div class="workspace-content">
-          <section :class="['voice-section', { 'mobile-section-hidden': mobileSection !== 'voice' }]">
+      <div :class="[scrollClass, mobileSection === 'chat' && 'max-compact:overflow-hidden']">
+        <div :class="mobileSection === 'chat' ? contentChatClass : contentClass">
+          <section :class="['mt-8.5 max-compact:mt-5.25', mobileSection !== 'voice' && 'max-compact:hidden']">
             <VoiceHeading :count="currentMembers.length" />
             <ScreenShareInlineError v-if="screenShareError" :text="screenShareErrorText" />
             <ScreenSharePlayer
@@ -106,9 +106,6 @@
             :chat-tab-label="chatTabLabel"
             :chat-title="chatTitle"
             :chat-placeholder="chatPlaceholder"
-            :chat-panel-id="chatPanelId"
-            :chat-tab-id="chatTabId"
-            :active-chat-tab-id="activeChatTabId"
             :server-events="serverEvents"
             :visible-chat-messages="visibleChatMessages"
             :members="members"
@@ -250,8 +247,8 @@ const {
   onChannelDragLeave, onChannelDrop
 } = props.tree;
 const {
-  chatTab, messageDraft, privateClientId, privateConversations, visibleChatMessages, chatTabLabel, chatPanelId,
-  chatTabId, activeChatTabId, chatTitle, chatPlaceholder, formatTime, submitMessage, openPrivateChat,
+  chatTab, messageDraft, privateClientId, privateConversations, visibleChatMessages, chatTabLabel,
+  chatTitle, chatPlaceholder, formatTime, submitMessage, openPrivateChat,
   setChatListElement, eventText
 } = props.chat;
 const {
@@ -267,85 +264,14 @@ const { performancePanelOpen, performanceRunning, performanceStats, togglePerfor
 const { openMemberActions, openMemberMenu } = props.memberMenu;
 const { themeIcon, themeLabel, cycleTheme, persistLanguage } = props.appearance;
 const { doShare, doDisconnect } = props;
+
+// Frame of the connected view. Desktop: member panel (318 px) beside the workspace, one viewport tall
+// (the height is divided by --ui-scale like the zoomed roots, see ClientLayout). Up to 980 px the member panel
+// moves below the workspace. Up to 740 px the shell is a column with the bottom navigation reserved.
+const shellClass = "grid h-dvh max-h-dvh min-h-0 grid-cols-[318px_minmax(0,1fr)] overflow-hidden bg-surface-1 desktop:h-[calc(100dvh/var(--ui-scale))] desktop:max-h-[calc(100dvh/var(--ui-scale))] max-medium:grid-cols-1 max-medium:grid-rows-[minmax(0,1fr)_minmax(210px,35dvh)] max-compact:flex max-compact:h-svh max-compact:max-h-svh max-compact:min-h-svh max-compact:flex-col max-compact:pb-[calc(74px+env(safe-area-inset-bottom,0px))]";
+const workspaceClass = "col-start-2 row-start-1 flex h-full min-h-0 min-w-0 flex-col bg-surface-1 max-medium:col-start-1 max-medium:h-auto max-compact:h-[calc(100svh-74px-env(safe-area-inset-bottom,0px))] max-compact:max-h-[calc(100svh-74px-env(safe-area-inset-bottom,0px))] max-compact:flex-auto max-compact:overflow-hidden";
+const scrollClass = "min-h-0 flex-1 overflow-y-auto pb-[env(safe-area-inset-bottom,0px)] max-compact:h-full max-compact:overscroll-contain max-compact:[scrollbar-gutter:stable]";
+const contentClass = "mx-auto w-[min(950px,calc(100%-64px))] pt-7.75 pb-16 text-fg max-wide:w-[min(900px,calc(100%-42px))] max-compact:m-0 max-compact:block max-compact:min-h-full max-compact:w-full max-compact:max-w-none max-compact:px-3.5 max-compact:pt-3.5 max-compact:pb-[calc(18px+env(safe-area-inset-bottom,0px))]";
+// The chat tab hands the whole height to the message list.
+const contentChatClass = "mx-auto w-[min(950px,calc(100%-64px))] pt-7.75 pb-16 text-fg max-wide:w-[min(900px,calc(100%-42px))] max-compact:m-0 max-compact:flex max-compact:h-full max-compact:min-h-0 max-compact:w-full max-compact:max-w-none max-compact:flex-col max-compact:px-3.5 max-compact:pt-0 max-compact:pb-[calc(8px+env(safe-area-inset-bottom,0px))]";
 </script>
-
-<style scoped>
-.app-shell { display: grid; grid-template-columns: 76px 292px minmax(0, 1fr) 246px; height: 100dvh; overflow: hidden; background: var(--ws-surface-1); }
-
-.workspace { display: flex; min-width: 0; flex-direction: column; background: var(--ws-surface-1); }
-.workspace-scroll { flex: 1; overflow-y: auto; }.workspace-content { width: min(950px, calc(100% - 64px)); margin: 0 auto; padding: 31px 0 27px; }
-.voice-section { margin-top: 34px; }
-
-@media (max-width: 1200px) { .app-shell { grid-template-columns: 72px 255px minmax(0, 1fr) 218px; }.workspace-content { width: min(900px, calc(100% - 42px)); }}
-@media (max-width: 980px) { .app-shell { grid-template-columns: 70px 245px minmax(0, 1fr); } }
-@media (max-width: 740px) { .app-shell { display: block; height: 100dvh; }.workspace { height: 100%; }.workspace-content { width: calc(100% - 30px); padding-top: 18px; }.voice-section, .chat-panel { margin-top: 25px; } }
-
-/* The connected view keeps only controls that have a working action. The
-   channel tree lives with the member list so every channel remains visible
-   even when the current user is elsewhere. */
-.app-shell { grid-template-columns: minmax(0, 1fr) 318px; }
-.workspace { min-width: 0; }
-
-@media (min-width: 741px) and (max-width: 980px) { .app-shell { grid-template-columns: minmax(0, 1fr); }}
-@media (max-width: 980px) { .app-shell { display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) minmax(210px, 35dvh); }.workspace { height: auto; min-height: 0; }}
-@media (max-width: 740px) { .app-shell { display: grid; grid-template-rows: minmax(0, 1fr) 220px; } }
-
-/* Keep the connected workspace sized to the browser viewport and let the
-   workspace and member tree own their scroll areas when the window shrinks. */
-.app-shell { grid-template-columns: 318px minmax(0, 1fr); height: 100dvh; min-height: 0; max-height: 100dvh; }
-.workspace { grid-column: 2; grid-row: 1; min-height: 0; height: 100%; }
-.workspace-scroll { min-height: 0; padding-bottom: env(safe-area-inset-bottom, 0px); }
-.workspace-content { padding-bottom: 64px; }
-
-@media (max-width: 980px) {
-  .app-shell { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) minmax(210px, 35dvh); }
-  .workspace { grid-column: 1; grid-row: 1; height: auto; }
-}
-
-@media (max-width: 740px) {
-  .app-shell { grid-template-rows: minmax(0, 1fr) 220px; }
-}
-
-.app-shell, .workspace { background: var(--ws-surface-1); }
-.workspace-content { color: var(--ws-fg); }
-@media (max-width: 740px) { .workspace-scroll { overscroll-behavior: contain; }.workspace-content { width: min(100% - 24px, 650px); padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px)); } }
-
-/* M008 mobile navigation. */
-.mobile-section-hidden { display: block; }
-
-@media (min-width: 741px) {
-  .app-shell .mobile-section-hidden { display: block; }
-}
-
-@media (max-width: 740px) {
-  .app-shell { display: flex; flex-direction: column; height: auto; min-height: 100dvh; max-height: none; padding-bottom: calc(68px + env(safe-area-inset-bottom, 0px)); overflow: visible; }
-  .app-shell .workspace { display: flex; flex: 1 1 auto; height: calc(100dvh - 61px); min-height: 0; }
-  .app-shell .workspace-scroll { flex: 1; height: 100%; min-height: 0; overflow-y: auto; }
-  .app-shell .mobile-section-hidden { display: none; }
-  .app-shell.mobile-view-more .workspace { display: none; }
-}
-
-/* See ClientLayout.vue: main.ts sets --ui-scale and the zoomed roots divide
-   their height by it so the shell lands on exactly one viewport. */
-@media (min-width: 851px) {
-  .app-shell { height: calc(100dvh / var(--ui-scale)); min-height: 0; max-height: calc(100dvh / var(--ui-scale)); }
-}
-
-@media (max-width: 740px) {
-  .app-shell { height: 100dvh; min-height: 0; max-height: 100dvh; padding-bottom: calc(74px + env(safe-area-inset-bottom, 0px)); overflow: hidden; }
-  .app-shell .workspace { height: auto; min-height: 0; flex: 1 1 auto; }
-  .app-shell.mobile-view-channels .workspace { display: none; }
-}
-
-/* Mobile interaction pass: keep the browser viewport fixed and give each
-   mobile surface its own touch-friendly scroll area. */
-@media (max-width: 740px) {
-  .app-shell { height: 100dvh; height: 100svh; min-height: 100dvh; min-height: 100svh; max-height: 100dvh; max-height: 100svh; padding-bottom: calc(74px + env(safe-area-inset-bottom, 0px)); overflow: hidden; }
-  .app-shell .workspace { height: calc(100dvh - 74px - env(safe-area-inset-bottom, 0px)); height: calc(100svh - 74px - env(safe-area-inset-bottom, 0px)); min-height: 0; max-height: calc(100dvh - 74px - env(safe-area-inset-bottom, 0px)); max-height: calc(100svh - 74px - env(safe-area-inset-bottom, 0px)); overflow: hidden; }
-  .app-shell .workspace-scroll { height: 100%; min-height: 0; overflow-y: auto; overscroll-behavior: contain; scrollbar-gutter: stable; }
-  .workspace-content { display: block; width: 100%; max-width: none; min-height: 100%; margin: 0; padding: 14px 14px calc(18px + env(safe-area-inset-bottom, 0px)); box-sizing: border-box; }
-  .voice-section { margin-top: 21px; }
-  .app-shell.mobile-view-chat .workspace-scroll { overflow: hidden; }
-  .app-shell.mobile-view-chat .workspace-content { display: flex; flex-direction: column; height: 100%; min-height: 0; padding: 0 14px calc(8px + env(safe-area-inset-bottom, 0px)); }
-}
-</style>

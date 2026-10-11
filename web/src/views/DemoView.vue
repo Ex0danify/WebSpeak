@@ -1,22 +1,22 @@
 <template>
-  <div class="demo-page">
+  <div class="min-h-dvh bg-surface-0 bg-[radial-gradient(circle_at_72%_12%,color-mix(in_srgb,var(--color-accent)_18%,transparent),transparent_26rem)] px-7 pb-9.5 leading-[normal] text-fg max-demo:px-3.5 max-demo:pb-6">
     <DemoHeader />
 
-    <Banner v-if="reconnecting" variant="warning" icon="refresh" class="demo-reconnect">
+    <Banner v-if="reconnecting" variant="warning" icon="refresh" class="mx-auto mb-3.5 w-full max-w-345">
       {{ t('reconnecting') }}
       <template #actions><Button size="sm" variant="outline" @click="reconnecting = false">{{ t('restore') }}</Button></template>
     </Banner>
-    <main class="demo-shell">
-      <DemoChannelPanel :channels="channels" :selected-channel-id="selectedChannelId" :selected-channel-name="selectedChannel.name" :speaking-id="speakingId" @select="selectChannel" />
+    <main class="mx-auto grid min-h-180 w-full max-w-345 grid-cols-[240px_minmax(0,1fr)_235px] gap-4.5 max-demo-wide:grid-cols-[210px_minmax(0,1fr)] max-demo:block max-demo:min-h-0">
+      <DemoChannelPanel class="max-demo:mb-3" :channels="channels" :selected-channel-id="selectedChannelId" :selected-channel-name="selectedChannel.name" :speaking-id="speakingId" @select="selectChannel" />
 
-      <section class="demo-main">
+      <section :class="[demoPanel, 'px-8 py-6.75 max-demo:px-3.5 max-demo:py-4.25']">
         <DemoVoiceSection v-model:speaking-id="speakingId" :channel="selectedChannel" />
         <DemoChatPanel v-model:active-tab="activeTab" v-model:draft="draft" :channel-name="selectedChannel.name" :tabs="tabs" :visible-messages="visibleMessages" @send="sendMessage" @toggle-mine="toggleMine" />
       </section>
 
       <DemoActionsPanel :speaking-id="speakingId" @toggle-speaking="toggleSpeaking" @poke="poke = !poke" @reconnect="reconnecting = true" />
     </main>
-    <Banner v-if="poke" variant="warning" icon="bell" :title="`msicbot ${t('pokedYou')}`" dismissible :dismiss-label="t('close')" class="demo-poke shadow-lg" @dismiss="poke = false" />
+    <Banner v-if="poke" variant="warning" icon="bell" :title="`msicbot ${t('pokedYou')}`" dismissible :dismiss-label="t('close')" floating class="fixed top-20.5 right-6.25 z-10 w-[min(380px,calc(100%-32px))] desktop:top-[calc(82px/var(--ui-scale))] desktop:right-[calc(25px/var(--ui-scale))]" @dismiss="poke = false" />
   </div>
 </template>
 
@@ -30,6 +30,7 @@ import {
   DemoChatPanel,
   DemoHeader,
   DemoVoiceSection,
+  demoPanel,
   type DemoChannel,
   type DemoMessage,
   type DemoTab,
@@ -61,21 +62,3 @@ function toggleSpeaking() { speakingId.value = speakingId.value ? "" : selectedC
 function toggleMine(id: number) { const message = messages.value.find((m) => m.id === id); if (message) message.mine = !message.mine; }
 function sendMessage() { const text = draft.value.trim(); if (!text) return; messages.value.push({ id: Date.now(), author: "illusia", time: "now", text, mine: true }); draft.value = ""; }
 </script>
-
-<style scoped>
-:global(*) { box-sizing: border-box; }
-:global(body) { margin: 0; font-family: var(--font-sans); background: var(--ws-surface-0); color: var(--ws-fg); }
-.demo-page { min-height: 100dvh; padding: 0 28px 38px; background: radial-gradient(circle at 72% 12%, color-mix(in srgb, var(--ws-accent) 18%, transparent), transparent 26rem), var(--ws-surface-0); line-height: normal; }
-.demo-reconnect { width: min(1380px, 100%); margin: 0 auto 14px }
-.demo-shell { display: grid; grid-template-columns: 240px minmax(0, 1fr) 235px; gap: 18px; width: min(1380px, 100%); min-height: 720px; margin: 0 auto; }
-.demo-channel-panel, .demo-actions-panel, .demo-main { min-width: 0; padding: 20px; border: 1px solid var(--ws-line); border-radius: 16px; background: color-mix(in srgb, var(--ws-surface-1) 90%, transparent); box-shadow: 0 12px 30px color-mix(in srgb, var(--ws-accent) 5%, transparent); }
-.demo-main { padding: 27px 32px; }
-.demo-poke { position: fixed; z-index: 10; top: 82px; right: 25px; width: min(380px, calc(100% - 32px)) }
-:global(button:focus-visible), :global(a:focus-visible), :global(input:focus-visible), :global(select:focus-visible) { outline: 3px solid var(--ws-accent); outline-offset: 2px; }
-@media (max-width: 1080px)  { .demo-shell { grid-template-columns: 210px minmax(0, 1fr); } }
-@media (max-width: 720px)  { .demo-page { padding: 0 14px 24px; } .demo-shell { display: block; min-height: 0; } .demo-channel-panel { margin-bottom: 12px; } .demo-main { padding: 17px 14px; } }
-/* The whole app is zoomed via #app (zoom:var(--ui-scale)) on large displays;
-   divide the fixed poke banner offsets back to CSS pixels so it stays at the
-   intended 82px/25px margin instead of drifting by the zoom factor. */
-@media (min-width: 851px)  { .demo-poke { top: calc(82px / var(--ui-scale)); right: calc(25px / var(--ui-scale)); } }
-</style>

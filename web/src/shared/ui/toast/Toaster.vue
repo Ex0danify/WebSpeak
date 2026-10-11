@@ -43,13 +43,13 @@ const { toasts, dismiss } = useToast();
       <span :class="toastIconVariants({ variant: t.variant })"><Icon :name="statusIconName[t.variant]" :size="16" /></span>
       <div class="min-w-0 flex-1 basis-40 break-words">
         <ToastTitle class="block font-semibold">{{ t.title }}</ToastTitle>
-        <ToastDescription v-if="t.description" class="block text-[13px] leading-[18px] text-fg-muted">{{ t.description }}</ToastDescription>
+        <ToastDescription v-if="t.description" class="block text-ui leading-[18px] text-fg-muted">{{ t.description }}</ToastDescription>
       </div>
       <ToastAction v-if="t.action" as-child :alt-text="t.action.altText ?? t.action.label">
-        <Button variant="outline" size="sm" class="shrink-0 self-center max-[740px]:order-last max-[740px]:ml-10 max-[740px]:h-11 max-[740px]:w-[calc(100%-2.5rem)]" @click="t.action.onClick()">{{ t.action.label }}</Button>
+        <Button variant="outline" size="sm" class="shrink-0 self-center max-compact:order-last max-compact:ml-10 max-compact:h-11 max-compact:w-[calc(100%-2.5rem)]" @click="t.action.onClick()">{{ t.action.label }}</Button>
       </ToastAction>
       <ToastClose as-child>
-        <Button variant="ghost" size="sm" icon-only class="-my-1 -mr-1.5 shrink-0 max-[740px]:h-11 max-[740px]:w-11" :aria-label="dismissLabel">
+        <Button variant="ghost" size="sm" icon-only class="-my-1 -mr-1.5 shrink-0 max-compact:h-11 max-compact:w-11" :aria-label="dismissLabel">
           <Icon name="close" :size="15" />
         </Button>
       </ToastClose>

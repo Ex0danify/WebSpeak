@@ -89,7 +89,7 @@ const SheetTrigger = defineComponent({
         <slot />
       </div>
       <template #footer>
-        <Button variant="secondary" class="w-full max-[740px]:h-11" @click="open = false">{{ closeLabel }}</Button>
+        <Button variant="secondary" class="w-full max-compact:h-11" @click="open = false">{{ closeLabel }}</Button>
       </template>
     </Dialog>
   </template>

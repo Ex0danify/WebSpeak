@@ -276,7 +276,3 @@ const {
 
 const performance = useNetworkPerformance({ session: session.session });
 </script>
-
-<style scoped>
-@keyframes screen-share-live-dot { 0%, 100% { opacity: .55; transform: scale(.86); } 50% { opacity: 1; transform: scale(1); } }
-</style>

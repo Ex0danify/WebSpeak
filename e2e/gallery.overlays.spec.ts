@@ -141,6 +141,28 @@ test.describe("Popover", () => {
     await expect(panel(page)).toBeHidden();
   });
 
+  test("in hover mode it opens on hover and on focus, a click on the trigger does not toggle it, and Esc closes it until the pointer leaves", async ({ page }) => {
+    const hoverTrigger = gallerySection(page, "Popover").getByRole("button", { name: "Volume", exact: true });
+    const hoverPanel = gallerySection(page, "Popover").getByRole("dialog", { name: "Volume" });
+    await expect(hoverPanel).toBeHidden();
+
+    await hoverTrigger.hover();
+    await expect(hoverPanel).toBeVisible();
+    await hoverTrigger.click();
+    await expect(hoverPanel).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(hoverPanel).toBeHidden();
+    await page.mouse.move(2, 2);
+
+    // The focus is still on the trigger after the click, so Esc keeps the panel closed; leaving and coming back opens it.
+    await hoverTrigger.blur();
+    await hoverTrigger.focus();
+    await expect(hoverPanel).toBeVisible();
+    await page.keyboard.press("Tab");
+    await expect(hoverPanel.getByRole("slider", { name: "Volume" })).toBeFocused();
+    await expect(hoverPanel).toBeVisible();
+  });
+
   test("inside a dialog, Esc closes the popover first and the dialog next", async ({ page }) => {
     await gallerySection(page, "Popover").getByRole("button", { name: "Popover inside a dialog" }).click();
     const dialog = page.getByRole("dialog", { name: "Popover inside a dialog" });

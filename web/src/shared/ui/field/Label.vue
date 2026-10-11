@@ -6,5 +6,5 @@ defineProps<{ for?: string; class?: string }>();
 </script>
 
 <template>
-  <RekaLabel :for="$props.for" :class="cn('text-[13px] font-medium leading-5 text-fg', $props.class)"><slot /></RekaLabel>
+  <RekaLabel :for="$props.for" :class="cn('text-ui font-medium leading-5 text-fg', $props.class)"><slot /></RekaLabel>
 </template>

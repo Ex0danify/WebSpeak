@@ -1,12 +1,12 @@
 <template>
-  <div class="member-tree">
-    <section v-for="channelItem in channels" :key="channelItem.id" :class="['member-channel-group', { current: currentChannelId === channelItem.id, 'drag-over': dragOverChannelId === channelItem.id }]" :data-member-channel-id="channelItem.id" :style="{ marginLeft: `${channelItem.depth * 10}px` }" @dragover="$emit('channel-drag-over', channelItem, $event)" @dragleave="$emit('channel-drag-leave', channelItem, $event)" @drop="$emit('channel-drop', channelItem, $event)" @pointermove="$emit('member-pointer-move', $event)" @pointerup="$emit('member-pointer-up', $event)" @pointercancel="$emit('member-pointer-cancel', $event)">
-      <button class="member-channel-heading" :title="t('switchChannel')" @click="$emit('select-channel', channelItem)">
+  <div class="mt-4.5 min-h-0 flex-1 overflow-y-auto pr-0.75 compact:max-medium:mt-2.5 max-compact:mt-3 max-compact:flex-auto max-compact:pr-0.5 max-compact:pb-1 max-compact:[scrollbar-gutter:stable]">
+    <section v-for="channelItem in channels" :key="channelItem.id" :class="['not-first:mt-2', dragOverChannelId === channelItem.id ? 'rounded-lg border border-dashed border-accent bg-accent/7 p-1.5 pb-3' : 'border-b border-line pt-2 pb-3.5 max-compact:pt-1.75 max-compact:pb-3']" :data-member-channel-id="channelItem.id" :style="{ marginLeft: `${channelItem.depth * 10}px` }" @dragover="$emit('channel-drag-over', channelItem, $event)" @dragleave="$emit('channel-drag-leave', channelItem, $event)" @drop="$emit('channel-drop', channelItem, $event)" @pointermove="$emit('member-pointer-move', $event)" @pointerup="$emit('member-pointer-up', $event)" @pointercancel="$emit('member-pointer-cancel', $event)">
+      <Button variant="soft" size="row" :aria-current="isActive(channelItem) ? 'true' : undefined" :title="t('switchChannel')" @click="$emit('select-channel', channelItem)">
         <Icon name="volume" :size="16" />
-        <span>{{ channelNameText(channelItem, t) }}</span>
-        <small>{{ channelItem.members.length }}</small>
-      </button>
-      <div v-if="channelItem.members.length" class="member-list">
+        <span class="min-w-0 flex-1 truncate text-md font-bold">{{ channelNameText(channelItem, t) }}</span>
+        <small class="text-ui">{{ channelItem.members.length }}</small>
+      </Button>
+      <div v-if="channelItem.members.length" class="mt-2.25 mr-1 ml-3.5 flex flex-col gap-3.25">
         <MemberRow
           v-for="member in channelItem.members"
           :key="`${channelItem.id}-${member.id}`"
@@ -27,12 +27,13 @@
           @set-volume="$emit('set-volume', member.id, $event)"
         />
       </div>
-      <div v-else class="channel-no-members">{{ t('noMembersInChannel') }}</div>
+      <div v-else class="mt-1.75 mr-1 ml-7.75 text-caption text-fg-muted">{{ t('noMembersInChannel') }}</div>
     </section>
   </div>
 </template>
 
 <script setup lang="ts">
+import { Button } from "@/shared/ui/button";
 import { Icon } from "@/shared/ui/icon";
 import MemberRow from "./MemberRow.vue";
 import { useI18n } from "@/shared/i18n/useI18n.js";
@@ -40,7 +41,7 @@ import { channelNameText, isSpeaking } from "@/features/session";
 import type { TreeChannel } from "../roomTypes.js";
 import type { ChannelMember } from "@/features/session";
 
-defineProps<{
+const props = defineProps<{
   channels: TreeChannel[];
   currentChannelId: string | undefined;
   dragOverChannelId: string;
@@ -67,36 +68,7 @@ defineEmits<{
 }>();
 
 const { t } = useI18n();
-</script>
 
-<style scoped>
-.member-list { display: flex; flex-direction: column; gap: 17px; margin-top: 17px; }
-.member-tree { flex: 1; min-height: 0; margin-top: 18px; padding-right: 3px; overflow-y: auto; }
-.member-channel-group { padding: 8px 0 14px; border-bottom: 1px solid var(--ws-line); }
-.member-channel-group + .member-channel-group { margin-top: 8px; }
-.member-channel-heading { display: flex; align-items: center; gap: 7px; width: 100%; padding: 5px 4px; color: var(--ws-fg-muted); background: transparent; border-radius: 7px; text-align: left; cursor: pointer; }
-.member-channel-heading:hover, .member-channel-group.current .member-channel-heading { color: var(--ws-accent); background: var(--ws-accent-soft); }
-.member-channel-heading span { min-width: 0; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; font-weight: 700; }
-.member-channel-heading small { color: var(--ws-fg-muted); font-size: 10px; }
-.member-channel-group.current .member-channel-heading small { color: var(--ws-accent); }
-.member-channel-group .member-list { gap: 13px; margin: 9px 4px 0 14px; }
-.channel-no-members { margin: 7px 4px 0 31px; color: var(--ws-fg-muted); font-size: 10px; }
-.app-shell .member-channel-heading span { font-size: 15px; }
-.app-shell .member-channel-heading small { font-size: 12.5px; }
-.app-shell .channel-no-members { font-size: 11.25px; }
-@media (max-width: 980px) {
-  .member-tree { margin-top: 10px; }
-}
-@media (max-width: 740px) {
-  .app-shell .member-panel .member-tree { max-height: none; }
-}
-@media (max-width: 740px) {
-  .app-shell .member-panel .member-tree { flex: 1 1 auto; min-height: 0; max-height: none; margin-top: 12px; padding: 0 2px 4px 0; overflow-y: auto; scrollbar-gutter: stable; }
-  .member-channel-group { padding: 7px 0 12px; }
-  .member-channel-heading { min-height: 44px; padding: 0 9px; border-radius: 11px; font-size: 14px; }
-  .member-channel-heading small { font-size: 12px; }
-  .member-list { gap: 3px; margin-top: 5px; }
-}
-.member-channel-group.drag-over { padding: 6px 6px 12px; border: 1px dashed var(--ws-accent); border-radius: 10px; background: color-mix(in srgb, var(--ws-accent) 7%, transparent); }
-.member-channel-group.drag-over .member-channel-heading { color: var(--ws-accent); background: color-mix(in srgb, var(--ws-accent) 13%, var(--ws-surface-1)); }
-</style>
+// The heading is highlighted for the joined channel and for the channel a member is dragged over.
+const isActive = (channel: TreeChannel) => props.currentChannelId === channel.id || props.dragOverChannelId === channel.id;
+</script>

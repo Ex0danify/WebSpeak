@@ -1,32 +1,111 @@
 <template>
-  <section class="page-content operations-page">
-    <div class="page-heading"><div><h2>{{ t('operations') }}</h2><p>{{ t('operationsLead') }}</p></div><Button variant="secondary" :loading="operationsLoading" @click="loadOperations()"><Icon v-if="!operationsLoading" name="refresh" :size="17" />{{ t('refresh') }}</Button></div>
-    <Banner class="system-notice py-2.5 text-xs leading-[normal]">{{ t('updateNotice', { version: operations.diagnostics.version || '—' }) }}</Banner>
-    <div class="operations-grid operations-primary">
-      <article class="operation-card operation-wide"><header><div><h3>{{ t('sessions') }}</h3><p>{{ t('sessionsLead') }}</p></div><strong>{{ operations.sessions.length }}</strong></header><div v-if="operations.sessions.length" class="table-wrap"><table><thead><tr><th>{{ t('sessionNickname') }}</th><th>{{ t('sessionState') }}</th><th>{{ t('age') }}</th><th>{{ t('memberCount') }}</th><th><span class="sr-only">{{ t('sessionActions') }}</span></th></tr></thead><tbody><tr v-for="session in operations.sessions" :key="session.id"><td><strong>{{ session.nickname }}</strong><small>{{ session.target }}</small></td><td><Chip variant="accent">{{ sessionStateLabel(session.state) }}</Chip></td><td>{{ formatAge(session.ageSeconds) }}</td><td>{{ session.memberCount }}</td><td><Button variant="ghost" size="sm" :class="dangerSoftClass" :disabled="terminatingSession === session.id" @click="terminateSession(session)">{{ terminatingSession === session.id ? t('terminating') : t('endSession') }}</Button></td></tr></tbody></table></div><div v-else class="operation-empty"><Icon name="users" :size="22" /><span>{{ t('sessionEmpty') }}</span></div></article>
-      <article class="operation-card"><header><div><h3>{{ t('invites') }}</h3><p>{{ t('invitesLead') }}</p></div></header><form class="invite-form" @submit.prevent="createInvite()">
+  <section :class="adminPageWide">
+    <div class="mb-4 flex shrink-0 items-start justify-between max-narrow:gap-3.75 max-desktop:flex-wrap">
+      <div><h2 class="text-2xl font-bold">{{ t('operations') }}</h2><p class="mt-1.75 text-xs text-fg-muted">{{ t('operationsLead') }}</p></div>
+      <Button variant="secondary" :loading="operationsLoading" @click="loadOperations()"><Icon v-if="!operationsLoading" name="refresh" :size="17" />{{ t('refresh') }}</Button>
+    </div>
+    <Banner class="mb-3 shrink-0">{{ t('updateNotice', { version: operations.diagnostics.version || '—' }) }}</Banner>
+    <div class="grid min-h-0 min-w-0 shrink-0 basis-62.5 grid-cols-[minmax(0,1.2fr)_minmax(360px,.8fr)] gap-4.5 max-desktop:basis-auto max-desktop:grid-cols-1">
+      <Card as="article" padding="dense" class="min-h-0 overflow-y-auto max-desktop:overflow-visible">
+        <header :class="cardHeader"><div><h3 :class="cardTitle">{{ t('sessions') }}</h3><p :class="cardLead">{{ t('sessionsLead') }}</p></div><strong class="text-xl text-accent">{{ operations.sessions.length }}</strong></header>
+        <div v-if="operations.sessions.length" class="-mx-5.5 -mb-5.5 mt-4.5 max-h-47.5 overflow-auto border-t border-line max-narrow:-mx-4.5 max-narrow:-mb-4.5 max-desktop:max-h-none">
+          <table class="w-full min-w-150 border-collapse text-left max-narrow:min-w-0">
+            <thead><tr>
+              <th :class="th">{{ t('sessionNickname') }}</th>
+              <th :class="th">{{ t('sessionState') }}</th>
+              <th :class="[th, 'max-narrow:hidden']">{{ t('age') }}</th>
+              <th :class="[th, 'max-narrow:hidden']">{{ t('memberCount') }}</th>
+              <th :class="th"><span class="sr-only">{{ t('sessionActions') }}</span></th>
+            </tr></thead>
+            <tbody><tr v-for="session in operations.sessions" :key="session.id">
+              <td :class="[td, 'max-narrow:wrap-anywhere max-narrow:whitespace-normal']"><strong class="block">{{ session.nickname }}</strong><small :class="tdSmall">{{ session.target }}</small></td>
+              <td :class="td"><Chip variant="accent">{{ sessionStateLabel(session.state) }}</Chip></td>
+              <td :class="[td, 'max-narrow:hidden']">{{ formatAge(session.ageSeconds) }}</td>
+              <td :class="[td, 'max-narrow:hidden']">{{ session.memberCount }}</td>
+              <td :class="td"><Button variant="dangerSoft" size="xs" :disabled="terminatingSession === session.id" @click="terminateSession(session)">{{ terminatingSession === session.id ? t('terminating') : t('endSession') }}</Button></td>
+            </tr></tbody>
+          </table>
+        </div>
+        <div v-else :class="emptyState"><Icon name="users" :size="22" class="text-accent" /><span>{{ t('sessionEmpty') }}</span></div>
+      </Card>
+      <Card as="article" padding="dense" class="min-h-0 overflow-y-auto max-desktop:overflow-visible">
+        <header :class="cardHeader"><div><h3 :class="cardTitle">{{ t('invites') }}</h3><p :class="cardLead">{{ t('invitesLead') }}</p></div></header>
+        <form class="mt-2 grid gap-1.5" @submit.prevent="createInvite()">
           <Field :label="t('inviteChannel')" class="gap-1"><Input v-model.trim="inviteForm.channel" :input-class="inviteInputClass" maxlength="100" :placeholder="t('inviteChannelPlaceholder')" /></Field>
-          <div class="invite-form-grid">
+          <div class="grid grid-cols-2 gap-2.5 max-narrow:grid-cols-1">
             <Field :label="t('expiresIn')" class="gap-1"><Input v-model.number="inviteForm.expiresInHours" :input-class="inviteInputClass" type="number" min="1" max="720" /></Field>
             <Field :label="t('maxUses')" class="gap-1"><Input v-model.number="inviteForm.maxUses" :input-class="inviteInputClass" type="number" min="0" max="10000" /></Field>
           </div>
-          <small class="field-help">{{ t('unlimitedUses') }}</small>
+          <small class="-mt-1 text-2xs text-fg-muted">{{ t('unlimitedUses') }}</small>
           <Button type="submit" size="sm" :loading="submitting">{{ t('createInvite') }}</Button>
-        </form><div v-if="createdInvite" class="generated-invite"><strong>{{ t('inviteCreated') }}</strong><div class="generated-link"><Input :model-value="createdInvite.link" readonly :aria-label="t('inviteCreated')" input-class="h-9 px-2 text-[10px]" /><Button variant="secondary" class="h-9 px-2.5 text-[10px]" @click="copyInviteLink()">{{ t('copyLink') }}</Button></div><small>{{ t('inviteSecurity') }}</small></div><div v-if="operations.invites.length" class="invite-list"><div v-for="invite in operations.invites" :key="invite.id" class="invite-row"><div><strong>{{ invite.channel || t('defaultChannel') }}</strong><small>{{ invite.target }} · {{ formatDate(invite.expiresAt) }}</small></div><div class="invite-row-meta"><Chip :variant="invite.status === 'active' ? 'accent' : 'danger'">{{ inviteStatusLabel(invite.status) }}</Chip><span>{{ invite.useCount }}/{{ invite.maxUses || '∞' }}</span><Button v-if="invite.status === 'active'" variant="ghost" size="sm" :class="dangerSoftClass" @click="revokeInvite(invite)">{{ t('revoke') }}</Button></div></div></div></article>
+        </form>
+        <div v-if="createdInvite" class="mt-4.25 grid gap-2 rounded-md bg-accent-soft p-3 text-accent">
+          <strong class="text-caption">{{ t('inviteCreated') }}</strong>
+          <div class="flex gap-1.5 max-narrow:grid"><Input :model-value="createdInvite.link" readonly :aria-label="t('inviteCreated')" input-class="h-9 px-2 text-2xs" /><Button variant="secondary" size="sm" @click="copyInviteLink()">{{ t('copyLink') }}</Button></div>
+          <small class="text-2xs leading-snug text-fg-muted">{{ t('inviteSecurity') }}</small>
+        </div>
+        <div v-if="operations.invites.length" class="mt-4.5 grid max-h-33 gap-2.25 overflow-y-auto border-t border-line pt-3.75 max-desktop:max-h-none max-desktop:overflow-visible">
+          <!-- `invite-row` is the e2e locator -->
+          <div v-for="invite in operations.invites" :key="invite.id" class="invite-row flex items-center justify-between gap-2.25 rounded-md bg-surface-0 p-2.5 max-narrow:flex-col max-narrow:items-start">
+            <div class="min-w-0"><strong class="block truncate text-caption">{{ invite.channel || t('defaultChannel') }}</strong><small class="mt-1 block max-w-65 truncate text-2xs text-fg-muted">{{ invite.target }} · {{ formatDate(invite.expiresAt) }}</small></div>
+            <div class="flex flex-none items-center gap-1.75 text-2xs text-fg-muted max-narrow:w-full max-narrow:justify-end">
+              <Chip :variant="invite.status === 'active' ? 'accent' : 'danger'">{{ inviteStatusLabel(invite.status) }}</Chip><span>{{ invite.useCount }}/{{ invite.maxUses || '∞' }}</span>
+              <Button v-if="invite.status === 'active'" variant="dangerSoft" size="xs" @click="revokeInvite(invite)">{{ t('revoke') }}</Button>
+            </div>
+          </div>
+        </div>
+      </Card>
     </div>
-    <div class="operations-grid lower-operations">
-      <article class="operation-card diagnostics-card"><header><div><h3>{{ t('diagnostics') }}</h3><p>{{ t('diagnosticsLead') }}</p></div><a class="text-link" href="/api/admin/diagnostics/report">{{ t('downloadReport') }}</a></header><dl class="diagnostic-list"><div><dt>{{ t('version') }}</dt><dd>{{ operations.diagnostics.version || '—' }}</dd></div><div><dt>{{ t('runtime') }}</dt><dd>{{ operations.diagnostics.node || '—' }}</dd></div><div><dt>{{ t('platform') }}</dt><dd>{{ operations.diagnostics.platform || '—' }} / {{ operations.diagnostics.arch || '—' }}</dd></div><div><dt>{{ t('databaseSchema') }}</dt><dd>{{ VERSION_PREFIX }}{{ operations.diagnostics.schemaVersion || '—' }}</dd></div><div><dt>{{ t('createdSessions') }}</dt><dd>{{ operations.diagnostics.createdSessions }}</dd></div></dl><Button variant="secondary" class="mt-auto" @click="downloadBackup()">{{ t('exportBackup') }}</Button></article>
-      <article class="operation-card logs-card"><header><div><h3>{{ t('logViewer') }}</h3><p>{{ t('logViewerLead') }}</p></div><span v-if="!operations.logs.available" class="muted-label">{{ t('logsUnavailable') }}</span></header><div v-if="operations.logs.sessions.length" class="connection-list" role="region" tabindex="0" :aria-label="t('connectionHistory')"><div class="connection-history-heading"><strong>{{ t('connectionHistory') }}</strong><small>{{ t('connectionHistoryLead') }}</small></div><div v-for="record in operations.logs.sessions" :key="record.id" class="connection-row"><div class="connection-person"><strong>{{ record.nickname }}</strong><small>{{ record.target }}</small><small class="connection-route">{{ connectionRoute(record) }}</small></div><div class="connection-detail"><span :class="['connection-status', record.status]">{{ connectionStatusLabel(record.status) }}</span><small>{{ record.connectedAt ? t('connectedAt') : t('connectionAttemptedAt') }}: {{ formatDate(record.connectedAt || record.startedAt) }}</small><small>{{ t('duration') }}: {{ formatAge(record.durationSeconds) }}</small><small v-if="record.disconnectedAt">{{ t('disconnectedAt') }}: {{ formatDate(record.disconnectedAt) }}</small><small v-if="record.reason">{{ t('failureReason') }}: {{ connectionFailureText(record.reason) }}</small><small v-if="record.failureDetail" class="failure-detail">{{ t('failureDetail') }}: {{ record.failureDetail }}</small></div></div></div><div v-if="operations.logs.entries.length" class="log-list" role="region" tabindex="0" :aria-label="t('logViewer')"><div v-for="(entry, index) in operations.logs.entries" :key="`${entry.timestamp}-${index}`" class="log-row"><span :class="['log-level', entry.level.toLowerCase()]">{{ entry.level }}</span><div><strong>{{ entry.message || '—' }}</strong><small>{{ formatDate(entry.timestamp) }}<template v-if="Object.keys(entry.context).length"> · {{ formatContext(entry.context) }}</template></small></div></div></div><div v-if="!operations.logs.sessions.length && !operations.logs.entries.length" class="operation-empty"><Icon name="activity" :size="22" /><span>{{ t('noLogs') }}</span></div></article>
-      <article class="operation-card audit-card"><header><div><h3>{{ t('audit') }}</h3><p>{{ t('auditLead') }}</p></div></header><ul class="event-list"><li v-for="event in operations.audit" :key="`${event.event}-${event.createdAt}`"><span><Icon name="check" :size="14" /></span><div><strong>{{ eventName(event.event) }}</strong><small>{{ formatDate(event.createdAt) }}</small></div></li><li v-if="!operations.audit.length" class="empty-event">{{ t('auditEmpty') }}</li></ul></article>
+    <div class="mt-3.5 grid min-h-0 min-w-0 flex-1 grid-cols-[minmax(210px,.9fr)_minmax(0,1.1fr)_minmax(210px,.9fr)] gap-4.5 max-desktop:flex-none max-desktop:grid-cols-1">
+      <Card as="article" padding="lg" body-class="flex min-h-0 flex-col" class="min-h-0 overflow-y-auto max-desktop:overflow-visible">
+        <header :class="cardHeader"><div><h3 :class="cardTitle">{{ t('diagnostics') }}</h3><p :class="cardLead">{{ t('diagnosticsLead') }}</p></div><a class="text-2xs font-bold whitespace-nowrap text-accent no-underline" href="/api/admin/diagnostics/report">{{ t('downloadReport') }}</a></header>
+        <dl class="my-4.5 grid grid-cols-2 gap-2.25 max-narrow:grid-cols-1">
+          <div v-for="fact in diagnosticFacts" :key="fact.label" class="rounded-md bg-surface-0 p-2.5"><dt class="text-2xs text-fg-muted">{{ fact.label }}</dt><dd class="mt-1 truncate text-caption font-bold">{{ fact.value }}</dd></div>
+        </dl>
+        <Button variant="secondary" class="mt-auto" @click="downloadBackup()">{{ t('exportBackup') }}</Button>
+      </Card>
+      <Card as="article" padding="lg" body-class="flex min-h-0 flex-col" class="min-h-0 overflow-hidden max-desktop:overflow-visible">
+        <header :class="cardHeader"><div><h3 :class="cardTitle">{{ t('logViewer') }}</h3><p :class="cardLead">{{ t('logViewerLead') }}</p></div><span v-if="!operations.logs.available" class="text-2xs text-fg-muted">{{ t('logsUnavailable') }}</span></header>
+        <div v-if="operations.logs.sessions.length" class="mt-3 grid max-h-45 gap-1.75 overflow-y-auto" role="region" tabindex="0" :aria-label="t('connectionHistory')">
+          <div class="grid gap-0.75 border-b border-line pb-1.5"><strong class="text-2xs">{{ t('connectionHistory') }}</strong><small class="text-2xs text-fg-muted">{{ t('connectionHistoryLead') }}</small></div>
+          <div v-for="record in operations.logs.sessions" :key="record.id" class="flex items-start justify-between gap-2.5 rounded-md bg-surface-0 p-2 max-narrow:grid max-narrow:gap-1.75">
+            <div class="min-w-0 flex-auto"><strong class="block text-2xs wrap-anywhere">{{ record.nickname }}</strong><small :class="[connSmall, 'mt-0.75 text-fg-muted']">{{ record.target }}</small><small :class="[connSmall, 'mt-0.75 font-semibold text-accent']">{{ connectionRoute(record) }}</small></div>
+            <div class="grid min-w-0 shrink basis-7/12 justify-items-end gap-0.5 text-right max-narrow:justify-items-start max-narrow:text-left">
+              <span :class="['inline-flex rounded-full px-1.5 py-0.75 text-2xs font-extrabold', connectionStatusClass[record.status] ?? 'bg-accent-soft text-accent']">{{ connectionStatusLabel(record.status) }}</span>
+              <small :class="[connSmall, 'text-fg-muted']">{{ record.connectedAt ? t('connectedAt') : t('connectionAttemptedAt') }}: {{ formatDate(record.connectedAt || record.startedAt) }}</small>
+              <small :class="[connSmall, 'text-fg-muted']">{{ t('duration') }}: {{ formatAge(record.durationSeconds) }}</small>
+              <small v-if="record.disconnectedAt" :class="[connSmall, 'text-fg-muted']">{{ t('disconnectedAt') }}: {{ formatDate(record.disconnectedAt) }}</small>
+              <small v-if="record.reason" :class="[connSmall, 'text-fg-muted']">{{ t('failureReason') }}: {{ connectionFailureText(record.reason) }}</small>
+              <small v-if="record.failureDetail" :class="[connSmall, 'text-fg-muted']">{{ t('failureDetail') }}: {{ record.failureDetail }}</small>
+            </div>
+          </div>
+        </div>
+        <div v-if="operations.logs.entries.length" class="mt-4 grid min-h-0 w-full min-w-0 flex-1 basis-0 gap-1.75 overflow-y-auto max-desktop:flex-none max-desktop:overflow-visible" role="region" tabindex="0" :aria-label="t('logViewer')">
+          <div v-for="(entry, index) in operations.logs.entries" :key="`${entry.timestamp}-${index}`" class="flex max-w-full min-w-0 items-start gap-2 rounded-md bg-surface-0 p-2 max-desktop:overflow-hidden">
+            <span :class="['flex-none rounded-sm px-1.25 py-0.75 text-2xs font-extrabold', logLevelClass(entry.level)]">{{ entry.level }}</span>
+            <div class="min-w-0 max-desktop:w-0 max-desktop:max-w-full max-desktop:flex-auto max-desktop:overflow-hidden"><strong class="block text-2xs wrap-anywhere">{{ entry.message || '—' }}</strong><small class="mt-1 block text-2xs wrap-anywhere text-fg-muted">{{ formatDate(entry.timestamp) }}<template v-if="Object.keys(entry.context).length"> · {{ formatContext(entry.context) }}</template></small></div>
+          </div>
+        </div>
+        <div v-if="!operations.logs.sessions.length && !operations.logs.entries.length" :class="emptyState"><Icon name="activity" :size="22" class="text-accent" /><span>{{ t('noLogs') }}</span></div>
+      </Card>
+      <Card as="article" padding="lg" body-class="flex min-h-0 flex-col" class="min-h-0 overflow-hidden max-desktop:overflow-visible">
+        <header :class="cardHeader"><div><h3 :class="cardTitle">{{ t('audit') }}</h3><p :class="cardLead">{{ t('auditLead') }}</p></div></header>
+        <ul class="mt-4.5 grid min-h-0 flex-1 basis-0 gap-2.5 overflow-y-auto max-desktop:flex-none max-desktop:overflow-visible">
+          <li v-for="event in operations.audit" :key="`${event.event}-${event.createdAt}`" class="flex items-center gap-2.5 rounded-md bg-surface-0 p-2.5"><span class="grid size-6.75 place-items-center rounded-md bg-accent-soft text-accent"><Icon name="check" :size="14" /></span><div><strong class="block text-caption">{{ eventName(event.event) }}</strong><small class="mt-0.75 block text-2xs text-fg-muted">{{ formatDate(event.createdAt) }}</small></div></li>
+          <li v-if="!operations.audit.length" class="rounded-md bg-surface-0 p-2.5 text-center text-fg-muted">{{ t('auditEmpty') }}</li>
+        </ul>
+      </Card>
     </div>
   </section>
 </template>
 
 <script setup lang="ts">
+import { adminPageWide } from "./adminPage";
 import { VERSION_PREFIX } from "@/shared/lib/brand";
-import { onMounted } from "vue";
+import { computed, onMounted } from "vue";
 import { storeToRefs } from "pinia";
 import { Banner } from "@/shared/ui/banner";
+import { Card } from "@/shared/ui/card";
 import { Button } from "@/shared/ui/button";
 import { Chip } from "@/shared/ui/chip";
 import { Field } from "@/shared/ui/field";
@@ -48,150 +127,36 @@ onMounted(loadOperations);
 
 const { language, t } = useI18n();
 const { formatDate, formatAge, connectionStatusLabel, connectionRoute, sessionStateLabel, inviteStatusLabel, formatContext, eventName, connectionFailureText } = createAdminFormat(language, t);
-const dangerSoftClass = "h-7 bg-danger-soft px-2 text-[10px] text-[var(--color-danger)] hover:bg-danger-soft";
 // The invite card sits in a fixed-height row, so its controls are 34 px tall.
-const inviteInputClass = "h-[34px] px-2.5 py-[7px]";
-</script>
+const inviteInputClass = "h-8.5 px-2.5 py-1.75";
 
-<style scoped>
-.page-heading { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 24px; }
-.page-heading h2 { margin: 0; font-size: 25px; font-weight: 700; }
-.page-heading p { margin: 7px 0 0; color: var(--ws-fg-muted); font-size: 12px; }
-.event-list { display: grid; gap: 10px; margin: 18px 0 0; padding: 0; list-style: none; }
-.event-list li { display: flex; align-items: center; gap: 10px; padding: 10px; background: var(--ws-surface-0); border-radius: 9px; }
-.event-list li>span { display: grid; place-items: center; width: 27px; height: 27px; color: color-mix(in srgb, var(--ws-accent) 85%, var(--ws-fg)); background: var(--ws-accent-soft); border-radius: 8px; }
-.event-list strong, .event-list small { display: block; }
-.event-list strong { font-size: 11px; }
-.event-list small { margin-top: 3px; color: var(--ws-fg-muted); font-size: 9px; }
-.event-list .empty-event { display: block; color: var(--ws-fg-muted); text-align: center; }
-.operations-grid { display: grid; grid-template-columns: minmax(0,1.12fr) minmax(340px,.88fr); gap: 18px; }
-.operation-card { min-width: 0; padding: 22px; background: var(--ws-surface-1); border: 1px solid var(--ws-line); border-radius: 14px; }
-.operation-card header { display: flex; align-items: flex-start; justify-content: space-between; gap: 15px; }
-.operation-card h3 { margin: 0; font-size: 15px; font-weight: 700; }
-.operation-card header p { margin: 5px 0 0; color: var(--ws-fg-muted); font-size: 10px; line-height: 1.5; }
-.operation-card header>strong { color: color-mix(in srgb, var(--ws-accent) 85%, var(--ws-fg)); font-size: 22px; }
-.table-wrap { margin: 18px -22px -22px; overflow: auto; border-top: 1px solid var(--ws-line); }
-.table-wrap table { width: 100%; min-width: 600px; border-collapse: collapse; text-align: left; }
-.table-wrap th, .table-wrap td { padding: 12px 14px; border-bottom: 1px solid var(--ws-line); font-size: 11px; white-space: nowrap; }
-.table-wrap th { color: var(--ws-fg-muted); font-size: 10px; font-weight: 700; }
-.table-wrap td strong, .table-wrap td small { display: block; }
-.table-wrap td small { margin-top: 3px; color: var(--ws-fg-muted); font-size: 9px; }
-.operation-empty { display: grid; place-items: center; gap: 8px; min-height: 130px; color: var(--ws-fg-muted); text-align: center; font-size: 11px; }
-.operation-empty .ui-icon { color: var(--ws-accent); }
-.invite-form { display: grid; gap: 14px; margin-top: 18px; }
-.invite-form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-.field-help { margin-top: -8px; color: var(--ws-fg-muted); font-size: 10px; }
-.generated-invite { display: grid; gap: 8px; margin-top: 17px; padding: 12px; color: var(--ws-accent); background: var(--ws-accent-soft); border-radius: 9px; }
-.generated-invite strong { font-size: 11px; }
-.generated-invite small { color: var(--ws-fg-muted); font-size: 9px; line-height: 1.45; }
-.generated-link { display: flex; gap: 6px; }
-.invite-list { display: grid; gap: 9px; margin-top: 18px; padding-top: 15px; border-top: 1px solid var(--ws-line); }
-.invite-row { display: flex; align-items: center; justify-content: space-between; gap: 9px; padding: 10px; background: var(--ws-surface-0); border-radius: 9px; }
-.invite-row>div:first-child { min-width: 0; }
-.invite-row strong, .invite-row small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.invite-row strong { font-size: 11px; }
-.invite-row small { max-width: 260px; margin-top: 4px; color: var(--ws-fg-muted); font-size: 9px; }
-.invite-row-meta { display: flex; align-items: center; gap: 7px; flex: none; color: var(--ws-fg-muted); font-size: 9px; }
-.lower-operations { margin-top: 18px; }
-.text-link { color: color-mix(in srgb, var(--ws-accent) 85%, var(--ws-fg)); font-size: 10px; font-weight: 700; text-decoration: none; white-space: nowrap; }
-.diagnostic-list { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; margin: 18px 0; }
-.diagnostic-list div { padding: 10px; background: var(--ws-surface-0); border-radius: 8px; }
-.diagnostic-list dt { color: var(--ws-fg-muted); font-size: 9px; }
-.diagnostic-list dd { margin: 4px 0 0; overflow: hidden; font-size: 11px; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
-.logs-card { display: flex; min-height: 250px; flex-direction: column; }
-.audit-card { min-height: 250px; }
-.muted-label { color: var(--ws-fg-muted); font-size: 9px; }
-.log-list { display: grid; gap: 7px; max-height: 280px; margin-top: 16px; overflow: auto; }
-.log-row { display: flex; align-items: flex-start; gap: 8px; padding: 8px; background: var(--ws-surface-0); border-radius: 7px; }
-.log-row>div { min-width: 0; }
-.log-row strong, .log-row small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.log-row strong { font-size: 10px; }
-.log-row small { margin-top: 4px; color: var(--ws-fg-muted); font-size: 8px; }
-.log-level { flex: none; padding: 3px 5px; border-radius: 4px; color: var(--ws-accent); background: var(--ws-accent-soft); font-size: 8px; font-weight: 800; }
-.log-level.warn { color: var(--ws-warning); background: var(--ws-warning-soft); }
-.log-level.error, .log-level.fatal { color: var(--ws-danger); background: var(--ws-danger-soft); }
-@media(max-width:850px){.operations-grid{grid-template-columns:1fr}.operation-wide{overflow:hidden}}
-@media (max-width: 520px) {
-  .operation-card { padding: 18px; }
-  .table-wrap { margin-left: -18px; margin-right: -18px; margin-bottom: -18px; }
-  /* The age and member count are not worth the width they take from the action at this size
-     (bug F31: the table's 600px min-width put the Terminate button off screen). Drop the
-     min-width and the two columns, and let the nickname cell wrap instead of forcing it. */
-  .table-wrap table { min-width: 0; }
-  .table-wrap th:nth-child(3), .table-wrap td:nth-child(3), .table-wrap th:nth-child(4), .table-wrap td:nth-child(4) { display: none; }
-  .table-wrap td:first-child { white-space: normal; overflow-wrap: anywhere; }
-  .invite-form-grid, .diagnostic-list { grid-template-columns: 1fr; }
-  .generated-link { display: grid; }
-  .invite-row { align-items: flex-start; flex-direction: column; }
-  .invite-row-meta { width: 100%; justify-content: flex-end; }
-  .lower-operations { margin-top: 14px; }
+const cardHeader = "flex items-start justify-between gap-3.75";
+const cardTitle = "text-md font-bold";
+const cardLead = "mt-1.25 text-2xs leading-tight text-fg-muted";
+const th = "border-b border-line px-3.5 py-3 text-2xs font-bold whitespace-nowrap text-fg-muted";
+const td = "border-b border-line px-3.5 py-3 text-caption whitespace-nowrap";
+const tdSmall = "mt-0.75 block text-2xs text-fg-muted";
+const emptyState = "grid min-h-32.5 place-items-center gap-2 text-center text-caption text-fg-muted";
+const connSmall = "block text-2xs wrap-anywhere";
+const connectionStatusClass: Record<string, string> = {
+  disconnected: "bg-surface-2 text-fg-muted",
+  failed: "bg-danger-soft text-danger",
+  connecting: "bg-warning-soft text-warning",
+};
+function logLevelClass(level: string) {
+  const l = level.toLowerCase();
+  if (l === "warn") return "bg-warning-soft text-warning";
+  if (l === "error" || l === "fatal") return "bg-danger-soft text-danger";
+  return "bg-accent-soft text-accent";
 }
-@media (max-width: 520px) {
-  .page-heading { gap: 15px; }
-}
-.operations-page .page-heading{flex:0 0 auto;margin-bottom:16px}
-.operations-page .system-notice{flex:0 0 auto;margin-bottom:12px}
-.operations-page .operations-grid{min-width:0;min-height:0}
-.operations-primary{flex:0 0 auto;grid-template-columns:minmax(0,1.2fr) minmax(360px,.8fr)}
-.operations-primary>.operation-card{min-height:0;overflow:hidden}
-.operations-primary .table-wrap{max-height:190px}
-.operations-primary .invite-list{max-height:132px;overflow-y:auto}
-.lower-operations{flex:1 1 0;grid-template-columns:minmax(210px,.9fr) minmax(0,1.1fr) minmax(210px,.9fr);margin-top:14px}
-.lower-operations>.operation-card{min-height:0}
-.diagnostics-card,.logs-card,.audit-card{overflow:hidden}
-.diagnostics-card{display:flex;flex-direction:column;overflow-y:auto}
-.logs-card,.audit-card{display:flex;flex-direction:column}
-.logs-card .log-list,.audit-card .event-list{flex:1 1 0;min-height:0;max-height:none;overflow-y:auto}
-@media(max-width:850px){
-  .page-heading{flex-wrap:wrap}
-  .operations-page .lower-operations{flex:none}
-}
-.operations-primary{flex:0 0 250px}
-.operations-primary>.operation-card{overflow-y:auto}
-.operations-primary>.operation-card{padding:14px 16px}
-.operations-primary .operation-card header p{line-height:1.3}
-.operations-primary .invite-form{gap:6px;margin-top:8px}
-.operations-primary .field-help{margin-top:-4px}
-@media(max-width:850px){
-  .operations-page .operations-primary,.operations-page .lower-operations{grid-template-columns:1fr;min-height:0;overflow-y:auto;align-content:start}
-  .operations-page .operations-primary{grid-auto-rows:240px}
-  .operations-page .lower-operations{grid-auto-rows:190px}
-  .operations-page .lower-operations{flex:1 1 0}
-}
-@media(max-width:850px){
-  .operations-page .operations-primary,.operations-page .lower-operations{height:auto;min-height:0;overflow:visible;grid-auto-rows:auto;flex:none}
-  .operations-page .operation-card{height:auto;min-height:0;overflow:visible}
-  .operations-primary .table-wrap{max-height:none;overflow-x:auto;overflow-y:visible}
-  .operations-primary .invite-list{max-height:none;overflow:visible}
-  .logs-card .log-list,.audit-card .event-list{max-height:none;overflow:visible;flex:none}
-  .logs-card .log-list{width:100%;min-width:0}
-  .logs-card .log-row{min-width:0;max-width:100%;overflow:hidden}
-  .logs-card .log-row>div{width:0;max-width:100%;flex:1 1 auto;min-width:0;overflow:hidden}
-  .logs-card .log-row strong,.logs-card .log-row small{overflow-wrap:anywhere;white-space:normal;word-break:break-word}
-}
-/* Long log messages should wrap on every screen size instead of widening the
-   log card or introducing page-level horizontal scrolling. */
-.logs-card .log-row{min-width:0}
-.logs-card .log-row strong,.logs-card .log-row small{overflow-wrap:anywhere;white-space:normal;word-break:break-word}
-.connection-list{display:grid;gap:7px;max-height:180px;margin-top:12px;overflow-y:auto}
-.connection-history-heading{display:grid;gap:3px;padding:0 0 6px;border-bottom:1px solid var(--ws-line)}
-.connection-history-heading strong{font-size:10px}
-.connection-history-heading small{color:var(--ws-fg-muted);font-size:8px}
-.connection-row{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;padding:8px;background:var(--ws-surface-0);border-radius:7px}
-.connection-person,.connection-detail{min-width:0}
-.connection-person{flex:1 1 auto}
-.connection-person strong,.connection-person small,.connection-detail small{display:block;overflow-wrap:anywhere;word-break:break-word}
-.connection-person strong{font-size:10px}
-.connection-person small{margin-top:3px;color:var(--ws-fg-muted);font-size:8px}
-.connection-person .connection-route{color:var(--ws-accent);font-weight:600}
-.connection-detail{display:grid;flex:0 1 58%;justify-items:end;gap:2px;text-align:right}
-.connection-detail small{color:var(--ws-fg-muted);font-size:8px}
-.connection-status{display:inline-flex;padding:3px 6px;border-radius:999px;color:var(--ws-accent);background:var(--ws-accent-soft);font-size:8px;font-weight:800}
-.connection-status.disconnected{color:var(--ws-fg-muted);background:var(--ws-surface-2)}
-.connection-status.failed{color:var(--ws-danger);background:var(--ws-danger-soft)}
-.connection-status.connecting{color:var(--ws-warning);background:var(--ws-warning-soft)}
-@media(max-width:520px){
-  .connection-row{display:grid;gap:7px}
-  .connection-detail{justify-items:start;text-align:left}
-}
-</style>
+const diagnosticFacts = computed(() => {
+  const d = operations.value.diagnostics;
+  return [
+    { label: t("version"), value: d.version || "—" },
+    { label: t("runtime"), value: d.node || "—" },
+    { label: t("platform"), value: `${d.platform || "—"} / ${d.arch || "—"}` },
+    { label: t("databaseSchema"), value: `${VERSION_PREFIX}${d.schemaVersion || "—"}` },
+    { label: t("createdSessions"), value: d.createdSessions },
+  ];
+});
+</script>
