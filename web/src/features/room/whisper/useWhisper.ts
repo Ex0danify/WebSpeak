@@ -61,7 +61,11 @@ export function useWhisper(options: UseWhisperOptions) {
     const target = event.currentTarget as HTMLElement | null;
     if (target?.setPointerCapture && !target.hasPointerCapture(event.pointerId)) target.setPointerCapture(event.pointerId);
     whisperPttActive.value = true;
-    setWhisperActive(true);
+    setWhisperActive(true).catch((error: unknown) => {
+      // Not whispering after all, so the held button stops claiming it.
+      whisperPttActive.value = false;
+      showFailure(error);
+    });
   }
 
   function onWhisperPttUp(event: PointerEvent): void {
@@ -73,7 +77,7 @@ export function useWhisper(options: UseWhisperOptions) {
   function stopWhisperTalk(): void {
     if (!whisperPttActive.value) return;
     whisperPttActive.value = false;
-    setWhisperActive(false);
+    setWhisperActive(false).catch(showFailure);
   }
 
   return {

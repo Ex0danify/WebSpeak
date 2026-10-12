@@ -1,4 +1,4 @@
-import { mount } from "@vue/test-utils";
+import { flushPromises, mount } from "@vue/test-utils";
 import { defineComponent, nextTick, reactive } from "vue";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useToast } from "@/shared/composables/useToast";
@@ -36,7 +36,7 @@ async function mountUseWhisper(overrides: Record<string, unknown> = {}) {
     whisperTargetIds,
     members,
     setWhisperTargets: vi.fn(),
-    setWhisperActive: vi.fn(),
+    setWhisperActive: vi.fn(async () => undefined),
     ...overrides,
   };
   const wrapper = mount(
@@ -118,6 +118,18 @@ describe("clearWhisperTargets", () => {
     expect(vm.whisperPttActive).toBe(false);
     expect(options.setWhisperActive).toHaveBeenLastCalledWith(false);
     expect(options.setWhisperTargets).toHaveBeenLastCalledWith([]);
+  });
+});
+
+describe("a refused whisper activation", () => {
+  it("releases the held button and toasts the reason", async () => {
+    const { vm, whisperTargetIds } = await mountUseWhisper({ setWhisperActive: vi.fn(refused) });
+    whisperTargetIds.add(2);
+    vm.onWhisperPttDown(pointerEvent());
+    expect(vm.whisperPttActive).toBe(true);
+    await flushPromises();
+    expect(vm.whisperPttActive).toBe(false);
+    expect(useToast().toasts.value.map((toast) => toast.variant)).toEqual(["danger"]);
   });
 });
 

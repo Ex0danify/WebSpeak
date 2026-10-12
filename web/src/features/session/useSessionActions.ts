@@ -174,10 +174,16 @@ export function useSessionActions(deps: RoomActionsDeps) {
     }
   }
 
-  function setWhisperActive(active: boolean): void {
+  async function setWhisperActive(active: boolean): Promise<void> {
     if (active && !whisperTargetIds.size) return;
+    const previous = whisperActive.value;
     whisperActive.value = active;
-    sendCmd("setWhisperActive", { active });
+    try {
+      await sendCommandAndWait("setWhisperActive", { active });
+    } catch (error: unknown) {
+      whisperActive.value = previous;
+      throw error;
+    }
   }
 
   function applyWhisperState(targetIds: unknown, active: unknown): void {

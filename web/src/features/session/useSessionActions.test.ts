@@ -289,15 +289,31 @@ describe("whisper", () => {
     expect(session.whisperActive).toBe(true);
   });
 
+  it("setWhisperActive goes back to the previous state when the gateway refuses", async () => {
+    const { session, actions } = setup();
+    session.whisperTargetIds.add(2);
+    const pending = actions.setWhisperActive(true);
+    expect(session.whisperActive).toBe(true);
+    actions.handlers.error!({
+      type: "error",
+      requestId: socket.sentJson[0].requestId,
+      error: { code: "NO_WHISPER_TARGETS", message: "none", recoverable: false },
+    });
+    await expect(pending).rejects.toMatchObject({ code: "NO_WHISPER_TARGETS" });
+    expect(session.whisperActive).toBe(false);
+  });
+
   it("setWhisperActive(true) is a no-op without targets", () => {
     const { session, actions } = setup();
-    actions.setWhisperActive(true);
+    void actions.setWhisperActive(true);
     expect(session.whisperActive).toBe(false);
     expect(socket.sent).toHaveLength(0);
     session.whisperTargetIds.add(2);
-    actions.setWhisperActive(true);
+    void actions.setWhisperActive(true).catch(() => undefined);
     expect(session.whisperActive).toBe(true);
-    expect(socket.sentJson).toEqual([{ type: "setWhisperActive", payload: { active: true } }]);
+    expect(socket.sentJson).toEqual([
+      { type: "setWhisperActive", payload: { active: true }, requestId: expect.stringMatching(/^command-/) },
+    ]);
   });
 
   it("applyWhisperState filters ids and only stays active with targets", () => {

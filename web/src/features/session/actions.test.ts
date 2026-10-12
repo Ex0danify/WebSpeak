@@ -304,15 +304,15 @@ describe("whisper and mute", () => {
 
   it("setWhisperActive refuses to activate without targets", async () => {
     const socket = await connected();
-    harness.voice.actions.setWhisperActive(true);
+    await harness.voice.actions.setWhisperActive(true);
     expect(socket.sentJson).toEqual([]);
     void harness.voice.actions.setWhisperTargets([9]).catch(() => undefined);
     socket.sent.length = 0;
-    harness.voice.actions.setWhisperActive(true);
-    harness.voice.actions.setWhisperActive(false);
+    void harness.voice.actions.setWhisperActive(true).catch(() => undefined);
+    void harness.voice.actions.setWhisperActive(false).catch(() => undefined);
     expect(socket.sentJson).toEqual([
-      { type: "setWhisperActive", payload: { active: true } },
-      { type: "setWhisperActive", payload: { active: false } },
+      { type: "setWhisperActive", payload: { active: true }, requestId: expect.stringMatching(/^command-/) },
+      { type: "setWhisperActive", payload: { active: false }, requestId: expect.stringMatching(/^command-/) },
     ]);
     expect(harness.voice.roster.whisperActive.value).toBe(false);
   });
