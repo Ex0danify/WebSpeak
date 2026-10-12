@@ -25,7 +25,7 @@ Die öffentliche Demo läuft in Hongkong. Netzwerkbedingungen und Auslastung kö
 | Desktop-Begleitton | Audio eines freigegebenen Fensters oder Browser-Tabs im aktuellen Kanal teilen. |
 | Identität und Zugriff | Gespeicherte Identität, eigene Ziele und widerrufbare Einladungslinks mit Ablaufzeit. |
 | Administration | Ziele, Zugriff, WebRTC, Relays, Einladungen, Sitzungen, Protokolle, Diagnosen und Backups verwalten. |
-| Oberfläche | Chinesische, englische, deutsche, russische und japanische Oberfläche, helle/dunkle Designs sowie responsive Desktop-/Mobilansicht. |
+| Oberfläche | Englische und deutsche Oberfläche, helle/dunkle Designs sowie responsive Desktop-/Mobilansicht. |
 | Selbsthosting | Daten bleiben beim Betreiber; Docker-, Windows-x64- und Linux-x64-Bereitstellung sind verfügbar. |
 
 ## 🖼️ Screenshots

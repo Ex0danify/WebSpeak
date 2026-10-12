@@ -107,6 +107,8 @@ function deriveMeta(code, options) {
   return { endonym, tag: code, intl, flag };
 }
 
+// Keep in step with web/src/shared/i18n/cjkLanguages.ts.
+const CJK_LANGUAGES = new Set(["zh", "ja", "ko"]);
 const CJK = /[⺀-鿿豈-﫿＀-￯\u3000-〿가-힯]/;
 
 const { code, options } = parseArgs(process.argv.slice(2));
@@ -119,9 +121,9 @@ const existing = moduleDirs.filter((dir) => existsSync(join(dir, `${code}.ts`)))
 if (existing.length > 0) fail(`${code} already exists in: ${existing.map((dir) => relative(root, dir)).join(", ")}. Nothing was written.`);
 
 const meta = deriveMeta(code, options);
-if (CJK.test(meta.endonym)) {
+if (CJK.test(meta.endonym) && !CJK_LANGUAGES.has(code.split("-")[0])) {
   console.warn(
-    `WARN: the endonym "${meta.endonym}" contains CJK characters, which keyParity.test.ts and check:i18n-literals forbid; a CJK language needs that rule changed in its own commit.`,
+    `WARN: the endonym "${meta.endonym}" contains CJK characters, which keyParity.test.ts only allows for the languages listed in web/src/shared/i18n/cjkLanguages.ts; add this one there.`,
   );
 }
 

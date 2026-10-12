@@ -236,7 +236,7 @@ gateway --{ code, params?, message (English, logs only) }--> browser --t("err_<C
 - **Dates, numbers, units, durations and lists** go through `useFormat()` (`Intl`; `date`, `time`, `dateTime`, `number`, `percent`, `unit`, `duration`, `list`, `relative`), never string building such as `"3 " + "minutes"`. There is no plural helper: counts are phrased neutrally (`Members: 3`).
 - **TeamSpeak-originated text** (channel and nickname, chat text, kick reasons) is user data and is shown raw. It never enters a catalog.
 - **Admin-authored content** (the welcome text) is stored per language in the database, not in the i18n files. It lives in the `welcome_texts` table. Defaults live in `src/modules/admin/siteCopy.ts`; a language without one falls back to `en`.
-- **No CJK characters** anywhere in code, comments, logs, tests or docs. Everything internal is English.
+- **No CJK characters** anywhere in code, comments, logs, tests or docs. Everything internal is English. The only exception is the translation files of a CJK language (see below).
 
 Strings live in `web/src/features/<feature>/i18n/{en,de}.ts` and `web/src/shared/i18n/common/`. The modules are `common`, `join`, `room`, `chat` (`room/chat`), `session`, `screenShare`, `voice`, `admin` and `demo`.
 
@@ -261,7 +261,7 @@ Strings live in `web/src/features/<feature>/i18n/{en,de}.ts` and `web/src/shared
    - Follow the English string's punctuation per key.
    - Leave `TeamSpeak`, `WebSpeak`, `WebRTC`, `WebSocket`, `Opus`, `RNNoise` and acronyms such as `VOX` untranslated.
    - Pick one word per concept and use it everywhere (channel, member, whisper, poke, away, mute, identity, relay, screen share, kick, ban, ...). Look at how `de` does it.
-   - No CJK characters. The parity test rejects them; a CJK language needs that rule changed in its own commit.
+   - No CJK characters, unless the language itself is CJK (`zh`, `ja`, `ko`, listed in `web/src/shared/i18n/cjkLanguages.ts`; add a new CJK language there). The parity test rejects them for every other language.
 
 3. Words that really are identical to English (brand names, loanwords) go in the `SAME_AS_ENGLISH` set in `web/src/shared/i18n/keyParity.test.ts`, as `module.key`. Each entry needs a reason in review.
 
@@ -309,7 +309,7 @@ A new server event kind needs the same: `kind` and `params` on the wire, an `eve
 | `npm --prefix web run check:i18n-keys` | every used key exists, every `err_*` has a gateway code and vice versa, dynamic keys are pinned, unused keys fail |
 | `npm --prefix web run check:i18n-literals` | no CJK and no hard-coded user-visible text outside i18n files |
 | `npm run check:gateway-literals` | no CJK in `src/`, `test/`, `e2e/`, `scripts/` |
-| `npm test` | `keyParity.test.ts` (same keys and placeholders per language, no CJK, no untranslated value unless allowlisted), `languages.test.ts` |
+| `npm test` | `keyParity.test.ts` (same keys and placeholders per language, no CJK outside the CJK languages, no untranslated value unless allowlisted), `languages.test.ts` |
 | `npm run test:e2e` | `language.matrix.spec.ts` loads the main pages in every discovered language (build the web app first) |
 
 The first four run inside the `build` scripts.

@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { isCjkLanguage } from "./cjkLanguages";
 import { LANGUAGES as DISCOVERED, MODULE_LANGUAGES, languageCodesFound } from "./languages";
 
 // Test version of `npm run check:i18n`, scanning the language files as text because `join`, `room` and `admin` start from
@@ -169,8 +170,8 @@ describe("value rules", () => {
     }
   });
 
-  it.each(modules)("%s: no value of any language contains a CJK character", (module) => {
-    for (const language of LANGUAGES) {
+  it.each(modules)("%s: no value of a non-CJK language contains a CJK character", (module) => {
+    for (const language of LANGUAGES.filter((code) => !isCjkLanguage(code))) {
       for (const [key, value] of Object.entries(translationsByModule[module][language])) {
         expect(CJK.test(value), `${module}/${language}/${key} contains CJK text`).toBe(false);
       }

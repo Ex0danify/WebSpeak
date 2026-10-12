@@ -2,6 +2,7 @@ import type { Page } from "@playwright/test";
 import { expect, test } from "./fixtures";
 import { installVoiceFixture } from "./fixtures/scripted-gateway";
 import { discoveredLanguages, loadFolder } from "./helpers/translations";
+import { isCjkLanguage } from "../web/src/shared/i18n/cjkLanguages";
 import { TEST_ADMIN_PASSWORD } from "../test/support/gateway";
 
 // Every discovered language (a loop over the list, so a new one is covered with no edit) shows the finished states in its own
@@ -31,13 +32,13 @@ function fill(template: string, params: Record<string, string> = {}): string {
   return template.replace(/\{\{(\w+)\}\}/g, (_, name: string) => params[name] ?? "");
 }
 
-/** The visible page must hold no key name, no CJK, no placeholder. */
+/** The visible page must hold no key name, no CJK (outside a CJK language), no placeholder. */
 async function expectCleanPage(page: Page, tag: string): Promise<void> {
   await expect(page.locator("html")).toHaveAttribute("lang", tag);
   const text = await page.locator("body").innerText();
   expect(text, "a raw err_ key").not.toMatch(/\berr_[A-Z_]+\b/);
   expect(text, "an unfilled placeholder").not.toContain("{{");
-  expect(text, "CJK text").not.toMatch(CJK);
+  if (!isCjkLanguage(tag)) expect(text, "CJK text").not.toMatch(CJK);
   const keys = new Set(Object.values(catalogs).flatMap((byLanguage) => Object.keys(byLanguage.en ?? {})));
   const stray = text
     .split(/\s+/)
