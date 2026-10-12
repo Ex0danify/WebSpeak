@@ -40,6 +40,7 @@ async function main() {
   ]);
   const logger = createLogger(LOG_DIR);
   const database = new WebSpeakDatabase(path.join(DATA_DIR, "webspeak.db"));
+  const pruned = database.pruneAudit();
   const masterSecret = loadOrCreateMasterSecret(path.join(DATA_DIR, "master.key"));
   const adminService = new AdminService(database, masterSecret, logger, CONFIG_PATH, undefined, APP_VERSION);
   await adminService.initialize();
@@ -47,6 +48,11 @@ async function main() {
   const joinTickets = new JoinTicketStore();
 
   logger.info({ dataDir: DATA_DIR }, "Starting WebSpeak server");
+  if (pruned > 0) logger.info({ pruned }, "Trimmed the audit log");
+  // One stray rejection must not take every live session down. A thrown exception still crashes on purpose.
+  process.on("unhandledRejection", (reason) => {
+    logger.error({ err: reason instanceof Error ? reason.message : String(reason) }, "Unhandled promise rejection");
+  });
 
   const hasCert = existsSync(path.join(CERT_DIR, "cert.pem"));
 

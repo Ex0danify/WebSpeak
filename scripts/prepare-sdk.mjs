@@ -19,8 +19,11 @@ const temporaryRoot = mkdtempSync(join(tmpdir(), "webspeak-sdk-build-"));
 const destination = join(root, "node_modules", "@echosixhiya", "teamspeak-client", "dist");
 
 try {
-  execFileSync("git", ["clone", "--no-checkout", repository, temporaryRoot], { stdio: "inherit" });
-  execFileSync("git", ["checkout", "--detach", commit], { cwd: temporaryRoot, stdio: "inherit" });
+  // Fetch the commit by SHA instead of cloning: a clone only carries branch history, and the SDK fork has been rewritten before.
+  const git = (args) => execFileSync("git", args, { cwd: temporaryRoot, stdio: "inherit" });
+  git(["init", "--quiet"]);
+  git(["fetch", "--depth", "1", repository, commit]);
+  git(["checkout", "--detach", "FETCH_HEAD"]);
   const npmOptions = { cwd: temporaryRoot, stdio: "inherit" };
   const runNpm = (args) => {
     if (process.platform === "win32") {

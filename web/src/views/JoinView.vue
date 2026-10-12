@@ -34,6 +34,7 @@
         :acceleration-relays="accelerationRelays"
         :initialized="initialized"
         :server-config-loading="serverConfigLoading"
+        :server-config-failed="serverConfigFailed"
         :browser-error="browserError"
         :error="voiceState.error"
         :error-code="voiceState.errorCode"
@@ -44,6 +45,7 @@
         @toggle-favorite="toggleFavorite"
         @connect="doConnect"
         @disconnect="doDisconnect"
+        @retry-config="loadPublicConfig"
       />
     </main>
 
@@ -102,6 +104,8 @@ const {
   accelerationAvailable,
   browserError,
   serverConfigLoading,
+  serverConfigFailed,
+  loadPublicConfig,
   serverPasswordDialog,
   canJoin,
   isFavorite,

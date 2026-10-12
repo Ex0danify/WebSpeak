@@ -71,6 +71,8 @@ export function useJoinForm(options: UseJoinFormOptions) {
   const accelerationAvailable = computed(() => accelerationRelays.value.length > 0);
   const browserError = ref<MaybeLocalizedText>("");
   const serverConfigLoading = ref(true);
+  /** The gateway could not be asked for its settings, as opposed to answering that it is not configured. */
+  const serverConfigFailed = ref(false);
   const serverPasswordDialog = reactive({ open: false, password: "", errorCode: "" });
 
   const localizedWelcomeText = computed(() => {
@@ -146,9 +148,13 @@ export function useJoinForm(options: UseJoinFormOptions) {
   }
 
   async function loadPublicConfig() {
+    serverConfigLoading.value = true;
     try {
       const response = await fetch("/api/public-config", { headers: { accept: "application/json" } });
-      if (!response.ok) return;
+      if (!response.ok) {
+        serverConfigFailed.value = !lastKnownInitialized;
+        return;
+      }
       const config = (await response.json()) as {
         version?: unknown;
         initialized?: unknown;
@@ -166,6 +172,7 @@ export function useJoinForm(options: UseJoinFormOptions) {
         Number.isSafeInteger(config.visitorNumber) && Number(config.visitorNumber) > 0 ? Number(config.visitorNumber) : null;
       visitorTotal.value =
         Number.isSafeInteger(config.visitorTotal) && Number(config.visitorTotal) > 0 ? Number(config.visitorTotal) : null;
+      serverConfigFailed.value = false;
       initialized.value = config.initialized === true;
       lastKnownInitialized = initialized.value;
       if (typeof config.siteName === "string" && config.siteName.trim()) {
@@ -198,6 +205,7 @@ export function useJoinForm(options: UseJoinFormOptions) {
     } catch {
       // Joining stays disabled until the gateway has confirmed its initialized policy once. After
       // that the last answer holds, so the form survives the gateway going away under a live page.
+      serverConfigFailed.value = !lastKnownInitialized;
     } finally {
       serverConfigLoading.value = false;
     }
@@ -282,6 +290,7 @@ export function useJoinForm(options: UseJoinFormOptions) {
     accelerationAvailable,
     browserError,
     serverConfigLoading,
+    serverConfigFailed,
     serverPasswordDialog,
     canJoin,
     isFavorite,

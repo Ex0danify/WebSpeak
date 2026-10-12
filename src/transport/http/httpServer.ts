@@ -6,9 +6,10 @@ import path from "node:path";
 import { VoiceBridge } from "../../modules/voice/index.js";
 import { createAdminRouter } from "../../modules/admin/index.js";
 import { AdminSessionStore } from "../../modules/admin/index.js";
-import { JoinRateLimiter } from "../../modules/join/index.js";
+import { JoinRateLimiter, ServerPasswordBackoff } from "../../modules/join/index.js";
 import type { WebServerOptions } from "./webServerOptions.js";
 import { registerJoinRoutes } from "./routes/registerJoinRoutes.js";
+import { securityHeaders } from "./securityHeaders.js";
 import { registerPublicRoutes } from "./routes/registerPublicRoutes.js";
 
 export type { WebServerOptions } from "./webServerOptions.js";
@@ -20,6 +21,8 @@ export interface WebServer {
 
 export function createWebServer(options: WebServerOptions): WebServer {
   const app = express();
+  app.disable("x-powered-by");
+  app.use(securityHeaders(options.staticDir));
   const logger = options.logger.child({ component: "web" });
 
   let server: ReturnType<typeof createHttpsServer> | ReturnType<typeof createHttpServer>;
@@ -38,10 +41,11 @@ export function createWebServer(options: WebServerOptions): WebServer {
   const voiceBridge = new VoiceBridge(options.voiceBridgeOptions, logger);
   const adminSessions = new AdminSessionStore();
   const joinRateLimiter = new JoinRateLimiter();
+  const passwordBackoff = new ServerPasswordBackoff();
   const startedAt = Date.now();
 
   registerPublicRoutes(app, options, logger);
-  registerJoinRoutes(app, options, joinRateLimiter);
+  registerJoinRoutes(app, options, joinRateLimiter, passwordBackoff);
 
   app.use(
     "/api/admin",

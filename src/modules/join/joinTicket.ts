@@ -10,6 +10,8 @@ export interface JoinTicketPayload {
   rememberIdentity?: boolean;
   accelerated?: boolean;
   accelerationRelayId?: string;
+  /** Set when the visitor typed the server password. Called with whether the server accepted it. */
+  reportPasswordOutcome?: (accepted: boolean) => void;
 }
 
 interface StoredTicket {

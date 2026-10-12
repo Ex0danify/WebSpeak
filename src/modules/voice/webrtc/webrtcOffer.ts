@@ -1,7 +1,16 @@
 import { WebSocket } from "ws";
 import type { WebRtcAudioOptions } from "../../../config/webrtcConfig.js";
 import type { VoiceConnection } from "../voiceTypes.js";
+import { resolveWebRtcPublicAddresses } from "./webrtcPublicAddresses.js";
 import { WebRtcAudioSession, type WebRtcSessionDescription } from "./webrtcAudioSession.js";
+
+/** Counts offers and stops per connection. An offer that waits on an await checks it afterwards and gives up if it was overtaken. */
+const generations = new WeakMap<object, number>();
+const bumpGeneration = (entry: object): number => {
+  const next = (generations.get(entry) ?? 0) + 1;
+  generations.set(entry, next);
+  return next;
+};
 
 export async function handleWebRtcOffer(
   ctx: VoiceConnection,
@@ -9,6 +18,8 @@ export async function handleWebRtcOffer(
   getWebRtcOptions: () => WebRtcAudioOptions | undefined,
 ): Promise<void> {
   const { entry, sendJson } = ctx;
+  const generation = bumpGeneration(entry);
+  const overtaken = () => generations.get(entry) !== generation;
   if (entry.webrtc) {
     const previousWebRtc = entry.webrtc;
     try {
@@ -18,6 +29,7 @@ export async function handleWebRtcOffer(
     }
     Object.assign(entry.audio, previousWebRtc.getStats());
     entry.webrtc = null;
+    if (overtaken()) return;
   }
   const config = getWebRtcOptions();
   if (!config?.enabled) return;
@@ -32,9 +44,13 @@ export async function handleWebRtcOffer(
       "Could not synchronize initial microphone mute state",
     );
   }
+  const publicAddresses = await resolveWebRtcPublicAddresses(entry.webrtcPublicHost);
+  // A stop or a newer offer may have arrived while the mute sync or the address lookup was pending. Creating the peer now would undo the stop
+  // or leave the older peer open next to the newer one.
+  if (overtaken()) return;
   const peer = new WebRtcAudioSession({
     connectionId: entry.id,
-    ...(entry.webrtcPublicHost ? { publicHost: entry.webrtcPublicHost } : {}),
+    ...(publicAddresses.length ? { publicAddresses } : {}),
     udpPortRange: config.udpPortRange,
     logger: ctx.logger,
     microphoneMuted: muted,
@@ -83,6 +99,7 @@ export async function handleWebRtcOffer(
 }
 
 export function handleWebRtcStop(ctx: VoiceConnection): void {
+  bumpGeneration(ctx.entry);
   const webRtc = ctx.entry.webrtc;
   ctx.entry.webrtc = null;
   if (webRtc) {

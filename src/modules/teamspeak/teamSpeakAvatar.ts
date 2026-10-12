@@ -50,3 +50,34 @@ export async function loadClientAvatar(
   if (data.length === 0 || data.length > MAX_CLIENT_AVATAR_BYTES) return null;
   return { cacheKey, data };
 }
+
+class StaleConnectionError extends Error {}
+
+/**
+ * loadClientAvatar for one connection. A reconnect replaces the SDK client, so once isCurrent says no, whatever
+ * the old connection still returns belongs to another session and the lookup ends with null.
+ */
+export async function loadClientAvatarOnConnection(
+  client: TeamSpeakAvatarClient,
+  isCurrent: () => boolean,
+  pace: <T>(command: () => Promise<T>) => Promise<T>,
+  host: string,
+  clientId: number,
+  expectedUid = "",
+): Promise<TSClientAvatar | null> {
+  const current = <T>(value: T): T => {
+    if (!isCurrent()) throw new StaleConnectionError();
+    return value;
+  };
+  const guarded: TeamSpeakAvatarClient = {
+    execCommandWithResponse: async (command, timeoutMs) => current(await pace(() => client.execCommandWithResponse(command, timeoutMs))),
+    fileTransferInitDownload: async (...args) => current(await client.fileTransferInitDownload(...args)),
+    downloadFileData: async (...args) => current(await client.downloadFileData(...args)),
+  };
+  try {
+    return current(await loadClientAvatar(guarded, host, clientId, expectedUid));
+  } catch (error: unknown) {
+    if (error instanceof StaleConnectionError) return null;
+    throw error;
+  }
+}

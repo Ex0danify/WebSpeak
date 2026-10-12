@@ -28,6 +28,8 @@ export interface ScreenShareParticipant {
   readonly tsClient: ScreenShareTeamSpeakClient;
   readonly ws: ScreenShareSocket;
   readonly members: ReadonlyMap<number, ScreenShareMember>;
+  /** The channel of any client this session knows of, undefined when it does not know the client. */
+  clientChannelId?(clientId: number): bigint | undefined;
 }
 
 export type ScreenShareSendJson = (message: Record<string, unknown>) => void;

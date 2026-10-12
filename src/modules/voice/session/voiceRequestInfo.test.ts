@@ -1,6 +1,6 @@
 import type { IncomingMessage } from "node:http";
 import { describe, expect, it } from "vitest";
-import { resolveClientIp, resolveWebRtcPublicHost } from "./voiceRequestInfo.js";
+import { resolveWebRtcPublicHost } from "./voiceRequestInfo.js";
 
 function request(headers: IncomingMessage["headers"], remoteAddress?: string): IncomingMessage {
   return { headers, socket: { remoteAddress } } as unknown as IncomingMessage;
@@ -22,19 +22,5 @@ describe("resolveWebRtcPublicHost", () => {
     ["nothing usable", {}, undefined],
   ] as const)("%s", (_name, headers, expected) => {
     expect(resolveWebRtcPublicHost(request({ ...headers }))).toBe(expected);
-  });
-});
-
-describe("resolveClientIp", () => {
-  it.each([
-    ["first x-forwarded-for entry", { "x-forwarded-for": "203.0.113.5, 10.0.0.1" }, "10.0.0.2", "203.0.113.5"],
-    ["x-real-ip when forwarded-for is invalid", { "x-forwarded-for": "garbage", "x-real-ip": "198.51.100.7" }, "10.0.0.2", "198.51.100.7"],
-    ["socket address as last resort", {}, "10.0.0.2", "10.0.0.2"],
-    ["bracketed ipv6", { "x-real-ip": "[2001:db8::1]" }, undefined, "2001:db8::1"],
-    ["ipv4-mapped ipv6 is unwrapped", {}, "::ffff:192.0.2.9", "192.0.2.9"],
-    ["array header uses first value", { "x-forwarded-for": ["203.0.113.5", "203.0.113.6"] }, undefined, "203.0.113.5"],
-    ["unknown when nothing is valid", { "x-forwarded-for": "nope" }, undefined, "unknown"],
-  ] as const)("%s", (_name, headers, remote, expected) => {
-    expect(resolveClientIp(request({ ...headers } as IncomingMessage["headers"], remote))).toBe(expected);
   });
 });

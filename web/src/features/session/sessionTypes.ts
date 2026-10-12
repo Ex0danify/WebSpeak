@@ -69,6 +69,10 @@ export interface ChatMessage {
   message: string;
   timestamp: number;
   isSelf?: boolean;
+  /** Your own message until the gateway confirmed it, or after it refused or timed out. Absent for a delivered or received one. */
+  status?: "pending" | "failed";
+  /** On a private message of your own: the recipient's nickname when it was sent, to name the chat after they have left. */
+  peerName?: string;
 }
 
 /** Values a gateway code is rendered with, the same shape in every frame that carries them. */

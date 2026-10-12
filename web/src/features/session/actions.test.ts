@@ -246,7 +246,9 @@ describe("chat", () => {
     harness.voice.chat.sendTextMessage("  hello  ", "4");
     harness.voice.chat.sendTextMessage("   ");
     harness.voice.chat.sendTextMessage("x".repeat(501));
-    expect(socket.sentJson).toEqual([{ type: "sendTextMessage", payload: { message: "hello" } }]);
+    expect(socket.sentJson).toEqual([
+      { type: "sendTextMessage", payload: { message: "hello" }, requestId: expect.stringMatching(/^command-/) },
+    ]);
     expect(harness.voice.chat.chatMessages).toHaveLength(1);
     expect(harness.voice.chat.chatMessages[0]).toMatchObject({
       scope: "channel",
@@ -255,6 +257,7 @@ describe("chat", () => {
       invokerName: "",
       message: "hello",
       isSelf: true,
+      status: "pending",
     });
     expect(harness.voice.chat.chatMessages[0].id).toMatch(/^self-/);
   });
@@ -262,7 +265,9 @@ describe("chat", () => {
   it("sendServerMessage records a server-scope message", async () => {
     const socket = await connected();
     harness.voice.chat.sendServerMessage(" all ");
-    expect(socket.sentJson).toEqual([{ type: "sendServerMessage", payload: { message: "all" } }]);
+    expect(socket.sentJson).toEqual([
+      { type: "sendServerMessage", payload: { message: "all" }, requestId: expect.stringMatching(/^command-/) },
+    ]);
     expect(harness.voice.chat.chatMessages[0]).toMatchObject({ scope: "server", message: "all", isSelf: true });
   });
 
@@ -270,8 +275,10 @@ describe("chat", () => {
     const socket = await connected();
     harness.voice.chat.sendPrivateMessage(9, " psst ", "4");
     harness.voice.chat.sendPrivateMessage(9, "");
-    expect(socket.sentJson).toEqual([{ type: "sendPrivateMessage", payload: { clientId: 9, message: "psst" } }]);
-    expect(harness.voice.chat.chatMessages[0]).toMatchObject({ scope: "private", targetId: "4", conversationId: "9", isSelf: true });
+    expect(socket.sentJson).toEqual([
+      { type: "sendPrivateMessage", payload: { clientId: 9, message: "psst" }, requestId: expect.stringMatching(/^command-/) },
+    ]);
+    expect(harness.voice.chat.chatMessages[0]).toMatchObject({ scope: "private", targetId: "4", conversationId: "id:9", isSelf: true });
   });
 });
 

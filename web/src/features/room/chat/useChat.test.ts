@@ -6,16 +6,17 @@ import type { TreeChannel } from "../roomTypes";
 
 type Exposed = {
   messageDraft: string;
-  privateClientId: number;
+  privateConversationId: string;
+  privatePeerName: string;
   chatListEl: HTMLElement | null;
-  privateConversations: Array<{ id: number; name: string; lastMessage: number }>;
+  privateConversations: Array<{ id: string; name: string; lastMessage: number }>;
   visibleChatMessages: ChatMessage[];
   chatTabLabel: string;
   chatTitle: string;
   chatPlaceholder: string;
   formatTime: (timestamp: number) => string;
   submitMessage: () => void;
-  openPrivateChat: (clientId: number) => void;
+  openPrivateChat: (target: number | string) => void;
   scrollChatToEnd: () => void;
   setChatListElement: (element: unknown) => void;
   eventText: (event: ServerEvent) => string;
@@ -93,29 +94,29 @@ describe("privateConversations", () => {
   it("groups private messages by conversation, keeping the latest name and timestamp", async () => {
     const { vm, chatMessages } = await mountUseChat();
     chatMessages.push(
-      { id: "1", scope: "private", conversationId: "2", invokerName: "Ana", message: "hi", timestamp: 10 },
-      { id: "2", scope: "private", conversationId: "2", invokerName: "Ana", message: "yo", timestamp: 20 },
+      { id: "1", scope: "private", conversationId: "id:2", invokerName: "Ana", message: "hi", timestamp: 10 },
+      { id: "2", scope: "private", conversationId: "id:2", invokerName: "Ana", message: "yo", timestamp: 20 },
     );
     await flushPromises();
-    expect(vm.privateConversations).toEqual([{ id: 2, name: "Ana", lastMessage: 20 }]);
+    expect(vm.privateConversations).toEqual([{ id: "id:2", name: "Ana", lastMessage: 20 }]);
   });
 
   it("lists a just-opened conversation with no message yet under the member's name", async () => {
     const { vm } = await mountUseChat();
     vm.openPrivateChat(2);
     await flushPromises();
-    expect(vm.privateConversations).toEqual([{ id: 2, name: "Ana", lastMessage: 0 }]);
+    expect(vm.privateConversations).toEqual([{ id: "id:2", name: "Ana", lastMessage: 0 }]);
   });
 
   it("orders conversations by most recent message first", async () => {
     const { vm, chatMessages, members } = await mountUseChat();
     members.push(member(3, "Ben"));
     chatMessages.push(
-      { id: "1", scope: "private", conversationId: "2", invokerName: "Ana", message: "hi", timestamp: 10 },
-      { id: "2", scope: "private", conversationId: "3", invokerName: "Ben", message: "hey", timestamp: 50 },
+      { id: "1", scope: "private", conversationId: "id:2", invokerName: "Ana", message: "hi", timestamp: 10 },
+      { id: "2", scope: "private", conversationId: "id:3", invokerName: "Ben", message: "hey", timestamp: 50 },
     );
     await flushPromises();
-    expect(vm.privateConversations.map((c) => c.id)).toEqual([3, 2]);
+    expect(vm.privateConversations.map((c) => c.id)).toEqual(["id:3", "id:2"]);
   });
 });
 
@@ -146,10 +147,10 @@ describe("visibleChatMessages", () => {
   it("filters to the active private conversation on the private tab", async () => {
     const { vm, options, chatMessages } = await mountUseChat();
     options.chatTab.value = "private";
-    vm.privateClientId = 2;
+    vm.privateConversationId = "id:2";
     chatMessages.push(
-      { id: "1", scope: "private", conversationId: "2", invokerName: "Ana", message: "for 2", timestamp: 1 },
-      { id: "2", scope: "private", conversationId: "3", invokerName: "Ben", message: "for 3", timestamp: 2 },
+      { id: "1", scope: "private", conversationId: "id:2", invokerName: "Ana", message: "for 2", timestamp: 1 },
+      { id: "2", scope: "private", conversationId: "id:3", invokerName: "Ben", message: "for 3", timestamp: 2 },
     );
     await flushPromises();
     expect(vm.visibleChatMessages.map((m) => m.id)).toEqual(["1"]);
@@ -214,10 +215,61 @@ describe("submitMessage", () => {
   it("sends a private message on the private tab", async () => {
     const { vm, options } = await mountUseChat();
     options.chatTab.value = "private";
-    vm.privateClientId = 2;
+    vm.privateConversationId = "id:2";
     vm.messageDraft = "hi Ana";
     vm.submitMessage();
     expect(options.sendPrivateMessage).toHaveBeenCalledWith(2, "hi Ana", "2");
+  });
+});
+
+describe("private conversations keyed by uid", () => {
+  it("do not follow a client id that TeamSpeak hands to someone else", async () => {
+    const { vm, options, members, chatMessages } = await mountUseChat();
+    members.splice(0, members.length, member(1, "Lucas"), { id: 2, nickname: "Ana", uid: "uid-ana" });
+    chatMessages.push({ id: "1", scope: "private", conversationId: "uid:uid-ana", invokerName: "Ana", message: "hi", timestamp: 10 });
+    members.splice(1, 1, { id: 2, nickname: "Ben", uid: "uid-ben" });
+    vm.openPrivateChat(2);
+    await flushPromises();
+    expect(vm.privateConversations.map((c) => [c.id, c.name])).toEqual([
+      ["uid:uid-ana", "Ana"],
+      ["uid:uid-ben", "Ben"],
+    ]);
+    expect(vm.visibleChatMessages).toEqual([]);
+    vm.openPrivateChat("uid:uid-ana");
+    await flushPromises();
+    expect(vm.privatePeerName).toBe("Ana");
+    expect(vm.visibleChatMessages).toHaveLength(1);
+    vm.messageDraft = "still there?";
+    vm.submitMessage();
+    expect(options.sendPrivateMessage).not.toHaveBeenCalled();
+    expect(vm.messageDraft).toBe("still there?");
+    members.push({ id: 7, nickname: "Ana", uid: "uid-ana" });
+    await flushPromises();
+    expect(vm.privatePeerName).toBe("");
+    vm.submitMessage();
+    expect(options.sendPrivateMessage).toHaveBeenCalledWith(7, "still there?", "7");
+  });
+});
+
+describe("the name of a private chat whose person has left", () => {
+  it("is the name your message was addressed to, never your own", async () => {
+    const { vm, members, chatMessages } = await mountUseChat();
+    members.splice(0, members.length, member(1, "Lucas"));
+    chatMessages.push({
+      id: "1",
+      scope: "private",
+      conversationId: "uid:uid-ana",
+      invokerName: "Lucas",
+      peerName: "Ana",
+      isSelf: true,
+      message: "hi",
+      timestamp: 10,
+    });
+    await flushPromises();
+    expect(vm.privateConversations).toEqual([{ id: "uid:uid-ana", name: "Ana", lastMessage: 10 }]);
+    chatMessages[0] = { ...chatMessages[0]!, peerName: undefined };
+    await flushPromises();
+    expect(vm.privateConversations[0]?.name).not.toBe("Lucas");
   });
 });
 
@@ -226,14 +278,14 @@ describe("openPrivateChat", () => {
     const { vm, options } = await mountUseChat();
     vm.openPrivateChat(0);
     vm.openPrivateChat(options.voiceState.tsClientId);
-    expect(vm.privateClientId).toBe(0);
+    expect(vm.privateConversationId).toBe("");
   });
 
   it("opens the conversation, switches to the private tab and closes the member menu", async () => {
     const { vm, options } = await mountUseChat();
     options.memberMenu.value = { member: member(2, "Ana"), x: 0, y: 0 };
     vm.openPrivateChat(2);
-    expect(vm.privateClientId).toBe(2);
+    expect(vm.privateConversationId).toBe("id:2");
     expect(options.chatTab.value).toBe("private");
     expect(options.memberMenu.value).toBeNull();
   });

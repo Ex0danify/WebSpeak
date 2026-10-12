@@ -6,6 +6,10 @@ services:
     # WebSpeak needs to reach a TeamSpeak server running on the same host.
     # Host networking also exposes the configured WebRTC UDP range directly.
     network_mode: host
+    # Behind a reverse proxy that sets X-Forwarded-For, enable this so rate limits and the audit log see the
+    # real visitor. Leave it off when WebSpeak is reachable directly, the header could be forged.
+    # environment:
+    #   WEBSPEAK_TRUST_PROXY: "1"
     volumes:
       - webspeak-data:/data
 

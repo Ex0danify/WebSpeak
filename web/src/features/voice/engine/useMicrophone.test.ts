@@ -95,6 +95,24 @@ describe("microphone failures", () => {
     expect(audio.audioPermission).toBe("unknown");
   });
 
+  it("falls back to the default microphone when the saved device is gone", async () => {
+    const { audio, mic } = setup();
+    audio.selectedInputDeviceId = "unplugged";
+    fx.userMedia.mockRejectedValueOnce(new DOMException("gone", "OverconstrainedError"));
+    await mic.startMicrophone();
+    expect(fx.userMedia).toHaveBeenCalledTimes(2);
+    expect(audio.selectedInputDeviceId).toBe("");
+    expect(mic.microphoneConstraints()).not.toHaveProperty("deviceId");
+    expect(mic.getMicStream()).not.toBeNull();
+  });
+
+  it("does not retry a device-less request that fails", async () => {
+    const { mic } = setup();
+    fx.userMedia.mockRejectedValueOnce(new DOMException("none", "NotFoundError"));
+    await expect(mic.startMicrophone()).rejects.toBeDefined();
+    expect(fx.userMedia).toHaveBeenCalledTimes(1);
+  });
+
   it("setMicrophoneError returns the text it stores, clearMicrophoneError empties both slots", () => {
     const { session, mic } = setup();
     const failure = mic.setMicrophoneError(new DOMException("x", "NotFoundError"));
@@ -137,6 +155,21 @@ describe("startMicrophone", () => {
     expect(worklet?.options).toEqual({ numberOfInputs: 1, numberOfOutputs: 1, outputChannelCount: [1] });
     expect(deps.syncAudioContextNotice).toHaveBeenCalledTimes(1);
     expect(mic.getMicStream()).not.toBeNull();
+  });
+
+  it("asks for the microphone before resuming a suspended context, so a resume that waits cannot hide the prompt", async () => {
+    fx.ctx.state = "suspended";
+    const order: string[] = [];
+    fx.userMedia.mockImplementationOnce(async () => {
+      order.push("getUserMedia");
+      return new FakeMediaStream([new FakeMediaStreamTrack("audio")]);
+    });
+    fx.ctx.resume = async () => {
+      order.push("resume");
+      fx.ctx.state = "running";
+    };
+    await setup().mic.startMicrophone();
+    expect(order).toEqual(["getUserMedia", "resume"]);
   });
 
   it("wires source -> gain -> worklet -> silent gain -> destination, with the stored input volume", async () => {

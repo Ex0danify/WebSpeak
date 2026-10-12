@@ -29,7 +29,10 @@ import { createUplinkOpusEncoder } from "./audio/opusEncoder.js";
 import { registerVoiceDirectory, type VoiceDirectoryDeps } from "./directory/voiceDirectory.js";
 import { connectTeamSpeak, registerVoiceConnection } from "./session/voiceConnection.js";
 import { registerVoiceChat } from "./messages/voiceChat.js";
-import { resolveClientIp, resolveWebRtcPublicHost } from "./session/voiceRequestInfo.js";
+import { resolveClientIp } from "../../shared/http/clientIp.js";
+import { sendProtocolError } from "./session/voiceFailures.js";
+import { AUDIO_RATE_LIMIT_CLOSE_REASON, RATE_LIMIT_CLOSE_CODE, VoiceRateLimits } from "./session/voiceRateLimits.js";
+import { resolveWebRtcPublicHost } from "./session/voiceRequestInfo.js";
 import { routeTextFrame } from "./messages/voiceMessageRouter.js";
 
 export interface ConnectionHooks {
@@ -185,6 +188,8 @@ export function admitConnection(deps: AdmissionDeps, ws: WebSocket, req: Incomin
     lastLatencyProbeAt: 0,
     screenPeerId: entryId,
   };
+  const directory = new DirectorySynchronizer();
+  entry.clientChannelId = (clientId) => directory.getClientChannelId(clientId);
   const ctx: VoiceConnection = {
     entry,
     session,
@@ -193,7 +198,8 @@ export function admitConnection(deps: AdmissionDeps, ws: WebSocket, req: Incomin
     logger: deps.logger,
     channelName,
     serverPassword,
-    directory: new DirectorySynchronizer(),
+    ...(connection.reportPasswordOutcome ? { reportPasswordOutcome: connection.reportPasswordOutcome } : {}),
+    directory,
     avatarRequests: new Set<string>(),
     sendJson: (message) => {
       if (ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(message));
@@ -241,12 +247,23 @@ export function admitConnection(deps: AdmissionDeps, ws: WebSocket, req: Incomin
   ctx.ws.on("pong", () => {
     ctx.entry.isAlive = true;
   });
+  const limits = new VoiceRateLimits();
   ctx.ws.on("message", (data: Buffer | string, isBinary: boolean) => {
     if (isBinary) {
-      handleUplinkFrame(ctx, data);
+      const verdict = limits.audioFrame();
+      if (verdict === "accept") handleUplinkFrame(ctx, data);
+      else {
+        ctx.entry.audio.ingressDroppedFrames++;
+        if (verdict === "close") ctx.ws.close(RATE_LIMIT_CLOSE_CODE, AUDIO_RATE_LIMIT_CLOSE_REASON);
+      }
       return;
     }
 
+    const text = limits.textFrame();
+    if (!text.allowed) {
+      if (text.reply) sendProtocolError(ctx.sendJson, "FLOOD_PROTECTION", "Too many messages, slow down");
+      return;
+    }
     routeTextFrame(ctx, data, deps.hooks);
   });
 

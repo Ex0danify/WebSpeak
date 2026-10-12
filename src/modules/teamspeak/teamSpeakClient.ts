@@ -3,22 +3,22 @@ import {
   Client as TS3FullClient,
   clientMove as tsClientMove,
   listChannels as tsListChannels,
-  listClients as tsListClients,
   poke as tsPoke,
-  sendTextMessage as tsSendTextMessage,
   generateIdentity,
   type Identity,
   type VoiceData,
   type DirectoryClientInfo,
   type DirectorySnapshot,
   type RawNotification,
-  type TextMessage,
 } from "@echosixhiya/teamspeak-client";
 import type { Logger } from "../../shared/logger.js";
 import { describeTeamSpeakError, normalizeTeamSpeakError, normalizeTeamSpeakKickedReason } from "../../shared/errors.js";
 import { TeamSpeakAdapter } from "./teamSpeakAdapter.js";
 import { createCommandPacer } from "./commandPacer.js";
-import { loadClientAvatar, type TeamSpeakAvatarClient, type TSClientAvatar } from "./teamSpeakAvatar.js";
+import { toTSChatMessage, type TSChatScope, type TSVoiceData } from "./teamSpeakMessages.js";
+import { InputMuteSync } from "./inputMuteSync.js";
+import { listClientsWithStatus } from "./teamSpeakClientList.js";
+import { loadClientAvatarOnConnection, type TSClientAvatar } from "./teamSpeakAvatar.js";
 import type { TeamSpeakProtocol } from "../../shared/teamSpeakProtocol.js";
 import type { TeamSpeakTarget } from "../../shared/teamSpeakTarget.js";
 import { createAccelerationRelayClient, type AccelerationRelayClient, type AccelerationRelayOptions } from "../relay/index.js";
@@ -33,42 +33,14 @@ export interface TSClientOptions {
   acceleration?: AccelerationRelayOptions;
 }
 
-export interface TSVoiceData {
-  clientId: number;
-  codec: number; // 4 = voice, 5 = music
-  data: Buffer;
-}
-
 export type { TSClientAvatar };
+export { toTSChatMessage };
+export type { TSChatMessage, TSChatScope, TSVoiceData } from "./teamSpeakMessages.js";
 export type TSDirectorySnapshot = DirectorySnapshot;
 export type TSDirectoryClient = DirectoryClientInfo;
 export type TSRawNotification = RawNotification;
 
-export type TSChatScope = "channel" | "server" | "private";
-
-export interface TSChatMessage {
-  invokerName: string;
-  invokerId: number;
-  invokerUid: string;
-  message: string;
-  targetMode: number;
-  targetId: bigint;
-}
-
-/**
- * Keep the target id of private messages, dropping it made the bridge dereference
- * undefined while echoing the message to the browser.
- */
-export function toTSChatMessage(msg: TextMessage): TSChatMessage {
-  return {
-    invokerName: msg.invokerName,
-    invokerId: msg.invokerID,
-    invokerUid: msg.invokerUID,
-    message: msg.message,
-    targetMode: msg.targetMode,
-    targetId: msg.targetID,
-  };
-}
+const ACKNOWLEDGED_STREAM_COMMANDS = new Set(["stopstream", "removeclientfromstream"]);
 
 export class TSClient extends EventEmitter {
   private client: TS3FullClient | null = null;
@@ -83,6 +55,9 @@ export class TSClient extends EventEmitter {
   // Reason id of the last self leave. The SDK hands only the reason message to kicked and drops
   // the id, so this is how we tell a kick (4) from a ban (5).
   private selfLeaveReasonId: number | null = null;
+  // Bumped by disconnect(), a connect() already in flight gives up when it sees the change.
+  private connectGeneration = 0;
+  private readonly inputMute = new InputMuteSync(this.pacer);
 
   constructor(
     private options: TSClientOptions,
@@ -93,8 +68,11 @@ export class TSClient extends EventEmitter {
     this.identity = options.identity ?? generateIdentity(8);
   }
 
+  /** Returns without a session when disconnect() ran first: the SDK would otherwise finish the handshake and leak a client. */
   async connect(): Promise<void> {
+    const generation = this.connectGeneration;
     this.selfLeaveReasonId = null;
+    this.inputMute.reset();
     if (!this.adapter || !this.client) {
       let transportTarget = this.options.target;
       if (this.options.acceleration && !this.accelerationClient) {
@@ -104,6 +82,7 @@ export class TSClient extends EventEmitter {
           port: this.options.target.port,
         });
         transportTarget = { host: this.accelerationClient.localHost, port: this.accelerationClient.localPort };
+        if (generation !== this.connectGeneration) return this.releaseAcceleration();
       }
       this.adapter = new TeamSpeakAdapter(
         {
@@ -123,6 +102,10 @@ export class TSClient extends EventEmitter {
     const client = this.client;
 
     await adapter.connect();
+    if (generation !== this.connectGeneration) {
+      await adapter.disconnect();
+      return;
+    }
 
     this.clientId = client.clientID();
     try {
@@ -146,7 +129,7 @@ export class TSClient extends EventEmitter {
     // one snapshot over this session to make earlier joiners show up.
     try {
       const channels = await this.pacer.run(() => tsListChannels(client));
-      const clients = await this.pacer.run(() => tsListClients(client));
+      const clients = await this.pacer.run(() => listClientsWithStatus(client));
       this.emit("directorySnapshot", { channels, clients });
     } catch (error: unknown) {
       this.logger.warn(
@@ -185,13 +168,14 @@ export class TSClient extends EventEmitter {
   async getClientAvatar(clientId: number, expectedUid = ""): Promise<TSClientAvatar | null> {
     if (!this.client || !this.connected) throw new Error("TeamSpeak session is not ready");
     const client = this.client;
-    const paced: TeamSpeakAvatarClient = {
-      execCommandWithResponse: (command: string, timeoutMs?: number) =>
-        this.pacer.run(() => client.execCommandWithResponse(command, timeoutMs)),
-      fileTransferInitDownload: client.fileTransferInitDownload.bind(client),
-      downloadFileData: client.downloadFileData.bind(client),
-    };
-    return loadClientAvatar(paced, this.options.target.host, clientId, expectedUid);
+    return loadClientAvatarOnConnection(
+      client,
+      () => this.client === client,
+      (command) => this.pacer.run(command),
+      this.options.target.host,
+      clientId,
+      expectedUid,
+    );
   }
 
   private attachClientListeners(client: TS3FullClient): void {
@@ -288,7 +272,11 @@ export class TSClient extends EventEmitter {
   async sendTextMessage(scope: TSChatScope, message: string, targetId = 0n): Promise<void> {
     if (!this.client || !this.connected) throw new Error("TeamSpeak session is not ready");
     const targetMode = scope === "private" ? 1 : scope === "server" ? 3 : 2;
-    await tsSendTextMessage(this.client, targetMode, targetId, message);
+    // The SDK's own sendTextMessage does not wait for the server, so a refusal (a client that has left, a muted channel) would
+    // never reach the browser. Waiting for the acknowledgement turns it into an error the sender sees.
+    const client = this.client;
+    const command = `sendtextmessage targetmode=${targetMode} target=${targetId} msg=${escapeTeamSpeakValue(message)}`;
+    await this.pacer.run(() => client.execCommand(command));
   }
 
   async poke(clientId: number, message: string): Promise<void> {
@@ -306,7 +294,14 @@ export class TSClient extends EventEmitter {
   async setInputMuted(muted: boolean): Promise<void> {
     if (!this.client || !this.connected) throw new Error("TeamSpeak session is not ready");
     const client = this.client;
-    await this.pacer.run(() => client.execCommand(`clientupdate client_input_muted=${muted ? 1 : 0}`));
+    await this.inputMute.setMicMuted(muted, client, () => this.client === client);
+  }
+
+  /** Accompaniment keeps the TeamSpeak input unmuted so a muted mic does not silence the shared audio. */
+  async setAccompanimentActive(active: boolean): Promise<void> {
+    if (!this.client || !this.connected) throw new Error("TeamSpeak session is not ready");
+    const client = this.client;
+    await this.inputMute.setAccompanimentActive(active, client, () => this.client === client);
   }
 
   async switchChannel(channelId: bigint, password?: string): Promise<void> {
@@ -339,11 +334,26 @@ export class TSClient extends EventEmitter {
 
   /**
    * Send a protocol command whose answer arrives later as a notification (setupstream etc).
-   * Only the trusted stream adapter builds these, never the browser.
+   * Only the trusted stream adapter builds these, never the browser. Stream cleanup is the exception:
+   * it waits for the server's acknowledgement and is retried after a flood refusal, so a failed
+   * cleanup shows up in the log instead of leaving a ghost stream or viewer behind.
    */
   async sendProtocolCommand(command: string): Promise<void> {
     if (!this.client || !this.connected) throw new Error("TeamSpeak session is not ready");
-    await this.client.sendCommandNoWait(command);
+    const client = this.client;
+    if (!ACKNOWLEDGED_STREAM_COMMANDS.has(command.split(" ", 1)[0] ?? "")) {
+      await client.sendCommandNoWait(command);
+      return;
+    }
+    try {
+      await this.pacer.run(() => client.execCommand(command, 5000));
+    } catch (error: unknown) {
+      this.logger.warn(
+        { command: command.split(" ", 1)[0], err: error instanceof Error ? error.message : String(error) },
+        "TeamSpeak stream cleanup command failed",
+      );
+      throw error;
+    }
   }
 
   getIdentityString(): string {
@@ -360,14 +370,20 @@ export class TSClient extends EventEmitter {
     return this.connected;
   }
 
+  private releaseAcceleration(): void {
+    this.accelerationClient?.close();
+    this.accelerationClient = null;
+  }
+
   async disconnect(): Promise<void> {
+    this.connectGeneration++;
+    this.inputMute.reset();
     this.connected = false;
     this.selfLeaveReasonId = null;
     try {
       if (this.adapter) await this.adapter.disconnect();
     } finally {
-      this.accelerationClient?.close();
-      this.accelerationClient = null;
+      this.releaseAcceleration();
       this.adapter = null;
       this.client = null;
       this.clientId = 0;

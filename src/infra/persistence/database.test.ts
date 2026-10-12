@@ -5,6 +5,16 @@ import type { AdminCredential } from "../security/adminPassword.js";
 
 const fx = useDatabaseFixture();
 
+describe("audit pruning", () => {
+  it("keeps only the newest rows", () => {
+    const database = fx.open();
+    for (let i = 1; i <= 7; i++) database.addAudit(`EVENT_${i}`);
+    expect(database.pruneAudit(3)).toBe(4);
+    expect(database.recentAudit(50).map((entry) => entry.event)).toEqual(["EVENT_7", "EVENT_6", "EVENT_5"]);
+    expect(database.pruneAudit(3)).toBe(0);
+  });
+});
+
 describe("admin credential", () => {
   it("initializes once, storing the credential, the settings and an audit entry together", () => {
     const database = fx.open();

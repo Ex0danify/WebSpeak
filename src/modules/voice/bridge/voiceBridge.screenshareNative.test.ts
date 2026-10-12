@@ -74,6 +74,14 @@ describe("a stream that a TeamSpeak user starts", () => {
     }
   });
 
+  it("is not announced as a stream of the viewer's channel when its source is not a client the gateway knows", async () => {
+    const gateway = await gateways.start();
+    const viewer = await joinVoice(gateway, { nickname: "viewer" });
+    const mark = await markOf(viewer);
+    notify([viewer], "notifystreamstarted", { id: STREAM_ID, clid: "4242", name: "Ghost" });
+    expect(await received(viewer, mark)).toEqual([]);
+  });
+
   it("gets a default name and no audio when TeamSpeak gives none, and an update changes the card without announcing it again", async () => {
     const gateway = await gateways.start();
     const { source, viewer, sessions, stream } = await nativeShare(gateway, { name: "", audio: "0" });

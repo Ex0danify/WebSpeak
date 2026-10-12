@@ -10,6 +10,14 @@ export function messageAvatar(message: ChatMessage, members: ChannelMember[]): s
   return member?.avatar ?? "";
 }
 
+/**
+ * Identifies a private conversation by the other person's TeamSpeak unique id. The numeric client id is handed out again
+ * after someone leaves, so it only stands in for a client that has no uid yet.
+ */
+export function privateConversationKey(uid: string | undefined, clientId: number): string {
+  return uid ? `uid:${uid}` : `id:${clientId}`;
+}
+
 export function isSpeaking(member: ChannelMember, speakingIds: Set<number>): boolean {
   return speakingIds.has(member.id);
 }

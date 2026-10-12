@@ -111,26 +111,33 @@ export function useChannelTree(options: UseChannelTreeOptions) {
     );
   });
 
-  watch(
-    channelTree,
-    (list) => {
-      if (!selectedChannelId.value && list[0]) {
-        selectedChannelId.value =
-          list.find((item) => item.name === channel.value)?.id ??
-          list.find((item) => item.members.some((member) => member.id === voiceState.tsClientId))?.id ??
-          "";
-      }
-    },
-    { deep: true },
-  );
+  watch(channelTree, (list) => {
+    if (!selectedChannelId.value && list[0]) {
+      selectedChannelId.value =
+        list.find((item) => item.name === channel.value)?.id ??
+        list.find((item) => item.members.some((member) => member.id === voiceState.tsClientId))?.id ??
+        "";
+    }
+  });
   // A move made by someone else changes the member list, not selectedChannelId, so keep selectedChannelId matched to your own
   // channel once it is known. The very first assignment is left to the watcher above, which also honours the typed channel.
   watch(ownChannelId, (id, previous) => {
     if (id && previous) selectedChannelId.value = id;
   });
+  // Where you were before the last channel pick, until the gateway answers it. A refusal puts the selection back there.
+  let pendingSwitch: { fromId: string; fromName: string; toId: string } | null = null;
+  watch(ownChannelId, (id) => {
+    if (pendingSwitch && id === pendingSwitch.toId) pendingSwitch = null;
+  });
   watch(
     () => voiceState.errorCode,
     (code) => {
+      if (code && code !== "CHANNEL_PASSWORD_REQUIRED" && pendingSwitch) {
+        selectedChannelId.value = pendingSwitch.fromId;
+        channel.value = pendingSwitch.fromName;
+        pendingSwitch = null;
+        return;
+      }
       if (code !== "CHANNEL_PASSWORD_REQUIRED" || !selectedChannelId.value) return;
       channelPasswordDialog.open = true;
       channelPasswordDialog.channelId = selectedChannelId.value;
@@ -143,6 +150,7 @@ export function useChannelTree(options: UseChannelTreeOptions) {
   watch(
     () => voiceState.channelSwitchedChannelId,
     (channelId) => {
+      if (channelId) pendingSwitch = null;
       if (!channelPasswordDialog.open || !channelId || channelId !== channelPasswordDialog.channelId) return;
       channelPasswordDialog.open = false;
       channelPasswordDialog.channelId = "";
@@ -153,6 +161,8 @@ export function useChannelTree(options: UseChannelTreeOptions) {
   );
 
   function selectChannel(item: TreeChannel) {
+    const own = channelTree.value.find((candidate) => candidate.id === ownChannelId.value);
+    pendingSwitch = own && own.id !== item.id ? { fromId: own.id, fromName: own.name, toId: item.id } : null;
     selectedChannelId.value = item.id;
     channel.value = item.name;
     chatTab.value = "channel";
@@ -169,6 +179,7 @@ export function useChannelTree(options: UseChannelTreeOptions) {
   function cancelChannelPassword() {
     const ownChannel = channelTree.value.find((item) => item.members.some((member) => member.id === voiceState.tsClientId));
     if (ownChannel) selectedChannelId.value = ownChannel.id;
+    pendingSwitch = null;
     channelPasswordDialog.open = false;
     channelPasswordDialog.channelId = "";
     channelPasswordDialog.password = "";
@@ -228,7 +239,8 @@ export function useChannelTree(options: UseChannelTreeOptions) {
   function onMemberPointerDown(member: ChannelMember, event: PointerEvent): void {
     if (member.isSelf || event.button !== 0) return;
     const target = event.target instanceof Element ? event.target : null;
-    if (target?.closest("input,button")) return;
+    // The volume slider is not an input, but a press on it is a volume change and never the start of a move.
+    if (target?.closest("input,button,[role=slider],.member-volume")) return;
     event.preventDefault();
     memberPointerDrag.member = member;
     memberPointerDrag.pointerId = event.pointerId;

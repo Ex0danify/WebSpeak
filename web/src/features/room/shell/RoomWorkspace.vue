@@ -106,10 +106,11 @@
             :mobile-section="mobileSection"
             :current-channel-name="currentChannelName"
             :private-conversations="privateConversations"
-            :private-client-id="privateClientId"
+            :private-conversation-id="privateConversationId"
             :chat-tab-label="chatTabLabel"
             :chat-title="chatTitle"
             :chat-placeholder="chatPlaceholder"
+            :private-peer-name="privatePeerName"
             :server-events="serverEvents"
             :visible-chat-messages="visibleChatMessages"
             :members="members"
@@ -290,12 +291,13 @@ const {
 const {
   chatTab,
   messageDraft,
-  privateClientId,
+  privateConversationId,
   privateConversations,
   visibleChatMessages,
   chatTabLabel,
   chatTitle,
   chatPlaceholder,
+  privatePeerName,
   formatTime,
   submitMessage,
   openPrivateChat,

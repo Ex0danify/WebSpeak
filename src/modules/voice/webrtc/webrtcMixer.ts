@@ -27,13 +27,6 @@ export interface WebRtcMixerStats {
 interface PendingAudioFrame {
   pcm: Buffer;
   receivedAt: number;
-  /** Native 20 ms Opus frame, reused when no mix is needed. */
-  opus?: Buffer;
-}
-
-interface SelectedAudioFrame extends PendingAudioFrame {
-  clientId: number;
-  volume: number;
 }
 
 /**
@@ -85,7 +78,6 @@ export class WebRtcMixer {
       // RMS only feeds the speaking indicator, every frame (even comfort noise) still goes into the
       // queue so the receiver keeps an unbroken codec timeline.
       if (rms >= SPEAKER_ACTIVITY_RMS) this.activeSpeakerIds.add(data.clientId);
-      const canForwardOpus = !pendingPcm && pcm.length === AUDIO_FRAME_BYTES;
       let offset = 0;
       let enqueued = false;
       let queue = this.pendingFrames.get(data.clientId);
@@ -101,7 +93,6 @@ export class WebRtcMixer {
         queue.push({
           pcm: Buffer.from(combined.subarray(offset, offset + AUDIO_FRAME_BYTES)),
           receivedAt: performance.now(),
-          ...(canForwardOpus && offset === 0 ? { opus: Buffer.from(data.data) } : {}),
         });
         enqueued = true;
         offset += AUDIO_FRAME_BYTES;
@@ -127,22 +118,18 @@ export class WebRtcMixer {
       }
     }
     const mixed = new Int32Array(AUDIO_FRAME_SAMPLES);
-    const selectedFrames: SelectedAudioFrame[] = [];
     for (const [clientId, queue] of this.pendingFrames) {
       const frame = queue.shift();
       if (queue.length === 0) this.pendingFrames.delete(clientId);
       if (!frame) continue;
       const volume = this.memberVolumes.get(clientId) ?? 1;
-      selectedFrames.push({ ...frame, clientId, volume });
       for (let index = 0; index < AUDIO_FRAME_SAMPLES; index++) {
         mixed[index] += Math.round(frame.pcm.readInt16LE(index * 2) * volume);
       }
     }
 
-    if (selectedFrames.length === 1 && selectedFrames[0]?.opus && selectedFrames[0].volume === 1) {
-      return selectedFrames[0].opus;
-    }
-
+    // Every packet is encoded here, even for a lone speaker at unit volume. The track is one RTP stream, and mixing
+    // TeamSpeak's own Opus packets into it between our encoded ones breaks the listener's decoder state.
     const pcm = Buffer.allocUnsafe(AUDIO_FRAME_BYTES);
     for (let index = 0; index < AUDIO_FRAME_SAMPLES; index++) {
       // Fixed gain on the mix. Soft limiting changes the apparent loudness with the source level,

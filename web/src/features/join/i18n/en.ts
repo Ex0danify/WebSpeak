@@ -6,6 +6,8 @@ export const en = {
   errorCode: "Error code",
   viewChangelog: "View changelog",
   notConfigured: "The WebSpeak TeamSpeak target has not been configured.",
+  configLoadFailed: "The server settings could not be loaded. Check your connection and try again.",
+  retry: "Try again",
   configureNow: "Open admin console",
   privateAudio: "Private community audio",
   joinLine1: "Connect to your server,",

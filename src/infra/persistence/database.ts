@@ -149,6 +149,11 @@ export class WebSpeakDatabase {
     this.audit.insert(event, details, new Date().toISOString());
   }
 
+  /** The audit log only grows, so startup trims it to the newest rows. */
+  pruneAudit(keep = 5000): number {
+    return this.audit.prune(keep);
+  }
+
   recentAudit(limit = 8): Array<{ event: string; createdAt: string }> {
     return this.audit.recent(limit);
   }

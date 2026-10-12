@@ -106,19 +106,24 @@ export function useMicrophone(deps: MicrophoneDeps) {
     state.microphoneErrorCode = "";
   }
 
+  /** A saved device that is unplugged fails an exact constraint; forget it and take the default microphone instead. */
+  async function acquireStream(): Promise<MediaStream> {
+    try {
+      return await navigator.mediaDevices.getUserMedia({ audio: microphoneConstraints() });
+    } catch (error) {
+      const deviceGone = error instanceof DOMException && ["OverconstrainedError", "NotFoundError"].includes(error.name);
+      if (!deviceGone || !selectedInputDeviceId.value) throw error;
+      selectedInputDeviceId.value = "";
+      return navigator.mediaDevices.getUserMedia({ audio: microphoneConstraints() });
+    }
+  }
+
   async function startMicrophone(): Promise<void> {
     const ctx = deps.getAudioCtx();
-    if (ctx.state === "suspended") {
-      try {
-        await ctx.resume();
-      } catch {
-        /* the audio context notice explains the silence */
-      }
-    }
     // Acquire the replacement stream before tearing down the current graph, so a failed device change keeps the mic running.
     let nextStream: MediaStream;
     try {
-      nextStream = await navigator.mediaDevices.getUserMedia({ audio: microphoneConstraints() });
+      nextStream = await acquireStream();
       audioPermission.value = "granted";
       clearMicrophoneError();
     } catch (error) {
@@ -126,6 +131,15 @@ export function useMicrophone(deps: MicrophoneDeps) {
       // Never let the raw DOMException (usually an English message) reach the UI, record a readable failure first.
       setMicrophoneError(error);
       throw error;
+    }
+    // Resume only after the stream is in hand: a resume that waits for a user gesture would otherwise keep the
+    // permission prompt from ever appearing.
+    if (ctx.state === "suspended") {
+      try {
+        await ctx.resume();
+      } catch {
+        /* the audio context notice explains the silence */
+      }
     }
     const microphoneTrack = nextStream.getAudioTracks()[0];
     const settings = microphoneTrack?.getSettings();

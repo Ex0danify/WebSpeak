@@ -1,10 +1,12 @@
-import { RnnoiseWorkletNode, loadRnnoise } from "@sapphi-red/web-noise-suppressor";
 import rnnoiseSimdWasmUrl from "@sapphi-red/web-noise-suppressor/rnnoise_simd.wasm?url";
 import rnnoiseWasmUrl from "@sapphi-red/web-noise-suppressor/rnnoise.wasm?url";
 import rnnoiseWorkletUrl from "@sapphi-red/web-noise-suppressor/rnnoiseWorklet.js?url";
 import { storeToRefs } from "pinia";
 import { useVoiceAudioStore } from "../stores/voiceAudioStore";
 import { VOX_ATTACK_FRAMES, VOX_HOLD } from "../audioConstants";
+
+type RnnoiseModule = typeof import("@sapphi-red/web-noise-suppressor");
+type RnnoiseNode = InstanceType<RnnoiseModule["RnnoiseWorkletNode"]>;
 
 /** The two signal-processing pieces of the capture path, the RNNoise node (with its load caches) and the VOX gate (attack/hold
  *  counters). `voxGate` runs once per capture chunk and its counters are closure state, never reactive. */
@@ -14,16 +16,28 @@ export function createMicrophoneProcessing() {
   const { microphoneProcessing } = audio;
 
   let rnnoiseWorkletModulePromise: Promise<void> | null = null;
+  let rnnoiseModulePromise: Promise<RnnoiseModule> | null = null;
   let rnnoiseWasmPromise: Promise<ArrayBuffer> | null = null;
   let voxAttack = 0;
   let voxRelease = 0;
 
-  async function createRnnoiseNode(ctx: AudioContext): Promise<RnnoiseWorkletNode | null> {
+  /** The package extends AudioWorkletNode at module scope, so importing it where that class is missing (a page served over
+   *  plain HTTP) throws. It is only imported once the worklet check has passed. */
+  function loadRnnoiseModule(): Promise<RnnoiseModule> {
+    rnnoiseModulePromise ??= import("@sapphi-red/web-noise-suppressor").catch((error) => {
+      rnnoiseModulePromise = null;
+      throw error;
+    });
+    return rnnoiseModulePromise;
+  }
+
+  async function createRnnoiseNode(ctx: AudioContext): Promise<RnnoiseNode | null> {
     if (typeof AudioWorkletNode === "undefined" || !ctx.audioWorklet) {
       microphoneProcessing.rnnoise = false;
       return null;
     }
     try {
+      const { RnnoiseWorkletNode, loadRnnoise } = await loadRnnoiseModule();
       if (!rnnoiseWasmPromise) {
         rnnoiseWasmPromise = loadRnnoise({ url: rnnoiseWasmUrl, simdUrl: rnnoiseSimdWasmUrl }).catch((error) => {
           rnnoiseWasmPromise = null;

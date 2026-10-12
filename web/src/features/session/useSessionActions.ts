@@ -1,8 +1,10 @@
 import { storeToRefs } from "pinia";
 import { useSessionStore } from "./sessionStore";
+import { MAX_CHAT_MESSAGES, pushBounded } from "./sessionLimits";
 import { LocalizedError, text, type LocalizedText } from "@/shared/i18n/localizedText";
 import { normalizedClientErrorCode } from "./sessionErrors";
-import type { LatencyProbeResult } from "./sessionTypes";
+import { privateConversationKey } from "./format";
+import type { ChatMessage, LatencyProbeResult } from "./sessionTypes";
 import type { MessageHandlers } from "./messageRouter";
 
 /** Outgoing commands and everything that waits on a reply: command completion, latency probes, chat,
@@ -90,52 +92,61 @@ export function useSessionActions(deps: RoomActionsDeps) {
     }
   }
 
+  /** Shows the message at once as pending, then marks it failed if the gateway refuses it or does not answer. */
+  function sendChat(
+    type: string,
+    payload: Record<string, unknown>,
+    shown: Omit<ChatMessage, "id" | "timestamp" | "isSelf" | "status">,
+  ): void {
+    const id = `self-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+    pushBounded(chatMessages, MAX_CHAT_MESSAGES, { id, ...shown, timestamp: Date.now(), isSelf: true, status: "pending" });
+    const settle = (status: ChatMessage["status"]) => {
+      const sent = chatMessages.find((candidate) => candidate.id === id);
+      if (sent) sent.status = status;
+    };
+    sendCommandAndWait(type, payload).then(
+      () => settle(undefined),
+      () => settle("failed"),
+    );
+  }
+
   function sendTextMessage(message: string, targetId = ""): void {
     const trimmed = message.trim();
     if (!trimmed || trimmed.length > 500) return;
-    sendCmd("sendTextMessage", { message: trimmed });
-    chatMessages.push({
-      id: `self-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-      scope: "channel",
-      ...(targetId ? { targetId } : {}),
-      senderId: state.tsClientId,
-      invokerName: selfName(),
-      message: trimmed,
-      timestamp: Date.now(),
-      isSelf: true,
-    });
+    sendChat(
+      "sendTextMessage",
+      { message: trimmed },
+      { scope: "channel", ...(targetId ? { targetId } : {}), senderId: state.tsClientId, invokerName: selfName(), message: trimmed },
+    );
   }
 
   function sendServerMessage(message: string): void {
     const trimmed = message.trim();
     if (!trimmed || trimmed.length > 500) return;
-    sendCmd("sendServerMessage", { message: trimmed });
-    chatMessages.push({
-      id: `self-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-      scope: "server",
-      senderId: state.tsClientId,
-      invokerName: selfName(),
-      message: trimmed,
-      timestamp: Date.now(),
-      isSelf: true,
-    });
+    sendChat(
+      "sendServerMessage",
+      { message: trimmed },
+      { scope: "server", senderId: state.tsClientId, invokerName: selfName(), message: trimmed },
+    );
   }
 
   function sendPrivateMessage(clientId: number, message: string, targetId = ""): void {
     const trimmed = message.trim();
     if (!trimmed || trimmed.length > 500) return;
-    sendCmd("sendPrivateMessage", { clientId, message: trimmed });
-    chatMessages.push({
-      id: `self-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-      scope: "private",
-      targetId,
-      conversationId: String(clientId),
-      senderId: state.tsClientId,
-      invokerName: selfName(),
-      message: trimmed,
-      timestamp: Date.now(),
-      isSelf: true,
-    });
+    const recipient = members.find((member) => member.id === clientId);
+    sendChat(
+      "sendPrivateMessage",
+      { clientId, message: trimmed },
+      {
+        scope: "private",
+        targetId,
+        conversationId: privateConversationKey(recipient?.uid, clientId),
+        ...(recipient?.nickname ? { peerName: recipient.nickname } : {}),
+        senderId: state.tsClientId,
+        invokerName: selfName(),
+        message: trimmed,
+      },
+    );
   }
 
   function sendPoke(clientId: number, message = ""): void {

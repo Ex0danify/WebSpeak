@@ -29,6 +29,16 @@ export class ScreenShareHub {
 
   constructor(readonly host: ScreenShareHost) {}
 
+  /** The channel of a client on `targetKey`, from whichever session of this gateway can see it. */
+  channelOfClient(targetKey: string, clientId: number): bigint | undefined {
+    for (const participant of this.host.participants()) {
+      if (teamSpeakTargetKey(participant.target) !== targetKey) continue;
+      const channelId = participant.clientChannelId?.(clientId);
+      if (channelId !== undefined) return channelId;
+    }
+    return undefined;
+  }
+
   listScreenStreamsFor(entry: ScreenShareParticipant): ScreenShareStreamDescription[] {
     const targetKey = teamSpeakTargetKey(entry.target);
     return [...this.screenStreams.values()]

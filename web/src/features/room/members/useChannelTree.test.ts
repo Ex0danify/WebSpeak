@@ -273,6 +273,36 @@ describe("channel password dialog", () => {
   });
 });
 
+describe("a refused channel switch", () => {
+  it("puts the selection and the channel name back on the channel you are still in", async () => {
+    const { vm, options, voiceState, channels } = await mountUseChannelTree();
+    vm.selectChannel(vm.channelTree.find((item) => item.id === "raid")!);
+    expect(options.selectedChannelId.value).toBe("raid");
+    expect(options.channel.value).toBe("Raid");
+    voiceState.errorCode = "CHANNEL_FULL";
+    await flushPromises();
+    expect(options.selectedChannelId.value).toBe("lobby");
+    expect(options.channel.value).toBe("Lobby");
+    expect(channels).toHaveLength(2);
+  });
+
+  it("leaves the selection alone once the move went through, and for a password request", async () => {
+    const { vm, options, voiceState } = await mountUseChannelTree();
+    vm.selectChannel(vm.channelTree.find((item) => item.id === "raid")!);
+    voiceState.channelSwitchedChannelId = "raid";
+    await flushPromises();
+    voiceState.errorCode = "PERMISSION_DENIED";
+    await flushPromises();
+    expect(options.selectedChannelId.value).toBe("raid");
+    voiceState.errorCode = "";
+    vm.selectChannel(vm.channelTree.find((item) => item.id === "lobby")!);
+    voiceState.errorCode = "CHANNEL_PASSWORD_REQUIRED";
+    await flushPromises();
+    expect(options.selectedChannelId.value).toBe("lobby");
+    expect(vm.channelPasswordDialog.open).toBe(true);
+  });
+});
+
 describe("moveMemberDirect", () => {
   it("does nothing for the local member", async () => {
     const { vm, options } = await mountUseChannelTree();

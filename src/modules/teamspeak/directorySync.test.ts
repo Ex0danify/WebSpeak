@@ -165,3 +165,39 @@ describe("DirectorySynchronizer.clear", () => {
     expect(ids(sync)).toEqual([2]);
   });
 });
+
+describe("DirectorySynchronizer departed clients", () => {
+  it("a late snapshot does not bring back a client that left", () => {
+    const sync = new DirectorySynchronizer();
+    sync.applySnapshot(snapshot([client(4)]));
+    sync.applyClientLeave(4);
+    sync.applySnapshot(snapshot([client(4), client(5)]));
+    expect(ids(sync)).toEqual([5]);
+  });
+
+  it("a late update does not bring back a client that left", () => {
+    const sync = new DirectorySynchronizer();
+    sync.applySnapshot(snapshot([client(4)]));
+    sync.applyClientLeave(4);
+    sync.applyClientUpdated(client(4, { away: true }));
+    expect(ids(sync)).toEqual([]);
+  });
+
+  it("an enter event for the same id brings it back, ids are reused", () => {
+    const sync = new DirectorySynchronizer();
+    sync.applySnapshot(snapshot([client(4)]));
+    sync.applyClientLeave(4);
+    sync.applyClientEnter(client(4, { nickname: "newcomer" }));
+    sync.applyClientUpdated(client(4, { nickname: "newcomer", away: true }));
+    expect(sync.getSnapshot()?.clients).toEqual([client(4, { nickname: "newcomer", away: true })]);
+  });
+
+  it("clear forgets who left", () => {
+    const sync = new DirectorySynchronizer();
+    sync.applySnapshot(snapshot([client(4)]));
+    sync.applyClientLeave(4);
+    sync.clear();
+    sync.applySnapshot(snapshot([client(4)]));
+    expect(ids(sync)).toEqual([4]);
+  });
+});

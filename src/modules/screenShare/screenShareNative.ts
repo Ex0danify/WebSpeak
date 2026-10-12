@@ -71,9 +71,20 @@ export async function discoverExistingTeamSpeakStreams(hub: ScreenShareHub, entr
   const targetKey = teamSpeakTargetKey(entry.target);
   if (hub.screenStreamDiscoveryTargets.has(targetKey)) return;
   hub.screenStreamDiscoveryTargets.add(targetKey);
+  // A scan cut short by this session going away must not count as done for the target.
+  let completed = false;
+  try {
+    completed = await queryStreamInfo(hub, entry);
+  } finally {
+    if (!completed) hub.screenStreamDiscoveryTargets.delete(targetKey);
+  }
+}
+
+/** Resolves true when every visible client was asked, false when the session dropped out before that. */
+async function queryStreamInfo(hub: ScreenShareHub, entry: ScreenShareParticipant): Promise<boolean> {
   const clientIds = [...entry.members.keys()].filter((clientId) => Number.isInteger(clientId) && clientId > 0);
   for (const clientId of clientIds) {
-    if (!entry.tsClient.isConnected()) return;
+    if (!entry.tsClient.isConnected()) return false;
     try {
       await entry.tsClient.sendProtocolCommand(`requeststreaminfo clid=${clientId}`);
     } catch (error: unknown) {
@@ -87,6 +98,7 @@ export async function discoverExistingTeamSpeakStreams(hub: ScreenShareHub, entr
       );
     }
   }
+  return true;
 }
 
 export function handleRawScreenNotification(hub: ScreenShareHub, entry: ScreenShareParticipant, notification: TSRawNotification): void {
@@ -139,6 +151,15 @@ export function handleRawScreenNotification(hub: ScreenShareHub, entry: ScreenSh
       return;
     }
     const sourceEntry = [...hub.host.participants()].find((candidate) => candidate.tsClient.getClientId() === sourceClientId);
+    // The sharer's channel, not the viewer's: a stream announced from the wrong channel would show up for people who cannot join it.
+    const sourceChannelId = sourceEntry?.tsClient.getChannelId() ?? hub.channelOfClient(targetKey, sourceClientId);
+    if (sourceChannelId === undefined) {
+      hub.host.logger.debug(
+        { target: formatTeamSpeakTarget(entry.target), clientId: sourceClientId },
+        "Skipped TeamSpeak screen stream, its channel is unknown",
+      );
+      return;
+    }
     const key = screenStreamKey(targetKey, streamId);
     const current = hub.screenStreams.get(key);
     const stream: ScreenStreamRecord = current ?? {
@@ -154,7 +175,7 @@ export function handleRawScreenNotification(hub: ScreenShareHub, entry: ScreenSh
       viewerCount: 0,
       viewers: [],
       targetKey,
-      channelId: sourceEntry?.tsClient.getChannelId() ?? entry.tsClient.getChannelId(),
+      channelId: sourceChannelId,
       ownerEntryId: "",
       viewerEntryIds: new Set(),
       nativeViewerClids: new Set(),

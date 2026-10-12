@@ -144,6 +144,19 @@ describe("fixed access mode", () => {
   });
 });
 
+describe("a typed server password", () => {
+  it("is refused for a while after the server rejected one, and the admin's own password is not slowed", async () => {
+    const gateway = await gateways.start();
+    configure(gateway, { target: "8.8.8.8:9988", accessMode: "fixed", passwordAction: "replace", serverPassword: "admin-pass" });
+    const first = await issued(gateway, { nickname: "a", serverPassword: "guess" });
+    first.reportPasswordOutcome?.(false);
+    const retry = await post(gateway, { nickname: "a", serverPassword: "guess2" });
+    expect(retry.status).toBe(429);
+    expect(Number(retry.headers.get("retry-after"))).toBeGreaterThan(0);
+    expect((await issued(gateway, { nickname: "a" })).serverPassword).toBe("admin-pass");
+  });
+});
+
 describe("open access mode", () => {
   const openMode = (gateway: Gateway) =>
     configure(gateway, { target: "8.8.8.8:9988", accessMode: "open", passwordAction: "replace", serverPassword: "admin-pass" });

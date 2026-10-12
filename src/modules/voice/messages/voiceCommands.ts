@@ -155,7 +155,9 @@ export async function handleCommand(
       await entry.tsClient.setInputMuted(muted);
       entry.webrtc?.setMicrophoneMuted(muted);
     } else if (command.type === "setAccompanimentActive") {
-      entry.webrtc?.setAccompanimentActive(command.payload.active as boolean);
+      const active = command.payload.active as boolean;
+      entry.webrtc?.setAccompanimentActive(active);
+      await entry.tsClient.setAccompanimentActive(active);
     } else if (command.type === "setMemberVolume") {
       const clientId = command.payload.clientId as number;
       entry.webrtc?.setMemberVolume(clientId, command.payload.volume as number);

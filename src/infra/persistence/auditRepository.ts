@@ -16,4 +16,12 @@ export class AuditRepository {
       .all(normalizedLimit) as Array<{ event: string; created_at: string }>;
     return rows.map((row) => ({ event: row.event, createdAt: row.created_at }));
   }
+
+  /** Deletes all but the newest `keep` rows and returns how many went. */
+  prune(keep: number): number {
+    const result = this.context.database
+      .prepare("DELETE FROM audit_events WHERE id <= (SELECT MAX(id) FROM audit_events) - ?")
+      .run(Math.max(0, Math.floor(keep)));
+    return Number(result.changes);
+  }
 }

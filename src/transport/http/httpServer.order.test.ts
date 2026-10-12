@@ -59,6 +59,7 @@ describe("web server layer order", () => {
     const stack = stackOf(dir);
     expect(stack).toMatchInlineSnapshot(`
       [
+        "use <anonymous>",
         "use jsonParser",
         "GET /health",
         "GET /api/health",
@@ -77,6 +78,7 @@ describe("web server layer order", () => {
     const stack = stackOf();
     expect(stack).toMatchInlineSnapshot(`
       [
+        "use <anonymous>",
         "use jsonParser",
         "GET /health",
         "GET /api/health",

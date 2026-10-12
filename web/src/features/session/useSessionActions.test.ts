@@ -140,12 +140,14 @@ describe("channel and roster commands", () => {
 });
 
 describe("chat", () => {
-  it("sendTextMessage sends, then records the message as the person's own", () => {
+  const request = (type: string, payload: Record<string, unknown>) => ({ type, payload, requestId: expect.stringMatching(/^command-/) });
+
+  it("sendTextMessage sends with a request id and shows the message as the person's own, pending", () => {
     const { session, actions } = setup();
     session.state.tsClientId = 7;
     session.members.push({ id: 7, nickname: "Me", isSelf: true });
     actions.sendTextMessage("  hi  ", "chan-1");
-    expect(socket.sentJson).toEqual([{ type: "sendTextMessage", payload: { message: "hi" } }]);
+    expect(socket.sentJson).toEqual([request("sendTextMessage", { message: "hi" })]);
     expect(session.chatMessages).toHaveLength(1);
     expect(session.chatMessages[0]).toMatchObject({
       scope: "channel",
@@ -154,8 +156,29 @@ describe("chat", () => {
       invokerName: "Me",
       message: "hi",
       isSelf: true,
+      status: "pending",
     });
     expect(session.chatMessages[0].id).toMatch(/^self-/);
+  });
+
+  it("a message is delivered once the gateway completes the command, and failed when it refuses or stays silent", async () => {
+    vi.useFakeTimers();
+    const { session, actions } = setup();
+    actions.sendServerMessage("one");
+    actions.sendServerMessage("two");
+    actions.sendServerMessage("three");
+    const [one, two] = socket.sentJson.map((frame) => frame.requestId as string);
+    actions.handlers.commandCompleted!({ type: "commandCompleted", requestId: one });
+    actions.handlers.error!({ type: "error", requestId: two, error: { code: "PERMISSION_DENIED", message: "no", recoverable: false } });
+    await vi.advanceTimersByTimeAsync(8_000);
+    expect(session.chatMessages.map((message) => message.status)).toEqual([undefined, "failed", "failed"]);
+  });
+
+  it("a message sent while the socket is closed is shown as not delivered", async () => {
+    const { session, actions } = setup(false);
+    actions.sendTextMessage("hi");
+    await Promise.resolve();
+    expect(session.chatMessages[0]?.status).toBe("failed");
   });
 
   it("drops empty and over-500-character messages without sending", () => {
@@ -167,16 +190,26 @@ describe("chat", () => {
     expect(session.chatMessages).toHaveLength(0);
   });
 
-  it("server and private messages carry their scope", () => {
+  it("server and private messages carry their scope, a private one files under the other person's uid", () => {
     const { session, actions } = setup();
+    session.members.push({ id: 3, nickname: "Ana", uid: "uid-ana" });
     actions.sendServerMessage("all");
     actions.sendPrivateMessage(3, "psst", "t1");
+    actions.sendPrivateMessage(4, "who", "t2");
     expect(socket.sentJson).toEqual([
-      { type: "sendServerMessage", payload: { message: "all" } },
-      { type: "sendPrivateMessage", payload: { clientId: 3, message: "psst" } },
+      request("sendServerMessage", { message: "all" }),
+      request("sendPrivateMessage", { clientId: 3, message: "psst" }),
+      request("sendPrivateMessage", { clientId: 4, message: "who" }),
     ]);
     expect(session.chatMessages[0]).toMatchObject({ scope: "server", message: "all" });
-    expect(session.chatMessages[1]).toMatchObject({ scope: "private", targetId: "t1", conversationId: "3", message: "psst" });
+    expect(session.chatMessages[1]).toMatchObject({
+      scope: "private",
+      targetId: "t1",
+      conversationId: "uid:uid-ana",
+      peerName: "Ana",
+      message: "psst",
+    });
+    expect(session.chatMessages[2]).toMatchObject({ conversationId: "id:4" });
   });
 });
 

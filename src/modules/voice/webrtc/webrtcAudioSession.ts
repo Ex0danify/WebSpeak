@@ -1,5 +1,5 @@
 import { randomInt } from "node:crypto";
-import { MediaStreamTrack, RtpHeader, RtpPacket, RTCPeerConnection } from "werift";
+import { MediaStreamTrack, RtpHeader, RtpPacket, RTCPeerConnection, useOPUS } from "werift";
 import type { Logger as LoggerType } from "../../../shared/logger.js";
 import type { TSVoiceData } from "../../teamspeak/index.js";
 import { OpusEncoder } from "../voiceOpus.js";
@@ -18,7 +18,8 @@ export interface WebRtcSessionDescription {
 
 export interface WebRtcAudioSessionOptions {
   connectionId: string;
-  publicHost?: string;
+  /** IPv4 addresses advertised as extra host candidates, never a host name. */
+  publicAddresses?: string[];
   udpPortRange?: [number, number];
   logger: LoggerType;
   microphoneMuted?: boolean;
@@ -101,10 +102,11 @@ export class WebRtcAudioSession {
     this.accompanimentActive = options.accompanimentActive === true;
     this.outgoingTrack = new MediaStreamTrack({ kind: "audio" });
 
-    const iceAdditionalHostAddresses = options.publicHost ? [options.publicHost] : undefined;
+    const iceAdditionalHostAddresses = options.publicAddresses?.length ? options.publicAddresses : undefined;
     const udpPortRange = options.udpPortRange ?? WEBRTC_UDP_PORT_RANGE;
     this.peer = new RTCPeerConnection({
       iceServers: [],
+      codecs: { audio: [useOPUS()] },
       iceUseIpv4: true,
       iceUseIpv6: false,
       iceUseTcp: false,
@@ -168,10 +170,11 @@ export class WebRtcAudioSession {
 
   async createAnswer(offer: WebRtcSessionDescription): Promise<WebRtcSessionDescription> {
     if (this.closed) throw new Error("WebRTC session is closed");
-    this.setOpusPayloadTypes(offer.sdp);
     await this.peer.setRemoteDescription(offer);
     const transceiver = this.peer.getTransceivers().find((candidate) => candidate.kind === "audio");
-    if (transceiver) await transceiver.sender.replaceTrack(this.outgoingTrack);
+    if (!transceiver) throw new Error("WebRTC offer has no audio section");
+    this.setOpusPayloadTypes(transceiver.codecs);
+    await transceiver.sender.replaceTrack(this.outgoingTrack);
     const answer = await this.peer.createAnswer();
     await this.peer.setLocalDescription(answer);
     const description = this.peer.localDescription;
@@ -259,14 +262,14 @@ export class WebRtcAudioSession {
     this.mixer.setMemberVolume(clientId, volume);
   }
 
-  private setOpusPayloadTypes(sdp: string): void {
+  /** The payload types the browser chose for Opus. Guessing a default would label other audio as Opus. */
+  private setOpusPayloadTypes(codecs: readonly { mimeType: string; clockRate: number; payloadType: number }[]): void {
     this.opusPayloadTypes.clear();
-    for (const match of sdp.matchAll(/^a=rtpmap:(\d+)\s+opus\/48000(?:\/\d+)?/gim)) {
-      const payloadType = Number(match[1]);
-      if (!Number.isInteger(payloadType) || payloadType < 0 || payloadType > 127) continue;
-      this.opusPayloadTypes.add(payloadType);
-      this.outgoingPayloadType = payloadType;
+    for (const codec of codecs) {
+      if (codec.mimeType.toLowerCase() !== "audio/opus" || codec.clockRate !== 48_000) continue;
+      this.opusPayloadTypes.add(codec.payloadType);
+      this.outgoingPayloadType = codec.payloadType;
     }
-    if (!this.opusPayloadTypes.size) this.opusPayloadTypes.add(DEFAULT_WEBRTC_OPUS_PAYLOAD_TYPE);
+    if (!this.opusPayloadTypes.size) throw new Error("WebRTC offer did not negotiate Opus at 48 kHz");
   }
 }

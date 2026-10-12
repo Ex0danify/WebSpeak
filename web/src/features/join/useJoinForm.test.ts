@@ -18,6 +18,8 @@ type Exposed = {
   initialized: boolean;
   browserError: string;
   serverConfigLoading: boolean;
+  serverConfigFailed: boolean;
+  loadPublicConfig: () => Promise<void>;
   serverPasswordDialog: { open: boolean; password: string; errorCode: string };
   canJoin: boolean;
   isFavorite: boolean;
@@ -309,6 +311,25 @@ describe("loadPublicConfig (run on mount)", () => {
     );
     await flushPromises();
     expect((wrapper.vm as unknown as Exposed).initialized).toBe(true);
+  });
+
+  it("says the settings failed to load, not that the gateway is unconfigured, and recovers on a retry", async () => {
+    vi.resetModules();
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response("", { status: 502 })),
+    );
+    const { vm } = await mountUseJoinForm();
+    expect(vm.serverConfigFailed).toBe(true);
+    expect(vm.initialized).toBe(false);
+    expect(vm.serverConfigLoading).toBe(false);
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response(JSON.stringify({ initialized: false }), { status: 200 })),
+    );
+    await vm.loadPublicConfig();
+    expect(vm.serverConfigFailed).toBe(false);
+    expect(vm.initialized).toBe(false);
   });
 
   it("applies the gateway's public config", async () => {

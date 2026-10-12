@@ -160,6 +160,27 @@ test.describe("private chat", () => {
     await expect(message(page, "You", "just between us")).toBeHidden();
   });
 
+  test("when the person leaves, the tab keeps their name, the chat says so and cannot be written to", async ({
+    page,
+    script,
+    isMobile,
+  }) => {
+    const other = script.member("pm-gone-other");
+    await join(page, "pm-gone-self");
+    await (await openMemberMenu(page, "pm-gone-other")).getByText("Private message", { exact: true }).click();
+    if (!isMobile) await openChat(page);
+    await composer(page).fill("are you there");
+    await sendButton(page).click();
+    await expect(message(page, "You", "are you there")).toBeVisible();
+    await expect(chatTab(page, "pm-gone-other")).toBeVisible();
+
+    other.leave();
+    await expect(page.getByRole("status").filter({ hasText: "pm-gone-other is not on the server" })).toBeVisible();
+    await expect(chatTab(page, "pm-gone-other")).toBeVisible();
+    await expect(chatTab(page, "pm-gone-self")).toHaveCount(0);
+    await expect(composer(page)).toBeDisabled();
+  });
+
   // A private chat that was just opened has no message yet, and the title is taken from the member list.
   async function openEmptyPrivateChat(page: Page, script: Script, isMobile: boolean, nickname: string) {
     script.member(`${nickname}-other`);

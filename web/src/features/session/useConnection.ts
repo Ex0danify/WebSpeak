@@ -3,6 +3,7 @@ import { useSessionStore } from "./sessionStore";
 import { LocalizedError, text, type LocalizedText } from "@/shared/i18n/localizedText";
 import { normalizedClientErrorCode } from "./sessionErrors";
 import { closeErrorCode, closeReason, connectionFailureMessage, joinTicketReason, protocolErrorMessage } from "./connectionMessages";
+import { MAX_SERVER_EVENTS, pushBounded, readAvatar } from "./sessionLimits";
 import { setScreenShareIceServers } from "./iceServers";
 import type { MessageHandlers } from "./messageRouter";
 
@@ -264,12 +265,12 @@ export function useConnection(deps: ConnectionDeps) {
       if (Array.isArray(msg.members)) {
         members.length = 0;
         for (const member of msg.members) {
-          members.push({ ...member, isSelf: Number(member.id) === state.tsClientId });
+          members.push({ ...member, avatar: readAvatar(member.avatar), isSelf: Number(member.id) === state.tsClientId });
         }
         deps.syncKnownMemberVolumes();
       }
       serverEvents.length = 0;
-      if (Array.isArray(msg.serverEventLog)) serverEvents.push(...msg.serverEventLog);
+      if (Array.isArray(msg.serverEventLog)) pushBounded(serverEvents, MAX_SERVER_EVENTS, ...msg.serverEventLog);
       if (typeof msg.identity === "string" && msg.identity.length <= 8192) {
         deps.identityMaterial.value = msg.identity;
         if (lastConnection) lastConnection.identity = msg.identity;

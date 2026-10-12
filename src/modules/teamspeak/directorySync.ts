@@ -9,11 +9,13 @@ type DirectoryDelta =
 
 /**
  * Merges staged welcome snapshots with events that arrive while the snapshot is in flight. TS6 sends some
- * welcome data as partial snapshots, so a later one must not hide earlier clients. Leave events always win.
+ * welcome data as partial snapshots, so a later one must not hide earlier clients. Leave events always win, and a departed id stays gone until it enters again.
  */
 export class DirectorySynchronizer {
   private snapshot: TSDirectorySnapshot | null = null;
   private clients = new Map<number, DirectoryClientInfo>();
+  // Ids that left. A delayed snapshot or update must not bring them back, only a new enter event can.
+  private departed = new Set<number>();
   private pending: DirectoryDelta[] = [];
 
   get ready(): boolean {
@@ -23,6 +25,7 @@ export class DirectorySynchronizer {
   applySnapshot(snapshot: TSDirectorySnapshot): void {
     this.snapshot = { channels: snapshot.channels.slice(), clients: [] };
     for (const client of snapshot.clients) {
+      if (this.departed.has(client.id)) continue;
       const previous = this.clients.get(client.id);
       this.clients.set(client.id, previous ? { ...previous, ...client } : client);
     }
@@ -46,6 +49,11 @@ export class DirectorySynchronizer {
     this.applyOrQueue({ type: "clientUpdated", info });
   }
 
+  /** The channel a client is in, or undefined for a client the directory does not know (yet, or any more). */
+  getClientChannelId(id: number): bigint | undefined {
+    return this.clients.get(id)?.channelID;
+  }
+
   getSnapshot(): TSDirectorySnapshot | null {
     if (!this.snapshot) return null;
     return {
@@ -57,6 +65,7 @@ export class DirectorySynchronizer {
   clear(): void {
     this.snapshot = null;
     this.clients.clear();
+    this.departed.clear();
     this.pending = [];
   }
 
@@ -70,14 +79,17 @@ export class DirectorySynchronizer {
 
   private applyDelta(delta: DirectoryDelta): void {
     if (delta.type === "clientEnter") {
+      this.departed.delete(delta.info.id);
       this.clients.set(delta.info.id, delta.info);
       return;
     }
     if (delta.type === "clientLeave") {
       this.clients.delete(delta.id);
+      this.departed.add(delta.id);
       return;
     }
     if (delta.type === "clientUpdated") {
+      if (this.departed.has(delta.info.id)) return;
       const current = this.clients.get(delta.info.id);
       this.clients.set(delta.info.id, current ? { ...current, ...delta.info } : delta.info);
       return;

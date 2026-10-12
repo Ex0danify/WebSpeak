@@ -60,7 +60,16 @@ describe("chatMessage", () => {
   it("files a private message under the sender's conversation", async () => {
     const socket = await connected();
     await push(socket, { type: "chatMessage", scope: "private", invokerId: 9, invokerName: "Ana", message: "psst" });
-    expect(harness.voice.chat.chatMessages[0]).toMatchObject({ scope: "private", conversationId: "9" });
+    expect(harness.voice.chat.chatMessages[0]).toMatchObject({ scope: "private", conversationId: "id:9" });
+    await push(socket, {
+      type: "chatMessage",
+      scope: "private",
+      invokerId: 11,
+      senderUid: "uid-ana",
+      invokerName: "Ana",
+      message: "again",
+    });
+    expect(harness.voice.chat.chatMessages[1]).toMatchObject({ conversationId: "uid:uid-ana" });
   });
 
   it("drops an echo of the own message", async () => {

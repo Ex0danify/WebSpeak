@@ -89,6 +89,35 @@ test.describe("menu", () => {
 });
 
 test.describe("volume", () => {
+  test("the slider in a member's row changes the volume and does not start dragging the member", async ({ page, script, isMobile }) => {
+    test.skip(isMobile, "the row's slider is hidden on a phone");
+    script.member("vol-drag-other");
+    await join(page, "vol-drag-self");
+    const row = memberRow(page, "vol-drag-other");
+    await expect(row).toBeVisible();
+    await page.evaluate(() => {
+      (window as unknown as { dragStarts: number }).dragStarts = 0;
+      document.addEventListener("dragstart", () => ((window as unknown as { dragStarts: number }).dragStarts += 1));
+    });
+    const thumb = row.getByRole("slider", { name: "Member volume" });
+    const box = (await thumb.boundingBox())!;
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(box.x + box.width / 2 + 12, box.y + box.height / 2 + 2, { steps: 6 });
+    await page.mouse.move(box.x + box.width / 2 + 20, box.y + box.height / 2 + 14, { steps: 6 });
+    await page.mouse.up();
+    expect(await page.evaluate(() => (window as unknown as { dragStarts: number }).dragStarts)).toBe(0);
+    await expect(row).not.toHaveClass(/(^|\s)dragging(\s|$)/);
+    await expect(thumb).not.toHaveAttribute("aria-valuenow", "100");
+    // Control: the same gesture from the nickname does pick the member up, so the class checked above can show a drag.
+    const name = (await row.getByText("vol-drag-other", { exact: true }).boundingBox())!;
+    await page.mouse.move(name.x + 4, name.y + name.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(name.x + 40, name.y + 30, { steps: 8 });
+    await expect(row).toHaveClass(/(^|\s)dragging(\s|$)/);
+    await page.mouse.up();
+  });
+
   test("the menu's volume changes by 5 with the arrow keys and jumps with Home and End (popup)", async ({ page, script, isMobile }) => {
     test.skip(isMobile, "the popup's volume row is an item; the sheet has a plain slider");
     script.member("vol-menu-other");

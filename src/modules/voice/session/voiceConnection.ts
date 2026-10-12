@@ -96,6 +96,7 @@ function handleConnectFailure(ctx: VoiceConnection, hooks: VoiceConnectionDeps, 
   const failureCode = clientConnectionFailureCode(normalized, ctx.serverPassword);
   const failureDetail = publicFailureDetail(normalized);
   ctx.entry.connectionFailureCode = failureCode;
+  if (failureCode === "INVALID_SERVER_PASSWORD") ctx.reportPasswordOutcome?.(false);
   ctx.logger.warn(
     {
       code: failureCode,
@@ -193,6 +194,7 @@ export function sendInitialState(ctx: VoiceConnection, hooks: VoiceConnectionDep
   ctx.state.directoryTimer = null;
   const wasReconnecting = ctx.state.hasConnectedOnce;
   ctx.state.hasConnectedOnce = true;
+  if (!wasReconnecting) ctx.reportPasswordOutcome?.(true);
   // A previous kick reason never applies to a fresh session.
   ctx.state.pendingKickReason = null;
   ctx.state.reconnectAttempt = 0;

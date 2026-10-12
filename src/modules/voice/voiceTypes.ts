@@ -105,6 +105,7 @@ export interface WebClientEntry {
   webrtcPublicHost?: string;
   channelTree: unknown[];
   members: Map<number, ChannelMember>;
+  clientChannelId?(clientId: number): bigint | undefined;
   avatarCache: Map<string, string | null>;
   eventLog: ServerEvent[];
   opusEncoder: { encode(pcm: Buffer): Buffer } | null;
@@ -148,6 +149,8 @@ export interface VoiceConnection {
   logger: Logger;
   channelName: string | undefined;
   serverPassword: string | undefined;
+  /** Tells the join route whether the server accepted the password the visitor typed. */
+  reportPasswordOutcome?: (accepted: boolean) => void;
   directory: DirectorySynchronizer;
   avatarRequests: Set<string>;
   sendJson: (message: Record<string, unknown>) => void;

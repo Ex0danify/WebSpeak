@@ -1,6 +1,5 @@
 import { createHash, randomBytes } from "node:crypto";
 import type { Request, Response } from "express";
-import type { TLSSocket } from "node:tls";
 
 const COOKIE_NAME = "webspeak_admin";
 const SESSION_TTL_MS = 12 * 60 * 60 * 1000;
@@ -17,6 +16,8 @@ export class AdminSessionStore {
     const token = randomBytes(32).toString("base64url");
     const csrfToken = randomBytes(24).toString("base64url");
     const expiresAt = now + SESSION_TTL_MS;
+    // A session nobody asks for again would otherwise stay in memory until the process ends.
+    for (const [key, session] of this.sessions) if (session.expiresAt <= now) this.sessions.delete(key);
     this.sessions.set(hashToken(token), { csrfToken, expiresAt });
     response.cookie(COOKIE_NAME, token, {
       httpOnly: true,
@@ -50,10 +51,6 @@ export class AdminSessionStore {
   clear(): void {
     this.sessions.clear();
   }
-}
-
-export function isSecureRequest(request: Request): boolean {
-  return (request.socket as TLSSocket).encrypted === true;
 }
 
 function hashToken(token: string): string {

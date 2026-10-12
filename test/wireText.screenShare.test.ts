@@ -31,6 +31,8 @@ describe("screen share errors (screenSharePublish, screenShareNative)", () => {
       },
       ws: { readyState: 1, send: (data: string) => frames.push(JSON.parse(data)) },
       members: new Map(),
+      // The native TeamSpeak user (client 50) every session in these tests can see, in the sessions' channel.
+      clientChannelId: (clientId) => (clientId === 50 ? 1n : undefined),
     };
     return { entry, frames };
   }

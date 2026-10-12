@@ -12,7 +12,13 @@
       ></Banner
     >
     <Banner v-if="browserError" variant="warning" class="mb-2.5">{{ resolveText(browserError) }}</Banner>
-    <Banner v-if="!serverConfigLoading && !initialized" variant="warning" class="mb-2.5"
+    <Banner v-if="!serverConfigLoading && serverConfigFailed" variant="danger" class="mb-2.5">
+      {{ t("configLoadFailed") }}
+      <template #actions
+        ><Button size="sm" variant="outline" @click="$emit('retry-config')">{{ t("retry") }}</Button></template
+      >
+    </Banner>
+    <Banner v-else-if="!serverConfigLoading && !initialized" variant="warning" class="mb-2.5"
       >{{ t("notConfigured") }} <a href="/admin">{{ t("configureNow") }}</a></Banner
     >
     <Banner v-if="!localPersistenceAvailable" variant="warning" class="mb-2.5">{{ t("localPersistenceUnavailable") }}</Banner>
@@ -152,6 +158,7 @@ defineProps<{
   accelerationRelays: Array<{ id: string; name: string }>;
   initialized: boolean;
   serverConfigLoading: boolean;
+  serverConfigFailed: boolean;
   browserError: MaybeLocalizedText;
   error: MaybeLocalizedText;
   errorCode: string;
@@ -164,6 +171,7 @@ defineEmits<{
   (e: "select-local-server", address: string, nickname?: string): void;
   (e: "toggle-favorite"): void;
   (e: "connect"): void;
+  (e: "retry-config"): void;
   (e: "disconnect"): void;
 }>();
 

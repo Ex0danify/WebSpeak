@@ -1,4 +1,15 @@
 import { useSessionStore } from "./sessionStore";
+import { privateConversationKey } from "./format";
+import {
+  MAX_CHAT_MESSAGES,
+  MAX_CHAT_TEXT_LENGTH,
+  MAX_NICKNAME_LENGTH,
+  MAX_POKE_NOTIFICATIONS,
+  MAX_SERVER_EVENTS,
+  clampText,
+  pushBounded,
+  readAvatar,
+} from "./sessionLimits";
 import type { ServerEvent, ServerMessage, ServerMessageType } from "./sessionTypes";
 
 /** Gateway control frame handlers, keyed by `type`; each one receives the matching `ServerMessage` variant.
@@ -20,7 +31,7 @@ export function createRosterHandlers(deps: { syncKnownMemberVolumes: () => void 
           id: msg.id,
           nickname: msg.nickname,
           uid: typeof msg.uid === "string" ? msg.uid : undefined,
-          avatar: typeof msg.avatar === "string" ? msg.avatar : undefined,
+          avatar: readAvatar(msg.avatar),
           isSelf: Boolean(msg.isSelf),
         });
         syncKnownMemberVolumes();
@@ -36,7 +47,7 @@ export function createRosterHandlers(deps: { syncKnownMemberVolumes: () => void 
     memberAvatar: (msg) => {
       const clientId = Number(msg.id);
       const uid = typeof msg.uid === "string" ? msg.uid : "";
-      const avatar = typeof msg.avatar === "string" ? msg.avatar : "";
+      const avatar = readAvatar(msg.avatar) ?? "";
       const member = members.find((candidate) => candidate.id === clientId && (!uid || candidate.uid === uid));
       if (member) member.avatar = avatar || undefined;
       for (const channel of channels) {
@@ -51,28 +62,35 @@ export function createRosterHandlers(deps: { syncKnownMemberVolumes: () => void 
       // Older gateways and TeamSpeak channel notifications may use 0 as
       // the broadcast sentinel. It must not be compared with a channel id.
       const incomingTargetId = rawTargetId && rawTargetId !== "0" ? rawTargetId : undefined;
-      chatMessages.push({
+      pushBounded(chatMessages, MAX_CHAT_MESSAGES, {
         id: `remote-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
         scope: incomingScope,
         ...(incomingTargetId ? { targetId: incomingTargetId } : {}),
-        ...(incomingScope === "private" ? { conversationId: String(Number(msg.invokerId) || 0) } : {}),
+        ...(incomingScope === "private"
+          ? {
+              conversationId: privateConversationKey(
+                typeof msg.senderUid === "string" ? msg.senderUid : undefined,
+                Number(msg.invokerId) || 0,
+              ),
+            }
+          : {}),
         senderId: Number(msg.invokerId) || undefined,
         senderUid: typeof msg.senderUid === "string" ? msg.senderUid : undefined,
-        invokerName: String(msg.invokerName || "Unknown"),
-        message: String(msg.message || ""),
+        invokerName: clampText(String(msg.invokerName || "Unknown"), MAX_NICKNAME_LENGTH),
+        message: clampText(String(msg.message || ""), MAX_CHAT_TEXT_LENGTH),
         timestamp: typeof msg.timestamp === "number" ? msg.timestamp : Date.now(),
       });
     },
     serverEvent: (msg) => {
-      if (msg.event && typeof msg.event.id === "string") serverEvents.push(msg.event as ServerEvent);
+      if (msg.event && typeof msg.event.id === "string") pushBounded(serverEvents, MAX_SERVER_EVENTS, msg.event as ServerEvent);
     },
     pokeReceived: (msg) => {
-      pokeNotifications.push({
+      pushBounded(pokeNotifications, MAX_POKE_NOTIFICATIONS, {
         id: `poke-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
         invokerId: Number(msg.invokerId) || 0,
         invokerUid: typeof msg.invokerUid === "string" ? msg.invokerUid : "",
-        invokerName: String(msg.invokerName || "Unknown"),
-        message: String(msg.message || ""),
+        invokerName: clampText(String(msg.invokerName || "Unknown"), MAX_NICKNAME_LENGTH),
+        message: clampText(String(msg.message || ""), MAX_CHAT_TEXT_LENGTH),
         timestamp: typeof msg.timestamp === "number" ? msg.timestamp : Date.now(),
       });
     },

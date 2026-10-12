@@ -112,7 +112,7 @@ describe("roster handlers", () => {
     handlers.chatMessage!({ invokerId: 4, message: "c", scope: "channel", targetId: "12" });
     handlers.chatMessage!({ message: "sys", scope: "weird" });
     expect(session.chatMessages).toMatchObject([
-      { scope: "private", conversationId: "4", senderId: 4, senderUid: "s", invokerName: "n", message: "hi", timestamp: 7 },
+      { scope: "private", conversationId: "uid:s", senderId: 4, senderUid: "s", invokerName: "n", message: "hi", timestamp: 7 },
       { scope: "channel", targetId: "12", invokerName: "Unknown" },
       { scope: "system", message: "sys", senderId: undefined },
     ]);
@@ -135,5 +135,47 @@ describe("roster handlers", () => {
       { invokerId: 3, invokerUid: "u", invokerName: "n", message: "m", timestamp: 5 },
       { invokerId: 0, invokerUid: "", invokerName: "Unknown", message: "" },
     ]);
+  });
+});
+
+describe("bounds on what the gateway can make the store hold", () => {
+  const handlers = () => createRosterHandlers({ syncKnownMemberVolumes() {} }) as unknown as LooseHandlers;
+
+  it("keeps the newest 500 chat messages, 500 server events and 20 pokes", () => {
+    const store = useSessionStore();
+    const h = handlers();
+    for (let i = 0; i < 700; i++) {
+      h.chatMessage!({ invokerId: 9, invokerName: "a", message: `m${i}`, scope: "channel" });
+      h.serverEvent!({ event: { id: `e${i}`, kind: "join", timestamp: i } });
+      h.pokeReceived!({ invokerId: 1, invokerName: "a", message: `p${i}` });
+    }
+    expect(store.chatMessages).toHaveLength(500);
+    expect(store.chatMessages.at(-1)?.message).toBe("m699");
+    expect(store.chatMessages[0]?.message).toBe("m200");
+    expect(store.serverEvents).toHaveLength(500);
+    expect(store.pokeNotifications).toHaveLength(20);
+    expect(store.pokeNotifications.at(-1)?.message).toBe("p699");
+  });
+
+  it("cuts chat text to 2000 characters and names to 128", () => {
+    const store = useSessionStore();
+    const h = handlers();
+    h.chatMessage!({ invokerId: 9, invokerName: "n".repeat(10_000), message: "x".repeat(100_000), scope: "channel" });
+    h.pokeReceived!({ invokerId: 1, invokerName: "n".repeat(10_000), message: "x".repeat(100_000) });
+    expect(store.chatMessages[0]?.message).toHaveLength(2000);
+    expect(store.chatMessages[0]?.invokerName).toHaveLength(128);
+    expect(store.pokeNotifications[0]?.message).toHaveLength(2000);
+    expect(store.pokeNotifications[0]?.invokerName).toHaveLength(128);
+  });
+
+  it("ignores an avatar over 512 KB and keeps a normal one", () => {
+    const store = useSessionStore();
+    const h = handlers();
+    h.memberEnter!({ id: 1, nickname: "big", avatar: "a".repeat(512 * 1024 + 1) });
+    h.memberEnter!({ id: 2, nickname: "small", avatar: "data:image/png;base64,AAAA" });
+    expect(store.members.find((m) => m.id === 1)?.avatar).toBeUndefined();
+    expect(store.members.find((m) => m.id === 2)?.avatar).toBe("data:image/png;base64,AAAA");
+    h.memberAvatar!({ id: 2, avatar: "a".repeat(512 * 1024 + 1) });
+    expect(store.members.find((m) => m.id === 2)?.avatar).toBeUndefined();
   });
 });

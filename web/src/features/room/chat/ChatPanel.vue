@@ -81,11 +81,25 @@
               >
                 {{ message.message }}
               </div>
+              <div
+                v-if="message.status"
+                :class="[
+                  'mt-1 text-caption',
+                  message.status === 'failed' ? 'text-danger' : 'text-fg-muted',
+                  message.isSelf && 'text-right',
+                ]"
+                :role="message.status === 'failed' ? 'alert' : undefined"
+              >
+                {{ message.status === "failed" ? t("messageNotDelivered") : t("messageSending") }}
+              </div>
             </div>
           </article>
         </template>
       </TabPanel>
     </Tabs>
+    <Banner v-if="privatePeerName" variant="warning" class="mt-3 compact:absolute compact:inset-x-0 compact:bottom-20">
+      {{ t("privatePeerAway", { name: privatePeerName }) }}
+    </Banner>
     <form
       v-if="chatTab !== 'events'"
       class="sticky bottom-[env(safe-area-inset-bottom,0px)] z-3 flex min-h-12 items-center gap-1.75 rounded-lg bg-surface-2 py-1.5 pr-2 pl-3 max-compact:relative max-compact:mb-1 max-compact:min-h-13.5 max-compact:flex-none max-compact:border max-compact:border-line max-compact:py-1.75 max-compact:pl-3.25 compact:absolute compact:inset-x-0 compact:bottom-4"
@@ -95,12 +109,18 @@
         v-model="messageDraft"
         maxlength="500"
         :placeholder="chatPlaceholder"
+        :disabled="Boolean(privatePeerName)"
         :aria-label="t('send')"
         class="flex-1"
         input-class="h-9 border-0 bg-transparent px-0 text-md max-compact:text-sm"
       />
       <Tooltip :text="t('send')"
-        ><Button type="submit" icon-only class="size-8.5 shrink-0" :disabled="!messageDraft.trim()" :aria-label="t('send')"
+        ><Button
+          type="submit"
+          icon-only
+          class="size-8.5 shrink-0"
+          :disabled="!messageDraft.trim() || Boolean(privatePeerName)"
+          :aria-label="t('send')"
           ><Icon name="send" :size="18" /></Button
       ></Tooltip>
     </form>
@@ -110,6 +130,7 @@
 <script setup lang="ts">
 import { computed, type ComponentPublicInstance } from "vue";
 import { Avatar } from "@/shared/ui/avatar";
+import { Banner } from "@/shared/ui/banner";
 import { Button } from "@/shared/ui/button";
 import { Tooltip } from "@/shared/ui/tooltip";
 import { Icon } from "@/shared/ui/icon";
@@ -122,11 +143,13 @@ import type { ChannelMember, ChatMessage, ServerEvent } from "@/features/session
 const props = defineProps<{
   mobileSection: "channels" | "chat" | "voice" | "more";
   currentChannelName: string;
-  privateConversations: Array<{ id: number; name: string; lastMessage: number }>;
-  privateClientId: number;
+  privateConversations: Array<{ id: string; name: string; lastMessage: number }>;
+  privateConversationId: string;
   chatTabLabel: string;
   chatTitle: string;
   chatPlaceholder: string;
+  /** The name of the person the open private chat is with while they are away, "" otherwise. */
+  privatePeerName: string;
   serverEvents: ServerEvent[];
   visibleChatMessages: ChatMessage[];
   members: ChannelMember[];
@@ -136,7 +159,7 @@ const props = defineProps<{
 }>();
 
 const emit = defineEmits<{
-  (e: "open-private-chat", clientId: number): void;
+  (e: "open-private-chat", target: number | string): void;
   (e: "submit"): void;
 }>();
 
@@ -147,9 +170,9 @@ const { t } = useI18n();
 
 // One tab key per tab: the three fixed ones and `private-<id>` per conversation.
 const activeTab = computed({
-  get: () => (chatTab.value === "private" ? `private-${props.privateClientId}` : chatTab.value),
+  get: () => (chatTab.value === "private" ? `private-${props.privateConversationId}` : chatTab.value),
   set: (key: string) => {
-    if (key.startsWith("private-")) emit("open-private-chat", Number(key.slice("private-".length)));
+    if (key.startsWith("private-")) emit("open-private-chat", key.slice("private-".length));
     else chatTab.value = key as "channel" | "server" | "events";
   },
 });
