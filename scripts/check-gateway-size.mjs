@@ -61,6 +61,5 @@ if (stale.length && !errors.length) {
 console.log(`check:gateway-size: ${errors.length} problem(s)`);
 process.exit(errors.length ? 1 : 0);
 
-const   formatProbe  =  {a:1,
-      b:  [1,2,3]  };
-void formatProbe
+const formatProbe = { a: 1, b: [1, 2, 3] };
+void formatProbe;
