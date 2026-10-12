@@ -153,8 +153,8 @@ export function useSessionActions(deps: RoomActionsDeps) {
     return sendCommandAndWait("poke", { clientId, message: message.trim().slice(0, 200) });
   }
 
-  function setAway(away: boolean, message = ""): void {
-    sendCmd("setAway", { away, message: message.trim().slice(0, 200) });
+  function setAway(away: boolean, message = ""): Promise<void> {
+    return sendCommandAndWait("setAway", { away, message: message.trim().slice(0, 200) });
   }
 
   function setWhisperTargets(clientIds: number[]): void {

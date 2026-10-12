@@ -2,12 +2,13 @@ import { flushPromises, mount } from "@vue/test-utils";
 import { defineComponent, reactive, ref } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useToast } from "@/shared/composables/useToast";
+import { LocalizedError, text } from "@/shared/i18n/localizedText";
 import type { ChannelInfo, ChannelMember, VoiceState } from "@/features/session";
 
 type Exposed = {
   memberQuery: string;
   away: boolean;
-  toggleAway: () => void;
+  toggleAway: () => Promise<void>;
   channelTree: Array<ChannelInfo & { depth: number; members: ChannelMember[] }>;
   currentChannel: (ChannelInfo & { depth: number; members: ChannelMember[] }) | undefined;
   ownChannelId: string;
@@ -186,7 +187,7 @@ describe("toggleAway", () => {
     );
     const { vm, options } = await mountUseChannelTree();
     expect(vm.away).toBe(false);
-    vm.toggleAway();
+    await vm.toggleAway();
     expect(vm.away).toBe(true);
     expect(options.setAway).toHaveBeenCalledWith(true, "back in 5");
   });
@@ -197,9 +198,9 @@ describe("toggleAway", () => {
       vi.fn(() => "back in 5"),
     );
     const { vm, options } = await mountUseChannelTree();
-    vm.toggleAway();
+    await vm.toggleAway();
     vi.mocked(window.prompt).mockClear();
-    vm.toggleAway();
+    await vm.toggleAway();
     expect(vm.away).toBe(false);
     expect(window.prompt).not.toHaveBeenCalled();
     expect(options.setAway).toHaveBeenLastCalledWith(false, "");
@@ -211,7 +212,7 @@ describe("toggleAway", () => {
       vi.fn(() => null),
     );
     const { vm, options } = await mountUseChannelTree();
-    vm.toggleAway();
+    await vm.toggleAway();
     expect(options.setAway).toHaveBeenCalledWith(true, "");
   });
 });
@@ -310,6 +311,33 @@ describe("a refused channel switch", () => {
     await flushPromises();
     expect(options.selectedChannelId.value).toBe("lobby");
     expect(vm.channelPasswordDialog.open).toBe(true);
+  });
+});
+
+describe("toggleAway and the gateway", () => {
+  it("keeps the new away state once the gateway accepted it", async () => {
+    vi.stubGlobal(
+      "prompt",
+      vi.fn(() => "lunch"),
+    );
+    const { vm, options } = await mountUseChannelTree();
+    await vm.toggleAway();
+    expect(options.setAway).toHaveBeenCalledWith(true, "lunch");
+    expect(vm.away).toBe(true);
+  });
+
+  it("goes back to the previous state and toasts when the gateway refuses", async () => {
+    vi.stubGlobal(
+      "prompt",
+      vi.fn(() => "lunch"),
+    );
+    const setAway = vi.fn(async () => {
+      throw new LocalizedError(text("err_PERMISSION_DENIED"), "PERMISSION_DENIED");
+    });
+    const { vm } = await mountUseChannelTree({ setAway });
+    await vm.toggleAway();
+    expect(vm.away).toBe(false);
+    expect(useToast().toasts.value.at(-1)).toMatchObject({ variant: "danger" });
   });
 });
 

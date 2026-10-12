@@ -131,10 +131,10 @@ describe("channel and roster commands", () => {
   it("poke and away trim and cap the message at 200 characters", () => {
     const { actions } = setup();
     void actions.sendPoke(2, `  ${"x".repeat(300)}  `).catch(() => undefined);
-    actions.setAway(true, "  brb ");
+    void actions.setAway(true, "  brb ").catch(() => undefined);
     expect(socket.sentJson).toEqual([
       { type: "poke", payload: { clientId: 2, message: "x".repeat(200) }, requestId: expect.stringMatching(/^command-/) },
-      { type: "setAway", payload: { away: true, message: "brb" } },
+      { type: "setAway", payload: { away: true, message: "brb" }, requestId: expect.stringMatching(/^command-/) },
     ]);
   });
 });

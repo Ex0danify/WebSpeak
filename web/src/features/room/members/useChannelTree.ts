@@ -209,10 +209,18 @@ export function useChannelTree(options: UseChannelTreeOptions) {
     return `${"\u3000".repeat(item.depth)}${channelNameText(item, t)}`;
   }
 
-  function toggleAway(): void {
+  async function toggleAway(): Promise<void> {
+    const previous = { away: away.value, message: awayMessage.value };
     away.value = !away.value;
     awayMessage.value = away.value ? (window.prompt(t("awayPrompt"), awayMessage.value) ?? "") : "";
-    setAway(away.value, awayMessage.value);
+    try {
+      await setAway(away.value, awayMessage.value);
+    } catch (error: unknown) {
+      // The server kept the old state, so the button goes back to it.
+      away.value = previous.away;
+      awayMessage.value = previous.message;
+      notify(resolveText(errorText(error, text("err_OPERATION_FAILED"))), "danger");
+    }
   }
 
   async function moveMemberDirect(member: ChannelMember, targetChannelId: string): Promise<void> {

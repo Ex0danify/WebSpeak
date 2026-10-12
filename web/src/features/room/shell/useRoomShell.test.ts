@@ -30,7 +30,10 @@ function mountShell(sendPoke: (clientId: number, message: string) => Promise<voi
 
 beforeEach(() => {
   useToast().dismiss();
-  vi.stubGlobal("prompt", vi.fn(() => "hi"));
+  vi.stubGlobal(
+    "prompt",
+    vi.fn(() => "hi"),
+  );
 });
 
 describe("pokeMember", () => {
