@@ -64,14 +64,6 @@ const popoverSamples: Record<Lang, { trigger: string; label: string; volume: str
     hint: "Gilt für alle Teilnehmer, die Sie in diesem Tab hören.",
     inDialog: "Popover in einem Dialog",
   },
-  ru: {
-    trigger: "Громкость вывода",
-    label: "Громкость вывода для всех участников",
-    volume: "Громкость",
-    done: "Готово",
-    hint: "Действует на всех, кого вы слышите в этой вкладке.",
-    inDialog: "Всплывающая панель в диалоге",
-  },
 };
 const volume = ref(70);
 const popoverDialog = ref(false);

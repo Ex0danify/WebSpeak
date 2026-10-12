@@ -1,6 +1,6 @@
 import { inject, type InjectionKey, type Ref } from "vue";
 
-export type Lang = "en" | "de" | "ru";
+export type Lang = "en" | "de";
 
 /** The gallery's language switcher, provided by `UiGallery.vue` and read by every section. */
 export const langKey: InjectionKey<Ref<Lang>> = Symbol("galleryLang");
@@ -12,4 +12,4 @@ export function useGalleryLang(): Ref<Lang> {
 }
 
 /** The close button label of every dialog and menu sheet in the gallery. */
-export const closeLabel: Record<Lang, string> = { en: "Close", de: "Schließen", ru: "Закрыть" };
+export const closeLabel: Record<Lang, string> = { en: "Close", de: "Schließen" };

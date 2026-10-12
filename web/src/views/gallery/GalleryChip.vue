@@ -55,14 +55,5 @@ const chipSamples: Record<
     long: "Verbindungsqualität seit mehreren Minuten beeinträchtigt",
     chat: "Chat",
   },
-  ru: {
-    connected: "Подключено · 41 мс",
-    unstable: "Нестабильно",
-    muted: "Микрофон выключен",
-    ptt: "Нажми и говори",
-    role: "Модератор",
-    long: "Качество соединения снижено уже несколько минут",
-    chat: "Чат",
-  },
 };
 </script>

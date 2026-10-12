@@ -73,15 +73,6 @@ const meterSamples: Record<
     silence: "Stille",
     loud: "Zu laut",
   },
-  ru: {
-    input: "Уровень входного сигнала микрофона",
-    live: "Текущий уровень",
-    threshold: "Порог голосовой активации",
-    start: "Имитировать ввод",
-    stop: "Остановить",
-    silence: "Тишина",
-    loud: "Громко",
-  },
 };
 const liveMeter = ref<InstanceType<typeof Meter> | null>(null);
 const livePercent = ref(0);

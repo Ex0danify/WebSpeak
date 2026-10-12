@@ -140,26 +140,6 @@ const dialogSamples: Record<
     region: "Bevorzugte Audioregion des Sprachservers",
     regions: ["Automatisch (nächstgelegene Region)", "Europa", "Nordamerika"],
   },
-  ru: {
-    open: "Открыть",
-    small: "Малый",
-    medium: "Средний",
-    large: "Большой",
-    long: "Длинное содержимое",
-    locked: "Нельзя закрыть",
-    title: "Пароль голосового канала",
-    longTitle: "Настройки звука для этого устройства",
-    description: "Этот канал защищён паролем.",
-    body: "Введите пароль, чтобы присоединиться к каналу.",
-    paragraph:
-      "Каждый пользователь браузера — отдельный виртуальный клиент на сервере TeamSpeak, поэтому эти настройки действуют только в этой вкладке.",
-    password: "Пароль",
-    cancel: "Отмена",
-    join: "Войти в канал",
-    lockedBody: "Esc, фон и крестик здесь ничего не делают. Закрыть окно можно только кнопкой ниже.",
-    region: "Регион обработки звука для голосового канала",
-    regions: ["Автоматически (ближайший)", "Европа", "Северная Америка"],
-  },
 };
 const region = ref("auto");
 const regionKeys = ["auto", "eu", "na"];

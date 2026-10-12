@@ -96,19 +96,6 @@ const tabSamples: Record<
     log: "Protokoll",
     panel: "Inhalt des Bereichs",
   },
-  ru: {
-    label: "Разделы рабочей области",
-    voice: "Голосовой канал",
-    chat: "Чат канала",
-    settings: "Настройки и аудиоустройства",
-    system: "Как в системе",
-    light: "Светлая",
-    dark: "Тёмная",
-    members: "Участники",
-    files: "Файлы",
-    log: "Журнал",
-    panel: "Содержимое раздела",
-  },
 };
 const tabValue = ref("voice");
 const segTheme = ref("system");

@@ -75,16 +75,5 @@ const cardSamples: Record<
     members: "Teilnehmer",
     connected: "Verbunden · 41 ms",
   },
-  ru: {
-    title: "Состояние сервера и качество соединения",
-    body: "Девять участников находятся в сети в четырёх каналах.",
-    long: "Настройки звука и выбор устройств для этого компьютера",
-    edit: "Изменить",
-    save: "Сохранить",
-    cancel: "Отмена",
-    server: "Шлюз",
-    members: "Участники",
-    connected: "Подключено · 41 мс",
-  },
 };
 </script>

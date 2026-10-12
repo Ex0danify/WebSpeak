@@ -32,7 +32,7 @@ export interface RecentServer {
 
 export interface LocalPreferences {
   schemaVersion: 1;
-  locale?: "auto" | "zh-CN" | "en";
+  locale?: "auto" | "en" | "de";
   theme?: "system" | "light" | "dark";
   microphoneMuted?: boolean;
   noiseSuppressionEnabled?: boolean;

@@ -59,15 +59,5 @@ const smallSamples: Record<
     mic: "Mikrofon",
     toggle: "Push-to-Talk",
   },
-  ru: {
-    channels: "Каналы",
-    members: "Участники",
-    mute: "Отключить звук",
-    leave: "Покинуть канал",
-    loading: "Загрузка",
-    loadingMembers: "Загрузка участников",
-    mic: "Микрофон",
-    toggle: "Рация",
-  },
 };
 </script>

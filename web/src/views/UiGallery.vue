@@ -50,13 +50,11 @@ const themes: ThemeMode[] = ["system", "light", "dark"];
 const languages: { value: Lang; label: string }[] = [
   { value: "en", label: "English" },
   { value: "de", label: "Deutsch" },
-  { value: "ru", label: "Русский" },
 ];
 
 const toasterLabels: Record<Lang, { notifications: string; dismiss: string }> = {
   en: { notifications: "Notifications", dismiss: "Dismiss" },
   de: { notifications: "Benachrichtigungen", dismiss: "Schließen" },
-  ru: { notifications: "Уведомления", dismiss: "Закрыть" },
 };
 
 const theme = ref<ThemeMode>(getStoredTheme());

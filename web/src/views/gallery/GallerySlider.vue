@@ -35,7 +35,6 @@ const lang = useGalleryLang();
 const sliderSamples: Record<Lang, { volume: string; threshold: string }> = {
   en: { volume: "Output volume", threshold: "Voice activity threshold" },
   de: { volume: "Ausgabelautstärke für alle Teilnehmer im Kanal", threshold: "Schwellenwert der Sprachaktivierung" },
-  ru: { volume: "Громкость воспроизведения для всех участников канала", threshold: "Порог активации по голосу" },
 };
 const volume = ref(70);
 const threshold = ref(-42);

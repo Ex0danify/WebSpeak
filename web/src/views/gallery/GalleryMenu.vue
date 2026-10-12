@@ -106,22 +106,6 @@ const menuSamples: Record<
     picked: "Letzte Aktion",
     none: "keine",
   },
-  ru: {
-    trigger: "Действия с участником",
-    volume: "Громкость",
-    label: "Действия для Кестрел",
-    moveHere: "Переместить в мой канал",
-    moveTo: "Переместить в другой канал",
-    mute: "Отключить звук для меня",
-    profile: "Посмотреть профиль",
-    disabled: "Отправить толчок (нет прав)",
-    kick: "Выгнать из канала",
-    channels: ["Лобби", "Ночной рейд", "Отошёл"],
-    last: "Последнее действие",
-    inDialog: "Меню внутри диалога",
-    picked: "Последнее действие",
-    none: "нет",
-  },
 };
 const menuPicked = ref("");
 const menuVolume = ref(100);

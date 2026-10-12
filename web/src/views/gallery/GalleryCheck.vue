@@ -57,14 +57,6 @@ const checkSamples: Record<Lang, { remember: string; all: string; modes: string;
     vox: "Sprachaktivierung",
     always: "Immer aktiv",
   },
-  ru: {
-    remember: "Запомнить мой псевдоним на этом устройстве для следующего входа",
-    all: "Выбрать все каналы",
-    modes: "Режим передачи",
-    ptt: "Нажми и говори",
-    vox: "По голосу",
-    always: "Всегда включён",
-  },
 };
 const remember = ref(true);
 const picked = ref<string[]>(["lobby"]);

@@ -66,7 +66,6 @@ const lang = useGalleryLang();
 const samples: Record<Lang, { short: string; long: string }> = {
   en: { short: "Join channel", long: "Join the selected channel" },
   de: { short: "Kanal beitreten", long: "Dem ausgewählten Sprachkanal beitreten" },
-  ru: { short: "Войти в канал", long: "Присоединиться к выбранному каналу" },
 };
 
 const micMuted = ref(false);

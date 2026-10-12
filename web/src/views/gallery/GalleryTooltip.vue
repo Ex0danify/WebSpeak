@@ -53,13 +53,6 @@ const tooltipSamples: Record<
     inDialog: "Tooltip in einem Dialog",
     sides: { top: "Oben", right: "Rechts", bottom: "Unten", left: "Links" },
   },
-  ru: {
-    mute: "Отключить микрофон",
-    settings: "Настройки звука",
-    long: "Действует на всех, кого вы слышите в этой вкладке, но не на других людей, подключённых к серверу.",
-    inDialog: "Подсказка в диалоге",
-    sides: { top: "Сверху", right: "Справа", bottom: "Снизу", left: "Слева" },
-  },
 };
 const tooltipDialog = ref(false);
 const tooltipSides = ["top", "right", "bottom", "left"] as const;

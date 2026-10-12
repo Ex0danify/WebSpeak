@@ -45,12 +45,6 @@ const switchSamples: Record<Lang, { noise: string; noiseHint: string; ptt: strin
     ptt: "Push-to-Talk",
     pttHint: "Zum Sprechen die Leertaste gedrückt halten.",
   },
-  ru: {
-    noise: "Шумоподавление",
-    noiseHint: "Убирает шум клавиатуры и вентилятора из сигнала микрофона.",
-    ptt: "Нажми и говори",
-    pttHint: "Удерживайте пробел, чтобы говорить.",
-  },
 };
 const noiseOn = ref(true);
 const pttOn = ref(false);

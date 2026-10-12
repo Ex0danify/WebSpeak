@@ -75,15 +75,6 @@ const fieldSamples: Record<
     error: "Dieser Server ist derzeit nicht erreichbar.",
     search: "Kanal suchen",
   },
-  ru: {
-    region: "Регион обработки звука для голосового канала",
-    regions: ["Автоматически (ближайший)", "Европа", "Северная Америка"],
-    nick: "Псевдоним",
-    nickHint: "Виден всем участникам канала.",
-    server: "Адрес сервера голосовой связи",
-    error: "Не удалось подключиться к этому серверу.",
-    search: "Найти канал",
-  },
 };
 
 const nickname = ref("Kestrel");

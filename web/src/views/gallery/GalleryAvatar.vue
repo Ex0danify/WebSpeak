@@ -57,6 +57,5 @@ const lang = useGalleryLang();
 const avatarSamples: Record<Lang, { name: string; long: string; speaking: string; title: string }> = {
   en: { name: "Kestrel", long: "Odin the Wanderer", speaking: "speaking", title: "Sizes" },
   de: { name: "Kestrel", long: "Odin der Wanderer aus dem Norden", speaking: "spricht gerade", title: "Größen" },
-  ru: { name: "Кестрел", long: "Один Странник Северный", speaking: "говорит", title: "Размеры" },
 };
 </script>

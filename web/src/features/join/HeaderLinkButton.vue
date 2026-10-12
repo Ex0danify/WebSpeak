@@ -39,7 +39,7 @@ const props = defineProps<{
   secondary?: boolean;
 }>();
 
-// Labels wrap (de and ru are long) and hide on narrow screens, where the buttons shrink to squares.
+// Labels wrap (de is long) and hide on narrow screens, where the buttons shrink to squares.
 const baseClass =
   "h-auto min-h-8 whitespace-normal py-1 text-left text-caption leading-[1.15] max-compact:min-h-11 max-compact:w-11 max-compact:px-0 max-compact:py-0";
 
