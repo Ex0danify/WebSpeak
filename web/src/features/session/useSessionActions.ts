@@ -157,14 +157,21 @@ export function useSessionActions(deps: RoomActionsDeps) {
     return sendCommandAndWait("setAway", { away, message: message.trim().slice(0, 200) });
   }
 
-  function setWhisperTargets(clientIds: number[]): void {
+  async function setWhisperTargets(clientIds: number[]): Promise<void> {
     const targets = [...new Set(clientIds)]
       .filter((clientId) => Number.isInteger(clientId) && clientId > 0 && clientId <= 65535 && clientId !== state.tsClientId)
       .slice(0, 8);
+    const previous = { targets: [...whisperTargetIds], active: whisperActive.value };
     whisperTargetIds.clear();
     for (const clientId of targets) whisperTargetIds.add(clientId);
     if (!targets.length) whisperActive.value = false;
-    sendCmd("setWhisperTargets", { targetIds: targets });
+    try {
+      await sendCommandAndWait("setWhisperTargets", { targetIds: targets });
+    } catch (error: unknown) {
+      // The gateway kept the old list, so the local one goes back to it.
+      applyWhisperState(previous.targets, previous.active);
+      throw error;
+    }
   }
 
   function setWhisperActive(active: boolean): void {

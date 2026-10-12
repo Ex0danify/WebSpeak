@@ -257,18 +257,36 @@ describe("whisper", () => {
   it("setWhisperTargets de-duplicates, drops invalid ids and the own id, caps at 8, and sends the list", () => {
     const { session, actions } = setup();
     session.state.tsClientId = 5;
-    actions.setWhisperTargets([1, 1, 2, 5, 0, -3, 1.5, 70000, 3, 4, 6, 7, 8, 9, 10, 11]);
+    void actions.setWhisperTargets([1, 1, 2, 5, 0, -3, 1.5, 70000, 3, 4, 6, 7, 8, 9, 10, 11]).catch(() => undefined);
     expect([...session.whisperTargetIds]).toEqual([1, 2, 3, 4, 6, 7, 8, 9]);
-    expect(socket.sentJson).toEqual([{ type: "setWhisperTargets", payload: { targetIds: [1, 2, 3, 4, 6, 7, 8, 9] } }]);
+    expect(socket.sentJson).toEqual([
+      { type: "setWhisperTargets", payload: { targetIds: [1, 2, 3, 4, 6, 7, 8, 9] }, requestId: expect.stringMatching(/^command-/) },
+    ]);
   });
 
   it("an empty target list switches whispering off", () => {
     const { session, actions } = setup();
     session.whisperTargetIds.add(2);
     session.whisperActive = true;
-    actions.setWhisperTargets([]);
+    void actions.setWhisperTargets([]).catch(() => undefined);
     expect(session.whisperActive).toBe(false);
     expect(session.whisperTargetIds.size).toBe(0);
+  });
+
+  it("setWhisperTargets puts the previous targets back when the gateway refuses", async () => {
+    const { session, actions } = setup();
+    session.whisperTargetIds.add(2);
+    session.whisperActive = true;
+    const pending = actions.setWhisperTargets([]);
+    expect(session.whisperTargetIds.size).toBe(0);
+    actions.handlers.error!({
+      type: "error",
+      requestId: socket.sentJson[0].requestId,
+      error: { code: "CLIENT_NOT_FOUND", message: "gone", recoverable: false },
+    });
+    await expect(pending).rejects.toMatchObject({ code: "CLIENT_NOT_FOUND" });
+    expect([...session.whisperTargetIds]).toEqual([2]);
+    expect(session.whisperActive).toBe(true);
   });
 
   it("setWhisperActive(true) is a no-op without targets", () => {
