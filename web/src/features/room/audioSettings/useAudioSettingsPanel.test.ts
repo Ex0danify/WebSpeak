@@ -296,6 +296,21 @@ describe("toggleMicrophone when the gateway refuses the mute", () => {
   });
 });
 
+describe("toggleAccompaniment when the gateway refuses", () => {
+  it("toasts the reason instead of the permission text", async () => {
+    const startAccompaniment = vi.fn(async () => {
+      throw new LocalizedError(text("err_OPERATION_FAILED"), "OPERATION_FAILED");
+    });
+    const { vm } = await mountUseAudioSettingsPanel({
+      accompanimentActive: ref(false),
+      accompanimentErrorCode: ref("gateway"),
+      startAccompaniment,
+    });
+    await vm.toggleAccompaniment();
+    expect(useToast().toasts.value.at(-1)).toMatchObject({ variant: "danger", title: expect.not.stringMatching(/permission/i) });
+  });
+});
+
 describe("toggleAccompaniment", () => {
   it("starts accompaniment when inactive", async () => {
     const { vm, options } = await mountUseAudioSettingsPanel({ accompanimentActive: ref(false) });

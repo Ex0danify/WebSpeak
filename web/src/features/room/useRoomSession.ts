@@ -210,6 +210,7 @@ export function useRoomSession() {
     markSpeaking,
     clearSpeaking,
     sendCmd,
+    sendCommand: sendCommandAndWait,
     connectionSequence: () => connection.getConnectionSequence(),
     hasLastConnection: () => connection.hasLastConnection(),
     webrtcActive,

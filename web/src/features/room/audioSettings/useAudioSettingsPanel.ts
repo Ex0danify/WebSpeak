@@ -141,7 +141,11 @@ export function useAudioSettingsPanel(options: UseAudioSettingsPanelOptions) {
       }
       await startAccompaniment();
       if (accompanimentActive.value) showToast(t("accompanimentStarted"));
-    } catch {
+    } catch (error: unknown) {
+      if (accompanimentErrorCode.value === "gateway" || !accompanimentErrorCode.value) {
+        showToast(resolveText(errorText(error, text("err_OPERATION_FAILED"))), "danger");
+        return;
+      }
       const messageKey: MessageKey =
         accompanimentErrorCode.value === "needsWebRtc"
           ? "accompanimentNeedsWebRtc"

@@ -3,7 +3,7 @@ import { reactive, ref } from "vue";
 import { readStorage } from "@/shared/services/safeStorage";
 import type { AudioInputDevice, AudioOutputDevice, AudioPermission, MicrophoneProcessingSettings } from "../voiceTypes";
 
-export type AccompanimentErrorCode = "" | "unsupported" | "needsWebRtc" | "noAudio" | "permission";
+export type AccompanimentErrorCode = "" | "unsupported" | "needsWebRtc" | "noAudio" | "permission" | "gateway";
 
 function initialProcessing(): MicrophoneProcessingSettings {
   return { echoCancellation: null, noiseSuppression: null, autoGainControl: null, rnnoise: null };

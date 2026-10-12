@@ -54,7 +54,7 @@ describe("accompaniment", () => {
     expect(shared.audio.contentHint).toBe("music");
     expect(audio.accompanimentActive).toBe(true);
     expect(audio.accompanimentErrorCode).toBe("");
-    expect(deps.sendCmd).toHaveBeenCalledWith("setAccompanimentActive", { active: true });
+    expect(deps.sendCommand).toHaveBeenCalledWith("setAccompanimentActive", { active: true });
     expect(shared.replaceTrack).toHaveBeenCalledTimes(1);
   });
 
@@ -98,7 +98,7 @@ describe("accompaniment", () => {
     });
     await expect(transport.startAccompaniment()).rejects.toBeInstanceOf(DOMException);
     expect(audio.accompanimentErrorCode).toBe("permission");
-    expect(deps.sendCmd).not.toHaveBeenCalled();
+    expect(deps.sendCommand).not.toHaveBeenCalled();
   });
 
   it("rejects a source without audio and stops everything it was given", async () => {
@@ -147,13 +147,13 @@ describe("accompaniment", () => {
     const { audio, deps, peer, transport } = await started();
     audio.accompanimentSupported = true;
     const shared = await shareAccompaniment(peer, transport);
-    deps.sendCmd.mockClear();
+    deps.sendCommand.mockClear();
     shared.replaceTrack.mockClear();
     shared.audio.end();
     await vi.waitFor(() => expect(shared.replaceTrack).toHaveBeenCalledTimes(1));
     expect(shared.audio.stopped).toBe(true);
     expect(audio.accompanimentActive).toBe(false);
-    expect(deps.sendCmd).toHaveBeenCalledWith("setAccompanimentActive", { active: false });
+    expect(deps.sendCommand).toHaveBeenCalledWith("setAccompanimentActive", { active: false });
   });
 
   it("undoes the share when the mix cannot be put on the sender", async () => {
@@ -163,18 +163,36 @@ describe("accompaniment", () => {
     await expect(transport.startAccompaniment()).rejects.toThrow("The WebRTC audio track is not ready");
     expect(audio.accompanimentActive).toBe(false);
     expect(audio.accompanimentErrorCode).toBe("permission");
-    expect(deps.sendCmd).toHaveBeenLastCalledWith("setAccompanimentActive", { active: false });
+    expect(deps.sendCommand).toHaveBeenLastCalledWith("setAccompanimentActive", { active: false });
     expect(transport.getWebRtcMixMicGain()).toBeNull();
+  });
+
+  it("undoes the share when the gateway refuses it", async () => {
+    const { audio, deps, peer, transport } = await started();
+    audio.accompanimentSupported = true;
+    deps.sendCommand.mockRejectedValueOnce(new Error("refused"));
+    await expect(shareAccompaniment(peer, transport)).rejects.toThrow("refused");
+    expect(audio.accompanimentActive).toBe(false);
+    expect(audio.accompanimentErrorCode).toBe("gateway");
+  });
+
+  it("stops locally and still reports it when the gateway refuses the stop", async () => {
+    const { audio, deps, peer, transport } = await started();
+    audio.accompanimentSupported = true;
+    await shareAccompaniment(peer, transport);
+    deps.sendCommand.mockRejectedValueOnce(new Error("refused"));
+    await expect(transport.stopAccompaniment()).rejects.toThrow("refused");
+    expect(audio.accompanimentActive).toBe(false);
   });
 
   it("stopAccompaniment without WebRTC only drops the mix and tells no one", async () => {
     const { audio, deps, transport } = await started();
     audio.accompanimentErrorCode = "permission";
     deps.webrtcActive.value = false;
-    deps.sendCmd.mockClear();
+    deps.sendCommand.mockClear();
     await transport.stopAccompaniment();
     expect(audio.accompanimentErrorCode).toBe("");
-    expect(deps.sendCmd).not.toHaveBeenCalled();
+    expect(deps.sendCommand).not.toHaveBeenCalled();
     expect(transport.getWebRtcMixMicGain()).toBeNull();
   });
 });
