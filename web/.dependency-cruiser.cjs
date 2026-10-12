@@ -1,4 +1,4 @@
-// Layer rules from docs/architecture.md, written against the
+// Layer rules from CONTRIBUTING.md, written against the
 // paths (features/, shared/, views/). Every rule is an error.
 const SEVERITY = "error";
 

@@ -1,4 +1,4 @@
-// Layer rules for the gateway, from docs/architecture.md. Written against
+// Layer rules for the gateway, from CONTRIBUTING.md. Written against
 // the tree (shared/, config/, infra/, modules/, transport/). SEVERITY "error" fails the run.
 const SEVERITY = "error";
 
