@@ -8,8 +8,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT_DIR = path.resolve(__dirname, "..");
 const CONFIG_PATH = path.join(ROOT_DIR, "config.json");
 const CERT_DIR = path.join(ROOT_DIR, "certs");
-// Production images mount the persistent volume at /data. Source installs
-// keep the historical project-local data directory unless overridden.
+// Production images mount the data volume at /data, source installs use ./data unless overridden.
 const DATA_DIR = process.env.WEBSPEAK_DATA_DIR?.trim() || path.join(ROOT_DIR, "data");
 const LOG_DIR = path.join(DATA_DIR, "logs");
 const STATIC_DIR = path.join(ROOT_DIR, "web", "dist");
@@ -22,7 +21,15 @@ async function main() {
     await runRelayMode();
     return;
   }
-  const [{ createLogger }, { createWebServer }, { APP_PORT }, { WebSpeakDatabase }, { loadOrCreateMasterSecret }, { AdminService }, { JoinTicketStore }] = await Promise.all([
+  const [
+    { createLogger },
+    { createWebServer },
+    { APP_PORT },
+    { WebSpeakDatabase },
+    { loadOrCreateMasterSecret },
+    { AdminService },
+    { JoinTicketStore },
+  ] = await Promise.all([
     import("./shared/logger.js"),
     import("./transport/http/httpServer.js"),
     import("./shared/constants.js"),
@@ -34,14 +41,7 @@ async function main() {
   const logger = createLogger(LOG_DIR);
   const database = new WebSpeakDatabase(path.join(DATA_DIR, "webspeak.db"));
   const masterSecret = loadOrCreateMasterSecret(path.join(DATA_DIR, "master.key"));
-  const adminService = new AdminService(
-    database,
-    masterSecret,
-    logger,
-    CONFIG_PATH,
-    undefined,
-    APP_VERSION,
-  );
+  const adminService = new AdminService(database, masterSecret, logger, CONFIG_PATH, undefined, APP_VERSION);
   await adminService.initialize();
   removeObsoleteBootstrapFile();
   const joinTickets = new JoinTicketStore();
@@ -60,10 +60,8 @@ async function main() {
       joinTickets,
       webRtc: () => adminService.getWebRtcAudioOptions(),
       screenShareIceServers: () => SCREEN_SHARE_ICE_SERVERS,
-      // The public gateway only uses the relay configuration explicitly
-      // saved in the admin console. Environment variables belong to the
-      // standalone relay process and must never make the relay option appear
-      // in the visitor UI after an administrator disables it.
+      // The public gateway only uses the relay config saved in the admin console. Env vars are for the
+      // standalone relay process and must not bring the relay option back after an admin disabled it.
       acceleration: () => adminService.getAccelerationRelayOptions(),
       accelerationName: () => adminService.getAccelerationRelayName(),
     },
@@ -75,18 +73,27 @@ async function main() {
 
   await webServer.start();
 
-  // Graceful shutdown
   const shutdown = async (signal: string) => {
     logger.info({ signal }, "Shutting down");
     // A stuck close must not keep the process alive until the supervisor's SIGKILL.
     let timer: NodeJS.Timeout | undefined;
-    const deadline = new Promise<void>((resolve) => { timer = setTimeout(resolve, SHUTDOWN_TIMEOUT_MS); });
-    await Promise.race([webServer.stop(), deadline]).finally(() => clearTimeout(timer));
+    const deadline = new Promise<void>((resolve) => {
+      timer = setTimeout(resolve, SHUTDOWN_TIMEOUT_MS);
+    });
+    let exitCode = 0;
+    try {
+      await Promise.race([webServer.stop(), deadline]);
+    } catch (error) {
+      logger.error({ err: error instanceof Error ? error.message : String(error) }, "Shutdown failed");
+      exitCode = 1;
+    } finally {
+      clearTimeout(timer);
+    }
     database.close();
-    process.exit(0);
+    process.exit(exitCode);
   };
-  process.on("SIGINT", () => shutdown("SIGINT"));
-  process.on("SIGTERM", () => shutdown("SIGTERM"));
+  process.on("SIGINT", () => void shutdown("SIGINT"));
+  process.on("SIGTERM", () => void shutdown("SIGTERM"));
 }
 
 async function runRelayMode(): Promise<void> {
@@ -140,7 +147,12 @@ function readScreenShareIceServers(value: string | undefined): ScreenShareIceSer
     return normalizeScreenShareIceServers(Array.isArray(parsed) ? parsed : undefined);
   } catch {
     // A simple comma/space-separated list is convenient for STUN-only setups.
-    return normalizeScreenShareIceServers(raw.split(/[\s,]+/).filter(Boolean).map((urls) => ({ urls })));
+    return normalizeScreenShareIceServers(
+      raw
+        .split(/[\s,]+/)
+        .filter(Boolean)
+        .map((urls) => ({ urls })),
+    );
   }
 }
 

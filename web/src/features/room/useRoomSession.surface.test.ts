@@ -1,7 +1,7 @@
 import { isReactive, isRef } from "vue";
 import { createPinia, setActivePinia } from "pinia";
 import { beforeAll, beforeEach, describe, expect, it } from "vitest";
-// Type-only imports: vue-tsc (G-BUILD) fails if any of these leave the public path.
+// Type-only imports: vue-tsc fails if any of these leave the public path.
 import type {
   AudioInputDevice,
   AudioOutputDevice,
@@ -43,7 +43,7 @@ type PublicTypes = [
 ];
 export type _PublicTypesStayImportable = PublicTypes;
 
-// Group -> key -> kind of every value useRoomSession() returns. R3.4 removed the flat keys; this is the contract.
+// Group -> key -> kind of every value useRoomSession() returns. This is the contract.
 const EXPECTED_SURFACE: Record<string, Record<string, string>> = {
   session: {
     clearError: "function",
@@ -168,11 +168,18 @@ describe("useRoomSession public surface", () => {
     const actual = Object.fromEntries(
       Object.keys(EXPECTED_SURFACE).map((group) => [
         group,
-        Object.fromEntries(Object.keys(api[group]).sort().map((key) => [key, kindOf(api[group][key])])),
+        Object.fromEntries(
+          Object.keys(api[group])
+            .sort()
+            .map((key) => [key, kindOf(api[group][key])]),
+        ),
       ]),
     );
     const expected = Object.fromEntries(
-      Object.entries(EXPECTED_SURFACE).map(([group, keys]) => [group, Object.fromEntries(Object.entries(keys).sort(([a], [b]) => a.localeCompare(b)))]),
+      Object.entries(EXPECTED_SURFACE).map(([group, keys]) => [
+        group,
+        Object.fromEntries(Object.entries(keys).sort(([a], [b]) => a.localeCompare(b))),
+      ]),
     );
     expect(actual).toEqual(expected);
   });
@@ -203,7 +210,7 @@ describe("useRoomSession public surface", () => {
     const second = useRoomSession();
     expect(second.roster.members).toHaveLength(0);
     expect(second.session.state.connected).toBe(false);
-    // The state now lives in the voiceSession store (V-D1), so both calls share the reactive
+    // The state lives in the voiceSession store, so both calls share the reactive
     // objects and the second call's reset() is what empties them.
   });
 });

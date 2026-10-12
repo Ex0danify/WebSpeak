@@ -4,10 +4,9 @@ import { PROBE_SPEAKER_ID, installProbes, notifications, silentGains, sinkCalls 
 import { expect, test } from "./fixtures";
 import { menuAction, say } from "./ui";
 
-// The output side of the browser, through the real server (voice-decompose Track V3): the
-// notification beeps, the loudspeaker gain of "Mute all audio" and the output-device choice. What a
-// test cannot judge is how it sounds; it can see which beep the page asked for, which gain node it
-// set and which device id it handed to the browser (`probes.ts` records all three).
+// The output side of the browser through the real server, meaning the notification beeps, the loudspeaker gain of "Mute all
+// audio" and the output-device choice. A test cannot judge how it sounds, but it sees which beep, gain node and device id the
+// page used (`probes.ts`).
 
 // Both fake microphones play a steady tone, so there is a speaker to mute (see voice.spec.ts).
 test.use(withAudioTone({ frequencyHz: 1000 }));
@@ -26,11 +25,18 @@ async function poke(page: Page, nickname: string, nth: number): Promise<void> {
 }
 
 async function nextBeep(page: Page, already: number): Promise<number[]> {
-  const beeps = await poll(() => notifications(page), (list) => list.length > already, { message: "a notification beep" });
+  const beeps = await poll(
+    () => notifications(page),
+    (list) => list.length > already,
+    { message: "a notification beep" },
+  );
   return beeps[already];
 }
 
-test("joining, a poke and a private message each play their own beep, and Mute all audio silences the next one", async ({ person, testChannel }) => {
+test("joining, a poke and a private message each play their own beep, and Mute all audio silences the next one", async ({
+  person,
+  testChannel,
+}) => {
   const room = await testChannel("real-beeps");
   const bob = await person(1, "beep-bob");
   const alice = await person(0, "beep-alice");
@@ -63,7 +69,13 @@ test("a notification volume of zero plays nothing", async ({ person, testChannel
   await installProbes(bob.page);
   await bob.join(room.name);
   await alice.join(room.name);
-  const beeps = (await poll(() => notifications(bob.page), (list) => list.length > 0, { message: "the join beep" })).length;
+  const beeps = (
+    await poll(
+      () => notifications(bob.page),
+      (list) => list.length > 0,
+      { message: "the join beep" },
+    )
+  ).length;
 
   const { dialog } = await openSettings(bob.page);
   // A custom slider, not an input: the keyboard moves it, and Home is its minimum.
@@ -77,7 +89,9 @@ test("a notification volume of zero plays nothing", async ({ person, testChannel
   expect(await notifications(bob.page)).toHaveLength(beeps);
 });
 
-test("Mute all audio sets the listener's loudspeaker gain to zero for the speaker, and Restore audio brings it back", async ({ person }) => {
+test("Mute all audio sets the listener's loudspeaker gain to zero for the speaker, and Restore audio brings it back", async ({
+  person,
+}) => {
   // The gain lives inside the browser's AudioContext; the probe reads the nodes the page made.
   // Muting adds exactly one silent gain (Alice's playback node) to the ones that are silent anyway.
   const alice = await person(0, "gain-alice");
@@ -90,15 +104,25 @@ test("Mute all audio sets the listener's loudspeaker gain to zero for the speake
   const before = await silentGains(bob.page);
 
   await dock(bob.page).getByRole("button", { name: "Mute all audio" }).click();
-  await poll(() => silentGains(bob.page), (count) => count === before + 1, { message: "the speaker's gain to go to zero" });
+  await poll(
+    () => silentGains(bob.page),
+    (count) => count === before + 1,
+    { message: "the speaker's gain to go to zero" },
+  );
   // Still arriving: only the loudspeaker is muted.
   await bob.session.waitForBinary(10, "received");
 
   await dock(bob.page).getByRole("button", { name: "Restore audio" }).click();
-  await poll(() => silentGains(bob.page), (count) => count === before, { message: "the speaker's gain to come back" });
+  await poll(
+    () => silentGains(bob.page),
+    (count) => count === before,
+    { message: "the speaker's gain to come back" },
+  );
 });
 
-test("choosing an output device hands its id to the browser and is remembered, and choosing the default sends 'default'", async ({ person }) => {
+test("choosing an output device hands its id to the browser and is remembered, and choosing the default sends 'default'", async ({
+  person,
+}) => {
   const bob = await person(1, "sink-bob");
   await installProbes(bob.page, { speakers: true });
   await bob.join();
@@ -107,11 +131,19 @@ test("choosing an output device hands its id to the browser and is remembered, a
   const select = dialog.getByLabel("Output device");
   await expect(select.locator(`option[value="${PROBE_SPEAKER_ID}"]`)).toHaveCount(1);
   await select.selectOption(PROBE_SPEAKER_ID);
-  await poll(() => sinkCalls(bob.page), (calls) => calls.includes(PROBE_SPEAKER_ID), { message: "setSinkId with the chosen device" });
+  await poll(
+    () => sinkCalls(bob.page),
+    (calls) => calls.includes(PROBE_SPEAKER_ID),
+    { message: "setSinkId with the chosen device" },
+  );
   await expect(select).toHaveValue(PROBE_SPEAKER_ID);
   expect(await bob.page.evaluate(() => window.localStorage.getItem("webspeak:output-device"))).toBe(PROBE_SPEAKER_ID);
 
   await select.selectOption("");
-  await poll(() => sinkCalls(bob.page), (calls) => calls.at(-1) === "default", { message: "setSinkId back to the default" });
+  await poll(
+    () => sinkCalls(bob.page),
+    (calls) => calls.at(-1) === "default",
+    { message: "setSinkId back to the default" },
+  );
   expect(await bob.page.evaluate(() => window.localStorage.getItem("webspeak:output-device"))).toBe("");
 });

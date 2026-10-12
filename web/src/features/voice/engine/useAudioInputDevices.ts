@@ -11,14 +11,14 @@ export interface AudioInputDevicesDeps {
   clearAudioNotice(code?: string): void;
   existingAudioCtx(): SinkAudioContext | null;
   setAudioSink(ctx: SinkAudioContext, deviceId: string): Promise<void>;
-  /** The transport's flag: PCM is not sent over the WebSocket while WebRTC carries the microphone. */
+  /** The transport's flag, PCM is not sent over the WebSocket while WebRTC carries the microphone. */
   webrtcActive: { value: boolean };
   connectionSequence(): number;
   stopWebRtcTransport(): void;
   startWebRtcTransport(sequence: number, socket: WebSocket): Promise<void>;
 }
 
-/** What the device lists need from the microphone itself (late-bound: the microphone owns the stream). */
+/** What the device lists need from the microphone itself (late-bound, the microphone owns the stream). */
 export interface AudioInputDevicesMic {
   isOpen(): boolean;
   startMicrophone(): Promise<void>;

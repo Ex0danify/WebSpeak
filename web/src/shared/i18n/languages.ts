@@ -26,9 +26,8 @@ export function languageCodesFound(modules: ModuleLanguages): string[] {
   return [...new Set(Object.values(modules).flat())].sort();
 }
 
-/** The languages every module has a file for (and that say who they are in `meta`), default first, then
- *  alphabetical by code. A language missing from one module is not listed; `languageCodesFound` still
- *  sees it, so the checks can fail loudly instead of the language silently vanishing. */
+/** The languages every module has a file for (and that say who they are in `meta`), default first, then alphabetical by code.
+ *  A language missing from one module is not listed, but `languageCodesFound` still sees it so the checks can fail loudly. */
 export function buildLanguages(modules: ModuleLanguages, metas: Readonly<Record<string, LanguageMeta | undefined>>): LanguageInfo[] {
   return languageCodesFound(modules)
     .filter((code) => Object.values(modules).every((codes) => codes.includes(code)) && metas[code])

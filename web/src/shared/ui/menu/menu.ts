@@ -1,6 +1,6 @@
 import { cva, type VariantProps } from "class-variance-authority";
 
-// Menu surface: the mock's 232 px card with 6 px padding and the large shadow.
+// Menu surface, a 232 px card with 6 px padding and the large shadow.
 export const menuContentClass =
   "z-50 box-border flex min-w-56 max-w-[min(20rem,calc(100vw-1rem))] flex-col rounded-lg border border-line bg-surface-1 p-1.5 font-sans text-sm text-fg shadow-lg outline-none " +
   "max-h-[var(--reka-dropdown-menu-content-available-height)] overflow-y-auto";
@@ -8,7 +8,7 @@ export const menuContentClass =
 export const menuItemVariants = cva(
   "relative flex h-[34px] w-full cursor-pointer select-none items-center gap-2.5 rounded-sm border-0 bg-transparent px-2.5 text-left font-sans text-sm outline-none " +
     "data-[highlighted]:bg-surface-2 data-[disabled]:pointer-events-none data-[disabled]:opacity-50 " +
-    // Reka focuses the highlighted item; the fill is not enough on its own for keyboard users.
+    // Reka focuses the highlighted item, the fill is not enough on its own for keyboard users.
     "focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent max-compact:h-11",
   {
     variants: {

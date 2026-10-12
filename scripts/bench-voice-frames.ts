@@ -1,5 +1,5 @@
 /**
- * Voice hot-path benchmark (gateway-decompose-plan G0.3, gate G-HOT).
+ * Voice hot-path benchmark.
  *
  * Opens one session on a real gateway with a fake TeamSpeak server, pushes N 1,920-byte PCM
  * frames up (browser -> gateway -> Opus -> TeamSpeak) and has the fake server push N Opus
@@ -10,9 +10,9 @@
  * Not run by `npm test`, not part of CI. With --runs > 1 it also prints the median.
  */
 import { performance } from "node:perf_hooks";
-import { FRAME_BYTES, sineFrames } from "../test/helpers/audio.js";
-import { startGateway } from "../test/helpers/gateway.js";
-import { joinVoice } from "../test/helpers/voice.js";
+import { FRAME_BYTES, sineFrames } from "../test/support/audio.js";
+import { startGateway } from "../test/support/gateway.js";
+import { joinVoice } from "../test/support/voice.js";
 
 const BATCH = 50;
 
@@ -25,14 +25,20 @@ function arg(name: string, fallback: number): number {
 
 const tick = () => new Promise<void>((resolve) => setImmediate(resolve));
 
-interface Result { uplinkFps: number; downlinkFps: number }
+interface Result {
+  uplinkFps: number;
+  downlinkFps: number;
+}
 
 async function runOnce(frames: number): Promise<Result> {
   const gateway = await startGateway();
   try {
     const bob = gateway.ts.addMember("bob");
     const alice = await joinVoice(gateway, { nickname: "alice" });
-    const pcm = sineFrames(440, 50).map((frame) => { if (frame.length !== FRAME_BYTES) throw new Error("bad frame"); return frame; });
+    const pcm = sineFrames(440, 50).map((frame) => {
+      if (frame.length !== FRAME_BYTES) throw new Error("bad frame");
+      return frame;
+    });
 
     // Uplink: wait for the fake client to have received every encoded frame.
     const sent = alice.client.sentVoice;
@@ -72,7 +78,9 @@ const results: Result[] = [];
 for (let run = 1; run <= runs; run++) {
   const result = await runOnce(frames);
   results.push(result);
-  console.log(`run ${run}/${runs}  uplink ${result.uplinkFps.toFixed(0)} frames/s (${(1000 / result.uplinkFps).toFixed(4)} ms/frame)  downlink ${result.downlinkFps.toFixed(0)} frames/s (${(1000 / result.downlinkFps).toFixed(4)} ms/frame)`);
+  console.log(
+    `run ${run}/${runs}  uplink ${result.uplinkFps.toFixed(0)} frames/s (${(1000 / result.uplinkFps).toFixed(4)} ms/frame)  downlink ${result.downlinkFps.toFixed(0)} frames/s (${(1000 / result.downlinkFps).toFixed(4)} ms/frame)`,
+  );
 }
 if (runs > 1) {
   const up = median(results.map((r) => r.uplinkFps));

@@ -9,9 +9,12 @@ describe("native viewer peer id", () => {
     expect(parseNativeViewerPeerId("ts-viewer-42")).toBe(42);
   });
 
-  it.each(["ts-viewer-", "ts-viewer-0", "ts-viewer-1x", "x-ts-viewer-1", "ts-viewer--1", "", "ts-viewer-99999999999999999999"])("rejects %j", (id) => {
-    expect(parseNativeViewerPeerId(id)).toBeUndefined();
-  });
+  it.each(["ts-viewer-", "ts-viewer-0", "ts-viewer-1x", "x-ts-viewer-1", "ts-viewer--1", "", "ts-viewer-99999999999999999999"])(
+    "rejects %j",
+    (id) => {
+      expect(parseNativeViewerPeerId(id)).toBeUndefined();
+    },
+  );
 });
 
 describe("parseStreamSignalPayload", () => {
@@ -19,9 +22,12 @@ describe("parseStreamSignalPayload", () => {
     expect(parseStreamSignalPayload('{"cmd":"offer","args":{"sdp":"v=0"}}')).toEqual(payload("offer", { sdp: "v=0" }));
   });
 
-  it.each(["", "{", "null", "[]", '{"cmd":1,"args":{}}', '{"cmd":"x"}', '{"cmd":"x","args":[]}', '{"cmd":"x","args":null}'])("rejects %j", (raw) => {
-    expect(parseStreamSignalPayload(raw)).toBeNull();
-  });
+  it.each(["", "{", "null", "[]", '{"cmd":1,"args":{}}', '{"cmd":"x"}', '{"cmd":"x","args":[]}', '{"cmd":"x","args":null}'])(
+    "rejects %j",
+    (raw) => {
+      expect(parseStreamSignalPayload(raw)).toBeNull();
+    },
+  );
 });
 
 describe("toBrowserScreenSignal", () => {
@@ -36,7 +42,11 @@ describe("toBrowserScreenSignal", () => {
     ["answer sdp", payload("answer", { sdp: "a" }), { kind: "answer", sdp: "a" }],
     ["answer without sdp", payload("answer", { answer: 1 }), null],
     ["iceCandidate", payload("iceCandidate", { sdp: "c" }), { kind: "iceCandidate", candidate: "c" }],
-    ["iceCandidate with mid and line", payload("iceCandidate", { candidate: "c", mid: "0", mLine: 1 }), { kind: "iceCandidate", candidate: "c", sdpMid: "0", sdpMLineIndex: 1 }],
+    [
+      "iceCandidate with mid and line",
+      payload("iceCandidate", { candidate: "c", mid: "0", mLine: 1 }),
+      { kind: "iceCandidate", candidate: "c", sdpMid: "0", sdpMLineIndex: 1 },
+    ],
     ["iceCandidate ignores bad mid", payload("iceCandidate", { sdp: "c", mid: 0, mLine: "1" }), { kind: "iceCandidate", candidate: "c" }],
     ["iceCandidate empty", payload("iceCandidate", {}), null],
     ["unknown cmd", payload("bye", {}), null],

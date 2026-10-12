@@ -3,9 +3,9 @@ import { expectInRoom, poll } from "../helpers";
 import { GUEST_IDENTITY } from "./identities";
 import { channelIdOf, channelWith } from "./ui";
 
-// Passwords on the real server (step 5.7). The dialogs themselves are layer 4; what only the real
-// server can show is that its own refusals reach the person as the right dialog, and that a right
-// password gets them in. Rights do not matter here, so the guest identity is used throughout.
+// Passwords on the real server. The dialogs themselves are layer 4, what only the real server shows is that its own refusals
+// reach the person as the right dialog and that a right password gets them in. Rights don't matter here, so the guest identity
+// is used throughout.
 
 test.describe("server password", () => {
   test.beforeEach(async ({ query }) => {
@@ -33,7 +33,11 @@ test.describe("server password", () => {
     await alice.page.keyboard.press("Enter");
     await expectInRoom(alice.page, alice.nickname);
     await expect(dialog).toBeHidden();
-    await poll(() => channelIdOf(query, alice.nickname), (cid) => cid !== undefined, { message: "the server to list Alice after the right password" });
+    await poll(
+      () => channelIdOf(query, alice.nickname),
+      (cid) => cid !== undefined,
+      { message: "the server to list Alice after the right password" },
+    );
   });
 });
 
@@ -57,7 +61,11 @@ test("a protected channel asks for its password, refuses a wrong one and lets th
   await password.fill("open-sesame");
   await alice.page.keyboard.press("Enter");
   await expect(dialog).toBeHidden();
-  await poll(() => channelIdOf(query, alice.nickname), (cid) => cid === vault.id, { message: "the server to move Alice into the protected channel" });
+  await poll(
+    () => channelIdOf(query, alice.nickname),
+    (cid) => cid === vault.id,
+    { message: "the server to move Alice into the protected channel" },
+  );
   await expect(channelWith(alice.page, vault.name, 1)).toBeVisible();
   await expect(channelWith(alice.page, home.name, 0)).toBeVisible();
 });

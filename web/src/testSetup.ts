@@ -9,4 +9,15 @@ import { screenShareMessages } from "@/features/screenShare";
 import { translations as voiceMessages } from "@/features/voice/i18n";
 import { translations as chatMessages } from "@/features/room/chat/i18n";
 
-for (const messages of [commonMessages, roomMessages, joinMessages, adminMessages, demoMessages, sessionMessages, screenShareMessages, voiceMessages, chatMessages]) registerMessages(messages);
+for (const messages of [
+  commonMessages,
+  roomMessages,
+  joinMessages,
+  adminMessages,
+  demoMessages,
+  sessionMessages,
+  screenShareMessages,
+  voiceMessages,
+  chatMessages,
+])
+  registerMessages(messages);

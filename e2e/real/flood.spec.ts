@@ -4,7 +4,7 @@ import { realServerFromEnv, silentLogger } from "./server";
 
 const server = realServerFromEnv();
 
-// G-SMOKE lesson 2: the server banned 127.0.0.1 ("connection failed, you are banned", about ten
+// The server banned 127.0.0.1 ("connection failed, you are banned", about ten
 // minutes) after roughly ten joins in three minutes. Global setup raises the anti-flood limits;
 // this shows that it worked for client connections, which the query allow-list does not cover.
 test("thirty clients can join one after another in a minute without a flood ban", async () => {

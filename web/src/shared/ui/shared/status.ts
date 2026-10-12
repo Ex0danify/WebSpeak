@@ -1,4 +1,3 @@
-
 import { type IconName } from "../icon";
 
 // Shared by Toast and Banner. Every variant has its own glyph, so status is

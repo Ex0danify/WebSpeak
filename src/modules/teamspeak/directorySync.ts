@@ -8,10 +8,8 @@ type DirectoryDelta =
   | { type: "clientUpdated"; info: DirectoryClientInfo };
 
 /**
- * Merges staged welcome snapshots with events received while the snapshot is
- * in flight. Some TS6 welcome data arrives in more than one partial snapshot,
- * so a later snapshot must not hide clients that were present in an earlier
- * one. Explicit leave events remain authoritative removals.
+ * Merges staged welcome snapshots with events that arrive while the snapshot is in flight. TS6 sends some
+ * welcome data as partial snapshots, so a later one must not hide earlier clients. Leave events always win.
  */
 export class DirectorySynchronizer {
   private snapshot: TSDirectorySnapshot | null = null;

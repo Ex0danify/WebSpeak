@@ -1,18 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { LANGUAGES as DISCOVERED, MODULE_LANGUAGES, languageCodesFound } from "./languages";
 
-// Test version of `npm run check:i18n` (web/scripts/check-i18n.mjs). It scans the language
-// files as text, the same way, because `join`, `room` and `admin` start from `...en` (per
-// module) and so hold every key that module declares in English at runtime: only the text
-// shows what they translate themselves. `common` and `demo` do not spread and are fully
-// standalone in all five languages. Every module folder is checked (step 8.7 widened this
-// from join/room only, once step 8.6 had resolved the cross-module collisions that made
-// checking admin/demo alongside join/room premature — see check-i18n.mjs and the plan's
-// Track 8 notes). Modules are discovered by glob (any folder under src/ with an index.ts and
-// the five language files, named after the folder or, for a folder called i18n, its parent),
-// so they keep being found as they relocate into features/ and shared/.
+// Test version of `npm run check:i18n`, scanning the language files as text because `join`, `room` and `admin` start from
+// `...en`, so only the text shows what they translate themselves. Modules are found by glob (a folder under src/ with an
+// index.ts and the language files).
 
-// The languages come from the folders (languages.ts); nothing here names one.
+// The languages come from the folders (languages.ts), nothing here names one.
 const LANGUAGES = DISCOVERED.map((language) => language.code);
 type Language = string;
 const KEY = /^ {2}(?:([A-Za-z_$][\w$]*)|"([^"]+)"):/gm;
@@ -20,7 +13,11 @@ const KEY = /^ {2}(?:([A-Za-z_$][\w$]*)|"([^"]+)"):/gm;
 type Translations = Record<Language, Record<string, string>>;
 
 const indexFiles = import.meta.glob<{ translations: Translations }>("@/**/i18n/**/index.ts", { eager: true });
-const sourceFiles = import.meta.glob<string>(["@/**/i18n/**/*.ts", "!@/**/i18n/**/index.ts", "!@/**/i18n/**/*.test.ts"], { eager: true, query: "?raw", import: "default" });
+const sourceFiles = import.meta.glob<string>(["@/**/i18n/**/*.ts", "!@/**/i18n/**/index.ts", "!@/**/i18n/**/*.test.ts"], {
+  eager: true,
+  query: "?raw",
+  import: "default",
+});
 
 const moduleDirs = new Map<string, string>();
 for (const path of Object.keys(indexFiles)) {
@@ -44,17 +41,13 @@ function declaredKeys(module: Module, language: Language): Set<string> {
   return new Set([...source.matchAll(KEY)].map((match) => (match[1] ?? match[2])!));
 }
 
-// module -> language -> declared keys
-const declaredByModule = Object.fromEntries(modules.map((module) => [
-  module,
-  Object.fromEntries(LANGUAGES.map((language) => [language, declaredKeys(module, language)])),
-])) as Record<Module, Record<Language, Set<string>>>;
+const declaredByModule = Object.fromEntries(
+  modules.map((module) => [module, Object.fromEntries(LANGUAGES.map((language) => [language, declaredKeys(module, language)]))]),
+) as Record<Module, Record<Language, Set<string>>>;
 
-// module -> union of keys declared by any language in that module
-const unionByModule = Object.fromEntries(modules.map((module) => [
-  module,
-  new Set(LANGUAGES.flatMap((language) => [...declaredByModule[module][language]])),
-])) as Record<Module, Set<string>>;
+const unionByModule = Object.fromEntries(
+  modules.map((module) => [module, new Set(LANGUAGES.flatMap((language) => [...declaredByModule[module][language]]))]),
+) as Record<Module, Set<string>>;
 
 /** Keys another language declares for this module that this one does not, sorted. */
 function missingKeys(module: Module, language: Language): string[] {
@@ -64,7 +57,8 @@ function missingKeys(module: Module, language: Language): string[] {
 describe("language discovery", () => {
   it("lists a language only when it is complete, and no language file is stranded in one folder", () => {
     expect(languageCodesFound(MODULE_LANGUAGES)).toEqual([...LANGUAGES].sort());
-    for (const dir of moduleDirs.values()) for (const language of LANGUAGES) expect(sourceFiles, `${dir} has no ${language}.ts`).toHaveProperty([`${dir}/${language}.ts`]);
+    for (const dir of moduleDirs.values())
+      for (const language of LANGUAGES) expect(sourceFiles, `${dir} has no ${language}.ts`).toHaveProperty([`${dir}/${language}.ts`]);
   });
 
   it("puts the default language first", () => {
@@ -98,16 +92,22 @@ describe("the key scan", () => {
     },
   );
 
-  // `de` is strict (step I1.5): no spread, so a key it lacks is really absent and t() falls back to `en`.
-  it.each(modules.filter((module) => ["common", "demo", "join", "room", "admin", "session", "screenShare", "chat"].includes(module)))("%s: de finds exactly the runtime keys, none spread another file", (module) => {
-    expect([...declaredByModule[module].de].sort()).toEqual(Object.keys(translationsByModule[module].de).sort());
-  });
+  // `de` is strict, no spread, so a key it lacks is really absent and t() falls back to `en`.
+  it.each(modules.filter((module) => ["common", "demo", "join", "room", "admin", "session", "screenShare", "chat"].includes(module)))(
+    "%s: de finds exactly the runtime keys, none spread another file",
+    (module) => {
+      expect([...declaredByModule[module].de].sort()).toEqual(Object.keys(translationsByModule[module].de).sort());
+    },
+  );
 
-  it.each(modules.filter((module) => ["common", "demo"].includes(module)))("%s: every language finds exactly the runtime keys, none spread another file", (module) => {
-    for (const language of LANGUAGES) {
-      expect([...declaredByModule[module][language]].sort()).toEqual(Object.keys(translationsByModule[module][language]).sort());
-    }
-  });
+  it.each(modules.filter((module) => ["common", "demo"].includes(module)))(
+    "%s: every language finds exactly the runtime keys, none spread another file",
+    (module) => {
+      for (const language of LANGUAGES) {
+        expect([...declaredByModule[module][language]].sort()).toEqual(Object.keys(translationsByModule[module][language]).sort());
+      }
+    },
+  );
 
   it("reads quoted keys as well as bare ones", () => {
     const sample = ['  plain: "a",', '  "quoted-key": "b",', '    nested: "c",'].join("\n");
@@ -129,15 +129,30 @@ const PLACEHOLDER = /\{\{\s*(\w+)\s*\}\}/g;
 const CJK = /[\u2e80-\u2fdf\u3000-\u303f\u3040-\u30ff\u3100-\u312f\u3190-\u31ff\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff\uff00-\uffef]/;
 const placeholdersOf = (value: string) => [...new Set([...value.matchAll(PLACEHOLDER)].map((match) => match[1]))].sort();
 
-/** Non-default-language values that may equal their English text: brand names, units and loanwords
- *  that are the same word in German. Each entry is `module.key`; a new one needs a reason in review. */
+/** Non-default-language values that may equal their English text (brand names, units, loanwords that are the same in German).
+ *  Each entry is `module.key` and a new one needs a reason in review. */
 const SAME_AS_ENGLISH = new Set<string>([
-  "admin.gateway", "admin.status", "admin.version",
-  "demo.simulated", "demo.demoOnline",
+  "admin.gateway",
+  "admin.status",
+  "admin.version",
+  "demo.simulated",
+  "demo.demoOnline",
   "join.browserSupport",
   "chat.serverChat",
-  "room.serverBreadcrumb", "room.onlineShort", "room.memberOnline", "room.optimal", "room.mobileChat", "room.browser", "room.browserToGateway", "room.gatewayToTeamSpeak", "room.screenShareRtt", "room.teamSpeakServer", "room.webSpeakGateway",
-  "common.optional", "common.serverPortPlaceholder", "common.server",
+  "room.serverBreadcrumb",
+  "room.onlineShort",
+  "room.memberOnline",
+  "room.optimal",
+  "room.mobileChat",
+  "room.browser",
+  "room.browserToGateway",
+  "room.gatewayToTeamSpeak",
+  "room.screenShareRtt",
+  "room.teamSpeakServer",
+  "room.webSpeakGateway",
+  "common.optional",
+  "common.serverPortPlaceholder",
+  "common.server",
 ]);
 
 const defaultLanguage = LANGUAGES[0]!;
@@ -167,7 +182,10 @@ describe("value rules", () => {
     for (const language of otherLanguages) {
       for (const [key, value] of Object.entries(translationsByModule[module][language])) {
         if (SAME_AS_ENGLISH.has(`${module}.${key}`)) continue;
-        expect(value === base[key], `${module}/${language}/${key} equals its English text (untranslated, or add "${module}.${key}" to SAME_AS_ENGLISH)`).toBe(false);
+        expect(
+          value === base[key],
+          `${module}/${language}/${key} equals its English text (untranslated, or add "${module}.${key}" to SAME_AS_ENGLISH)`,
+        ).toBe(false);
       }
     }
   });
@@ -177,7 +195,10 @@ describe("value rules", () => {
       const [module, key] = [entry.slice(0, entry.indexOf(".")), entry.slice(entry.indexOf(".") + 1)];
       const base = translationsByModule[module]?.[defaultLanguage]?.[key];
       expect(base, `${entry} is not a key`).toBeDefined();
-      expect(otherLanguages.some((language) => translationsByModule[module][language][key] === base), `${entry} no longer equals English, remove it`).toBe(true);
+      expect(
+        otherLanguages.some((language) => translationsByModule[module][language][key] === base),
+        `${entry} no longer equals English, remove it`,
+      ).toBe(true);
     }
   });
 });

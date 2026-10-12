@@ -2,8 +2,8 @@ import { expect, test } from "./fixtures";
 import { openMemberMenu } from "../helpers";
 import { chatTab, menuAction, message, say } from "./ui";
 
-// Text chat through the real server (step 5.5): what one browser sends is what the others receive,
-// in the scope it was sent in. Three people where scope matters: the third must see nothing.
+// Text chat through the real server. What one browser sends is what the others receive, in the scope it was sent in. Three
+// people where scope matters, the third must see nothing.
 
 test("channel chat goes both ways and stays in the channel", async ({ person, testChannel }) => {
   const room = await testChannel("real-chat");

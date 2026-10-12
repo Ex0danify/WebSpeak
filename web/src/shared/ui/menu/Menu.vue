@@ -8,25 +8,11 @@ import { Dialog } from "../dialog";
 import { menuContextKey } from "./menuContext";
 import { menuContentClass } from "./menu";
 
-// Dropdown menu on reka-ui: anchoring, collision handling, arrow keys,
-// typeahead, Esc, and focus back on the trigger all come from it.
-//
-//   <Menu label="Member actions" close-label="Close">
-//     <template #trigger><Button variant="outline">Actions</Button></template>
-//     <MenuItem @select="move">Move to my channel</MenuItem>
-//     <MenuSeparator />
-//     <MenuItem tone="danger">Kick</MenuItem>
-//   </Menu>
-//
-// The trigger slot takes exactly one element (a Button, usually); it gets the
-// menu's aria attributes and click handling. Bind `v-model:open` to open the
-// menu from code. It is not modal: the page stays scrollable and a click
-// outside closes it.
-//
-// At 740 px and below it is a bottom sheet instead: the same items as large
-// buttons in a Dialog pinned to the bottom edge, with a Close button under
-// them, submenus expanding in place. Tapping the backdrop or pressing Esc
-// closes it too. Pass `closeLabel` translated; the default is English.
+// Dropdown menu on reka-ui, which brings anchoring, collision handling, arrow keys, typeahead, Esc and focus return.
+// The trigger slot takes exactly one element. Not modal, the page stays scrollable and an outside click closes it.
+
+// At 740 px and below it is a bottom sheet instead, the same items as large buttons in a Dialog pinned to the bottom edge,
+// with a Close button and submenus expanding in place. Pass `closeLabel` translated, the default is English.
 const props = withDefaults(
   defineProps<{
     /** Accessible name of the menu. */
@@ -42,11 +28,9 @@ const props = withDefaults(
 
 const open = defineModel<boolean>("open", { default: false });
 
-// Reka focuses the trigger when the desktop popup closes. That is right for a real button, but a
-// caller whose trigger cannot take focus (a hidden span placed at a click point) needs to manage
-// it itself: call `event.preventDefault()` in the handler and focus whatever should get it.
+// Reka focuses the trigger when the desktop popup closes. A caller whose trigger cannot take focus (a hidden span at a click
+// point) calls `event.preventDefault()` in the handler and focuses whatever should get it.
 const emit = defineEmits<{ closeAutoFocus: [event: Event] }>();
-
 
 const sheet = useMediaQuery("(max-width: 740px)");
 provide(menuContextKey, { sheet, close: () => (open.value = false) });
@@ -64,8 +48,7 @@ function firstElement(nodes: VNode[]): VNode | undefined {
   }
 }
 
-// Reka's trigger belongs to the popup. The sheet has its own: it puts the same
-// aria state and a toggle click on whatever single element the slot renders.
+// Reka's trigger belongs to the popup, so the sheet puts the same aria state and a toggle click on the slot's single element.
 const SheetTrigger = defineComponent({
   setup(_, { slots }) {
     return () => {
@@ -98,7 +81,16 @@ const SheetTrigger = defineComponent({
       <slot name="trigger" />
     </DropdownMenuTrigger>
     <DropdownMenuPortal>
-      <DropdownMenuContent :side="side" :align="align" :side-offset="6" :collision-padding="8" :aria-label="label" :aria-labelledby="undefined" :class="cn(menuContentClass, props.class)" @close-auto-focus="emit('closeAutoFocus', $event)">
+      <DropdownMenuContent
+        :side="side"
+        :align="align"
+        :side-offset="6"
+        :collision-padding="8"
+        :aria-label="label"
+        :aria-labelledby="undefined"
+        :class="cn(menuContentClass, props.class)"
+        @close-auto-focus="emit('closeAutoFocus', $event)"
+      >
         <slot />
       </DropdownMenuContent>
     </DropdownMenuPortal>

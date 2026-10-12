@@ -7,9 +7,7 @@ import { computeWebFingerprint } from "../../scripts/build-stamp.mjs";
 const defaultWebDir = fileURLToPath(new URL("../../web", import.meta.url));
 
 /**
- * Throws when web/dist was not built from the current web sources. Every layer
- * that serves the frontend calls this first (a stale bundle once made two
- * runs measure the wrong build).
+ * Throws when web/dist was not built from the current web sources. Every layer that serves the frontend calls this first.
  */
 export function assertFreshBuild(webDir: string = defaultWebDir): void {
   const stampPath = join(webDir, "dist", ".build-stamp");

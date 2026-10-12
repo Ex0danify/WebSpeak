@@ -7,7 +7,7 @@ export type MessageHandlers = {
   [K in ServerMessageType]?: (msg: Extract<ServerMessage, { type: K }>) => void;
 };
 
-/** Roster, chat, server event and poke frames: they only write the session store, so they belong to no
+/** Roster, chat, server event and poke frames. They only write the session store, so they belong to no
  *  audio or transport module. */
 export function createRosterHandlers(deps: { syncKnownMemberVolumes: () => void }): MessageHandlers {
   const { state, members, channels, chatMessages, serverEvents, pokeNotifications } = useSessionStore();
@@ -16,7 +16,13 @@ export function createRosterHandlers(deps: { syncKnownMemberVolumes: () => void 
   return {
     memberEnter: (msg) => {
       if (!members.some((member) => member.id === msg.id)) {
-        members.push({ id: msg.id, nickname: msg.nickname, uid: typeof msg.uid === "string" ? msg.uid : undefined, avatar: typeof msg.avatar === "string" ? msg.avatar : undefined, isSelf: Boolean(msg.isSelf) });
+        members.push({
+          id: msg.id,
+          nickname: msg.nickname,
+          uid: typeof msg.uid === "string" ? msg.uid : undefined,
+          avatar: typeof msg.avatar === "string" ? msg.avatar : undefined,
+          isSelf: Boolean(msg.isSelf),
+        });
         syncKnownMemberVolumes();
       }
     },
@@ -73,11 +79,10 @@ export function createRosterHandlers(deps: { syncKnownMemberVolumes: () => void 
   };
 }
 
-/** Merges the per-module handler maps into one dispatcher. An unknown, missing or non-string `type` is
- *  ignored, as the old `switch` did (a Map cannot be fooled by "constructor" or an array-valued type).
- *  A type claimed by two maps is a wiring bug and throws at construction. */
+/** Merges the per-module handler maps into one dispatcher. An unknown, missing or non-string `type` is ignored (a Map cannot be
+ *  fooled by "constructor" or an array-valued type). A type claimed by two maps is a wiring bug and throws at construction. */
 export function createMessageRouter(...maps: MessageHandlers[]): (msg: unknown) => void {
-  // `msg` is the raw parsed frame (it may even be null), so the entry point takes `unknown`; the table below is typed.
+  // `msg` is the raw parsed frame (it may even be null), so the entry point takes `unknown` and the table below is typed.
   const table = new Map<string, (msg: ServerMessage) => void>();
   for (const map of maps) {
     for (const [type, handler] of Object.entries(map) as [string, (msg: ServerMessage) => void][]) {

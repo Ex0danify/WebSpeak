@@ -3,21 +3,12 @@ import { TooltipArrow, TooltipContent, TooltipPortal, TooltipProvider, TooltipRo
 import { cn } from "../../lib/cn";
 import { tooltipContentClass, tooltipKbdClass } from "./tooltip";
 
-// A short text label for a control that has no visible name (icon-only
-// buttons) or a shortcut worth showing. It opens on hover and on keyboard
-// focus, closes on Esc, blur and pointer leave, and never takes focus.
-//
-//   <Tooltip text="Mute microphone" shortcut="M">
-//     <Button icon-only aria-label="Mute microphone"><Icon name="mic" /></Button>
-//   </Tooltip>
-//
-// The default slot takes exactly one element (the trigger). A tooltip is
-// supplementary: it is exposed via aria-describedby, so the trigger must
-// still have its own accessible name, and nothing essential may live only in
-// a tooltip (touch screens never show one). Use Popover for interactive
-// content. Each Tooltip carries its own provider, so there is no shared
-// "skip the delay when moving between tooltips" behavior; pass `delay` if a
-// toolbar needs it faster.
+// A short text label for a control with no visible name (icon-only buttons) or a shortcut worth showing. Opens on hover and
+// keyboard focus, closes on Esc, blur and pointer leave, and never takes focus. The default slot takes exactly one element.
+
+// A tooltip is supplementary and exposed via aria-describedby, so the trigger needs its own accessible name and nothing
+// essential may live only here (touch screens never show one). Each Tooltip has its own provider, so pass `delay` if a toolbar
+// needs it faster.
 const props = withDefaults(
   defineProps<{
     text: string;

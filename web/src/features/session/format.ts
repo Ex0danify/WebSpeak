@@ -2,9 +2,10 @@ import type { MessageKey } from "@/shared/i18n/messageKeys";
 import type { ChannelMember, ChatMessage } from "./sessionTypes.js";
 
 export function messageAvatar(message: ChatMessage, members: ChannelMember[]): string {
-  const member = members.find((candidate) =>
-    (typeof message.senderId === "number" && candidate.id === message.senderId) ||
-    (Boolean(message.senderUid) && candidate.uid === message.senderUid),
+  const member = members.find(
+    (candidate) =>
+      (typeof message.senderId === "number" && candidate.id === message.senderId) ||
+      (Boolean(message.senderUid) && candidate.uid === message.senderUid),
   );
   return member?.avatar ?? "";
 }

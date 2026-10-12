@@ -3,7 +3,7 @@ import { expect, test } from "./fixtures";
 import { openMemberMenu } from "../helpers";
 import { menuAction } from "./ui";
 
-// Poking through the real server (step 5.5). Poking asks for its message with the browser's prompt.
+// Poking through the real server. Poking asks for its message with the browser's prompt.
 
 async function poke(page: Page, nickname: string, answer: string | null): Promise<void> {
   page.once("dialog", (dialog) => (answer === null ? dialog.dismiss() : dialog.accept(answer)));
@@ -37,5 +37,7 @@ test("a poke works across channels, and one without a message is only the title"
   await bob.join(there.name);
 
   await poke(alice.page, bob.nickname, null);
-  await expect(bob.page.getByRole("status").filter({ hasText: "poked you" })).toHaveText(new RegExp(`^\\s*${alice.nickname} poked you\\s*$`));
+  await expect(bob.page.getByRole("status").filter({ hasText: "poked you" })).toHaveText(
+    new RegExp(`^\\s*${alice.nickname} poked you\\s*$`),
+  );
 });

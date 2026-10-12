@@ -3,11 +3,9 @@ import { memberRow, withAudioTone } from "../helpers";
 import { AudioCounters, expectQuiet } from "./counters";
 import { expect, test, type Person } from "./fixtures";
 
-// Voice through the real TeamSpeak server (step 5.4). Both browsers' fake microphones play a steady
-// 1000 Hz tone (a set of launch options for the whole file), so audio flows from each until muted.
-// What is asserted is what the gateway counts (the admin sessions API) and what the browsers see,
-// never what a socket sniffer decodes. A silent microphone is `voice.silent.spec.ts`, the 60 s
-// soak is `voice.soak.spec.ts`.
+// Voice through the real TeamSpeak server. Both browsers' fake microphones play a steady 1000 Hz tone, so audio flows until
+// muted. Asserts what the gateway counts (the admin sessions API) and what the browsers see, never what a socket sniffer
+// decodes.
 test.use(withAudioTone({ frequencyHz: 1000 }));
 
 const dock = (page: Page): Locator => page.getByRole("toolbar", { name: "Audio controls" });
@@ -21,7 +19,10 @@ async function twoInARoom(person: (index: number, label: string) => Promise<Pers
   return { alice, bob };
 }
 
-test("a tone from one client reaches the other: Opus frames, the speaking indicator and the gateway's counters agree", async ({ person, gateway }) => {
+test("a tone from one client reaches the other: Opus frames, the speaking indicator and the gateway's counters agree", async ({
+  person,
+  gateway,
+}) => {
   const { alice, bob } = await twoInARoom(person);
   const counters = await AudioCounters.of(gateway);
 
@@ -42,7 +43,10 @@ test("a tone from one client reaches the other: Opus frames, the speaking indica
   expect(bob.session.pageErrors).toEqual([]);
 });
 
-test("muting the microphone stops the voice at the browser, the gateway and the listener, and unmuting brings it back", async ({ person, gateway }) => {
+test("muting the microphone stops the voice at the browser, the gateway and the listener, and unmuting brings it back", async ({
+  person,
+  gateway,
+}) => {
   const { alice, bob } = await twoInARoom(person);
   const counters = await AudioCounters.of(gateway);
   await bob.session.waitForBinary(25, "received");
@@ -63,10 +67,12 @@ test("muting the microphone stops the voice at the browser, the gateway and the 
   expect((await counters.read(alice.nickname)).ingressFrames).toBeGreaterThan(whileMuted.ingressFrames);
 });
 
-test("Mute all audio is local: the voice keeps arriving at the listener's browser, and Restore audio undoes it", async ({ person, gateway }) => {
-  // There is no deafen state on the wire (step 4.6b), and the loudspeaker gain lives inside the
-  // browser's AudioContext, where a test cannot read it. What a real-server test can show is that
-  // deafening changes nothing upstream of the browser's output.
+test("Mute all audio is local: the voice keeps arriving at the listener's browser, and Restore audio undoes it", async ({
+  person,
+  gateway,
+}) => {
+  // There is no deafen state on the wire and the loudspeaker gain lives inside the browser's AudioContext where a test cannot
+  // read it. A real-server test can show that deafening changes nothing upstream of the browser's output.
   const { alice, bob } = await twoInARoom(person);
   const counters = await AudioCounters.of(gateway);
   await bob.session.waitForBinary(10, "received");

@@ -1,11 +1,15 @@
 import { describe, expect, it } from "vitest";
-import { type Gateway, useGateway } from "../../../../test/helpers/gateway.js";
-import { ask, joinVoice, type VoiceSession } from "../../../../test/helpers/voice.js";
-import type { JsonMessage } from "../../../../test/helpers/wsClient.js";
+import { type Gateway, useGateway } from "../../../../test/support/gateway.js";
+import { ask, joinVoice, type VoiceSession } from "../../../../test/support/voice.js";
+import type { JsonMessage } from "../../../../test/support/wsClient.js";
 
 const gateways = useGateway();
 
-interface Stream { streamId: string; ownerPeerId: string; [key: string]: unknown }
+interface Stream {
+  streamId: string;
+  ownerPeerId: string;
+  [key: string]: unknown;
+}
 
 /** A sharer, a viewer and a bystander in the same channel, and one person in another channel. */
 async function room(gateway: Gateway) {
@@ -30,7 +34,7 @@ async function startShare(owner: VoiceSession, payload: Record<string, unknown> 
   return started.stream as Stream;
 }
 
-/** The screen share messages a session has received since `after`, by type and stream. Waits until the gateway has answered a no-op, so a message that was sent is in the list. */
+/** Screen share messages a session got since after, by type and stream. Waits for a no-op answer so a sent message is in the list. */
 async function received(session: VoiceSession, after: number): Promise<JsonMessage[]> {
   await ask(session, "sendTextMessage", { message: "" });
   return session.socket.messages.slice(after).filter((message) => message.type.startsWith("screenShare"));
@@ -47,14 +51,22 @@ describe("the ICE servers in `connected`", () => {
   it("are TeamSpeak's public STUN servers when none are configured", async () => {
     const gateway = await gateways.start();
     const socket = await gateway.openVoice(gateway.ticket({ nickname: "alice" }));
-    expect((await socket.waitForMessage("connected")).screenShareIceServers).toEqual([{ urls: "stun:turn.teamspeak.com:3478" }, { urls: "stun:turn2.teamspeak.com:3478" }]);
+    expect((await socket.waitForMessage("connected")).screenShareIceServers).toEqual([
+      { urls: "stun:turn.teamspeak.com:3478" },
+      { urls: "stun:turn2.teamspeak.com:3478" },
+    ]);
   });
 
   it("are the configured ones, cleaned up, read again for every join", async () => {
-    let configured: unknown[] = [{ urls: ["turn:t.test", "http://bad.test"], username: "user", credential: "secret" }, { urls: "http://only-bad.test" }];
+    let configured: unknown[] = [
+      { urls: ["turn:t.test", "http://bad.test"], username: "user", credential: "secret" },
+      { urls: "http://only-bad.test" },
+    ];
     const gateway = await gateways.start({ voiceBridgeOptions: { screenShareIceServers: () => configured as never } });
     const first = await gateway.openVoice(gateway.ticket({ nickname: "first" }));
-    expect((await first.waitForMessage("connected")).screenShareIceServers).toEqual([{ urls: "turn:t.test", username: "user", credential: "secret" }]);
+    expect((await first.waitForMessage("connected")).screenShareIceServers).toEqual([
+      { urls: "turn:t.test", username: "user", credential: "secret" },
+    ]);
     configured = [{ urls: "stun:other.test" }];
     const second = await gateway.openVoice(gateway.ticket({ nickname: "second" }));
     expect((await second.waitForMessage("connected")).screenShareIceServers).toEqual([{ urls: "stun:other.test" }]);
@@ -70,10 +82,20 @@ describe("starting a share", () => {
     expect(started).toMatchObject({
       type: "screenShareStarted",
       owner: true,
-      stream: { source: "browser", ownerPeerId: expect.stringMatching(/^w-/), ownerClientId: owner.id, ownerNickname: "owner", name: "Slides", audio: true, viewerCount: 0, viewers: [], streamId: expect.stringMatching(/^screen-/) },
+      stream: {
+        source: "browser",
+        ownerPeerId: expect.stringMatching(/^w-/),
+        ownerClientId: owner.id,
+        ownerNickname: "owner",
+        name: "Slides",
+        audio: true,
+        viewerCount: 0,
+        viewers: [],
+        streamId: expect.stringMatching(/^screen-/),
+      },
     });
     const [seen, missed] = await Promise.all([received(viewer, marks[0]!), received(away, marks[1]!)]);
-    expect(seen).toEqual([{ type: "screenShareStarted", owner: false, stream: (started.stream as Stream) }]);
+    expect(seen).toEqual([{ type: "screenShareStarted", owner: false, stream: started.stream as Stream }]);
     expect(missed).toEqual([]);
   });
 
@@ -94,14 +116,20 @@ describe("starting a share", () => {
     const gateway = await gateways.start();
     const { owner, viewer, away } = await room(gateway);
     const stream = await startShare(owner);
-    for (const [session, expected] of [[owner, [stream]], [viewer, [stream]], [away, []]] as const) {
+    for (const [session, expected] of [
+      [owner, [stream]],
+      [viewer, [stream]],
+      [away, []],
+    ] as const) {
       const after = session.socket.mark();
       session.socket.send({ type: "screenShareList" });
       expect((await session.socket.waitForMessage("screenShareList", { after })).streams).toEqual(expected);
     }
     const after = viewer.socket.mark();
-    viewer.socket.send({ type: "screenShareStop", streamId: "" });
-    expect(await viewer.socket.waitForMessage("error", { after })).toMatchObject({ error: { code: "INVALID_SCREEN_SHARE_STREAM", recoverable: false } });
+    viewer.socket.send({ type: "screenShareStop", streamId: "" } as never);
+    expect(await viewer.socket.waitForMessage("error", { after })).toMatchObject({
+      error: { code: "INVALID_SCREEN_SHARE_STREAM", recoverable: false },
+    });
   });
 });
 
@@ -112,10 +140,20 @@ describe("watching a share", () => {
     const stream = await startShare(owner);
     const marks = await marksOf(owner, bystander, away);
     const joined = await share(viewer, "screenShareJoin", { streamId: stream.streamId });
-    expect(joined).toMatchObject({ type: "screenShareJoined", mode: "browser", ownerPeerId: stream.ownerPeerId, stream: { streamId: stream.streamId, viewerCount: 1, viewers: [{ peerId: expect.stringMatching(/^w-/), nickname: "viewer" }] } });
+    expect(joined).toMatchObject({
+      type: "screenShareJoined",
+      mode: "browser",
+      ownerPeerId: stream.ownerPeerId,
+      stream: { streamId: stream.streamId, viewerCount: 1, viewers: [{ peerId: expect.stringMatching(/^w-/), nickname: "viewer" }] },
+    });
     const [toOwner, toBystander, toAway] = await Promise.all([owner, bystander, away].map((session, i) => received(session, marks[i]!)));
-    expect(toOwner).toMatchObject([{ type: "screenShareViewerJoined", streamId: stream.streamId, viewerNickname: "viewer" }, { type: "screenShareViewerCount", viewerCount: 1 }]);
-    expect(toBystander).toMatchObject([{ type: "screenShareViewerCount", streamId: stream.streamId, viewerCount: 1, viewers: [{ nickname: "viewer" }] }]);
+    expect(toOwner).toMatchObject([
+      { type: "screenShareViewerJoined", streamId: stream.streamId, viewerNickname: "viewer" },
+      { type: "screenShareViewerCount", viewerCount: 1 },
+    ]);
+    expect(toBystander).toMatchObject([
+      { type: "screenShareViewerCount", streamId: stream.streamId, viewerCount: 1, viewers: [{ nickname: "viewer" }] },
+    ]);
     expect(toAway).toEqual([]);
   });
 
@@ -125,7 +163,10 @@ describe("watching a share", () => {
     const stream = await startShare(owner);
     await share(viewer, "screenShareJoin", { streamId: stream.streamId });
     const mark = await markOf(owner);
-    expect(await share(viewer, "screenShareJoin", { streamId: stream.streamId })).toMatchObject({ type: "screenShareJoined", stream: { viewerCount: 1 } });
+    expect(await share(viewer, "screenShareJoin", { streamId: stream.streamId })).toMatchObject({
+      type: "screenShareJoined",
+      stream: { viewerCount: 1 },
+    });
     expect(await received(owner, mark)).toEqual([]);
   });
 
@@ -133,9 +174,18 @@ describe("watching a share", () => {
     const gateway = await gateways.start();
     const { owner, away } = await room(gateway);
     const stream = await startShare(owner);
-    expect(await share(owner, "screenShareJoin", { streamId: stream.streamId })).toMatchObject({ type: "screenShareError", code: "SCREEN_SHARE_OWNER_CANNOT_JOIN" });
-    expect(await share(away, "screenShareJoin", { streamId: "screen-nope" })).toMatchObject({ type: "screenShareError", code: "SCREEN_SHARE_NOT_FOUND" });
-    expect(await share(away, "screenShareJoin", { streamId: stream.streamId })).toMatchObject({ type: "screenShareError", code: "SCREEN_SHARE_TARGET_MISMATCH" });
+    expect(await share(owner, "screenShareJoin", { streamId: stream.streamId })).toMatchObject({
+      type: "screenShareError",
+      code: "SCREEN_SHARE_OWNER_CANNOT_JOIN",
+    });
+    expect(await share(away, "screenShareJoin", { streamId: "screen-nope" })).toMatchObject({
+      type: "screenShareError",
+      code: "SCREEN_SHARE_NOT_FOUND",
+    });
+    expect(await share(away, "screenShareJoin", { streamId: stream.streamId })).toMatchObject({
+      type: "screenShareError",
+      code: "SCREEN_SHARE_TARGET_MISMATCH",
+    });
   });
 
   it("lets a viewer leave: the viewer, the sharer and the channel are told, and the count goes down", async () => {
@@ -147,7 +197,10 @@ describe("watching a share", () => {
     const viewerMark = await markOf(viewer);
     expect(await share(viewer, "screenShareLeave", { streamId: stream.streamId })).toMatchObject({ type: "screenShareCompleted" });
     expect(typesOf(await received(viewer, viewerMark))).toEqual(["screenShareLeft", "screenShareViewerCount", "screenShareCompleted"]);
-    expect(await received(owner, marks[0]!)).toMatchObject([{ type: "screenShareViewerLeft", streamId: stream.streamId }, { type: "screenShareViewerCount", viewerCount: 0, viewers: [] }]);
+    expect(await received(owner, marks[0]!)).toMatchObject([
+      { type: "screenShareViewerLeft", streamId: stream.streamId },
+      { type: "screenShareViewerCount", viewerCount: 0, viewers: [] },
+    ]);
     expect(await received(bystander, marks[1]!)).toMatchObject([{ type: "screenShareViewerCount", viewerCount: 0 }]);
   });
 });
@@ -162,17 +215,38 @@ describe("signals between the sharer and a viewer", () => {
     const { viewerPeerId } = await (async () => {
       const mark = owner.socket.mark();
       await share(viewer, "screenShareJoin", { streamId: stream.streamId });
-      return owner.socket.waitForMessage("screenShareViewerJoined", { after: mark }) as Promise<{ viewerPeerId: string }>;
+      return owner.socket.waitForMessage("screenShareViewerJoined", { after: mark }) as unknown as Promise<{ viewerPeerId: string }>;
     })();
     const toViewer = viewer.socket.mark();
     owner.socket.send({ type: "screenShareSignal", streamId: stream.streamId, targetPeerId: viewerPeerId, signal: offer } as never);
-    expect(await viewer.socket.waitForMessage("screenShareSignal", { after: toViewer })).toEqual({ type: "screenShareSignal", streamId: stream.streamId, fromPeerId: stream.ownerPeerId, signal: offer });
+    expect(await viewer.socket.waitForMessage("screenShareSignal", { after: toViewer })).toEqual({
+      type: "screenShareSignal",
+      streamId: stream.streamId,
+      fromPeerId: stream.ownerPeerId,
+      signal: offer,
+    });
     const toOwner = owner.socket.mark();
     const candidate = { kind: "iceCandidate", candidate: "candidate:1", sdpMid: "0", sdpMLineIndex: 0 };
-    viewer.socket.send({ type: "screenShareSignal", streamId: stream.streamId, targetPeerId: stream.ownerPeerId, signal: { kind: "answer", sdp: "v=0 answer" } } as never);
-    viewer.socket.send({ type: "screenShareSignal", streamId: stream.streamId, targetPeerId: stream.ownerPeerId, signal: candidate } as never);
-    await owner.socket.waitForMessage((message) => message.type === "screenShareSignal" && (message.signal as { kind: string }).kind === "iceCandidate", { after: toOwner });
-    expect((await received(owner, toOwner)).map((message) => [message.fromPeerId, (message.signal as { kind: string }).kind])).toEqual([[viewerPeerId, "answer"], [viewerPeerId, "iceCandidate"]]);
+    viewer.socket.send({
+      type: "screenShareSignal",
+      streamId: stream.streamId,
+      targetPeerId: stream.ownerPeerId,
+      signal: { kind: "answer", sdp: "v=0 answer" },
+    } as never);
+    viewer.socket.send({
+      type: "screenShareSignal",
+      streamId: stream.streamId,
+      targetPeerId: stream.ownerPeerId,
+      signal: candidate,
+    } as never);
+    await owner.socket.waitForMessage(
+      (message) => message.type === "screenShareSignal" && (message.signal as { kind: string }).kind === "iceCandidate",
+      { after: toOwner },
+    );
+    expect((await received(owner, toOwner)).map((message) => [message.fromPeerId, (message.signal as { kind: string }).kind])).toEqual([
+      [viewerPeerId, "answer"],
+      [viewerPeerId, "iceCandidate"],
+    ]);
   });
 
   it("do not go between two viewers, to a peer that is not there, or from someone who is not part of the share", async () => {
@@ -184,7 +258,9 @@ describe("signals between the sharer and a viewer", () => {
     for (const session of [viewer, second]) {
       const mark = owner.socket.mark();
       await share(session, "screenShareJoin", { streamId: stream.streamId });
-      peerIds[session === viewer ? "viewer" : "second"] = ((await owner.socket.waitForMessage("screenShareViewerJoined", { after: mark })) as { viewerPeerId: string }).viewerPeerId;
+      peerIds[session === viewer ? "viewer" : "second"] = (
+        (await owner.socket.waitForMessage("screenShareViewerJoined", { after: mark })) as unknown as { viewerPeerId: string }
+      ).viewerPeerId;
     }
     const signal = (session: VoiceSession, targetPeerId: string) => {
       const after = session.socket.mark();
@@ -208,7 +284,10 @@ describe("ending a share", () => {
     const stream = await startShare(owner);
     await share(viewer, "screenShareJoin", { streamId: stream.streamId });
     const marks = await marksOf(viewer, bystander, away);
-    expect(await share(owner, "screenShareStop", { streamId: stream.streamId })).toEqual({ type: "screenShareCompleted", requestId: expect.any(String) });
+    expect(await share(owner, "screenShareStop", { streamId: stream.streamId })).toEqual({
+      type: "screenShareCompleted",
+      requestId: expect.any(String),
+    });
     const [toViewer, toBystander, toAway] = await Promise.all([viewer, bystander, away].map((session, i) => received(session, marks[i]!)));
     expect(toViewer).toEqual([{ type: "screenShareStopped", streamId: stream.streamId, reason: "owner-stopped" }]);
     expect(toBystander).toEqual(toViewer);
@@ -225,8 +304,14 @@ describe("ending a share", () => {
     const { owner, viewer } = await room(gateway);
     const stream = await startShare(owner);
     await share(viewer, "screenShareJoin", { streamId: stream.streamId });
-    expect(await share(viewer, "screenShareStop", { streamId: stream.streamId })).toMatchObject({ type: "screenShareError", code: "SCREEN_SHARE_NOT_OWNER" });
-    expect(await share(viewer, "screenShareJoin", { streamId: stream.streamId })).toMatchObject({ type: "screenShareJoined", stream: { viewerCount: 1 } });
+    expect(await share(viewer, "screenShareStop", { streamId: stream.streamId })).toMatchObject({
+      type: "screenShareError",
+      code: "SCREEN_SHARE_NOT_OWNER",
+    });
+    expect(await share(viewer, "screenShareJoin", { streamId: stream.streamId })).toMatchObject({
+      type: "screenShareJoined",
+      stream: { viewerCount: 1 },
+    });
   });
 
   it("happens when the sharer disconnects", async () => {
@@ -246,7 +331,10 @@ describe("ending a share", () => {
     await share(viewer, "screenShareJoin", { streamId: stream.streamId });
     const mark = await markOf(viewer);
     await ask(owner, "switchChannel", { channelId: "3" });
-    expect(await viewer.socket.waitForMessage((message) => message.type === "screenShareStopped", { after: mark })).toMatchObject({ streamId: stream.streamId, reason: "owner-moved-channel" });
+    expect(await viewer.socket.waitForMessage((message) => message.type === "screenShareStopped", { after: mark })).toMatchObject({
+      streamId: stream.streamId,
+      reason: "owner-moved-channel",
+    });
   });
 
   it("does not need the viewer: a viewer who disconnects is dropped from the count", async () => {
@@ -261,9 +349,8 @@ describe("ending a share", () => {
   });
 });
 
-// F18: every session sees every move on the server, and `reconcileScreenShareAfterClientMove` used to compare
-// the destination of whoever moved with the channel of the share, without checking that the mover is the
-// sharer or the viewer. The tests below move somebody else.
+// Every session sees every move, and reconcileScreenShareAfterClientMove must check the mover is the sharer
+// or viewer before comparing the destination. These tests move somebody else.
 describe("someone else changing channel", () => {
   async function shareWithViewer(gateway: Gateway) {
     const { owner, viewer, bystander } = await room(gateway);
@@ -277,7 +364,7 @@ describe("someone else changing channel", () => {
     return ((await session.socket.waitForMessage("screenShareList", { after })).streams as Stream[]).map((stream) => stream.streamId);
   };
 
-  it("F18: leaves the share of a sharer who stayed put running, with its viewer", async () => {
+  it("leaves the share of a sharer who stayed put running, with its viewer", async () => {
     const gateway = await gateways.start();
     const { owner, viewer, bystander, stream } = await shareWithViewer(gateway);
     await ask(bystander, "switchChannel", { channelId: "3" });
@@ -287,7 +374,7 @@ describe("someone else changing channel", () => {
     expect(await listed(viewer)).toEqual([stream.streamId]);
   });
 
-  it("F18: a viewer who changes channel leaves the share, and the share keeps running for the sharer", async () => {
+  it("a viewer who changes channel leaves the share, and the share keeps running for the sharer", async () => {
     const gateway = await gateways.start();
     const { owner, viewer, stream } = await shareWithViewer(gateway);
     const mark = await markOf(owner);

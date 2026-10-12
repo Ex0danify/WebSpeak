@@ -1,6 +1,6 @@
-// localStorage can refuse: a full quota makes setItem throw, and some browser settings make even
-// reading the localStorage property throw. None of it may break the page, so every caller goes
-// through these three functions: a read answers null, a write answers false, a remove does nothing.
+// localStorage can refuse, a full quota makes setItem throw and some browser settings make even reading the property throw.
+// None of it may break the page, so every caller goes through these functions. A read answers null, a write answers false, a
+// remove does nothing.
 
 export function readStorage(key: string): string | null {
   try {

@@ -62,7 +62,9 @@ describe("encryptSecret / decryptSecret", () => {
     const cipher = createCipheriv("aes-256-gcm", key, nonce);
     cipher.setAAD(Buffer.from("some-other-purpose"));
     const ciphertext = Buffer.concat([cipher.update("hunter2", "utf8"), cipher.final()]);
-    const forged = ["v1", nonce.toString("base64url"), cipher.getAuthTag().toString("base64url"), ciphertext.toString("base64url")].join(":");
+    const forged = ["v1", nonce.toString("base64url"), cipher.getAuthTag().toString("base64url"), ciphertext.toString("base64url")].join(
+      ":",
+    );
     expect(() => decryptSecret(forged, key)).toThrow();
   });
 
@@ -90,14 +92,14 @@ describe("encryptSecret / decryptSecret", () => {
     expect(decryptSecret("", Buffer.alloc(1))).toBe("");
   });
 
-  // F6: encryptSecret writes 16 byte tags and decryptSecret pins authTagLength, so a truncated one is refused.
-  it("F6: rejects an authentication tag shorter than 16 bytes", () => {
+  // EncryptSecret writes 16 byte tags and decryptSecret pins authTagLength, so a truncated one is refused.
+  it("rejects an authentication tag shorter than 16 bytes", () => {
     const p = parts(encryptSecret("hunter2", key));
     p[2] = Buffer.from(p[2], "base64url").subarray(0, 4).toString("base64url");
     expect(() => decryptSecret(p.join(":"), key)).toThrow();
   });
 
-  it("F6: rejects an authentication tag longer than 16 bytes", () => {
+  it("rejects an authentication tag longer than 16 bytes", () => {
     const p = parts(encryptSecret("hunter2", key));
     p[2] = Buffer.concat([Buffer.from(p[2], "base64url"), Buffer.alloc(4)]).toString("base64url");
     expect(() => decryptSecret(p.join(":"), key)).toThrow();

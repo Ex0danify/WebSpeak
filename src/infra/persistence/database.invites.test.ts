@@ -2,7 +2,7 @@ import { readdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { describe, expect, it, vi } from "vitest";
-import { credential, invite, mkdirSyncFor, settings, useDatabaseFixture } from "../../../test/helpers/database.js";
+import { credential, invite, mkdirSyncFor, settings, useDatabaseFixture } from "../../../test/support/database.js";
 import { DATABASE_SCHEMA_VERSION } from "./database.js";
 
 const fx = useDatabaseFixture();
@@ -90,7 +90,11 @@ describe("managed invites", () => {
   it("stores the encrypted server password and target of the invite as given", () => {
     const database = fx.open();
     database.createManagedInvite(invite("invite-1", { serverPasswordEncrypted: "enc:pw", targetHost: "::1", targetPort: 1234 }));
-    expect(database.consumeManagedInvite("hash-invite-1")).toMatchObject({ serverPasswordEncrypted: "enc:pw", targetHost: "::1", targetPort: 1234 });
+    expect(database.consumeManagedInvite("hash-invite-1")).toMatchObject({
+      serverPasswordEncrypted: "enc:pw",
+      targetHost: "::1",
+      targetPort: 1234,
+    });
   });
 });
 

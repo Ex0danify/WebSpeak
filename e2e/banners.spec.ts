@@ -3,10 +3,9 @@ import { expect, test } from "./fixtures";
 import { installVoiceFixture, type ScriptedGateway } from "./fixtures/scripted-gateway";
 import { expectInRoom, join, openMemberMenu, submitJoin } from "./helpers";
 
-// Banners stay in the layout until the situation changes; toasts are for something that happened
-// and can be forgotten. The reconnect states, the audio notice and stacked pokes come from the
-// scripted gateway (the fake TeamSpeak server cannot produce them); a poke from a person and the
-// toast of an action go through the real gateway.
+// Banners stay in the layout until the situation changes, toasts are for something that happened and can be forgotten. The
+// reconnect states, audio notice and stacked pokes come from the scripted gateway, a person's poke and an action's toast go
+// through the real one.
 
 /** Joins on the scripted gateway and opens the Voice tab of a phone, where the banners are. */
 async function scriptedRoom(page: Page): Promise<ScriptedGateway> {
@@ -115,18 +114,31 @@ test.describe("poke banners", () => {
     const poker = script.member("bnr-quiet-poker");
     await join(page, "bnr-quiet-poked");
     await showBanners(page);
-    poker.poke(gateway.ts.created.find((created) => created.options.nickname === "bnr-quiet-poked")!, "");
+    poker.poke(
+      gateway.ts.created.find((created) => created.options.nickname === "bnr-quiet-poked")!,
+      "",
+    );
     await expect(pokes(page)).toHaveText(/^\s*bnr-quiet-poker poked you\s*$/);
   });
 
   test("two pokes are stacked one under the other without overlapping, and only three show at a time", async ({ page }) => {
     const scripted = await scriptedRoom(page);
-    const poke = (id: number, name: string) => scripted.send({ type: "pokeReceived", invokerId: id, invokerUid: `uid-${id}`, invokerName: name, message: `from ${name}`, timestamp: Date.now() });
+    const poke = (id: number, name: string) =>
+      scripted.send({
+        type: "pokeReceived",
+        invokerId: id,
+        invokerUid: `uid-${id}`,
+        invokerName: name,
+        message: `from ${name}`,
+        timestamp: Date.now(),
+      });
 
     poke(11, "First Poker");
     poke(12, "Second Poker");
     await expect(pokes(page)).toHaveCount(2);
-    const boxes = await pokes(page).evaluateAll((elements) => elements.map((element) => element.getBoundingClientRect()).map(({ top, bottom, left, right }) => ({ top, bottom, left, right })));
+    const boxes = await pokes(page).evaluateAll((elements) =>
+      elements.map((element) => element.getBoundingClientRect()).map(({ top, bottom, left, right }) => ({ top, bottom, left, right })),
+    );
     boxes.sort((a, b) => a.top - b.top);
     expect(boxes[0].bottom).toBeLessThanOrEqual(boxes[1].top);
     expect(boxes[0].left).toBeLessThan(boxes[0].right);

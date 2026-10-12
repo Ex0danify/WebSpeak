@@ -1,7 +1,7 @@
 import { existsSync, statSync } from "node:fs";
 import { DatabaseSync } from "node:sqlite";
 import { describe, expect, it } from "vitest";
-import { mkdirSyncFor, useDatabaseFixture } from "../../../test/helpers/database.js";
+import { mkdirSyncFor, useDatabaseFixture } from "../../../test/support/database.js";
 
 const fx = useDatabaseFixture();
 
@@ -24,7 +24,11 @@ describe("schema backup before a migration", () => {
   it("contains rows that are committed but still only in the WAL file", () => {
     const writer = createSchema7WithPendingWal(fx.path);
     try {
-      try { fx.open(); } catch { /* the toy schema 7 may not migrate; the backup is written before that */ }
+      try {
+        fx.open();
+      } catch {
+        /* the toy schema 7 may not migrate; the backup is written before that */
+      }
       const backupPath = `${fx.path}.schema-7.bak`;
       expect(existsSync(backupPath)).toBe(true);
       const backup = new DatabaseSync(backupPath, { readOnly: true });
@@ -41,7 +45,11 @@ describe("schema backup before a migration", () => {
   it.skipIf(process.platform === "win32")("is readable by its owner only", () => {
     const writer = createSchema7WithPendingWal(fx.path);
     try {
-      try { fx.open(); } catch { /* see above */ }
+      try {
+        fx.open();
+      } catch {
+        /* see above */
+      }
       expect(statSync(`${fx.path}.schema-7.bak`).mode & 0o777).toBe(0o600);
     } finally {
       writer.close();

@@ -1,22 +1,21 @@
 import { fileURLToPath } from "node:url";
 import { test as base, expect, type Page } from "@playwright/test";
-import { type Gateway, startGateway } from "../../test/helpers/gateway";
+import { type Gateway, startGateway } from "../../test/support/gateway";
 import { JoinRateLimiter } from "../../src/modules/join/joinRateLimit";
 import { Session, expectInRoom, poll, submitJoin } from "../helpers";
 import { assertFreshBuild } from "../helpers/build-stamp";
 import { type SeededIdentity, identities, storageStateFor } from "./identities";
 import { type RealServer, WebQuery, realServerFromEnv } from "./server";
 
-// Joins are paced below, so the gateway's own limit (30 a minute per peer) has nothing to add, and
-// the browsers of a run all come from 127.0.0.1. Layer 3 tests the limiter; see e2e/fixtures.
+// Joins are paced below, so the gateway's own limit (30 a minute per peer, and all browsers come from 127.0.0.1)
+// has nothing to add.
 JoinRateLimiter.prototype.allow = () => true;
 
 const staticDir = fileURLToPath(new URL("../../web/dist", import.meta.url));
 
 /**
- * The server floods clients that join fast (G-SMOKE lesson 2). Global setup raises its limits, and
- * this is the second defence: joins to TeamSpeak start at least this far apart. It is a rate limit
- * the tests obey, not a wait for something to happen.
+ * The server floods clients that join fast. Global setup raises its limits and this is the second defence,
+ * joins to TeamSpeak start at least this far apart. A rate limit the tests obey, not a wait for an event.
  */
 export const JOIN_PACE_MS = 1500;
 
@@ -31,9 +30,8 @@ export interface Person {
   /** When the join to TeamSpeak was started, for tests of the pacing. */
   joinStartedAt: number | null;
   /**
-   * Joins through the form, at least `JOIN_PACE_MS` after the previous join of the run, and waits
-   * for the room. With `channel` the form's target channel is filled in (a name); without it the
-   * server's default channel is where the person lands.
+   * Joins through the form at least `JOIN_PACE_MS` after the previous join of the run and waits for the room.
+   * With `channel` (a name) the form's target channel is filled in, otherwise the default channel is where they land.
    */
   join(channel?: string): Promise<void>;
   /** The same paced start as `join`, without waiting for the room: for a join that is expected to be refused. */
@@ -49,17 +47,14 @@ interface WorkerFixtures {
 
 interface TestFixtures {
   /**
-   * A new browser context seeded with identity `index` (step 5.2). The nickname is unique: `label`
-   * plus a counter. Closed after the test, before the gateway's sessions are checked for leaks.
-   * `options.gateway` is another gateway to join through (`ownGateway`). `options.seeded: false`
-   * gives a browser with no stored identity, the state of a first-time visitor (finding F1); its
-   * `identity` is then only the number it would have had, not one the browser uses.
+   * A new browser context with identity `index` and a unique nickname. Closed after the test, before the gateway leak check.
+   * `options.gateway` joins through another gateway, `options.seeded: false` is a first-time visitor (`identity` is then
+   * unused).
    */
   person: (index: number, label: string, options?: { gateway?: Gateway; seeded?: boolean }) => Promise<Person>;
   /**
-   * A gateway of the test's own, for a test that ends it (the worker's cannot be started again on
-   * its port). Stopped after the test. `webRtc: true` turns WebRTC audio on; without it (the
-   * default, as for the worker's gateway) voice travels as Opus over the WebSocket.
+   * A gateway of the test's own, for a test that ends it (the worker's cannot be restarted on its port). Stopped after
+   * the test. `webRtc: true` turns WebRTC audio on, by default voice travels as Opus over the WebSocket.
    */
   ownGateway: (options?: { webRtc?: boolean }) => Promise<Gateway>;
   /** A permanent channel of its own with a unique name. Returns its name and id; deleted after the test. */
@@ -68,7 +63,7 @@ interface TestFixtures {
 
 let counter = 0;
 
-/** A real gateway aimed at the disposable server: the real TeamSpeak client, the server as the fixed target. */
+/** A real gateway aimed at the disposable server, with the real TeamSpeak client. */
 async function startRealGateway(server: RealServer, options: { webRtc?: boolean } = {}): Promise<Gateway> {
   assertFreshBuild();
   const gateway = await startGateway({ staticDir, realTeamSpeak: true });
@@ -94,8 +89,8 @@ export const test = base.extend<TestFixtures, WorkerFixtures>({
   ],
   baseURL: async ({ gateway }, use) => use(gateway.url),
 
-  // One fixture owns the order of the cleanup: browsers first, then the gateway must list no
-  // session (the identity leases are free again), then the server is put back as it was.
+  // One fixture owns the cleanup order. Browsers first, then the gateway must list no session (the identity leases are
+  // free again), then the server goes back to how it was.
   person: async ({ browser, gateway, query }, use, testInfo) => {
     const { use: project } = testInfo.project;
     const contexts: { close(): Promise<void> }[] = [];
@@ -151,7 +146,8 @@ export const test = base.extend<TestFixtures, WorkerFixtures>({
       (count) => count === 0,
       { timeoutMs: 10_000, message: "the TeamSpeak server to drop the clients of this test" },
     );
-    if (Date.now() - dropStarted > 1000) process.stderr.write(`note: the server took ${Date.now() - dropStarted} ms to drop the clients of "${testInfo.title}"\n`);
+    if (Date.now() - dropStarted > 1000)
+      process.stderr.write(`note: the server took ${Date.now() - dropStarted} ms to drop the clients of "${testInfo.title}"\n`);
     // Whoever is still on the server (a client the test made by another way) goes back to the lobby.
     const [lobby] = (await query.call("channellist")).filter((c) => c.channel_name === "Lobby");
     for (const client of await query.call("clientlist")) {

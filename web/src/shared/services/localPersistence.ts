@@ -79,7 +79,11 @@ function openDatabase(): Promise<IDBDatabase> {
   return databasePromise!;
 }
 
-async function request<T>(storeName: string, mode: IDBTransactionMode, action: (store: IDBObjectStore, resolve: (value: T) => void, reject: (reason?: unknown) => void) => void): Promise<T> {
+async function request<T>(
+  storeName: string,
+  mode: IDBTransactionMode,
+  action: (store: IDBObjectStore, resolve: (value: T) => void, reject: (reason?: unknown) => void) => void,
+): Promise<T> {
   const database = await openDatabase();
   return new Promise<T>((resolve, reject) => {
     const transaction = database.transaction(storeName, mode);
@@ -89,7 +93,7 @@ async function request<T>(storeName: string, mode: IDBTransactionMode, action: (
 }
 
 const DEFAULT_IDENTITY_LABEL = "This device";
-// The label this default had before the app became English-only (escaped to keep the file free of CJK).
+// The stored label of the old default, escaped to keep the file free of CJK.
 const LEGACY_IDENTITY_LABEL = "\u6b64\u8bbe\u5907";
 
 export async function loadStoredIdentity(): Promise<StoredIdentity | null> {
@@ -252,13 +256,18 @@ async function removeRecentServer(id: string): Promise<void> {
 export async function clearLocalData(): Promise<void> {
   try {
     const database = await openDatabase();
-    await Promise.all(["identities", "preferences", "favorites", "recent"].map((storeName) => new Promise<void>((resolve, reject) => {
-      const transaction = database.transaction(storeName, "readwrite");
-      transaction.objectStore(storeName).clear();
-      transaction.oncomplete = () => resolve();
-      transaction.onerror = () => reject(transaction.error ?? new Error("Local storage clear failed"));
-      transaction.onabort = () => reject(transaction.error ?? new Error("Local storage clear aborted"));
-    })));
+    await Promise.all(
+      ["identities", "preferences", "favorites", "recent"].map(
+        (storeName) =>
+          new Promise<void>((resolve, reject) => {
+            const transaction = database.transaction(storeName, "readwrite");
+            transaction.objectStore(storeName).clear();
+            transaction.oncomplete = () => resolve();
+            transaction.onerror = () => reject(transaction.error ?? new Error("Local storage clear failed"));
+            transaction.onabort = () => reject(transaction.error ?? new Error("Local storage clear aborted"));
+          }),
+      ),
+    );
   } catch {
     // Clearing local data is best effort when storage is unavailable.
   }

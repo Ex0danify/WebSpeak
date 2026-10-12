@@ -1,9 +1,9 @@
-// Contract between the gateway and the browser (Step R4.4): every control frame type that
-// the gateway (every non-test `.ts` under `src/`) puts on the socket must be a member of the
-// `ServerMessage` union. Both sides are read as source text, so adding a sender without extending
-// the union fails here, wherever in `src/` the sender lives.
+// Contract between gateway and browser, every control frame type the gateway (any non-test `.ts` under `src/`) puts on the
+// socket must be in the `ServerMessage` union. Both sides are read as source text, so a sender added without extending the
+// union fails here wherever it lives.
 import { readFileSync, readdirSync } from "node:fs";
 import { resolve } from "node:path";
+import ts from "typescript";
 import { describe, expect, it } from "vitest";
 
 const read = (relative: string) => readFileSync(new URL(relative, import.meta.url), "utf8");
@@ -22,9 +22,9 @@ const gatewaySource = gatewayPaths.map((file) => readFileSync(resolve(gatewayRoo
 const sessionTypesSource = read("./sessionTypes.ts");
 
 /**
- * `type: "x"` literals in the gateway that are not browser-bound frames: the SDP description kind,
- * the browser-to-gateway command names (`voice-protocol`, screen-share signals) and the internal
- * directory-sync events. Matched by name because the scan covers every file under `src/`.
+ * `type: "x"` literals in the gateway that are not browser-bound frames, like the SDP description kind, the browser-to-gateway
+ * command names (`voice-protocol`, screen-share signals) and internal directory-sync events. Matched by name because the scan
+ * covers all of `src/`.
  */
 const NOT_A_FRAME = new Set([
   "offer",
@@ -45,6 +45,47 @@ function gatewayFrameTypes(): string[] {
     if (!NOT_A_FRAME.has(match[1])) types.add(match[1]);
   }
   return [...types].sort();
+}
+
+type Members = Record<string, string>;
+
+const sessionTypesFile = ts.createSourceFile("sessionTypes.ts", sessionTypesSource, ts.ScriptTarget.Latest, true);
+
+const nameOf = (member: ts.TypeElement) => member.name?.getText(sessionTypesFile);
+
+/** Optional property names mapped to their type text, for the members of a type literal or interface. */
+function optionalMembers(members: ts.NodeArray<ts.TypeElement>): Members {
+  const out: Members = {};
+  for (const member of members) {
+    if (ts.isPropertySignature(member) && member.type && member.questionToken) out[nameOf(member)!] = member.type.getText(sessionTypesFile);
+  }
+  return out;
+}
+
+/** Optional members of the `ServerMessage` branch with this `type` tag, or of its `inside` property when that is a type literal. */
+function unionMember(tag: string, inside?: string): Members | undefined {
+  const alias = sessionTypesFile.statements.find(
+    (node): node is ts.TypeAliasDeclaration => ts.isTypeAliasDeclaration(node) && node.name.text === "ServerMessage",
+  );
+  if (!alias || !ts.isUnionTypeNode(alias.type)) return undefined;
+  for (const branch of alias.type.types) {
+    if (!ts.isTypeLiteralNode(branch)) continue;
+    const tagged = branch.members.some(
+      (m) => ts.isPropertySignature(m) && nameOf(m) === "type" && m.type?.getText(sessionTypesFile) === `"${tag}"`,
+    );
+    if (!tagged) continue;
+    if (!inside) return optionalMembers(branch.members);
+    const nested = branch.members.find((m) => ts.isPropertySignature(m) && nameOf(m) === inside);
+    return nested && ts.isPropertySignature(nested) && nested.type && ts.isTypeLiteralNode(nested.type)
+      ? optionalMembers(nested.type.members)
+      : undefined;
+  }
+  return undefined;
+}
+
+function interfaceMembers(name: string): Members | undefined {
+  const node = sessionTypesFile.statements.find((n): n is ts.InterfaceDeclaration => ts.isInterfaceDeclaration(n) && n.name.text === name);
+  return node && optionalMembers(node.members);
 }
 
 function unionTypes(): string[] {
@@ -82,12 +123,15 @@ describe("ServerMessage contract with the gateway", () => {
     expect(new Set(all).size).toBe(all.length);
   });
 
-  // Step I0.6/I2: the optional `params` next to `code`/`message` is the only addition to these frames.
+  // The optional `params` next to `code`/`message` is the only addition to these frames. Read from the syntax tree, so the
+  // check does not depend on how the type is wrapped.
   it.each([
-    ["error", /type: "error";[^\n]*error: \{[^}]*params\?: MessageParams/],
-    ["screenShareError", /type: "screenShareError";[^\n]*params\?: MessageParams/],
-    ["serverEvent payload", /export interface ServerEvent \{[^}]*params\?: MessageParams/],
-  ])("accepts optional params on %s", (_name, pattern) => {
-    expect(sessionTypesSource).toMatch(pattern);
+    ["error", () => unionMember("error", "error")],
+    ["screenShareError", () => unionMember("screenShareError")],
+    ["serverEvent payload", () => interfaceMembers("ServerEvent")],
+  ])("accepts optional params on %s", (_name, find) => {
+    const members = find();
+    expect(members, "type not found in sessionTypes.ts").toBeDefined();
+    expect(members?.params).toBe("MessageParams");
   });
 });

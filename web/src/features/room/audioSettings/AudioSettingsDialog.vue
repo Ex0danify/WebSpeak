@@ -39,7 +39,9 @@
         @set-notification-volume="$emit('set-notification-volume', $event)"
       />
     </div>
-    <template #footer><Button @click="open = false">{{ t('done') }}</Button></template>
+    <template #footer
+      ><Button @click="open = false">{{ t("done") }}</Button></template
+    >
   </Dialog>
 </template>
 

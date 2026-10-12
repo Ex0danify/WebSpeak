@@ -18,7 +18,9 @@ export function avatarInitial(name: string) {
 const avatarColors = Array.from({ length: 7 }, (_, index) => `var(--color-avatar-${index + 1})`);
 
 export function avatarStyle(name: string, isSelf = false, avatar = ""): Record<string, string> {
-  const fallback = isSelf ? "linear-gradient(135deg, var(--color-accent), color-mix(in srgb, var(--color-accent) 75%, var(--color-fg)))" : "";
+  const fallback = isSelf
+    ? "linear-gradient(135deg, var(--color-accent), color-mix(in srgb, var(--color-accent) 75%, var(--color-fg)))"
+    : "";
   let hash = 0;
   for (let index = 0; index < name.length; index++) hash = name.charCodeAt(index) + ((hash << 5) - hash);
   return {

@@ -9,7 +9,10 @@ const props = defineProps<{ value: TabValue; class?: string }>();
 </script>
 
 <template>
-  <TabsContent :value="value" :class="cn('focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent', props.class)">
+  <TabsContent
+    :value="value"
+    :class="cn('focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent', props.class)"
+  >
     <slot />
   </TabsContent>
 </template>

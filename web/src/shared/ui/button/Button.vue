@@ -33,7 +33,13 @@ if (import.meta.env.DEV && props.iconOnly && !attrs["aria-label"] && !attrs["ari
 
 const classes = computed(() =>
   cn(
-    buttonVariants({ variant: props.variant, size: props.size, iconOnly: props.iconOnly, pressedTone: props.pressedTone, squareOnPhone: props.squareOnPhone }),
+    buttonVariants({
+      variant: props.variant,
+      size: props.size,
+      iconOnly: props.iconOnly,
+      pressedTone: props.pressedTone,
+      squareOnPhone: props.squareOnPhone,
+    }),
     props.loading && "pointer-events-none",
     props.class,
   ),

@@ -1,3 +1,5 @@
+import { collectDiagnostics, diagnosticText, type TeamSpeakErrorDiagnostics } from "./errorDiagnostics.js";
+
 export type WebSpeakErrorCode =
   | "invalid_target"
   | "invalid_nickname"
@@ -22,29 +24,35 @@ export type WebSpeakErrorCode =
   | "protocol_negotiation_failed"
   | "unknown";
 
-/** Every code `clientConnectionFailureCode` can return, as a runtime list so tests and the web completeness check can enumerate it. */
+/** Every code clientConnectionFailureCode can return, so tests and the web check can list them. */
 export const CLIENT_CONNECTION_FAILURE_CODES = [
-  "INVALID_TARGET", "INVALID_NICKNAME", "NICKNAME_IN_USE", "HOST_NOT_FOUND", "UNREACHABLE", "CONNECTION_REFUSED", "CONNECTION_RESET", "TIMEOUT",
-  "SERVER_PASSWORD_REQUIRED", "INVALID_SERVER_PASSWORD", "CHANNEL_PASSWORD_REQUIRED", "IDENTITY_SECURITY_LEVEL_TOO_LOW", "IDENTITY_LIMIT_REACHED",
-  "CLIENT_VERSION_OUTDATED", "FLOOD_PROTECTION", "BANNED", "KICKED", "SERVER_SHUTTING_DOWN", "SERVER_FULL", "INVALID_PARAMETER",
-  "PROTOCOL_NEGOTIATION_FAILED", "CONNECTION_INITIALISATION_FAILED", "CONNECTION_FAILED",
+  "INVALID_TARGET",
+  "INVALID_NICKNAME",
+  "NICKNAME_IN_USE",
+  "HOST_NOT_FOUND",
+  "UNREACHABLE",
+  "CONNECTION_REFUSED",
+  "CONNECTION_RESET",
+  "TIMEOUT",
+  "SERVER_PASSWORD_REQUIRED",
+  "INVALID_SERVER_PASSWORD",
+  "CHANNEL_PASSWORD_REQUIRED",
+  "IDENTITY_SECURITY_LEVEL_TOO_LOW",
+  "IDENTITY_LIMIT_REACHED",
+  "CLIENT_VERSION_OUTDATED",
+  "FLOOD_PROTECTION",
+  "BANNED",
+  "KICKED",
+  "SERVER_SHUTTING_DOWN",
+  "SERVER_FULL",
+  "PROTOCOL_NEGOTIATION_FAILED",
+  "CONNECTION_INITIALISATION_FAILED",
+  "CONNECTION_FAILED",
 ] as const;
 
 export type ClientConnectionFailureCode = (typeof CLIENT_CONNECTION_FAILURE_CODES)[number];
-/** `connectionFailed` codes the bridge sends before a TeamSpeak session exists; they never pass through `clientConnectionFailureCode`. */
+/** connectionFailed codes the bridge sends before a TeamSpeak session exists, they skip clientConnectionFailureCode. */
 export const BRIDGE_CONNECTION_FAILURE_CODES = ["IDENTITY_INVALID", "TEAM_SPEAK_CLIENT_UNAVAILABLE"] as const;
-
-export interface TeamSpeakErrorDiagnostics {
-  name?: string;
-  code?: string;
-  id?: string;
-  serverMessage?: string;
-  message?: string;
-  syscall?: string;
-  address?: string;
-  port?: number | string;
-  cause?: string;
-}
 
 export class WebSpeakError extends Error {
   readonly code: WebSpeakErrorCode;
@@ -63,13 +71,10 @@ export class WebSpeakError extends Error {
 }
 
 /**
- * TeamSpeak server error ids (SDK `public_errors.h`, shared by TS3 and TS6) that
- * the gateway can name precisely. Ids that are absent on purpose fall through to
- * the text heuristics below and finally to `unknown`, which still carries the raw
- * server detail to the browser.
+ * TeamSpeak server error ids (SDK public_errors.h, same for TS3 and TS6) we can name exactly.
+ * Missing ids fall through to the text heuristics and end up as unknown with the raw detail.
  */
 export const TEAMSPEAK_SERVER_ERROR_IDS: Readonly<Record<string, WebSpeakErrorCode>> = {
-  // Client (0x02xx): nickname, capacity, identity, password, version, flooding.
   "513": "nickname_in_use",
   "515": "server_full",
   "519": "identity_security_level_too_low",
@@ -77,8 +82,7 @@ export const TEAMSPEAK_SERVER_ERROR_IDS: Readonly<Record<string, WebSpeakErrorCo
   "521": "identity_limit_reached",
   "522": "client_version_outdated",
   "524": "flooding",
-  // Parameter (0x06xx). 1541 is the generic "invalid parameter size" error;
-  // connection-specific classification decides whether that means a nickname.
+  // 1541 is the generic invalid parameter size, the connect path decides if it means a nickname.
   "1536": "invalid_parameter_size",
   "1537": "invalid_parameter_size",
   "1538": "invalid_parameter_size",
@@ -87,32 +91,24 @@ export const TEAMSPEAK_SERVER_ERROR_IDS: Readonly<Record<string, WebSpeakErrorCo
   "1541": "invalid_parameter_size",
   "1542": "invalid_parameter_size",
   "1543": "protocol_negotiation_failed",
-  // Connection (0x07xx). Keep only ids whose official meaning matches the
-  // normalized code; unrelated SDK operation errors must not be relabelled.
+  // Only ids whose official meaning matches the code, other SDK operation errors must not get relabelled.
   "1797": "connection_initialisation_failed",
   "1798": "host_not_found",
   "1805": "protocol_negotiation_failed",
   "1806": "protocol_negotiation_failed",
-  // Server (0x04xx).
   "1026": "server_shutting_down",
   "1027": "server_full",
   "1028": "authentication_failed",
   "781": "channel_password_required",
-  // Accounting (0x0bxx): the slot and virtual-server limits both surface as a
-  // full server from the user's point of view.
+  // Slot limit and virtual server limit both look like a full server to the user.
   "2816": "server_full",
   "2817": "server_full",
-  // Ban (0x0dxx).
   "3329": "banned",
   "3330": "banned",
   "3331": "flooding",
 };
 
-/**
- * Default (English) message per normalized code. The browser translates these
- * strings for zh/en/de, so keep them stable and never embed a raw server id here:
- * the raw detail travels separately in `diagnostics`.
- */
+/** English message per code, for logs. The browser renders its own text from the code, raw server detail goes in diagnostics. */
 export const WEBSPEAK_ERROR_MESSAGES: Readonly<Record<WebSpeakErrorCode, string>> = {
   invalid_target: "The TeamSpeak server address is invalid",
   invalid_nickname: "TeamSpeak refused the nickname: it must be 3-30 characters long",
@@ -138,11 +134,7 @@ export const WEBSPEAK_ERROR_MESSAGES: Readonly<Record<WebSpeakErrorCode, string>
   unknown: "TeamSpeak connection failed",
 };
 
-/**
- * Codes for which reconnecting unchanged cannot succeed. Keeping the list next to
- * the messages makes the retry decision auditable; `unknown` stays non-retryable
- * so an unmapped server refusal can never turn into a reconnect loop.
- */
+/** Codes where reconnecting unchanged cannot work. unknown stays out so an unmapped refusal never becomes a reconnect loop. */
 const NON_RETRYABLE_CODES: ReadonlySet<WebSpeakErrorCode> = new Set<WebSpeakErrorCode>([
   "invalid_target",
   "invalid_nickname",
@@ -163,11 +155,7 @@ function createTeamSpeakError(code: WebSpeakErrorCode, cause: unknown, diagnosti
   return new WebSpeakError(code, WEBSPEAK_ERROR_MESSAGES[code], !NON_RETRYABLE_CODES.has(code), cause, diagnostics);
 }
 
-/**
- * Resolve a raw TeamSpeak server error id to a normalized code. Accepts the
- * decimal form the SDK forwards (`err.id`, `id=515`) and the hex form used by the
- * official headers (`0x0203`), because both shapes show up in logs.
- */
+/** Raw server error id to normalized code. Takes decimal (err.id, id=515) and hex (0x0203) because both show up in logs. */
 export function teamSpeakServerErrorCode(id: unknown): WebSpeakErrorCode | null {
   if (id === undefined || id === null) return null;
   const text = String(id).trim().toLocaleLowerCase();
@@ -177,25 +165,21 @@ export function teamSpeakServerErrorCode(id: unknown): WebSpeakErrorCode | null 
   return null;
 }
 
-// Normalisation entry point: reduces a raw SDK/Node error to a WebSpeakError with a stable code, trying in
-// order the server error id, keyword heuristics, the exception class name and transport-level traits.
+// Tries the server error id first, then keywords, the exception class name and transport traits.
 export function normalizeTeamSpeakError(error: unknown): WebSpeakError {
   if (error instanceof WebSpeakError) return error;
   const diagnostics = collectDiagnostics(error);
   const text = diagnosticText(error).toLocaleLowerCase();
 
-  // 1) A TeamSpeak server error id names the exact reason, so it outranks every
-  //    keyword heuristic below. The inline scan keeps the `id=515` shape
-  //    working even when the SDK does not attach the id as a structured field.
+  // The server id names the exact reason so it beats every keyword heuristic.
+  // The inline scan covers id=515 for when the SDK does not attach the id.
   const inlineId = /\bid[\s=:]*(\d{3,5})\b/.exec(text)?.[1];
   const serverErrorCode =
     teamSpeakServerErrorCode(diagnostics.id) ?? teamSpeakServerErrorCode(diagnostics.code) ?? teamSpeakServerErrorCode(inlineId);
   if (serverErrorCode) return createTeamSpeakError(serverErrorCode, error, diagnostics);
 
-  // 2) Explicit refusals that arrive without a stable id. Every pattern stays
-  //    narrow on purpose: bare words such as "password", "network", "socket",
-  //    "crypto" or "denied" also appear in unrelated Teamspeak messages and used
-  //    to steal the classification from the real cause.
+  // Refusals without a stable id. Keep the patterns narrow, words like password or denied
+  // show up in unrelated messages and used to steal the classification.
   if (/nickname.{0,20}(length|size)/.test(text)) {
     return createTeamSpeakError("invalid_nickname", error, diagnostics);
   }
@@ -229,18 +213,25 @@ export function normalizeTeamSpeakError(error: unknown): WebSpeakError {
   if (/server.{0,20}shut ?down|server_shutdown|server is shutting down/.test(text)) {
     return createTeamSpeakError("server_shutting_down", error, diagnostics);
   }
-  if (/failed[\s_-]*connection[\s_-]*initiali[sz]ation|connection initiali[sz]ation failed|failed to (initialise|initialize) the connection/.test(text)) {
+  if (
+    /failed[\s_-]*connection[\s_-]*initiali[sz]ation|connection initiali[sz]ation failed|failed to (initialise|initialize) the connection/.test(
+      text,
+    )
+  ) {
     return createTeamSpeakError("connection_initialisation_failed", error, diagnostics);
   }
   if (/server.{0,25}full|server is full|maximum (number of )?(clients|slots)|slot limit|client protocol limit/.test(text)) {
     return createTeamSpeakError("server_full", error, diagnostics);
   }
-  if (/invalid (server )?password|wrong (server )?password|password (is )?(invalid|incorrect|wrong)|password required|i_server_password|authentication failed|not authorized|invalid credential|login (failed|refused)/.test(text)) {
+  if (
+    /invalid (server )?password|wrong (server )?password|password (is )?(invalid|incorrect|wrong)|password required|i_server_password|authentication failed|not authorized|invalid credential|login (failed|refused)/.test(
+      text,
+    )
+  ) {
     return createTeamSpeakError("authentication_failed", error, diagnostics);
   }
 
-  // 3) SDK handshake/crypto error classes carry no numeric id at all, so match
-  //    the class name before falling back to the message text.
+  // Handshake and crypto errors have no numeric id, so match the class name before the text.
   const errorName = (diagnostics.name ?? "").toLocaleLowerCase();
   if (/eaxtagmismatch|fakesignaturemismatch|cryptoinit|invalididentity|license/.test(errorName)) {
     return createTeamSpeakError("protocol_negotiation_failed", error, diagnostics);
@@ -252,7 +243,6 @@ export function normalizeTeamSpeakError(error: unknown): WebSpeakError {
     return createTeamSpeakError("timeout", error, diagnostics);
   }
 
-  // 4) Transport level failures reported by Node or the TLS layer.
   if (/enotfound|eai_again|host not found|name or service not known|getaddrinfo/.test(text)) {
     return createTeamSpeakError("host_not_found", error, diagnostics);
   }
@@ -298,9 +288,7 @@ export function clientConnectionFailureCode(error: WebSpeakError, serverPassword
     server_shutting_down: "SERVER_SHUTTING_DOWN",
     connection_initialisation_failed: "CONNECTION_INITIALISATION_FAILED",
     server_full: "SERVER_FULL",
-    // During the initial connect handshake this generic TeamSpeak id is most
-    // commonly emitted for an invalid nickname length/format. Operation errors
-    // still retain the generic invalid_parameter_size message.
+    // During the connect handshake this id nearly always means a bad nickname, operation errors keep the generic message.
     invalid_parameter_size: "INVALID_NICKNAME",
     protocol_negotiation_failed: "PROTOCOL_NEGOTIATION_FAILED",
     unknown: "CONNECTION_FAILED",
@@ -309,13 +297,8 @@ export function clientConnectionFailureCode(error: WebSpeakError, serverPassword
 }
 
 /**
- * Normalize the SDK `kicked` event. TeamSpeak reports a kick/ban as a
- * `clientleftview` whose reason id is 4 (kicked) or 5 (kicked with ban) and whose
- * `reasonMsg` is written by the admin, e.g. "Slow down!" or "you may retry in
- * 300 seconds". Before this helper existed the reason text was dropped and the
- * browser only showed a generic connection failure, which is exactly the
- * experience this translation layer removes. The ban/kick split prefers the
- * server text and falls back to reason id 5.
+ * A kick or ban arrives as clientleftview with reason id 4 or 5 plus the admin's message.
+ * The server text decides kick vs ban, reason id 5 is the fallback.
  */
 export function normalizeTeamSpeakKickedReason(reasonMsg: unknown, reasonId?: unknown): WebSpeakError {
   const text = typeof reasonMsg === "string" ? reasonMsg.trim() : "";
@@ -328,7 +311,7 @@ export function normalizeTeamSpeakKickedReason(reasonMsg: unknown, reasonId?: un
   return createTeamSpeakError(isBan ? "banned" : "kicked", reasonMsg, diagnostics);
 }
 
-/** Format useful SDK/Node details for a safe operational log field. */
+/** Compact error detail for log fields. */
 export function describeTeamSpeakError(error: WebSpeakError): string {
   const details = error.diagnostics;
   const parts = [
@@ -343,58 +326,4 @@ export function describeTeamSpeakError(error: WebSpeakError): string {
     details.message,
   ].filter(Boolean);
   return parts.length ? parts.join("; ") : error.message;
-}
-
-function diagnosticText(error: unknown): string {
-  const values: string[] = [];
-  let current: unknown = error;
-  const seen = new Set<unknown>();
-  for (let depth = 0; depth < 4 && current && !seen.has(current); depth += 1) {
-    seen.add(current);
-    if (current instanceof Error) values.push(current.name, current.message);
-    else values.push(String(current));
-    if (typeof current === "object") {
-      const candidate = current as { code?: unknown; id?: unknown; serverMessage?: unknown; cause?: unknown };
-      for (const value of [candidate.code, candidate.id, candidate.serverMessage]) if (value !== undefined) values.push(String(value));
-      current = candidate.cause;
-    } else break;
-  }
-  return values.join(" ");
-}
-
-function collectDiagnostics(error: unknown): TeamSpeakErrorDiagnostics {
-  const result: TeamSpeakErrorDiagnostics = {};
-  let current: unknown = error;
-  const seen = new Set<unknown>();
-  for (let depth = 0; depth < 4 && current && !seen.has(current); depth += 1) {
-    seen.add(current);
-    if (current instanceof Error) {
-      result.name ??= current.name;
-      result.message ??= current.message;
-      const errorRecord = current as Error & Record<string, unknown>;
-      if (typeof errorRecord.code === "string" || typeof errorRecord.code === "number") result.code ??= String(errorRecord.code);
-      if (typeof errorRecord.id === "string" || typeof errorRecord.id === "number") result.id ??= String(errorRecord.id);
-      if (typeof errorRecord.serverMessage === "string") result.serverMessage ??= errorRecord.serverMessage;
-      if (typeof errorRecord.syscall === "string") result.syscall ??= errorRecord.syscall;
-      if (typeof errorRecord.address === "string") result.address ??= errorRecord.address;
-      if (typeof errorRecord.port === "string" || typeof errorRecord.port === "number") result.port ??= errorRecord.port;
-      const cause = current.cause;
-      if (cause && cause !== current) { current = cause; continue; }
-      break;
-    }
-    if (typeof current !== "object") { result.cause ??= String(current); break; }
-    const candidate = current as Record<string, unknown>;
-    if (typeof candidate.name === "string") result.name ??= candidate.name;
-    if (typeof candidate.code === "string" || typeof candidate.code === "number") result.code ??= String(candidate.code);
-    if (typeof candidate.id === "string" || typeof candidate.id === "number") result.id ??= String(candidate.id);
-    if (typeof candidate.serverMessage === "string") result.serverMessage ??= candidate.serverMessage;
-    if (typeof candidate.message === "string") result.message ??= candidate.message;
-    if (typeof candidate.syscall === "string") result.syscall ??= candidate.syscall;
-    if (typeof candidate.address === "string") result.address ??= candidate.address;
-    if (typeof candidate.port === "string" || typeof candidate.port === "number") result.port ??= candidate.port;
-    const cause = candidate.cause;
-    if (cause && cause !== current) { current = cause; continue; }
-    break;
-  }
-  return result;
 }

@@ -5,11 +5,7 @@ import type { AdminRouterOptions } from "../adminRouterOptions.js";
 /** Overview and live voice sessions (list, terminate). */
 export function registerSessionRoutes(router: Router, options: AdminRouterOptions): void {
   router.get("/overview", (_request, response) => {
-    response.json(options.service.getOverview(
-      options.getActiveSessions(),
-      options.getPeakSessions(),
-      options.startedAt,
-    ));
+    response.json(options.service.getOverview(options.getActiveSessions(), options.getPeakSessions(), options.startedAt));
   });
 
   router.get("/sessions", (_request, response) => {

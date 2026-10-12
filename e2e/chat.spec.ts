@@ -1,7 +1,7 @@
 import type { Locator, Page } from "@playwright/test";
 import { expect, type Script, test } from "./fixtures";
 import { join, openMemberMenu, overflowScan, poll } from "./helpers";
-import type { Gateway } from "../test/helpers/gateway";
+import type { Gateway } from "../test/support/gateway";
 
 // The chat panel of the connected view: the channel, server and private tabs, the event log and the
 // composer. Real gateway, fake TeamSpeak server. A message another person sends comes from a scripted
@@ -18,7 +18,10 @@ const chatTab = (page: Page, name: string | RegExp): Locator => page.getByRole("
 
 /** One message: its sender, and the text. Nothing else in the page is an article with both. */
 const message = (page: Page, sender: string, text: string | RegExp): Locator =>
-  page.getByRole("article").filter({ has: page.getByText(sender, { exact: true }) }).filter({ hasText: text });
+  page
+    .getByRole("article")
+    .filter({ has: page.getByText(sender, { exact: true }) })
+    .filter({ hasText: text });
 
 const composer = (page: Page): Locator => page.getByRole("textbox", { name: "Send" });
 const sendButton = (page: Page): Locator => page.getByRole("button", { name: "Send", exact: true });
@@ -43,7 +46,10 @@ test.describe("channel chat", () => {
     await expect(message(page, "You", "hello channel")).toBeVisible();
     await expect(composer(page)).toHaveValue("");
     await expect(page.getByText("This is the beginning of the chat")).toBeHidden();
-    const sent = await poll(() => sentBy(gateway, "chat-send-self"), (messages) => messages.length > 0);
+    const sent = await poll(
+      () => sentBy(gateway, "chat-send-self"),
+      (messages) => messages.length > 0,
+    );
     expect(sent).toEqual([expect.objectContaining({ scope: "channel", message: "hello channel" })]);
   });
 
@@ -58,7 +64,10 @@ test.describe("channel chat", () => {
     await expect(sendButton(page)).toBeEnabled();
     await sendButton(page).click();
     await expect(message(page, "You", "padded")).toBeVisible();
-    const sent = await poll(() => sentBy(gateway, "chat-limit-self"), (messages) => messages.length > 0);
+    const sent = await poll(
+      () => sentBy(gateway, "chat-limit-self"),
+      (messages) => messages.length > 0,
+    );
     expect(sent[0].message).toBe("padded");
 
     await composer(page).fill("x".repeat(600));
@@ -83,7 +92,7 @@ test.describe("channel chat", () => {
     const shown = message(page, "chat-link-other", "https://example.com/");
     await expect(shown).toBeVisible();
     expect(await overflowScan(page)).toEqual({ clipped: [], pageScrolls: false });
-    // The bubble holds the whole link: it wraps, it is not cut.
+    // The bubble holds the whole link, it wraps and is not cut.
     const box = await shown.boundingBox();
     expect(box!.x + box!.width).toBeLessThanOrEqual(page.viewportSize()!.width);
   });
@@ -99,7 +108,11 @@ test.describe("channel chat", () => {
 });
 
 test.describe("server chat", () => {
-  test("has its own tab: what you send goes to the server, what arrives there stays out of the channel", async ({ page, gateway, script }) => {
+  test("has its own tab: what you send goes to the server, what arrives there stays out of the channel", async ({
+    page,
+    gateway,
+    script,
+  }) => {
     const other = script.member("srv-other");
     await join(page, "srv-self");
     await openChat(page);
@@ -111,7 +124,10 @@ test.describe("server chat", () => {
     await expect(message(page, "You", "to the whole server")).toBeVisible();
     other.say("server", "server announcement");
     await expect(message(page, "srv-other", "server announcement")).toBeVisible();
-    const sent = await poll(() => sentBy(gateway, "srv-self"), (messages) => messages.length > 0);
+    const sent = await poll(
+      () => sentBy(gateway, "srv-self"),
+      (messages) => messages.length > 0,
+    );
     expect(sent).toEqual([expect.objectContaining({ scope: "server", message: "to the whole server" })]);
 
     await chatTab(page, "Lobby").click();
@@ -134,7 +150,10 @@ test.describe("private chat", () => {
     await expect(message(page, "You", "just between us")).toBeVisible();
     await expect(chatTab(page, "pm-other")).toBeVisible();
     await expect(page.getByRole("heading", { name: "pm-other" })).toBeVisible();
-    const sent = await poll(() => sentBy(gateway, "pm-self"), (messages) => messages.length > 0);
+    const sent = await poll(
+      () => sentBy(gateway, "pm-self"),
+      (messages) => messages.length > 0,
+    );
     expect(sent).toEqual([expect.objectContaining({ scope: "private", message: "just between us", targetId: BigInt(other.id) })]);
 
     await chatTab(page, "Lobby").click();
@@ -150,7 +169,7 @@ test.describe("private chat", () => {
     await expect(page.getByText("This is the beginning of the private chat")).toBeVisible();
   }
 
-  test("a private chat is titled with the person from the moment it opens, with a tab of its own (F25)", async ({ page, script, isMobile }) => {
+  test("a private chat is titled with the person from the moment it opens, with a tab of its own", async ({ page, script, isMobile }) => {
     await openEmptyPrivateChat(page, script, isMobile, "pm-title-marker");
     await expect(page.getByRole("heading", { name: "pm-title-marker-other" })).toBeVisible();
     await expect(page.getByRole("heading", { name: "Private message" })).toBeHidden();
@@ -192,10 +211,9 @@ test.describe("event log", () => {
     if (!isMobile) await expect(page.getByText("3 events")).toBeVisible();
   });
 
-  // The gateway now sends the kind and the nickname; the client builds the sentence itself with
-  // t(), in the page's own language (F24). `message`, the Chinese text the gateway also sends,
-  // stays only as a fallback for an older gateway and is never shown while a translation exists.
-  test("F24: the entries follow the language of the page", async ({ page, script }) => {
+  // The gateway sends the kind and the nickname and the client builds the sentence itself with t() in the page's language.
+  // `message` (Chinese) is only a fallback for an older gateway and is never shown while a translation exists.
+  test("the entries follow the language of the page", async ({ page, script }) => {
     await join(page, "evt-en-self");
     await openChat(page);
     await chatTab(page, "Event log").click();
@@ -209,7 +227,7 @@ test.describe("event log", () => {
     await expect(entries(page).filter({ hasText: "evt-en-visitor left the server" })).toHaveCount(1);
   });
 
-  test("F24: a member who changes channel is announced too, with a translated sentence", async ({ page, script, gateway }) => {
+  test("a member who changes channel is announced too, with a translated sentence", async ({ page, script, gateway }) => {
     const visitor = script.member("evt-en-mover");
     await join(page, "evt-en-mover-self");
     await openChat(page);

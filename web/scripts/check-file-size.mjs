@@ -1,12 +1,6 @@
-// File-size ratchet for web/src (structure plan S7.2).
-//
-//   npm run check:file-size            check
-//   npm run check:file-size -- --update   rewrite the budget (only lowers or removes entries)
-//
-// A file over LIMIT lines must be listed in file-size-budget.json with its current line count.
-// A listed file may shrink but not grow; an unlisted file may not cross LIMIT. `--update`
-// lowers entries to the current count and drops files that fell under LIMIT; it never adds
-// or raises one. Counts are newline counts (as `wc -l`). Part of `npm run build`.
+// File-size ratchet for web/src. A file over LIMIT lines must be listed in file-size-budget.json with its current line count,
+// may shrink but not grow, and an unlisted file may not cross LIMIT. `--update` lowers entries and drops files back under
+// LIMIT, it never adds or raises one. Counts are newline counts (as `wc -l`).
 import { readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { dirname, join, relative, sep } from "node:path";
 import { fileURLToPath } from "node:url";

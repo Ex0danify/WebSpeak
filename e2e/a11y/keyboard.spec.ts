@@ -119,11 +119,9 @@ test.describe("menus", () => {
     expect(await describeFocus(page), "the focus is lost when the menu closes").not.toBeNull();
   });
 
-  // The desktop menu's trigger is a hidden span at the click point, which cannot take the focus
-  // back (bug F47: closing left the focus on the document). It now goes to the row's own volume
-  // slider, whether the menu was opened with a right click or, as here, with Shift+F10 on the
-  // slider itself.
-  test("Esc after opening the menu with Shift+F10 on a row's slider returns the focus to it (F47)", async ({ page }, { project }) => {
+  // The desktop menu's trigger is a hidden span at the click point that cannot take the focus back, so it goes to the row's own
+  // volume slider, whether the menu was opened with a right click or, as here, with Shift+F10 on the slider itself.
+  test("Esc after opening the menu with Shift+F10 on a row's slider returns the focus to it", async ({ page }, { project }) => {
     test.skip(project.name !== "desktop", "the phone's menu belongs to a button that takes the focus back");
     await joinRoom(page);
     const slider = memberRow(page, "Alex Rivera").getByRole("slider");

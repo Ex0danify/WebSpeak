@@ -43,26 +43,28 @@ export function createWebServer(options: WebServerOptions): WebServer {
   registerPublicRoutes(app, options, logger);
   registerJoinRoutes(app, options, joinRateLimiter);
 
-  app.use("/api/admin", createAdminRouter({
-    service: options.adminService,
-    sessions: adminSessions,
-    logger,
-    getActiveSessions: () => voiceBridge.getActiveCount(),
-    getPeakSessions: () => voiceBridge.getPeakCount(),
-    getCreatedSessions: () => voiceBridge.getCreatedCount(),
-    getSessionSummaries: () => voiceBridge.getSessionSummaries(),
-    terminateSession: (id) => voiceBridge.terminateSession(id),
-    version: options.version,
-    logFile: options.logFile,
-    startedAt,
-  }));
+  app.use(
+    "/api/admin",
+    createAdminRouter({
+      service: options.adminService,
+      sessions: adminSessions,
+      logger,
+      getActiveSessions: () => voiceBridge.getActiveCount(),
+      getPeakSessions: () => voiceBridge.getPeakCount(),
+      getCreatedSessions: () => voiceBridge.getCreatedCount(),
+      getSessionSummaries: () => voiceBridge.getSessionSummaries(),
+      terminateSession: (id) => voiceBridge.terminateSession(id),
+      version: options.version,
+      logFile: options.logFile,
+      startedAt,
+    }),
+  );
 
   // Every other answer of the API is JSON, so an unknown path is too.
   app.use("/api", (_request, response) => {
     response.status(404).json({ ok: false, code: "NOT_FOUND" });
   });
 
-  // Serve static frontend
   if (options.staticDir) {
     app.use(express.static(options.staticDir));
     app.get(/^(?!\/api|\/ws)/, (_req, res) => {
@@ -80,7 +82,11 @@ export function createWebServer(options: WebServerOptions): WebServer {
     const failure = error as { status?: unknown; type?: unknown };
     if (failure.type === "entity.too.large") {
       response.status(413).json({ ok: false, code: "PAYLOAD_TOO_LARGE" });
-    } else if (failure.type === "entity.parse.failed" || failure.type === "encoding.unsupported" || failure.type === "charset.unsupported") {
+    } else if (
+      failure.type === "entity.parse.failed" ||
+      failure.type === "encoding.unsupported" ||
+      failure.type === "charset.unsupported"
+    ) {
       response.status(400).json({ ok: false, code: "INVALID_JSON" });
     } else {
       logger.error({ err: error instanceof Error ? error.message : String(error) }, "Unhandled request error");

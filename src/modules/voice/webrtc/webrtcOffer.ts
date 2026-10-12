@@ -11,7 +11,11 @@ export async function handleWebRtcOffer(
   const { entry, sendJson } = ctx;
   if (entry.webrtc) {
     const previousWebRtc = entry.webrtc;
-    try { await previousWebRtc.close(); } catch { /* replace a retried offer */ }
+    try {
+      await previousWebRtc.close();
+    } catch {
+      /* replace a retried offer */
+    }
     Object.assign(entry.audio, previousWebRtc.getStats());
     entry.webrtc = null;
   }
@@ -19,12 +23,14 @@ export async function handleWebRtcOffer(
   if (!config?.enabled) return;
   const muted = offer.muted === true;
   try {
-    // The offer carries the browser's initial mute state. WebRTC can silence
-    // the browser track locally, but TeamSpeak clients only see the state
-    // after the gateway updates its own TS client as well.
+    // The offer carries the browser's initial mute state. TS clients only see it once the gateway
+    // mutes its own TS client too.
     await entry.tsClient.setInputMuted(muted);
   } catch (error: unknown) {
-    ctx.logger.warn({ entryId: entry.id, muted, err: error instanceof Error ? error.message : String(error) }, "Could not synchronize initial microphone mute state");
+    ctx.logger.warn(
+      { entryId: entry.id, muted, err: error instanceof Error ? error.message : String(error) },
+      "Could not synchronize initial microphone mute state",
+    );
   }
   const peer = new WebRtcAudioSession({
     connectionId: entry.id,
@@ -35,7 +41,8 @@ export async function handleWebRtcOffer(
     accompanimentActive: offer.accompanimentActive === true,
     onVoiceFrame: (data, codec) => {
       const now = Date.now();
-      if (entry.audio.ingressLastAt !== null) entry.audio.ingressMaxGapMs = Math.max(entry.audio.ingressMaxGapMs, now - entry.audio.ingressLastAt);
+      if (entry.audio.ingressLastAt !== null)
+        entry.audio.ingressMaxGapMs = Math.max(entry.audio.ingressMaxGapMs, now - entry.audio.ingressLastAt);
       entry.audio.ingressFirstAt ??= now;
       entry.audio.ingressLastAt = now;
       entry.audio.ingressFrames++;
@@ -43,14 +50,14 @@ export async function handleWebRtcOffer(
         if (entry.whisperActive && entry.whisperTargetIds.size) entry.tsClient.sendWhisper(data, [...entry.whisperTargetIds], codec);
         else entry.tsClient.sendVoice(data, codec);
         const sentAt = Date.now();
-        if (entry.audio.tsSendLastAt !== null) entry.audio.tsSendMaxGapMs = Math.max(entry.audio.tsSendMaxGapMs, sentAt - entry.audio.tsSendLastAt);
+        if (entry.audio.tsSendLastAt !== null)
+          entry.audio.tsSendMaxGapMs = Math.max(entry.audio.tsSendMaxGapMs, sentAt - entry.audio.tsSendLastAt);
         entry.audio.tsSendFirstAt ??= sentAt;
         entry.audio.tsSendLastAt = sentAt;
         entry.audio.tsSendFrames++;
       } catch {
         entry.audio.tsSendErrors++;
-        // A packet arriving while the TeamSpeak session is being replaced
-        // is discarded; the WebRTC peer remains independently closable.
+        // A packet during session replacement is dropped, the WebRTC peer can still be closed on its own.
       }
     },
     onVoiceActivity: (clientIds) => {
@@ -65,7 +72,11 @@ export async function handleWebRtcOffer(
     ctx.logger.info({ entryId: entry.id }, "WebRTC audio negotiation completed");
   } catch (error: unknown) {
     if (entry.webrtc === peer) entry.webrtc = null;
-    try { await peer.close(); } catch { /* best effort */ }
+    try {
+      await peer.close();
+    } catch {
+      /* best effort */
+    }
     ctx.logger.warn({ entryId: entry.id, err: error instanceof Error ? error.message : String(error) }, "WebRTC audio negotiation failed");
     if (entry.ws.readyState === WebSocket.OPEN) sendJson({ type: "webrtcError", code: "WEBRTC_NEGOTIATION_FAILED" });
   }
@@ -75,7 +86,8 @@ export function handleWebRtcStop(ctx: VoiceConnection): void {
   const webRtc = ctx.entry.webrtc;
   ctx.entry.webrtc = null;
   if (webRtc) {
-    void webRtc.close()
+    void webRtc
+      .close()
       .then(() => Object.assign(ctx.entry.audio, webRtc.getStats()))
       .catch(() => undefined);
   }

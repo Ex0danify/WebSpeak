@@ -1,8 +1,7 @@
 import { cva, type VariantProps } from "class-variance-authority";
 
-// The overlay is a full-viewport frame that dims the page and centres the
-// panel. Legacy page CSS goes up to z-index 40; menus, popovers and tooltips
-// (z-50) must open above a dialog, so the overlay sits in between.
+// The overlay is a full-viewport frame that dims the page and centres the panel. Menus, popovers and tooltips (z-50) must open
+// above a dialog, so the overlay sits below them.
 export const dialogOverlayClass = "fixed inset-0 z-45 box-border flex items-center justify-center bg-scrim/60 p-4";
 
 export const dialogPanelVariants = cva(
@@ -22,8 +21,7 @@ export const dialogPanelVariants = cva(
 
 export type DialogVariants = VariantProps<typeof dialogPanelVariants>;
 
-// `placement="bottom"` turns the dialog into a mobile sheet: the panel is
-// pinned to the bottom edge, full width, with only its top corners rounded.
-// These classes are merged after the defaults, so they win on conflict.
+// `placement="bottom"` turns the dialog into a mobile sheet, pinned to the bottom edge at full width with only its top corners
+// rounded. These classes are merged after the defaults, so they win on conflict.
 export const dialogSheetOverlayClass = "p-0 items-end";
 export const dialogSheetPanelClass = "max-w-none rounded-b-none rounded-t-lg border-x-0 border-b-0 pb-[env(safe-area-inset-bottom)]";

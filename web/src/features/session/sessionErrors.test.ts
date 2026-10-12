@@ -1,4 +1,4 @@
-// Step V1.2: the failure-code and failure-message mapping, pure functions and lookup tables.
+// The failure-code and failure-message mapping, pure functions and lookup tables.
 import { describe, expect, it } from "vitest";
 import {
   CONNECTION_FAILURE_CODES,
@@ -91,7 +91,14 @@ describe("CONNECTION_FAILURE_CODES", () => {
   });
 
   it("explains the codes the aliases map to", () => {
-    for (const alias of ["PASSWORD_REQUIRED", "INVALID_PASSWORD", "AUTHENTICATION_FAILED", "GATEWAY_FULL", "TS_CONNECT_FAILED", "ADMIN-TERMINATED"]) {
+    for (const alias of [
+      "PASSWORD_REQUIRED",
+      "INVALID_PASSWORD",
+      "AUTHENTICATION_FAILED",
+      "GATEWAY_FULL",
+      "TS_CONNECT_FAILED",
+      "ADMIN-TERMINATED",
+    ]) {
       expect(CONNECTION_FAILURE_CODES.has(normalizedClientErrorCode(alias))).toBe(true);
     }
   });

@@ -6,9 +6,8 @@ import { storeToRefs } from "pinia";
 import { useVoiceAudioStore } from "../stores/voiceAudioStore";
 import { VOX_ATTACK_FRAMES, VOX_HOLD } from "../audioConstants";
 
-/** The two signal-processing pieces of the capture path: the RNNoise node (with its load caches) and
- *  the VOX gate (attack/hold counters). `voxGate` runs once per capture chunk: the counters are
- *  closure state, never reactive. */
+/** The two signal-processing pieces of the capture path, the RNNoise node (with its load caches) and the VOX gate (attack/hold
+ *  counters). `voxGate` runs once per capture chunk and its counters are closure state, never reactive. */
 export function createMicrophoneProcessing() {
   const audio = useVoiceAudioStore();
   const { voxThreshold } = storeToRefs(audio);

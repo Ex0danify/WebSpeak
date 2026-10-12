@@ -6,9 +6,7 @@ import type { AdminCredential } from "../../src/infra/security/adminPassword.js"
 import { type ManagedInviteRecord, type SettingsUpdate, WebSpeakDatabase } from "../../src/infra/persistence/database.js";
 
 export interface DatabaseFixture {
-  /** Directory that holds the database (`<tmp>/nested`). */
   readonly dir: string;
-  /** Path of the default database file. */
   readonly path: string;
   /** Opens a database that is closed after the test. */
   open(file?: string): WebSpeakDatabase;
@@ -19,8 +17,12 @@ export function useDatabaseFixture(): DatabaseFixture {
   let root = "";
   let opened: WebSpeakDatabase[] = [];
   const fixture: DatabaseFixture = {
-    get dir() { return join(root, "nested"); },
-    get path() { return join(root, "nested", "webspeak.db"); },
+    get dir() {
+      return join(root, "nested");
+    },
+    get path() {
+      return join(root, "nested", "webspeak.db");
+    },
     open(file = fixture.path) {
       const database = new WebSpeakDatabase(file);
       opened.push(database);
@@ -34,7 +36,11 @@ export function useDatabaseFixture(): DatabaseFixture {
   afterEach(() => {
     vi.useRealTimers();
     for (const database of opened) {
-      try { database.close(); } catch { /* already closed by the test */ }
+      try {
+        database.close();
+      } catch {
+        /* already closed by the test */
+      }
     }
     rmSync(root, { recursive: true, force: true });
   });

@@ -9,7 +9,7 @@ test.use(withAudioTone({ frequencyHz: 1000 }));
 
 const dock = (page: Page): Locator => page.getByRole("toolbar", { name: "Audio controls" });
 
-/** The control that mutes the microphone: the dock's button on desktop, the More tab's on a phone. */
+/** The control that mutes the microphone, the dock's button on desktop and the More tab's on a phone. */
 async function micButton(page: Page, state: "on" | "off"): Promise<Locator> {
   const more = page.getByRole("tab", { name: "More" });
   if (await more.isVisible()) {
@@ -61,7 +61,11 @@ test.describe("microphone mute", () => {
     await expect(flag).toHaveCount(0);
   });
 
-  test("a mute is still on after a reload, announced again, and nothing goes up until it is lifted", async ({ page, session, openSession }) => {
+  test("a mute is still on after a reload, announced again, and nothing goes up until it is lifted", async ({
+    page,
+    session,
+    openSession,
+  }) => {
     await join(page, "aud-mute-keep");
     const other = await openSession();
     await join(other.page, "aud-mute-keep-b");
@@ -89,10 +93,14 @@ test("the mic level in the settings follows the microphone", async ({ page }) =>
 
 /** The panels of the dock exist for the eye and the accessibility tree only while hovered or focused. */
 async function revealMicPanel(page: Page): Promise<void> {
-  await dock(page).getByRole("button", { name: /^Microphone (on|off)$/ }).hover();
+  await dock(page)
+    .getByRole("button", { name: /^Microphone (on|off)$/ })
+    .hover();
 }
 async function revealOutputPanel(page: Page): Promise<void> {
-  await dock(page).getByRole("button", { name: /^(Mute all audio|Restore audio)$/ }).hover();
+  await dock(page)
+    .getByRole("button", { name: /^(Mute all audio|Restore audio)$/ })
+    .hover();
 }
 
 test.describe("audio dock", () => {

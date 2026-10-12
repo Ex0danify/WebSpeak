@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
-import { type Gateway, useGateway } from "../../../../test/helpers/gateway.js";
-import { ask, joinVoice, type VoiceSession } from "../../../../test/helpers/voice.js";
-import type { JsonMessage } from "../../../../test/helpers/wsClient.js";
+import { type Gateway, useGateway } from "../../../../test/support/gateway.js";
+import { ask, joinVoice, type VoiceSession } from "../../../../test/support/voice.js";
+import type { JsonMessage } from "../../../../test/support/wsClient.js";
 
 const gateways = useGateway();
 
@@ -31,12 +31,10 @@ async function share(session: VoiceSession, type: string, payload: Record<string
   return session.socket.waitForMessage((message) => message.requestId === requestId, { after });
 }
 
-const commandsOf = (session: VoiceSession, name: string) => session.client.protocolCommands.filter((command) => command.startsWith(`${name} `));
+const commandsOf = (session: VoiceSession, name: string) =>
+  session.client.protocolCommands.filter((command) => command.startsWith(`${name} `));
 
-/**
- * A browser share by `owner`, watched by `viewer`, that TeamSpeak has announced as stream `ts-9` to the
- * owner's session only. With every session told, see F18's neighbour F19 below.
- */
+/** A browser share by owner, watched by viewer, that TeamSpeak announced as stream ts-9 to the owner's session only. */
 async function publishedShare(gateway: Gateway, payload: Record<string, unknown> = {}) {
   const owner = await joinVoice(gateway, { nickname: "owner" });
   const viewer = await joinVoice(gateway, { nickname: "viewer" });
@@ -59,7 +57,9 @@ describe("a browser share published to TeamSpeak", () => {
     const gateway = await gateways.start();
     const owner = await joinVoice(gateway, { nickname: "owner" });
     await share(owner, "screenShareStart", { name: "Team demo | 2/3", audio: true });
-    expect(commandsOf(owner, "setupstream")).toEqual(["setupstream name=Team\\sdemo\\s\\p\\s2\\/3 type=3 bitrate=4608 accessibility=1 mode=1 viewer_limit=0 audio=1"]);
+    expect(commandsOf(owner, "setupstream")).toEqual([
+      "setupstream name=Team\\sdemo\\s\\p\\s2\\/3 type=3 bitrate=4608 accessibility=1 mode=1 viewer_limit=0 audio=1",
+    ]);
     const quiet = await joinVoice(gateway, { nickname: "quiet" });
     await share(quiet, "screenShareStart");
     expect(commandsOf(quiet, "setupstream")[0]).toMatch(/ audio=0$/);
@@ -68,22 +68,31 @@ describe("a browser share published to TeamSpeak", () => {
   it("goes on when TeamSpeak refuses the stream: the browser share is still there", async () => {
     const gateway = await gateways.start();
     const owner = await joinVoice(gateway, { nickname: "owner" });
-    gateway.ts.onProtocolCommand = (command) => { if (command.startsWith("setupstream")) throw new Error("no permission"); };
+    gateway.ts.onProtocolCommand = (command) => {
+      if (command.startsWith("setupstream")) throw new Error("no permission");
+    };
     const started = await share(owner, "screenShareStart");
     expect(started.type).toBe("screenShareStarted");
     const mark = await markOf(owner);
     owner.socket.send({ type: "screenShareList" });
     expect((await owner.socket.waitForMessage("screenShareList", { after: mark })).streams).toMatchObject([{ source: "browser" }]);
-    expect(gateway.logger.warn).toHaveBeenCalledWith(expect.objectContaining({ err: "no permission" }), "Could not publish browser screen share to TeamSpeak");
+    expect(gateway.logger.warn).toHaveBeenCalledWith(
+      expect.objectContaining({ err: "no permission" }),
+      "Could not publish browser screen share to TeamSpeak",
+    );
   });
 
   it("pairs with the stream TeamSpeak announces for the sharer, without a second card", async () => {
     const gateway = await gateways.start();
     const { owner, viewer, streamId } = await publishedShare(gateway);
     const mark = await markOf(viewer);
-    expect(await received(viewer, 0)).not.toContainEqual(expect.objectContaining({ type: "screenShareStarted", stream: expect.objectContaining({ source: "teamspeak" }) }));
+    expect(await received(viewer, 0)).not.toContainEqual(
+      expect.objectContaining({ type: "screenShareStarted", stream: expect.objectContaining({ source: "teamspeak" }) }),
+    );
     viewer.socket.send({ type: "screenShareList" });
-    expect((await viewer.socket.waitForMessage("screenShareList", { after: mark })).streams).toMatchObject([{ streamId, source: "browser" }]);
+    expect((await viewer.socket.waitForMessage("screenShareList", { after: mark })).streams).toMatchObject([
+      { streamId, source: "browser" },
+    ]);
     // The pairing is what lets the stop reach TeamSpeak.
     await share(owner, "screenShareStop", { streamId });
     expect(commandsOf(owner, "stopstream")).toEqual([`stopstream id=${TS_STREAM} reason=1`]);
@@ -98,9 +107,8 @@ describe("a browser share published to TeamSpeak", () => {
   });
 });
 
-// F19: every gateway session on a target sees the same notification. The first session pairs the stream with
-// the browser share; the next one used to find the share already paired, take the notification for a native
-// stream and announce the same share a second time, as a TeamSpeak stream owned by its own sharer.
+// Every session on a target sees the same notification. The first pairs the stream with the browser
+// share, the next must not take it for a native stream and announce the share a second time.
 describe("a published share that every session is told about", () => {
   async function toldToEveryone(gateway: Gateway) {
     const context = await publishedShare(gateway);
@@ -110,25 +118,34 @@ describe("a published share that every session is told about", () => {
     return { ...context, cards };
   }
 
-  it("F19: is announced once, as the browser share", async () => {
+  it("is announced once, as the browser share", async () => {
     const gateway = await gateways.start();
     const { viewer, streamId, cards } = await toldToEveryone(gateway);
     expect(cards).toEqual([]);
     const mark = await markOf(viewer);
     viewer.socket.send({ type: "screenShareList" });
-    expect(((await viewer.socket.waitForMessage("screenShareList", { after: mark })).streams as { streamId: string; source: string }[])).toMatchObject([{ streamId, source: "browser" }]);
+    expect(
+      (await viewer.socket.waitForMessage("screenShareList", { after: mark })).streams as { streamId: string; source: string }[],
+    ).toMatchObject([{ streamId, source: "browser" }]);
   });
 
-  it("F19: its end reaches the sharer once and leaves the browser share listed, whoever is told", async () => {
+  it("its end reaches the sharer once and leaves the browser share listed, whoever is told", async () => {
     const gateway = await gateways.start();
     const { owner, viewer, sessions, streamId } = await toldToEveryone(gateway);
     const marks = [await markOf(owner), await markOf(viewer)];
     notify(sessions, "notifystreamstopped", { id: TS_STREAM });
-    expect(await received(owner, marks[0]!)).toMatchObject([{ type: "screenShareError", code: "SCREEN_SHARE_NATIVE_PUBLISHER_STOPPED" }, { type: "screenShareViewerCount", streamId }]);
+    expect(await received(owner, marks[0]!)).toMatchObject([
+      { type: "screenShareError", code: "SCREEN_SHARE_NATIVE_PUBLISHER_STOPPED" },
+      { type: "screenShareViewerCount", streamId },
+    ]);
     expect(await received(viewer, marks[1]!)).not.toContainEqual(expect.objectContaining({ type: "screenShareStopped" }));
     const mark = await markOf(viewer);
     viewer.socket.send({ type: "screenShareList" });
-    expect(((await viewer.socket.waitForMessage("screenShareList", { after: mark })).streams as { streamId: string }[]).map((stream) => stream.streamId)).toEqual([streamId]);
+    expect(
+      ((await viewer.socket.waitForMessage("screenShareList", { after: mark })).streams as { streamId: string }[]).map(
+        (stream) => stream.streamId,
+      ),
+    ).toEqual([streamId]);
   });
 });
 
@@ -159,12 +176,20 @@ describe("TeamSpeak clients watching a browser share", () => {
     const gateway = await gateways.start();
     const { owner, streamId } = await publishedShare(gateway);
     notify([owner], "notifyjoinstreamrequest", { id: TS_STREAM, clid: String(NATIVE_VIEWER) });
-    const errors = async (after: number, count: number) => (await received(owner, after)).filter((message) => message.type === "screenShareError").slice(0, count).map((message) => message.code);
+    const errors = async (after: number, count: number) =>
+      (await received(owner, after))
+        .filter((message) => message.type === "screenShareError")
+        .slice(0, count)
+        .map((message) => message.code);
     signal(owner, streamId, NATIVE_PEER, { kind: "offer", sdp: "v=0" });
     signal(owner, streamId, NATIVE_PEER, { kind: "iceCandidate", candidate: "candidate:1", sdpMid: "0", sdpMLineIndex: 0 });
     await ask(owner, "sendTextMessage", { message: "" });
-    expect(commandsOf(owner, "respondjoinstreamrequest")).toEqual([`respondjoinstreamrequest id=${TS_STREAM} clid=${NATIVE_VIEWER} msg= offer=v=0 decision=1`]);
-    expect(commandsOf(owner, "streamsignaling")).toEqual([`streamsignaling id=${TS_STREAM} clid=${NATIVE_VIEWER} json={"cmd":"iceCandidate","args":{"sdp":"candidate:1","mid":"0","mLine":0}}`]);
+    expect(commandsOf(owner, "respondjoinstreamrequest")).toEqual([
+      `respondjoinstreamrequest id=${TS_STREAM} clid=${NATIVE_VIEWER} msg= offer=v=0 decision=1`,
+    ]);
+    expect(commandsOf(owner, "streamsignaling")).toEqual([
+      `streamsignaling id=${TS_STREAM} clid=${NATIVE_VIEWER} json={"cmd":"iceCandidate","args":{"sdp":"candidate:1","mid":"0","mLine":0}}`,
+    ]);
     const mark = owner.socket.mark();
     signal(owner, streamId, NATIVE_PEER, { kind: "answer", sdp: "v=0" });
     signal(owner, streamId, "ts-viewer-88", { kind: "offer", sdp: "v=0" });
@@ -179,8 +204,16 @@ describe("TeamSpeak clients watching a browser share", () => {
     notify([owner], "notifyjoinstreamrequest", { id: TS_STREAM, clid: String(NATIVE_VIEWER) });
     const mark = await markOf(owner);
     const json = (payload: unknown) => JSON.stringify(payload);
-    notify([owner], "notifystreamsignaling", { id: TS_STREAM, clid: String(NATIVE_VIEWER), json: json({ cmd: "answer", args: { answer: "v=0 answer" } }) });
-    notify([owner], "notifystreamsignaling", { id: TS_STREAM, clid: String(NATIVE_VIEWER), json: json({ cmd: "iceCandidate", args: { sdp: "candidate:5", mid: "0", mLine: 0 } }) });
+    notify([owner], "notifystreamsignaling", {
+      id: TS_STREAM,
+      clid: String(NATIVE_VIEWER),
+      json: json({ cmd: "answer", args: { answer: "v=0 answer" } }),
+    });
+    notify([owner], "notifystreamsignaling", {
+      id: TS_STREAM,
+      clid: String(NATIVE_VIEWER),
+      json: json({ cmd: "iceCandidate", args: { sdp: "candidate:5", mid: "0", mLine: 0 } }),
+    });
     notify([owner], "notifystreamsignaling", { id: TS_STREAM, clid: "88", json: json({ cmd: "answer", args: { answer: "stranger" } }) });
     notify([owner], "notifystreamsignaling", { id: TS_STREAM, clid: String(NATIVE_VIEWER), json: "{oops" });
     expect((await received(owner, mark)).map((message) => [message.type, message.streamId, message.fromPeerId, message.signal])).toEqual([
@@ -233,14 +266,24 @@ describe("streams that started before the session joined", () => {
     let running = true;
     gateway.ts.onProtocolCommand = (command, client) => {
       const match = /^requeststreaminfo clid=(\d+)$/.exec(command);
-      if (running && match && Number(match[1]) === sourceId()) client.emit("rawNotification", { name: "notifystreaminfo", params: { id: "ts-old", clid: match[1]!, name: "Already running", audio: "0" } });
+      if (running && match && Number(match[1]) === sourceId())
+        client.emit("rawNotification", {
+          name: "notifystreaminfo",
+          params: { id: "ts-old", clid: match[1]!, name: "Already running", audio: "0" },
+        });
     };
-    return { stop: () => { running = false; } };
+    return {
+      stop: () => {
+        running = false;
+      },
+    };
   }
   const listed = async (session: VoiceSession) => {
     const after = await markOf(session);
     session.socket.send({ type: "screenShareList" });
-    return ((await session.socket.waitForMessage("screenShareList", { after })).streams as { streamId: string }[]).map((stream) => stream.streamId);
+    return ((await session.socket.waitForMessage("screenShareList", { after })).streams as { streamId: string }[]).map(
+      (stream) => stream.streamId,
+    );
   };
 
   it("are found by asking for the stream info of every member, and shown to the new session", async () => {
@@ -250,8 +293,13 @@ describe("streams that started before the session joined", () => {
     runningStream(gateway, () => source.id);
     const alice = await joinVoice(gateway, { nickname: "alice" });
     const card = await alice.socket.waitForMessage("screenShareStarted");
-    expect(card).toMatchObject({ owner: false, stream: { streamId: "ts-old", source: "teamspeak", name: "Already running", ownerClientId: source.id } });
-    expect(commandsOf(alice, "requeststreaminfo").sort()).toEqual([`requeststreaminfo clid=${alice.id}`, `requeststreaminfo clid=${source.id}`, `requeststreaminfo clid=${source.id + 1}`].sort());
+    expect(card).toMatchObject({
+      owner: false,
+      stream: { streamId: "ts-old", source: "teamspeak", name: "Already running", ownerClientId: source.id },
+    });
+    expect(commandsOf(alice, "requeststreaminfo").sort()).toEqual(
+      [`requeststreaminfo clid=${alice.id}`, `requeststreaminfo clid=${source.id}`, `requeststreaminfo clid=${source.id + 1}`].sort(),
+    );
   });
 
   it("are asked for once per TeamSpeak target: the next session asks nothing and still lists the stream", async () => {
@@ -265,8 +313,8 @@ describe("streams that started before the session joined", () => {
     expect(await listed(bob)).toEqual(["ts-old"]);
   });
 
-  // F20: a native stream's record lives until a session sees it end. When it ends while no session is
-  // connected, nobody does, and discovery ran once for the target, so it is never asked again.
+  // A native stream's record lives until a session sees it end. If it ends with nobody connected none
+  // does, and discovery already ran once for the target, so it is never asked again.
   async function endedWhileNobodyWasThere(gateway: Gateway) {
     const source = gateway.ts.addMember("tsuser");
     const stream = runningStream(gateway, () => source.id);
@@ -282,12 +330,12 @@ describe("streams that started before the session joined", () => {
     return { carol, list: await listed(carol) };
   }
 
-  it("F20: a stream that ended while no session was connected is not listed for the next session", async () => {
+  it("a stream that ended while no session was connected is not listed for the next session", async () => {
     const gateway = await gateways.start();
     expect((await endedWhileNobodyWasThere(gateway)).list).toEqual([]);
   });
 
-  it("F20: with nobody connected, an untouched target's discovery mark and streams are forgotten too", async () => {
+  it("with nobody connected, an untouched target's discovery mark and streams are forgotten too", async () => {
     const gateway = await gateways.start();
     const source = gateway.ts.addMember("tsuser");
     const stream = runningStream(gateway, () => source.id);
@@ -298,11 +346,13 @@ describe("streams that started before the session joined", () => {
       const admin = await gateway.adminLogin();
       expect(((await (await admin.get("sessions")).json()) as { sessions: unknown[] }).sessions).toEqual([]);
     });
-    // The stream is still running, unlike endedWhileNobodyWasThere: the next session should still find it,
-    // by asking again rather than trusting the forgotten discovery mark.
+    // The stream is still running (unlike endedWhileNobodyWasThere), so the next session should find it
+    // by asking again and not trust the forgotten discovery mark.
     const bob = await joinVoice(gateway, { nickname: "bob" });
     expect(await listed(bob)).toEqual(["ts-old"]);
-    expect(commandsOf(bob, "requeststreaminfo").sort()).toEqual([`requeststreaminfo clid=${bob.id}`, `requeststreaminfo clid=${source.id}`].sort());
+    expect(commandsOf(bob, "requeststreaminfo").sort()).toEqual(
+      [`requeststreaminfo clid=${bob.id}`, `requeststreaminfo clid=${source.id}`].sort(),
+    );
     stream.stop();
   });
 });

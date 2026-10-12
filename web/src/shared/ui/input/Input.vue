@@ -41,7 +41,7 @@ defineExpose({ focus: () => inputEl.value?.focus(), select: () => inputEl.value?
 
 <template>
   <div :class="cn('relative min-w-0', props.class)">
-    <span v-if="$slots.leading" class="pointer-events-none absolute left-3 top-0 flex h-10 items-center text-fg-muted">
+    <span v-if="$slots.leading" class="pointer-events-none absolute top-0 left-3 flex h-10 items-center text-fg-muted">
       <slot name="leading" />
     </span>
     <input

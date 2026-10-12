@@ -1,8 +1,7 @@
 import type { Page } from "@playwright/test";
 
-// Canned /api responses for the visual and accessibility tests, so the guest page and the
-// authenticated admin screens (overview, server settings, operations) render without a gateway that
-// has real data. Times are fixed, and the page runs in UTC, so shots are deterministic.
+// Canned /api responses for the visual and accessibility tests, so the guest page and the authenticated admin screens render
+// without a gateway that has real data. Times are fixed and the page runs in UTC, so shots are deterministic.
 
 const at = (minutes: number) => new Date(Date.UTC(2026, 0, 15, 12, 0) - minutes * 60_000).toISOString();
 
@@ -42,16 +41,66 @@ const server = {
 
 const sessions = {
   sessions: [
-    { id: "s1", nickname: "Alex Rivera", target: "ts.example.com:9987", state: "connected", createdAt: at(12), ageSeconds: 734, tsClientId: 12, channelId: "2", memberCount: 4 },
-    { id: "s2", nickname: "Mira Tanaka", target: "ts.example.com:9987", state: "connected", createdAt: at(47), ageSeconds: 2820, tsClientId: 13, channelId: "2", memberCount: 4 },
+    {
+      id: "s1",
+      nickname: "Alex Rivera",
+      target: "ts.example.com:9987",
+      state: "connected",
+      createdAt: at(12),
+      ageSeconds: 734,
+      tsClientId: 12,
+      channelId: "2",
+      memberCount: 4,
+    },
+    {
+      id: "s2",
+      nickname: "Mira Tanaka",
+      target: "ts.example.com:9987",
+      state: "connected",
+      createdAt: at(47),
+      ageSeconds: 2820,
+      tsClientId: 13,
+      channelId: "2",
+      memberCount: 4,
+    },
   ],
 };
 
 const invites = {
   invites: [
-    { id: "i1", target: "ts.example.com:9987", channel: "Raid Night", expiresAt: at(-1440), maxUses: 5, useCount: 2, createdAt: at(38), revokedAt: null, status: "active" },
-    { id: "i2", target: "ts.example.com:9987", channel: "Lobby", expiresAt: at(600), maxUses: 1, useCount: 1, createdAt: at(2000), revokedAt: null, status: "exhausted" },
-    { id: "i3", target: "ts.example.com:9987", channel: "Strategy", expiresAt: at(-60), maxUses: 3, useCount: 0, createdAt: at(300), revokedAt: at(120), status: "revoked" },
+    {
+      id: "i1",
+      target: "ts.example.com:9987",
+      channel: "Raid Night",
+      expiresAt: at(-1440),
+      maxUses: 5,
+      useCount: 2,
+      createdAt: at(38),
+      revokedAt: null,
+      status: "active",
+    },
+    {
+      id: "i2",
+      target: "ts.example.com:9987",
+      channel: "Lobby",
+      expiresAt: at(600),
+      maxUses: 1,
+      useCount: 1,
+      createdAt: at(2000),
+      revokedAt: null,
+      status: "exhausted",
+    },
+    {
+      id: "i3",
+      target: "ts.example.com:9987",
+      channel: "Strategy",
+      expiresAt: at(-60),
+      maxUses: 3,
+      useCount: 0,
+      createdAt: at(300),
+      revokedAt: at(120),
+      status: "revoked",
+    },
   ],
 };
 
@@ -69,9 +118,51 @@ const logs = {
     { timestamp: at(21), level: "error", message: "TeamSpeak handshake timed out", context: { target: "ts.example.com:9987" } },
   ],
   sessions: [
-    { id: "c1", nickname: "Alex Rivera", clientIp: "203.0.113.24", target: "ts.example.com:9987", relayName: "Frankfurt relay", relayTarget: "relay.example.com:9987", startedAt: at(12), connectedAt: at(12), disconnectedAt: null, durationSeconds: 734, status: "active", reason: null, failureDetail: null },
-    { id: "c2", nickname: "Kenji Sato", clientIp: "198.51.100.7", target: "ts.example.com:9987", relayName: null, relayTarget: null, startedAt: at(95), connectedAt: at(95), disconnectedAt: at(70), durationSeconds: 1500, status: "disconnected", reason: "client-left", failureDetail: null },
-    { id: "c3", nickname: "Guest 41", clientIp: "192.0.2.90", target: "ts.example.com:9987", relayName: null, relayTarget: null, startedAt: at(140), connectedAt: null, disconnectedAt: at(140), durationSeconds: null, status: "failed", reason: "handshake-timeout", failureDetail: "TeamSpeak did not answer within 10 s" },
+    {
+      id: "c1",
+      nickname: "Alex Rivera",
+      clientIp: "203.0.113.24",
+      target: "ts.example.com:9987",
+      relayName: "Frankfurt relay",
+      relayTarget: "relay.example.com:9987",
+      startedAt: at(12),
+      connectedAt: at(12),
+      disconnectedAt: null,
+      durationSeconds: 734,
+      status: "active",
+      reason: null,
+      failureDetail: null,
+    },
+    {
+      id: "c2",
+      nickname: "Kenji Sato",
+      clientIp: "198.51.100.7",
+      target: "ts.example.com:9987",
+      relayName: null,
+      relayTarget: null,
+      startedAt: at(95),
+      connectedAt: at(95),
+      disconnectedAt: at(70),
+      durationSeconds: 1500,
+      status: "disconnected",
+      reason: "client-left",
+      failureDetail: null,
+    },
+    {
+      id: "c3",
+      nickname: "Guest 41",
+      clientIp: "192.0.2.90",
+      target: "ts.example.com:9987",
+      relayName: null,
+      relayTarget: null,
+      startedAt: at(140),
+      connectedAt: null,
+      disconnectedAt: at(140),
+      durationSeconds: null,
+      status: "failed",
+      reason: "handshake-timeout",
+      failureDetail: "TeamSpeak did not answer within 10 s",
+    },
   ],
 };
 
@@ -130,14 +221,17 @@ export function adminApi(pathname: string): [number, unknown] | null {
  * answers (`admin` adds the signed-in console's). Whatever else asks for `/api` gets a 404.
  */
 export async function useCannedApi(page: Page, { lang, theme, admin }: { lang: string; theme: string; admin?: boolean }): Promise<void> {
-  await page.addInitScript(({ language, themeMode }) => {
-    try {
-      localStorage.setItem("webspeak:language", language);
-      localStorage.setItem("webspeak:theme", themeMode);
-    } catch {
-      // storage unavailable
-    }
-  }, { language: lang, themeMode: theme });
+  await page.addInitScript(
+    ({ language, themeMode }) => {
+      try {
+        localStorage.setItem("webspeak:language", language);
+        localStorage.setItem("webspeak:theme", themeMode);
+      } catch {
+        // storage unavailable
+      }
+    },
+    { language: lang, themeMode: theme },
+  );
   await page.context().route("**/api/**", (route) => {
     const { pathname } = new URL(route.request().url());
     const json = (status: number, body: unknown) => route.fulfill({ status, contentType: "application/json", body: JSON.stringify(body) });

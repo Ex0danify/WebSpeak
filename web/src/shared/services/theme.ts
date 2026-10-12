@@ -22,9 +22,7 @@ export function saveTheme(theme: ThemeMode): void {
 const DARK_QUERY = "(prefers-color-scheme: dark)";
 
 function systemPrefersDark(): boolean {
-  return typeof window !== "undefined" && typeof window.matchMedia === "function"
-    ? window.matchMedia(DARK_QUERY).matches
-    : false;
+  return typeof window !== "undefined" && typeof window.matchMedia === "function" ? window.matchMedia(DARK_QUERY).matches : false;
 }
 
 /** Whether the theme shows dark. `systemDark` is the operating system's setting when the caller keeps it

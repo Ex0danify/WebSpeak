@@ -1,4 +1,4 @@
-import type { AdminApi, Gateway } from "../../test/helpers/gateway";
+import type { AdminApi, Gateway } from "../../test/support/gateway";
 import type { AudioFlowStats } from "../../src/modules/voice/index";
 import { poll, type PollOptions } from "../helpers";
 
@@ -16,7 +16,8 @@ export class AudioCounters {
   async read(nickname: string): Promise<AudioFlowStats> {
     const { sessions } = (await (await this.admin.get("sessions")).json()) as { sessions: { nickname: string; audio: AudioFlowStats }[] };
     const session = sessions.find((candidate) => candidate.nickname === nickname);
-    if (!session) throw new Error(`the gateway lists no session for "${nickname}": ${sessions.map((s) => s.nickname).join(", ") || "none"}`);
+    if (!session)
+      throw new Error(`the gateway lists no session for "${nickname}": ${sessions.map((s) => s.nickname).join(", ") || "none"}`);
     return session.audio;
   }
 

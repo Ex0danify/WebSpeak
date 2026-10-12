@@ -9,23 +9,26 @@ export function importLegacyConfigOnce(database: WebSpeakDatabase, legacyConfigP
   if (existsSync(legacyConfigPath)) {
     const legacy = loadConfig(legacyConfigPath);
     const current = database.getSettings();
-    database.updateSettings({
-      siteName: current.siteName,
-      welcomeTexts: current.welcomeTexts,
-      accessMode: current.accessMode,
-      tsHost: legacy.tsHost,
-      tsPort: legacy.tsPort,
-      tsPasswordEncrypted: legacy.tsServerPassword ? encryptSecret(legacy.tsServerPassword, masterSecret) : null,
-      webRtcEnabled: current.webRtcEnabled,
-      webRtcUdpStart: current.webRtcUdpStart,
-      webRtcUdpEnd: current.webRtcUdpEnd,
-      relayConfigured: current.relayConfigured,
-      relayEnabled: current.relayEnabled,
-      relayName: current.relayName,
-      relayHost: current.relayHost,
-      relayPort: current.relayPort,
-      relayTokenEncrypted: current.relayTokenEncrypted,
-    }, "LEGACY_CONFIG_IMPORTED");
+    database.updateSettings(
+      {
+        siteName: current.siteName,
+        welcomeTexts: current.welcomeTexts,
+        accessMode: current.accessMode,
+        tsHost: legacy.tsHost,
+        tsPort: legacy.tsPort,
+        tsPasswordEncrypted: legacy.tsServerPassword ? encryptSecret(legacy.tsServerPassword, masterSecret) : null,
+        webRtcEnabled: current.webRtcEnabled,
+        webRtcUdpStart: current.webRtcUdpStart,
+        webRtcUdpEnd: current.webRtcUdpEnd,
+        relayConfigured: current.relayConfigured,
+        relayEnabled: current.relayEnabled,
+        relayName: current.relayName,
+        relayHost: current.relayHost,
+        relayPort: current.relayPort,
+        relayTokenEncrypted: current.relayTokenEncrypted,
+      },
+      "LEGACY_CONFIG_IMPORTED",
+    );
     database.setMeta("legacy_config_imported", "1");
     database.setMeta("legacy_import_notice_pending", "1");
     logger.info("Legacy config imported; WebSpeak settings are now managed from /admin");

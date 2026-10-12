@@ -29,7 +29,6 @@ function signals(context: ReturnType<typeof setupPeers>) {
   return context.sent.filter((message) => message.type === "screenShareSignal");
 }
 
-
 describe("startScreenShareViewer", () => {
   it("offers to a browser owner: viewer peer, recvonly video, the offer and the timer", async () => {
     const context = setupPeers();
@@ -38,7 +37,9 @@ describe("startScreenShareViewer", () => {
     await context.module.startScreenShareViewer(stream);
     expect(context.peers).toHaveLength(1);
     expect(addTransceiver.mock.calls).toEqual([["video", { direction: "recvonly" }]]);
-    expect(context.sent).toEqual([{ type: "screenShareSignal", streamId: "s1", targetPeerId: "owner-1", signal: { kind: "offer", sdp: "fake-offer" } }]);
+    expect(context.sent).toEqual([
+      { type: "screenShareSignal", streamId: "s1", targetPeerId: "owner-1", signal: { kind: "offer", sdp: "fake-offer" } },
+    ]);
     expect(context.store.screenShareViewing).toBe(true);
     expect(context.store.screenShareViewingStreamId).toBe("s1");
     expect(context.store.screenShareRemoteStream).toBeNull();
@@ -187,7 +188,9 @@ describe("handleScreenShareSignal", () => {
     expect(context.sent).toEqual([]);
     await context.module.handleScreenShareSignal("s1", "owner-1", { kind: "offer", sdp: "ts-offer" });
     expect(context.peers[0].remoteDescription).toEqual({ type: "offer", sdp: "ts-offer" });
-    expect(context.sent).toEqual([{ type: "screenShareSignal", streamId: "s1", targetPeerId: "owner-1", signal: { kind: "answer", sdp: "fake-answer" } }]);
+    expect(context.sent).toEqual([
+      { type: "screenShareSignal", streamId: "s1", targetPeerId: "owner-1", signal: { kind: "answer", sdp: "fake-answer" } },
+    ]);
   });
 
   it("fails the peer when a TeamSpeak offer cannot be answered", async () => {
@@ -230,7 +233,9 @@ describe("handleScreenShareSignal", () => {
     context.store.screenShareActiveStreamId = "mine";
     await context.module.handleScreenShareSignal("mine", "viewer-1", { kind: "offer", sdp: "viewer-offer" });
     expect(context.peers[0].remoteDescription).toEqual({ type: "offer", sdp: "viewer-offer" });
-    expect(context.sent).toEqual([{ type: "screenShareSignal", streamId: "mine", targetPeerId: "viewer-1", signal: { kind: "answer", sdp: "fake-answer" } }]);
+    expect(context.sent).toEqual([
+      { type: "screenShareSignal", streamId: "mine", targetPeerId: "viewer-1", signal: { kind: "answer", sdp: "fake-answer" } },
+    ]);
     expect(context.store.screenShareViewing).toBe(false);
   });
 

@@ -28,9 +28,19 @@ type Exposed = {
 
 function makeVoiceState(overrides: Partial<VoiceState> = {}): VoiceState {
   return reactive({
-    connected: false, connecting: false, reconnecting: false, reconnectAttempt: 0, reconnectFailed: false,
-    tsClientId: 0, error: "", errorCode: "", microphoneError: "", microphoneErrorCode: "", audioNotice: "",
-    audioNoticeCode: "", channelSwitchedChannelId: "",
+    connected: false,
+    connecting: false,
+    reconnecting: false,
+    reconnectAttempt: 0,
+    reconnectFailed: false,
+    tsClientId: 0,
+    error: "",
+    errorCode: "",
+    microphoneError: "",
+    microphoneErrorCode: "",
+    audioNotice: "",
+    audioNoticeCode: "",
+    channelSwitchedChannelId: "",
     ...overrides,
   }) as VoiceState;
 }
@@ -39,14 +49,21 @@ function sample(overrides: Partial<LatencyProbeResult> = {}): LatencyProbeResult
   return { browserRttMs: 40, teamSpeakLatencyMs: 20, teamSpeakReachable: true, ...overrides };
 }
 
-async function mountUseNetworkPerformance(overrides: { voiceState?: VoiceState; measureLatency?: () => Promise<LatencyProbeResult | null> } = {}) {
+async function mountUseNetworkPerformance(
+  overrides: { voiceState?: VoiceState; measureLatency?: () => Promise<LatencyProbeResult | null> } = {},
+) {
   const { useNetworkPerformance } = await import("./useNetworkPerformance");
   const options = {
     voiceState: makeVoiceState({ connected: true }),
     measureLatency: vi.fn(async () => sample()),
     ...overrides,
   };
-  const wrapper = mount(defineComponent({ setup: () => useNetworkPerformance({ session: { state: options.voiceState, measureLatency: options.measureLatency } }), template: "<div/>" }));
+  const wrapper = mount(
+    defineComponent({
+      setup: () => useNetworkPerformance({ session: { state: options.voiceState, measureLatency: options.measureLatency } }),
+      template: "<div/>",
+    }),
+  );
   await flushPromises();
   return { wrapper, vm: wrapper.vm as unknown as Exposed, options };
 }
@@ -123,7 +140,12 @@ describe("stopPerformanceMonitoring", () => {
 
   it("invalidates an in-flight probe from the stopped generation", async () => {
     let resolveProbe: (value: LatencyProbeResult) => void = () => undefined;
-    const measureLatency = vi.fn(() => new Promise<LatencyProbeResult>((resolve) => { resolveProbe = resolve; }));
+    const measureLatency = vi.fn(
+      () =>
+        new Promise<LatencyProbeResult>((resolve) => {
+          resolveProbe = resolve;
+        }),
+    );
     const { vm } = await mountUseNetworkPerformance({ measureLatency });
     vm.togglePerformancePanel();
     vm.stopPerformanceMonitoring();
@@ -144,7 +166,12 @@ describe("refreshPerformanceProbe / runPerformanceProbe", () => {
 
   it("does nothing when a probe is already running", async () => {
     let resolveProbe: (value: LatencyProbeResult) => void = () => undefined;
-    const measureLatency = vi.fn(() => new Promise<LatencyProbeResult>((resolve) => { resolveProbe = resolve; }));
+    const measureLatency = vi.fn(
+      () =>
+        new Promise<LatencyProbeResult>((resolve) => {
+          resolveProbe = resolve;
+        }),
+    );
     const { vm } = await mountUseNetworkPerformance({ measureLatency });
     vm.togglePerformancePanel();
     expect(vm.performanceRunning).toBe(true);
@@ -169,15 +196,22 @@ describe("refreshPerformanceProbe / runPerformanceProbe", () => {
 describe("performanceStats", () => {
   it("reports not-ready with no attempts", async () => {
     const { vm } = await mountUseNetworkPerformance();
-    expect(vm.performanceStats).toEqual({ gatewayLatencyMs: null, gatewayLossPercent: null, teamSpeakLatencyMs: null, teamSpeakLossPercent: null, ready: false });
+    expect(vm.performanceStats).toEqual({
+      gatewayLatencyMs: null,
+      gatewayLossPercent: null,
+      teamSpeakLatencyMs: null,
+      teamSpeakLossPercent: null,
+      ready: false,
+    });
   });
 
   it("computes medians and loss percentages from collected samples", async () => {
-    const results = [sample({ browserRttMs: 10, teamSpeakLatencyMs: 5 }), null, sample({ browserRttMs: 30, teamSpeakReachable: false, teamSpeakLatencyMs: null })];
-    const measureLatency = vi.fn()
-      .mockResolvedValueOnce(results[0])
-      .mockResolvedValueOnce(results[1])
-      .mockResolvedValueOnce(results[2]);
+    const results = [
+      sample({ browserRttMs: 10, teamSpeakLatencyMs: 5 }),
+      null,
+      sample({ browserRttMs: 30, teamSpeakReachable: false, teamSpeakLatencyMs: null }),
+    ];
+    const measureLatency = vi.fn().mockResolvedValueOnce(results[0]).mockResolvedValueOnce(results[1]).mockResolvedValueOnce(results[2]);
     const { vm } = await mountUseNetworkPerformance({ measureLatency });
     vm.togglePerformancePanel();
     await flushPromises();

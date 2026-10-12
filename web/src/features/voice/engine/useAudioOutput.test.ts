@@ -1,4 +1,4 @@
-// useAudioOutput on its own (Step V3.1): stores and browser stubs, no composable around it.
+// useAudioOutput on its own: stores and browser stubs, no composable around it.
 import { createPinia, setActivePinia } from "pinia";
 import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from "vitest";
 import { useVoiceAudioStore } from "../stores/voiceAudioStore";
@@ -23,7 +23,9 @@ function withoutMediaSink(): void {
   const prototype = HTMLMediaElement.prototype as unknown as Record<string, unknown>;
   const original = Object.getOwnPropertyDescriptor(prototype, "setSinkId");
   delete prototype.setSinkId;
-  restoreMediaSink = () => { if (original) Object.defineProperty(prototype, "setSinkId", original); };
+  restoreMediaSink = () => {
+    if (original) Object.defineProperty(prototype, "setSinkId", original);
+  };
 }
 
 let restoreMediaSink: () => void = () => undefined;
@@ -171,7 +173,10 @@ describe("audio notices", () => {
 describe("setOutputDevice", () => {
   it("rejects a device that is not in the list without touching the selection", async () => {
     const { audio, output } = setup();
-    await expect(output.setOutputDevice("ghost")).rejects.toMatchObject({ code: "SPEAKER_UNAVAILABLE", text: { key: "speakerUnavailable" } });
+    await expect(output.setOutputDevice("ghost")).rejects.toMatchObject({
+      code: "SPEAKER_UNAVAILABLE",
+      text: { key: "speakerUnavailable" },
+    });
     expect(audio.selectedOutputDeviceId).toBe("");
   });
 
@@ -188,7 +193,10 @@ describe("setOutputDevice", () => {
     withoutMediaSink();
     const { audio, output } = setup();
     audio.outputDevices.push({ deviceId: "spk-1", label: "Speakers", groupId: "g" });
-    await expect(output.setOutputDevice("spk-1")).rejects.toMatchObject({ code: "SPEAKER_SELECTION_UNSUPPORTED", text: { key: "speakerSelectionUnsupported" } });
+    await expect(output.setOutputDevice("spk-1")).rejects.toMatchObject({
+      code: "SPEAKER_SELECTION_UNSUPPORTED",
+      text: { key: "speakerSelectionUnsupported" },
+    });
     expect(audio.selectedOutputDeviceId).toBe("");
     expect(saveAudioPreferences).not.toHaveBeenCalled();
   });

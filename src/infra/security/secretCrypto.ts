@@ -26,10 +26,7 @@ export function decryptSecret(payload: string | null | undefined, masterKey: Buf
   const decipher = createDecipheriv(ALGORITHM, masterKey, Buffer.from(nonceText, "base64url"), { authTagLength: TAG_LENGTH });
   decipher.setAAD(AAD);
   decipher.setAuthTag(Buffer.from(tagText, "base64url"));
-  return Buffer.concat([
-    decipher.update(Buffer.from(ciphertextText, "base64url")),
-    decipher.final(),
-  ]).toString("utf8");
+  return Buffer.concat([decipher.update(Buffer.from(ciphertextText, "base64url")), decipher.final()]).toString("utf8");
 }
 
 function assertMasterKey(masterKey: Buffer): void {

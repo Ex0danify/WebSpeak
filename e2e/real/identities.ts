@@ -5,11 +5,8 @@ import type { BrowserContextOptions } from "@playwright/test";
 import { generateIdentity, identityFromString } from "@echosixhiya/teamspeak-client";
 
 /**
- * Identities of the real-server tests are seeded, not persisted by a browser profile: the client
- * only restores a stored identity when `webspeak:remember-identity` is "1", and never writes that
- * key unless the checkbox is toggled (finding F1). Seeding the key and the identity gives every
- * browser the identity of a returning user, and the same TeamSpeak UID on every run of the suite,
- * so rights granted to it (step 5.2b) survive.
+ * Seeded, not persisted by a browser profile, because the client only restores an identity when `webspeak:remember-identity` is
+ * "1" and never writes it unless the checkbox is toggled. This also keeps the TeamSpeak UID stable so granted rights survive.
  */
 export interface SeededIdentity {
   index: number;
@@ -20,9 +17,8 @@ export interface SeededIdentity {
 }
 
 /**
- * TeamSpeak 6 (6.0.0-beta13.1) identifies a client by the SHA-256 of its base64 public key. The
- * SDK's `getUidFromPublicKey` still returns the SHA-1 form of TeamSpeak 3 (finding F36), so it is
- * not used. Global setup checks this value against what the server reports.
+ * TeamSpeak 6 identifies a client by the SHA-256 of its base64 public key. The SDK's `getUidFromPublicKey` still returns
+ * the TeamSpeak 3 SHA-1 form, so it isn't used. Global setup checks this value against the server.
  */
 export function serverUidOf(publicKeyBase64: string): string {
   return createHash("sha256").update(publicKeyBase64).digest("base64");
@@ -34,8 +30,7 @@ const defaultFile = fileURLToPath(new URL("./.identities.json", import.meta.url)
 const SECURITY_LEVEL = 8;
 
 /**
- * Identities 0 to 3 are granted Server Admin by the global setup (step 5.2b); 4 and up are ordinary
- * guests, for the tests that show a refusal.
+ * Identities 0 to 3 get Server Admin from global setup, 4 and up are ordinary guests for tests that show a refusal.
  */
 export const ADMIN_IDENTITIES = 4;
 export const GUEST_IDENTITY = ADMIN_IDENTITIES;
@@ -74,10 +69,8 @@ interface SeededStorageState extends StorageState {
 const STORES = ["identities", "preferences", "favorites", "recent"];
 
 /**
- * A Playwright storage state for a browser that has used the site before: remember-identity is on
- * and identity number `index` is in the `webspeak-local` database as the client saves it. The
- * origin is the gateway's, which is only known at run time. All four stores are created, because
- * the client creates them only when the database does not exist yet.
+ * Storage state for a returning browser, with remember-identity on and identity `index` in `webspeak-local` as the client
+ * saves it. All four stores are created because the client only does that when the database doesn't exist yet.
  */
 export function storageStateFor(index: number, origin: string, store: IdentityStore = identities): SeededStorageState {
   const { privateMaterial } = store.get(index);
@@ -97,7 +90,10 @@ export function storageStateFor(index: number, origin: string, store: IdentitySt
               keyPath: "id",
               autoIncrement: false,
               indexes: [],
-              records: name === "identities" ? [{ value: { id: "current", label: `test identity ${index}`, privateMaterial, createdAt: now, lastUsedAt: now } }] : [],
+              records:
+                name === "identities"
+                  ? [{ value: { id: "current", label: `test identity ${index}`, privateMaterial, createdAt: now, lastUsedAt: now } }]
+                  : [],
             })),
           },
         ],

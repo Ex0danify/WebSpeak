@@ -20,8 +20,8 @@ export function registerServerRoutes(router: Router, options: AdminRouterOptions
     }
   });
 
-  // The test checks the voice port with the first handshake packets; it logs no client in, so it
-  // has no use for the server password and the request carries only the target.
+  // The test only sends the first handshake packets and logs no client in, so the request carries
+  // just the target and no server password.
   router.post("/server/test", requireSameOrigin, requireCsrf(options.sessions), async (request, response) => {
     await runProbe(options.service, response, readString(asRecord(request.body), "target", 300), true);
   });
@@ -32,12 +32,7 @@ export function registerServerRoutes(router: Router, options: AdminRouterOptions
   });
 }
 
-async function runProbe(
-  service: AdminService,
-  response: Response,
-  target: string,
-  persistResult: boolean,
-): Promise<void> {
+async function runProbe(service: AdminService, response: Response, target: string, persistResult: boolean): Promise<void> {
   try {
     response.json(await service.testConnection(target, persistResult));
   } catch (error: unknown) {

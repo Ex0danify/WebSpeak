@@ -16,7 +16,8 @@ export async function poll<T>(read: () => T | Promise<T>, accept: (value: T) => 
   for (;;) {
     const value = await read();
     if (accept(value)) return value;
-    if (Date.now() >= deadline) throw new Error(`Timed out after ${timeoutMs} ms waiting for ${message}; last value: ${JSON.stringify(value)}`);
+    if (Date.now() >= deadline)
+      throw new Error(`Timed out after ${timeoutMs} ms waiting for ${message}; last value: ${JSON.stringify(value)}`);
     await new Promise((resolve) => setTimeout(resolve, intervalMs));
   }
 }

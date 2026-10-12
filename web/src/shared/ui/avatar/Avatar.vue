@@ -5,14 +5,11 @@ import { cn } from "../../lib/cn";
 import { avatarStyle } from "../../lib/format";
 import { avatarVariants, type AvatarVariants } from "./avatar";
 
-// A member picture, or the first letter of their name when there is none, it
-// is still loading or it fails to load. Built on reka-ui Avatar. `tint` paints the fallback
-// with the color derived from the name (`self` gives your own the accent gradient), `stack` overlaps
-// avatars on the media surface. `speaking` draws a 2 px success ring offset by a 2 px gap in
-// the surface color (set `surface` to what the avatar sits on). The ring is
-// not the only cue: pass `speakingLabel` and it is read out as text.
-// Without `label` the avatar is decorative and hidden from assistive tech, for
-// rows where the name is printed next to it.
+// A member picture, or the first letter of their name when there is none. `tint` paints the fallback with a name-derived color
+// (`self` gives your own the accent gradient), `stack` overlaps on media. `speaking` draws a ring, set `surface` to what the
+// avatar sits on and pass `speakingLabel`.
+
+// Without `label` the avatar is decorative and hidden from assistive tech, for rows where the name is printed next to it.
 const props = withDefaults(
   defineProps<{
     name: string;

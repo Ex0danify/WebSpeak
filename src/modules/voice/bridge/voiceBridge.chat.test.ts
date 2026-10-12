@@ -1,12 +1,16 @@
 import { describe, expect, it } from "vitest";
-import { type Gateway, useGateway } from "../../../../test/helpers/gateway.js";
-import { ask, errorOf, joinVoice, type VoiceSession } from "../../../../test/helpers/voice.js";
-import type { JsonMessage } from "../../../../test/helpers/wsClient.js";
+import { type Gateway, useGateway } from "../../../../test/support/gateway.js";
+import { ask, errorOf, joinVoice, type VoiceSession } from "../../../../test/support/voice.js";
+import type { JsonMessage } from "../../../../test/support/wsClient.js";
 
 const gateways = useGateway();
 
 /** Sends a whisper command and returns the `whisperTargets` state the gateway reports, which has no request id. */
-async function whisper(session: VoiceSession, type: "setWhisperTargets" | "setWhisperActive", payload: Record<string, unknown>): Promise<JsonMessage> {
+async function whisper(
+  session: VoiceSession,
+  type: "setWhisperTargets" | "setWhisperActive",
+  payload: Record<string, unknown>,
+): Promise<JsonMessage> {
   const after = session.socket.mark();
   session.socket.send({ type, payload });
   return session.socket.waitForMessage("whisperTargets", { after });
@@ -18,7 +22,10 @@ describe("sending chat", () => {
   it("sends a channel message to the session's current channel, trimmed", async () => {
     const gateway = await gateways.start();
     const session = await alice(gateway);
-    expect(await ask(session, "sendTextMessage", { message: "  hello room  " }, "c1")).toEqual({ type: "commandCompleted", requestId: "c1" });
+    expect(await ask(session, "sendTextMessage", { message: "  hello room  " }, "c1")).toEqual({
+      type: "commandCompleted",
+      requestId: "c1",
+    });
     expect(session.client.sentMessages).toEqual([{ scope: "channel", message: "hello room", targetId: 1n }]);
     await ask(session, "switchChannel", { channelId: "3" });
     await ask(session, "sendTextMessage", { message: "moved" });
@@ -48,7 +55,9 @@ describe("sending chat", () => {
   it("answers CLIENT_NOT_FOUND for a private message to someone who is not in the directory", async () => {
     const gateway = await gateways.start();
     const session = await alice(gateway);
-    expect(errorOf(await ask(session, "sendPrivateMessage", { clientId: 4242, message: "hello?" }))).toMatchObject({ code: "CLIENT_NOT_FOUND" });
+    expect(errorOf(await ask(session, "sendPrivateMessage", { clientId: 4242, message: "hello?" }))).toMatchObject({
+      code: "CLIENT_NOT_FOUND",
+    });
     expect(session.client.sentMessages).toEqual([]);
   });
 
@@ -61,10 +70,16 @@ describe("sending chat", () => {
     const farAfter = far.socket.mark();
     await ask(sender, "sendTextMessage", { message: "to the lobby" });
     const received = await near.socket.waitForMessage("chatMessage", { after });
-    expect(received).toMatchObject({ scope: "channel", targetId: "1", senderUid: sender.client.uid, invokerName: "alice", invokerId: sender.id, message: "to the lobby" });
-    // The message was delivered before alice's request completed. A reply to a probe on the far
-    // session's own socket comes after anything sent to it earlier, so if a message had been
-    // routed there it would already be recorded.
+    expect(received).toMatchObject({
+      scope: "channel",
+      targetId: "1",
+      senderUid: sender.client.uid,
+      invokerName: "alice",
+      invokerId: sender.id,
+      message: "to the lobby",
+    });
+    // The message arrived before alice's request completed. A probe reply on the far socket comes after
+    // anything sent earlier, so a misrouted message would already be recorded.
     far.socket.send({ type: "latencyProbe", payload: { sequence: "barrier" } });
     await far.socket.waitForMessage("latencyPong", { after: farAfter });
     expect(far.socket.frames.slice(farAfter).filter((frame) => frame.kind === "json" && frame.message.type === "chatMessage")).toEqual([]);
@@ -79,7 +94,14 @@ describe("receiving chat", () => {
     const after = session.socket.mark();
     bob.say("channel", "hello lobby");
     expect(await session.socket.waitForMessage("chatMessage", { after })).toEqual({
-      type: "chatMessage", scope: "channel", targetId: "1", senderUid: "remote-bob", timestamp: expect.any(Number), invokerName: "bob", invokerId: bob.id, message: "hello lobby",
+      type: "chatMessage",
+      scope: "channel",
+      targetId: "1",
+      senderUid: "remote-bob",
+      timestamp: expect.any(Number),
+      invokerName: "bob",
+      invokerId: bob.id,
+      message: "hello lobby",
     });
   });
 
@@ -100,7 +122,11 @@ describe("receiving chat", () => {
     const session = await alice(gateway);
     const after = session.socket.mark();
     bob.say("private", "just for you", BigInt(session.id));
-    expect(await session.socket.waitForMessage("chatMessage", { after })).toMatchObject({ scope: "private", targetId: String(session.id), message: "just for you" });
+    expect(await session.socket.waitForMessage("chatMessage", { after })).toMatchObject({
+      scope: "private",
+      targetId: String(session.id),
+      message: "just for you",
+    });
   });
 });
 
@@ -110,8 +136,16 @@ describe("whisper targets", () => {
     const bob = gateway.ts.addMember("bob", 2n);
     const carol = gateway.ts.addMember("carol", 3n);
     const session = await alice(gateway);
-    expect(await whisper(session, "setWhisperTargets", { targetIds: [carol.id, bob.id] })).toEqual({ type: "whisperTargets", targetIds: [carol.id, bob.id], active: false });
-    expect(await whisper(session, "setWhisperActive", { active: true })).toEqual({ type: "whisperTargets", targetIds: [carol.id, bob.id], active: true });
+    expect(await whisper(session, "setWhisperTargets", { targetIds: [carol.id, bob.id] })).toEqual({
+      type: "whisperTargets",
+      targetIds: [carol.id, bob.id],
+      active: false,
+    });
+    expect(await whisper(session, "setWhisperActive", { active: true })).toEqual({
+      type: "whisperTargets",
+      targetIds: [carol.id, bob.id],
+      active: true,
+    });
     expect(await whisper(session, "setWhisperActive", { active: false })).toMatchObject({ active: false });
   });
 
@@ -137,7 +171,11 @@ describe("whisper targets", () => {
     const session = await alice(gateway);
     await whisper(session, "setWhisperTargets", { targetIds: [bob.id] });
     await whisper(session, "setWhisperActive", { active: true });
-    expect(await whisper(session, "setWhisperTargets", { targetIds: [] })).toEqual({ type: "whisperTargets", targetIds: [], active: false });
+    expect(await whisper(session, "setWhisperTargets", { targetIds: [] })).toEqual({
+      type: "whisperTargets",
+      targetIds: [],
+      active: false,
+    });
   });
 
   it("drops a target who leaves the server, tells the browser, and switches whispering off with the last one", async () => {
@@ -148,6 +186,10 @@ describe("whisper targets", () => {
     await whisper(session, "setWhisperActive", { active: true });
     const after = session.socket.mark();
     bob.leave();
-    expect(await session.socket.waitForMessage("whisperTargets", { after })).toEqual({ type: "whisperTargets", targetIds: [], active: false });
+    expect(await session.socket.waitForMessage("whisperTargets", { after })).toEqual({
+      type: "whisperTargets",
+      targetIds: [],
+      active: false,
+    });
   });
 });

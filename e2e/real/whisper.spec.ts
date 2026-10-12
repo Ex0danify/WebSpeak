@@ -3,13 +3,17 @@ import { AudioCounters, expectQuiet } from "./counters";
 import { openMemberMenu, withAudioTone } from "../helpers";
 import { clientIdOf, menuAction } from "./ui";
 
-// Whisper through the real server (step 5.5). Every fake microphone plays a steady 1000 Hz tone, so
-// each browser is talking all the time; what changes is where Alice's voice goes. While she holds
-// the whisper button it goes to her target only, and her channel hears nothing of her. The counts
-// are the gateway's own per-source counters (the admin sessions API), keyed by TeamSpeak client id.
+// Whisper through the real server. Every fake microphone plays a steady 1000 Hz tone, so each browser talks all the time and
+// what changes is where Alice's voice goes. While she holds the whisper button it goes to her target only. Counts are the
+// gateway's per-source counters (admin sessions API), keyed by TeamSpeak client id.
 test.use(withAudioTone({ frequencyHz: 1000 }));
 
-test("holding the whisper button sends Alice's voice to her target and not to her channel, and releasing it undoes that", async ({ person, testChannel, gateway, query }) => {
+test("holding the whisper button sends Alice's voice to her target and not to her channel, and releasing it undoes that", async ({
+  person,
+  testChannel,
+  gateway,
+  query,
+}) => {
   const home = await testChannel("real-whisper-home");
   const away = await testChannel("real-whisper-away");
   const alice = await person(0, "whisper-alice");
@@ -44,5 +48,7 @@ test("holding the whisper button sends Alice's voice to her target and not to he
   await expectQuiet(() => heardFromAlice(bob.nickname), "Bob hearing Alice after she let go");
   expect(await heardFromAlice(bob.nickname)).toBeGreaterThanOrEqual(whileWhispering);
   const before = await heardFromAlice(carol.nickname);
-  await counters.until(carol.nickname, (audio) => (audio.egressFramesByClient[aliceId] ?? 0) >= before + 25, { message: "Carol to hear Alice again" });
+  await counters.until(carol.nickname, (audio) => (audio.egressFramesByClient[aliceId] ?? 0) >= before + 25, {
+    message: "Carol to hear Alice again",
+  });
 });

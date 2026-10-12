@@ -14,14 +14,17 @@ export function findCjkCells(file: string): CjkCell[] {
   const raw = new DatabaseSync(file, { readOnly: true });
   try {
     const found: CjkCell[] = [];
-    const tables = raw.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' ORDER BY name").all() as Array<{ name: string }>;
+    const tables = raw
+      .prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' ORDER BY name")
+      .all() as Array<{ name: string }>;
     for (const { name } of tables) {
       const columns = raw.prepare(`PRAGMA table_info("${name}")`).all() as Array<{ name: string }>;
       const rows = raw.prepare(`SELECT rowid AS rowid_, * FROM "${name}"`).all() as Array<Record<string, unknown>>;
       for (const row of rows) {
         for (const column of columns) {
           const value = row[column.name];
-          if (typeof value === "string" && CJK.test(value)) found.push({ table: name, column: column.name, rowid: Number(row.rowid_), value });
+          if (typeof value === "string" && CJK.test(value))
+            found.push({ table: name, column: column.name, rowid: Number(row.rowid_), value });
         }
       }
     }

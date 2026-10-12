@@ -3,10 +3,9 @@ import type { MessageKey } from "@/shared/i18n/messageKeys";
 import { text, type LocalizedText, type TextParams } from "@/shared/i18n/localizedText";
 
 /**
- * Browsers only hand out a DOMException name for getUserMedia failures (and an
- * often-English message that used to reach the UI verbatim). Map every name the
- * browsers actually raise to a sentence the user can act on, and keep the
- * DOMException name as the stable failure code.
+ * Browsers only hand out a DOMException name for getUserMedia failures, plus a message that is often English and must not reach
+ * the UI. Every name the browsers actually raise maps to a sentence the user can act on, and the name stays as the stable
+ * failure code.
  */
 const MICROPHONE_FAILURE_KEYS: Record<string, MessageKey> = {
   NOTALLOWEDERROR: "micFailedPermission",
@@ -20,7 +19,7 @@ const MICROPHONE_FAILURE_KEYS: Record<string, MessageKey> = {
   TRACKSTARTERROR: "micFailedBusy",
   ABORTERROR: "micFailedAborted",
   INVALIDSTATEERROR: "micFailedAborted",
-  TYPEFERROR: "micFailedParameters",
+  TYPEERROR: "micFailedParameters",
 };
 
 const MICROPHONE_FAILURE_CODE_PREFIX = "MIC_";
@@ -57,9 +56,9 @@ const AUDIO_NOTICE_KEYS: Record<string, MessageKey> = {
   AUDIO_CONTEXT_SUSPENDED: "audioNoticeContextSuspended",
 };
 
-/** The notice shown for a non-fatal audio condition. `code` stays the stable identifier; an unknown
- *  code (the gateway's `audioError`) gets the generic audio-link sentence. `detail` selects the variant
- *  that prints it, except for the encoder failure, which never shows the gateway text. */
+/** The notice for a non-fatal audio condition. `code` is the stable identifier, an unknown code (the gateway's `audioError`)
+ *  gets the generic audio-link sentence. `detail` selects the variant that prints it, except for the encoder failure, which
+ *  never shows the gateway text. */
 export function audioNoticeText(code: string, params?: TextParams): LocalizedText {
   const known = AUDIO_NOTICE_KEYS[code];
   if (known) return text(known, params);

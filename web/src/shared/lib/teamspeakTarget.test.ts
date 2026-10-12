@@ -1,15 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { formatTeamSpeakTarget, parseTeamSpeakTarget, teamSpeakTargetKey } from "@/../../src/shared/teamSpeakTarget";
-import { ACCEPTED_TARGETS, PORT_FIELD_CASES } from "@/../../test/helpers/teamSpeakTargetCases";
-import {
-  DEFAULT_TEAM_SPEAK_PORT,
-  combineTeamSpeakTarget,
-  isValidTeamSpeakPort,
-  splitTeamSpeakTarget,
-} from "./teamspeakTarget";
+import { ACCEPTED_TARGETS, PORT_FIELD_CASES } from "@/../../test/support/teamSpeakTargetCases";
+import { DEFAULT_TEAM_SPEAK_PORT, combineTeamSpeakTarget, isValidTeamSpeakPort, splitTeamSpeakTarget } from "./teamspeakTarget";
 
 // The gateway validates a target, the form only splits and joins it. Both are run
-// against the table of test/helpers/teamSpeakTargetCases.ts, so a change to one
+// against the table of test/support/teamSpeakTargetCases.ts, so a change to one
 // parser that the other does not follow shows up here.
 describe("agreement with the gateway parser", () => {
   it.each(ACCEPTED_TARGETS)("%s is the same server on both sides", (input, expected) => {

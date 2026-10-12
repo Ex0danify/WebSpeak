@@ -83,7 +83,7 @@ test.describe("demo page", () => {
     await expect(page.getByRole("article")).toHaveCount(0);
   });
 
-  test("a phone can choose any channel of the demo, with only the selected one's members shown (F33)", async ({ page, isMobile }) => {
+  test("a phone can choose any channel of the demo, with only the selected one's members shown", async ({ page, isMobile }) => {
     test.skip(!isMobile, "the desktop lists every channel");
     await page.goto("/demo");
     await expect(page.getByRole("button", { name: /^Quiet Zone 2$/ })).toBeVisible();
@@ -147,8 +147,8 @@ test.describe("demo page", () => {
   test("initials keep their size: 10 px in the channel list and 18 px on a voice card (5.21a)", async ({ page }) => {
     await page.goto("/demo");
     const fontSize = (locator: ReturnType<Page["locator"]>) => locator.evaluate((el) => getComputedStyle(el).fontSize);
-    // The list's avatars are 20 px (xs) and the cards' are 56 px (xl). The bug was a rule for the
-    // card's status text that also matched the avatar and shrank the big initials to 10 px.
+    // The list's avatars are 20 px (xs) and the cards' are 56 px (xl). The card's status text rule must not match the avatar
+    // and shrink its initials.
     const listInitial = page.locator("aside").first().getByText("M", { exact: true });
     const cardInitial = voiceCard(page, "msicbot").getByText("M", { exact: true });
     expect(await fontSize(listInitial)).toBe("10px");
@@ -165,14 +165,16 @@ test.describe("demo page", () => {
 });
 
 test.describe("demo page language", () => {
-  // Like the join page: the stored language, else the browser's, else English (bug F32: Chinese for every
-  // browser but German, Russian and Japanese).
-  test("an English browser without a stored language gets the demo in English, as the join page does (F32)", async ({ page }) => {
+  // Like the join page: the stored language, else the browser's, else English.
+  test("an English browser without a stored language gets the demo in English, as the join page does", async ({ page }) => {
     await page.goto("/demo");
     await expect(page.getByRole("button", { name: "Poke", exact: true })).toBeVisible();
   });
 
-  test("a browser in another language gets the demo in that language, and the stored language wins over it (F32)", async ({ browser, baseURL }) => {
+  test("a browser in another language gets the demo in that language, and the stored language wins over it", async ({
+    browser,
+    baseURL,
+  }) => {
     const german = await browser.newContext({ baseURL, locale: "de-DE" });
     const germanPage = await german.newPage();
     await germanPage.goto("/demo");

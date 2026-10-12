@@ -1,4 +1,6 @@
-export interface ApiError extends Error { code?: string }
+export interface ApiError extends Error {
+  code?: string;
+}
 
 export interface AdminApiOptions {
   /** Read at call time: the token changes on login/logout. */
@@ -21,14 +23,24 @@ export function createAdminApi(options: AdminApiOptions) {
     return value;
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- admin JSON bodies are read field by field, the gateway owns their shape
   async function getJson(url: string): Promise<any> {
     const response = await fetch(url, { headers: { accept: "application/json" } });
     return parseResponse(response);
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- admin JSON bodies are read field by field, the gateway owns their shape
   async function sendJson(url: string, method: string, body: unknown, authenticated = true): Promise<any> {
     const csrfToken = options.getCsrfToken();
-    const response = await fetch(url, { method, headers: { "content-type": "application/json", accept: "application/json", ...(authenticated && csrfToken ? { "x-csrf-token": csrfToken } : {}) }, body: JSON.stringify(body) });
+    const response = await fetch(url, {
+      method,
+      headers: {
+        "content-type": "application/json",
+        accept: "application/json",
+        ...(authenticated && csrfToken ? { "x-csrf-token": csrfToken } : {}),
+      },
+      body: JSON.stringify(body),
+    });
     return parseResponse(response);
   }
 

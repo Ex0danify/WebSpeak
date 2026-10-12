@@ -113,7 +113,7 @@ describe("setThemeMode", () => {
   });
 });
 
-describe("following the operating system while mounted (F26)", () => {
+describe("following the operating system while mounted", () => {
   it("starts watching on mount and updates prefersDark/icon live for system", async () => {
     const os = fakeQuery(false);
     const { vm } = await mountUseTheme();

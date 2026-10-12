@@ -5,7 +5,7 @@ import { launchOptions } from "../helpers/chromium";
 const ci = process.env.CI === "true" || process.env.CI === "1";
 
 // Layer 5: browsers against a real gateway and a disposable TeamSpeak server. One worker, one
-// test at a time: the server flood-bans fast joins and one identity can join only once.
+// test at a time, since the server flood-bans fast joins and one identity can join only once.
 export default defineConfig({
   testDir: ".",
   testMatch: "**/*.spec.ts",
@@ -15,9 +15,7 @@ export default defineConfig({
   fullyParallel: false,
   workers: 1,
   retries: ci ? 1 : 0,
-  reporter: ci
-    ? [["list"], ["junit", { outputFile: "../../test-results/junit-real.xml" }]]
-    : [["list"]],
+  reporter: ci ? [["list"], ["junit", { outputFile: "../../test-results/junit-real.xml" }]] : [["list"]],
   use: {
     trace: "on-first-retry",
     locale: "en-US",

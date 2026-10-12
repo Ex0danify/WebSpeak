@@ -12,7 +12,21 @@ beforeEach(() => setActivePinia(createPinia()));
 describe("useSessionStore", () => {
   it("starts with the initial session state", () => {
     const s = useSessionStore();
-    expect(s.state).toEqual({ connected: false, connecting: false, reconnecting: false, reconnectAttempt: 0, reconnectFailed: false, tsClientId: 0, error: "", errorCode: "", microphoneError: "", microphoneErrorCode: "", audioNotice: "", audioNoticeCode: "", channelSwitchedChannelId: "" });
+    expect(s.state).toEqual({
+      connected: false,
+      connecting: false,
+      reconnecting: false,
+      reconnectAttempt: 0,
+      reconnectFailed: false,
+      tsClientId: 0,
+      error: "",
+      errorCode: "",
+      microphoneError: "",
+      microphoneErrorCode: "",
+      audioNotice: "",
+      audioNoticeCode: "",
+      channelSwitchedChannelId: "",
+    });
     expect(s.ws).toBeNull();
     expect(s.whisperActive).toBe(false);
     for (const list of [s.members, s.channels, s.chatMessages, s.serverEvents, s.pokeNotifications]) expect(list).toHaveLength(0);
@@ -55,7 +69,9 @@ describe("useSessionStore", () => {
 
   it("stores the socket unproxied", () => {
     const s = useSessionStore();
-    const sock = new (class { readyState = 1; })() as unknown as WebSocket;
+    const sock = new (class {
+      readyState = 1;
+    })() as unknown as WebSocket;
     s.ws = sock;
     expect(s.ws).toBe(sock);
     expect(isRef(s.$state.ws) || s.$state.ws === sock).toBe(true);

@@ -1,3 +1,4 @@
+import { registerAdminStores } from "./adminStores";
 import { createPinia, setActivePinia } from "pinia";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useAdminOperationsStore } from "./adminOperations";
@@ -18,7 +19,10 @@ function setup() {
   return { ...overview, session, getJson, sendJson, loadOperations };
 }
 
-beforeEach(() => setActivePinia(createPinia()));
+beforeEach(() => {
+  setActivePinia(createPinia());
+  registerAdminStores();
+});
 
 afterEach(() => vi.unstubAllGlobals());
 
@@ -43,7 +47,10 @@ describe("useAdminOverviewStore", () => {
 
   it("downloadBackup saves the file and refreshes operations", async () => {
     const s = setup();
-    vi.stubGlobal("fetch", vi.fn(async () => new Response("db", { status: 200 })));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response("db", { status: 200 })),
+    );
     URL.createObjectURL = vi.fn(() => "blob:x");
     URL.revokeObjectURL = vi.fn();
     const click = vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {});
@@ -56,7 +63,10 @@ describe("useAdminOverviewStore", () => {
 
   it("downloadBackup reports a failed download in the shared banner", async () => {
     const s = setup();
-    vi.stubGlobal("fetch", vi.fn(async () => new Response("no", { status: 500 })));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response("no", { status: 500 })),
+    );
     await s.downloadBackup();
     expect(s.session.errorMessage).toBe(s.session.errorText(undefined));
     expect(s.session.errorMessage).not.toBe("");

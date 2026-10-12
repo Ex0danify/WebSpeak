@@ -13,13 +13,16 @@ export interface UseJoinScreenOptions {
 export function useJoinScreen({ voiceState, serverPasswordDialog, clearError }: UseJoinScreenOptions) {
   const qqModalOpen = ref(false);
 
-  watch(() => voiceState.errorCode, (code) => {
-    if (code !== "SERVER_PASSWORD_REQUIRED" && code !== "INVALID_SERVER_PASSWORD") return;
-    serverPasswordDialog.open = true;
-    serverPasswordDialog.password = "";
-    serverPasswordDialog.errorCode = code;
-    clearError();
-  });
+  watch(
+    () => voiceState.errorCode,
+    (code) => {
+      if (code !== "SERVER_PASSWORD_REQUIRED" && code !== "INVALID_SERVER_PASSWORD") return;
+      serverPasswordDialog.open = true;
+      serverPasswordDialog.password = "";
+      serverPasswordDialog.errorCode = code;
+      clearError();
+    },
+  );
 
   return { qqModalOpen };
 }

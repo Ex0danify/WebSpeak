@@ -1,8 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
-import { useGateway } from "../../../../test/helpers/gateway.js";
+import { useGateway } from "../../../../test/support/gateway.js";
 
 vi.mock("../audio/opusEncoder.js", () => ({
-  createUplinkOpusEncoder: () => { throw new Error("no opus library"); },
+  createUplinkOpusEncoder: () => {
+    throw new Error("no opus library");
+  },
 }));
 
 const gateways = useGateway();

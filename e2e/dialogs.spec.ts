@@ -2,9 +2,8 @@ import type { Page } from "@playwright/test";
 import { expect, test } from "./fixtures";
 import { expectInRoom, memberRow, submitJoin } from "./helpers";
 
-// The dialogs of the join flow and what a lost connection does to the form, against the real
-// gateway and the fake TeamSpeak server. The fake server is shared by the tests of a worker, so a
-// test that protects the server or a channel takes it back off.
+// The dialogs of the join flow and what a lost connection does to the form, against the real gateway and the fake TeamSpeak
+// server. The fake server is shared by a worker's tests, so a test that protects the server or a channel takes it back off.
 
 const ROOM_A = 2n;
 
@@ -17,8 +16,8 @@ function joinTicketBodies(page: Page): Record<string, unknown>[] {
 }
 
 /**
- * Resolves once for each socket the page closes, in order: `await closes.next()` is "the next
- * socket has closed". Call it before the action that opens the socket.
+ * Resolves once for each socket the page closes, in order. `await closes.next()` means "the next socket has closed",
+ * so call it before the action that opens the socket.
  */
 function socketCloses(page: Page): { next(): Promise<void> } {
   let closed = 0;
@@ -88,7 +87,6 @@ test.describe("server password dialog", () => {
     await expect(dialog).toBeHidden();
     await expect(page.getByLabel("Your nickname")).toHaveValue("dlg-server-cancel");
     await expect(page.getByRole("button", { name: "Enter voice space" })).toBeEnabled();
-    // and the same for the Cancel button
     await page.getByRole("button", { name: "Enter voice space" }).click();
     await expect(dialog).toBeVisible();
     await refusedSocketClosed.next();
@@ -105,9 +103,8 @@ test.describe("server password dialog: a close that arrives after Esc", () => {
     gateway.ts.serverPassword = "";
   });
 
-  // The gateway closes the socket right after it refuses the join, so the close is normally handled
-  // before anyone can press a key. Here the close frame is held back until after Esc, the way a slow
-  // network or a busy machine can deliver it, and then let through.
+  // The gateway closes the socket right after refusing the join, so the close is normally handled before anyone can press a
+  // key. Here the close frame is held back until after Esc, the way a slow network or a busy machine can deliver it.
   async function cancelThenLetTheCloseThrough(page: Page, nickname: string) {
     let release!: () => void;
     const held = new Promise<void>((resolve) => (release = resolve));
@@ -131,13 +128,13 @@ test.describe("server password dialog: a close that arrives after Esc", () => {
     return dialog;
   }
 
-  test("F23: a cancelled password dialog stays closed when the socket's close arrives late", async ({ page }) => {
+  test("a cancelled password dialog stays closed when the socket's close arrives late", async ({ page }) => {
     const dialog = await cancelThenLetTheCloseThrough(page, "dlg-late-close-marker");
     await expect(dialog).toBeHidden({ timeout: 1500 });
   });
 
-  test("F23: retrying after a cancelled dialog still opens it for the new attempt's own failure", async ({ page }) => {
-    // The flag F23 adds must not survive past this attempt, or a later, unrelated failure would stay
+  test("retrying after a cancelled dialog still opens it for the new attempt's own failure", async ({ page }) => {
+    // The "dialog already handled" flag must not survive past this attempt, or a later, unrelated failure would stay
     // silent too. The server still asks for a password, so a bare retry fails the same way.
     await cancelThenLetTheCloseThrough(page, "dlg-late-close-retry");
     await page.getByRole("button", { name: "Enter voice space" }).click();
@@ -173,10 +170,12 @@ test.describe("channel password dialog", () => {
     await password.fill("open-sesame");
     await page.keyboard.press("Enter");
     await expect(dialog).toBeHidden();
-    await expect.poll(() => {
-      const self = [...gateway.ts.members.values()].find((member) => member.nickname === "dlg-channel-pw")!;
-      return gateway.ts.channels.get(self.channelID)?.name;
-    }).toBe("Room A");
+    await expect
+      .poll(() => {
+        const self = [...gateway.ts.members.values()].find((member) => member.nickname === "dlg-channel-pw")!;
+        return gateway.ts.channels.get(self.channelID)?.name;
+      })
+      .toBe("Room A");
   });
 
   test("Esc cancels: no move, and the member is still in the room", async ({ page, gateway }) => {

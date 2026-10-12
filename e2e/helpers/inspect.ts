@@ -43,7 +43,8 @@ export function overflowScan(page: Page): Promise<{ clipped: string[]; pageScrol
       const text = element.textContent?.trim();
       if (!text) continue;
       const style = getComputedStyle(element);
-      if (element.scrollWidth > element.clientWidth + 1 && style.textOverflow !== "ellipsis" && style.overflowX !== "visible") clipped.add(text.slice(0, 30));
+      if (element.scrollWidth > element.clientWidth + 1 && style.textOverflow !== "ellipsis" && style.overflowX !== "visible")
+        clipped.add(text.slice(0, 30));
       const box = element.getBoundingClientRect();
       if (box.right > innerWidth + 1 || box.left < -1) clipped.add(`OFFSCREEN:${text.slice(0, 26)}`);
     }

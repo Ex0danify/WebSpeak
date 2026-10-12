@@ -4,7 +4,13 @@ import type { ScreenShareStream, ScreenShareViewer } from "./screenShareTypes";
 export function normalizeScreenShareViewers(raw: unknown): ScreenShareViewer[] {
   if (!Array.isArray(raw)) return [];
   return raw
-    .filter((viewer): viewer is ScreenShareViewer => Boolean(viewer) && typeof viewer === "object" && typeof (viewer as ScreenShareViewer).peerId === "string" && typeof (viewer as ScreenShareViewer).nickname === "string")
+    .filter(
+      (viewer): viewer is ScreenShareViewer =>
+        Boolean(viewer) &&
+        typeof viewer === "object" &&
+        typeof (viewer as ScreenShareViewer).peerId === "string" &&
+        typeof (viewer as ScreenShareViewer).nickname === "string",
+    )
     .slice(0, 64)
     .map((viewer) => ({
       peerId: viewer.peerId.slice(0, 128),

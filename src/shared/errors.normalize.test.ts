@@ -19,7 +19,9 @@ describe("normalizeTeamSpeakError: precedence", () => {
   });
 
   it("lets a server error id outrank every keyword", () => {
-    expect(normalizeTeamSpeakError(named("TimeoutError", "flood ban timed out, server is full", { id: "513" })).code).toBe("nickname_in_use");
+    expect(normalizeTeamSpeakError(named("TimeoutError", "flood ban timed out, server is full", { id: "513" })).code).toBe(
+      "nickname_in_use",
+    );
     expect(normalizeTeamSpeakError(named("Error", "connection refused", { id: 3329 })).code).toBe("banned");
   });
 
@@ -138,7 +140,14 @@ describe("normalizeTeamSpeakError: odd inputs and diagnostics", () => {
   });
 
   it("collects diagnostics from the error and keeps the original as cause", () => {
-    const original = named("TeamSpeakError", "kaboom", { id: 1798, code: "X1", serverMessage: "nope", syscall: "connect", address: "10.0.0.1", port: 9987 });
+    const original = named("TeamSpeakError", "kaboom", {
+      id: 1798,
+      code: "X1",
+      serverMessage: "nope",
+      syscall: "connect",
+      address: "10.0.0.1",
+      port: 9987,
+    });
     const result = normalizeTeamSpeakError(original);
     expect(result.cause).toBe(original);
     expect(result.diagnostics).toEqual({
@@ -210,14 +219,14 @@ describe("normalizeTeamSpeakKickedReason", () => {
     expect(normalizeTeamSpeakKickedReason(42, undefined).diagnostics.serverMessage).toBeUndefined();
   });
 
-  // F7: a missing reason id (null, undefined or an empty string) is not read as id 0.
-  it("F7: does not invent reason id 0 when none was given", () => {
+  // A missing reason id (null, undefined or an empty string) is not read as id 0.
+  it("does not invent reason id 0 when none was given", () => {
     expect(normalizeTeamSpeakKickedReason("x", null).diagnostics.id).toBeUndefined();
     expect(normalizeTeamSpeakKickedReason("x", "").diagnostics.id).toBeUndefined();
     expect(normalizeTeamSpeakKickedReason("x").diagnostics.id).toBeUndefined();
   });
 
-  it("F7: a real reason id 0 is kept", () => {
+  it("a real reason id 0 is kept", () => {
     expect(normalizeTeamSpeakKickedReason("x", 0).diagnostics.id).toBe("0");
     expect(normalizeTeamSpeakKickedReason("x", "0").diagnostics.id).toBe("0");
   });
@@ -225,7 +234,16 @@ describe("normalizeTeamSpeakKickedReason", () => {
 
 describe("describeTeamSpeakError", () => {
   it("joins the useful diagnostics in a fixed order", () => {
-    const error = normalizeTeamSpeakError(named("TeamSpeakError", "kaboom", { id: 1798, code: "X1", serverMessage: "nope", syscall: "connect", address: "10.0.0.1", port: 9987 }));
+    const error = normalizeTeamSpeakError(
+      named("TeamSpeakError", "kaboom", {
+        id: 1798,
+        code: "X1",
+        serverMessage: "nope",
+        syscall: "connect",
+        address: "10.0.0.1",
+        port: 9987,
+      }),
+    );
     expect(describeTeamSpeakError(error)).toBe("TeamSpeakError; X1; id=1798; nope; connect; address=10.0.0.1; port=9987; kaboom");
   });
 
@@ -235,6 +253,8 @@ describe("describeTeamSpeakError", () => {
   });
 
   it("falls back to the message when there are no diagnostics", () => {
-    expect(describeTeamSpeakError(new WebSpeakError("timeout", "TeamSpeak connection timed out", true))).toBe("TeamSpeak connection timed out");
+    expect(describeTeamSpeakError(new WebSpeakError("timeout", "TeamSpeak connection timed out", true))).toBe(
+      "TeamSpeak connection timed out",
+    );
   });
 });

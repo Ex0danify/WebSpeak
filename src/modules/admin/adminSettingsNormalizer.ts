@@ -16,7 +16,7 @@ export interface AdminSettingsInput {
   passwordAction?: "keep" | "replace" | "remove";
   accessMode: AccessMode;
   siteName: string;
-  /** Texts to store by language code; a language left out keeps its stored text, an empty one clears it. */
+  /** Texts to store by language code, a language left out keeps its text and an empty one clears it. */
   welcomeTexts?: Record<string, string>;
   webRtcEnabled: boolean;
   webRtcUdpStart?: number;
@@ -55,7 +55,12 @@ function mergeWelcomeTexts(current: Record<string, string>, input: Record<string
   return merged;
 }
 
-export function normalizeSettings(input: AdminSettingsInput, current: StoredSettings, masterSecret: Buffer, relayNodes?: PersistedRelayNode[]): SettingsUpdate {
+export function normalizeSettings(
+  input: AdminSettingsInput,
+  current: StoredSettings,
+  masterSecret: Buffer,
+  relayNodes?: PersistedRelayNode[],
+): SettingsUpdate {
   let target: TeamSpeakTarget;
   try {
     target = parseTeamSpeakTarget(input.target);
@@ -114,7 +119,8 @@ export function normalizeSettings(input: AdminSettingsInput, current: StoredSett
     relayName = (input.relayName ?? "").trim();
     if (relayName.length > 80) throw new AdminInputError("INVALID_RELAY_NAME", "Relay name must contain 80 characters or fewer");
     if (relayEnabled && !relayName) throw new AdminInputError("INVALID_RELAY_NAME", "Relay name is required when the relay is enabled");
-    if (relayEnabled && !relayTarget) throw new AdminInputError("INVALID_RELAY_TARGET", "Relay target is required when the relay is enabled");
+    if (relayEnabled && !relayTarget)
+      throw new AdminInputError("INVALID_RELAY_TARGET", "Relay target is required when the relay is enabled");
     if (relayTarget) {
       try {
         const relay = parseTeamSpeakTarget(relayTarget, DEFAULT_ACCELERATION_RELAY_PORT);
@@ -130,7 +136,8 @@ export function normalizeSettings(input: AdminSettingsInput, current: StoredSett
     const relayTokenAction = input.relayTokenAction ?? (input.relayToken === undefined ? "keep" : "replace");
     if (relayTokenAction === "remove") relayTokenEncrypted = null;
     if (relayTokenAction === "replace") relayTokenEncrypted = input.relayToken ? encryptSecret(input.relayToken, masterSecret) : null;
-    if (relayEnabled && !relayTokenEncrypted) throw new AdminInputError("INVALID_RELAY_TOKEN", "Relay token is required when the relay is enabled");
+    if (relayEnabled && !relayTokenEncrypted)
+      throw new AdminInputError("INVALID_RELAY_TOKEN", "Relay token is required when the relay is enabled");
     relayConfigured = true;
   }
   if (relayNodes) {
@@ -162,7 +169,8 @@ export function normalizeSettings(input: AdminSettingsInput, current: StoredSett
 }
 
 export function normalizeRelayNodes(inputs: RelayNodeInput[], existing: PersistedRelayNode[], masterSecret: Buffer): PersistedRelayNode[] {
-  if (!Array.isArray(inputs) || inputs.length > 16) throw new AdminInputError("INVALID_RELAY_NODES", "At most 16 relay nodes may be configured");
+  if (!Array.isArray(inputs) || inputs.length > 16)
+    throw new AdminInputError("INVALID_RELAY_NODES", "At most 16 relay nodes may be configured");
   const current = new Map(existing.map((node) => [node.id, node]));
   const seen = new Set<string>();
   const now = new Date().toISOString();
@@ -172,11 +180,13 @@ export function normalizeRelayNodes(inputs: RelayNodeInput[], existing: Persiste
     if (!name || name.length > 80) throw new AdminInputError("INVALID_RELAY_NAME", "Relay name must contain 1 to 80 characters");
     if (!targetText || targetText.length > 300) throw new AdminInputError("INVALID_RELAY_TARGET", "Relay target is invalid");
     let target: TeamSpeakTarget;
-    try { target = parseTeamSpeakTarget(targetText, DEFAULT_ACCELERATION_RELAY_PORT); }
-    catch { throw new AdminInputError("INVALID_RELAY_TARGET", "Relay target is invalid"); }
-    const id = typeof input.id === "string" && /^relay-[a-z0-9-]{1,100}$/i.test(input.id)
-      ? input.id
-      : `relay-${randomBytes(8).toString("hex")}`;
+    try {
+      target = parseTeamSpeakTarget(targetText, DEFAULT_ACCELERATION_RELAY_PORT);
+    } catch {
+      throw new AdminInputError("INVALID_RELAY_TARGET", "Relay target is invalid");
+    }
+    const id =
+      typeof input.id === "string" && /^relay-[a-z0-9-]{1,100}$/i.test(input.id) ? input.id : `relay-${randomBytes(8).toString("hex")}`;
     if (seen.has(id)) throw new AdminInputError("INVALID_RELAY_ID", "Relay id must be unique");
     seen.add(id);
     const previous = current.get(id);
@@ -215,16 +225,18 @@ export function legacyRelayNodesFromSettings(settings: SettingsUpdate, existing:
   if (!settings.relayConfigured || !settings.relayHost || !settings.relayTokenEncrypted) return [];
   const previous = existing[0];
   const now = new Date().toISOString();
-  return [{
-    id: previous?.id ?? "relay-default",
-    name: settings.relayName || DEFAULT_RELAY_NAME,
-    enabled: settings.relayEnabled,
-    host: settings.relayHost,
-    port: settings.relayPort || DEFAULT_ACCELERATION_RELAY_PORT,
-    tokenEncrypted: settings.relayTokenEncrypted,
-    createdAt: previous?.createdAt ?? now,
-    updatedAt: now,
-  }];
+  return [
+    {
+      id: previous?.id ?? "relay-default",
+      name: settings.relayName || DEFAULT_RELAY_NAME,
+      enabled: settings.relayEnabled,
+      host: settings.relayHost,
+      port: settings.relayPort || DEFAULT_ACCELERATION_RELAY_PORT,
+      tokenEncrypted: settings.relayTokenEncrypted,
+      createdAt: previous?.createdAt ?? now,
+      updatedAt: now,
+    },
+  ];
 }
 
 export function toSettingsUpdate(settings: StoredSettings): SettingsUpdate {

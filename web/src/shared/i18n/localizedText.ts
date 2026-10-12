@@ -11,17 +11,15 @@ export interface LocalizedText {
   params?: TextParams;
 }
 
-/** What a field may hold while it is migrated step by step: a `LocalizedText`, or an already
- *  rendered string (user data, or text not migrated yet), shown as is. */
+/** What a field may hold, a `LocalizedText` or an already rendered string (user data) shown as is. */
 export type MaybeLocalizedText = LocalizedText | string;
 
 export function text(key: MessageKey, params?: TextParams): LocalizedText {
   return params ? { key, params } : { key };
 }
 
-/** An error that carries its sentence as a `LocalizedText` plus a stable `code`, so the catch site can
- *  render it in the active language at the edge. `message` is the sentence rendered when the error is
- *  made (logs, assertions); no UI reads it. */
+/** An error that carries its sentence as a `LocalizedText` plus a stable `code`, so the catch site renders it in the active
+ *  language at the edge. `message` is the sentence rendered at creation (logs, assertions), no UI reads it. */
 export class LocalizedError extends Error {
   readonly text: LocalizedText;
   readonly code: string;
@@ -34,8 +32,7 @@ export class LocalizedError extends Error {
   }
 }
 
-/** What a catch site shows for a thrown value: the error's own `LocalizedText`, else its message as
- *  is (text not migrated yet), else the fallback. */
+/** What a catch site shows for a thrown value. The error's own `LocalizedText`, else its message as is, else the fallback. */
 export function errorText(error: unknown, fallback: LocalizedText): MaybeLocalizedText {
   if (error instanceof LocalizedError) return error.text;
   if (error instanceof Error && error.message) return error.message;

@@ -23,7 +23,10 @@ export function useShareInvite() {
     invite.searchParams.delete("server");
     if (accessMode.value === "open" && serverHost.value.trim()) invite.searchParams.set("server", serverTarget.value);
     if (channel.value) invite.searchParams.set("channel", channel.value);
-    navigator.clipboard?.writeText(invite.toString()).then(() => notify(t("copiedToast")), () => notify(t("copyFailedToast"), "danger"));
+    navigator.clipboard?.writeText(invite.toString()).then(
+      () => notify(t("copiedToast")),
+      () => notify(t("copyFailedToast"), "danger"),
+    );
   }
 
   return { doShare };

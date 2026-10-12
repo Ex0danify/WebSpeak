@@ -2,15 +2,35 @@ import { defineStore } from "pinia";
 import { reactive, ref, shallowRef } from "vue";
 import type { ChannelInfo, ChannelMember, ChatMessage, ServerEvent, VoiceState } from "./sessionTypes";
 
-export type PokeNotification = { id: string; invokerId: number; invokerUid: string; invokerName: string; message: string; timestamp: number };
+export type PokeNotification = {
+  id: string;
+  invokerId: number;
+  invokerUid: string;
+  invokerName: string;
+  message: string;
+  timestamp: number;
+};
 
 function initialState(): VoiceState {
-  return { connected: false, connecting: false, reconnecting: false, reconnectAttempt: 0, reconnectFailed: false, tsClientId: 0, error: "", errorCode: "", microphoneError: "", microphoneErrorCode: "", audioNotice: "", audioNoticeCode: "", channelSwitchedChannelId: "" };
+  return {
+    connected: false,
+    connecting: false,
+    reconnecting: false,
+    reconnectAttempt: 0,
+    reconnectFailed: false,
+    tsClientId: 0,
+    error: "",
+    errorCode: "",
+    microphoneError: "",
+    microphoneErrorCode: "",
+    audioNotice: "",
+    audioNoticeCode: "",
+    channelSwitchedChannelId: "",
+  };
 }
 
-/** Reactive session state the UI reads. Pinia stores are per-app singletons, so useRoomSession()
- *  calls reset() to keep the fresh-state-per-mount behaviour it had when this state was closure-local
- *  (decision V-D1). Sockets, timers and audio objects never belong here (V-D3). */
+/** Reactive session state the UI reads. Pinia stores are per-app singletons, so useRoomSession() calls reset() to start each
+ *  mount fresh. Sockets, timers and audio objects never belong here. */
 export const useSessionStore = defineStore("voiceSession", () => {
   const ws = shallowRef<WebSocket | null>(null);
   const state = reactive<VoiceState>(initialState());
@@ -36,5 +56,17 @@ export const useSessionStore = defineStore("voiceSession", () => {
     whisperActive.value = false;
   }
 
-  return { ws, state, members, channels, chatMessages, serverEvents, pokeNotifications, speakingIds, whisperTargetIds, whisperActive, reset };
+  return {
+    ws,
+    state,
+    members,
+    channels,
+    chatMessages,
+    serverEvents,
+    pokeNotifications,
+    speakingIds,
+    whisperTargetIds,
+    whisperActive,
+    reset,
+  };
 });

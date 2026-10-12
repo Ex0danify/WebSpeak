@@ -115,14 +115,16 @@ test.describe("Popover", () => {
     await expect(trigger(page)).toBeFocused();
   });
 
-  test("Tab past the last control of the panel leaves it, as the Popover doc comment says, and closes it like a click outside would (F35)", async ({ page }) => {
+  test("Tab past the last control of the panel leaves it, as the Popover doc comment says, and closes it like a click outside would", async ({
+    page,
+  }) => {
     await trigger(page).click();
     await panel(page).getByRole("button", { name: "Done" }).focus();
     await page.keyboard.press("Tab");
     await expect(panel(page)).toBeHidden();
   });
 
-  test("Shift+Tab back from the first control of the panel leaves and closes it too (F35)", async ({ page }) => {
+  test("Shift+Tab back from the first control of the panel leaves and closes it too", async ({ page }) => {
     await trigger(page).click();
     await panel(page).getByRole("slider", { name: "Volume" }).focus();
     await page.keyboard.press("Shift+Tab");
@@ -141,7 +143,9 @@ test.describe("Popover", () => {
     await expect(panel(page)).toBeHidden();
   });
 
-  test("in hover mode it opens on hover and on focus, a click on the trigger does not toggle it, and Esc closes it until the pointer leaves", async ({ page }) => {
+  test("in hover mode it opens on hover and on focus, a click on the trigger does not toggle it, and Esc closes it until the pointer leaves", async ({
+    page,
+  }) => {
     const hoverTrigger = gallerySection(page, "Popover").getByRole("button", { name: "Volume", exact: true });
     const hoverPanel = gallerySection(page, "Popover").getByRole("dialog", { name: "Volume" });
     await expect(hoverPanel).toBeHidden();
@@ -183,9 +187,8 @@ test.describe("Tooltip", () => {
   const mute = (page: Page) => gallerySection(page, "Tooltip").getByRole("button", { name: "Mute microphone" });
 
   /**
-   * Focuses the first tooltip trigger with the Tab key. It is scrolled to the middle of the window
-   * first, and the scroll events are let through: a tooltip closes when its trigger scrolls, and the
-   * event of a scroll that has just happened would arrive after the tooltip had opened.
+   * Focuses the first tooltip trigger with Tab, after scrolling it to the middle of the window. The scroll events are let through
+   * because a tooltip closes when its trigger scrolls, and a scroll that just happened would arrive after the tooltip opened.
    */
   async function tabToMute(page: Page): Promise<void> {
     await mute(page).evaluate((element) => element.scrollIntoView({ block: "center" }));
@@ -195,13 +198,15 @@ test.describe("Tooltip", () => {
     await expect(mute(page)).toBeFocused();
   }
 
-  test("keyboard focus opens it with the text and the shortcut, without taking the focus, and it describes the trigger", async ({ page }) => {
+  test("keyboard focus opens it with the text and the shortcut, without taking the focus, and it describes the trigger", async ({
+    page,
+  }) => {
     await tabToMute(page);
     await expect(bubble(page, "Mute microphone")).toBeVisible();
     await expect(bubble(page, "Mute microphone").locator("kbd")).toHaveText("M");
     await expect(mute(page)).toBeFocused();
     await expect(mute(page)).toHaveAttribute("aria-describedby", /.+/);
-    // The button keeps its own name; the tooltip only describes it.
+    // The button keeps its own name, the tooltip only describes it.
     await expect(mute(page)).toHaveAccessibleName("Mute microphone");
   });
 
@@ -240,7 +245,7 @@ test.describe("Tooltip", () => {
 
 test.describe("Toast", () => {
   const section = (page: Page) => gallerySection(page, "Toast and Banner");
-  const region = (page: Page) => page.getByRole("region", { name: "Notifications (F8)" });
+  const region = (page: Page) => page.getByRole("region", { name: "Notifications" });
   const toasts = (page: Page) => region(page).getByRole("listitem");
 
   test("a toast shows its title and description, and Dismiss removes it", async ({ page }) => {
@@ -270,7 +275,13 @@ test.describe("Toast", () => {
   });
 
   test("at most four toasts show, the oldest dropped first, and Dismiss clears them all", async ({ page }) => {
-    for (const name of ["Connected to Raid Night", "Microphone blocked", "Could not move Kestrel to the channel", "Link copied", "Stays until dismissed"]) {
+    for (const name of [
+      "Connected to Raid Night",
+      "Microphone blocked",
+      "Could not move Kestrel to the channel",
+      "Link copied",
+      "Stays until dismissed",
+    ]) {
       await section(page).getByRole("button", { name, exact: true }).click();
     }
     await expect(toasts(page)).toHaveCount(4);

@@ -53,7 +53,7 @@ test.describe("theme", () => {
     await expect.poll(() => pageBackground(page)).not.toBe(light);
     const dark = await pageBackground(page);
 
-    // The system asks for light and dark in turn; an explicit dark stays dark.
+    // The system asks for light and dark in turn, an explicit dark stays dark.
     await page.emulateMedia({ colorScheme: "light" });
     await page.emulateMedia({ colorScheme: "dark" });
     await page.emulateMedia({ colorScheme: "light" });
@@ -81,7 +81,7 @@ test.describe("theme", () => {
     await expect(themeButton(page)).toHaveAccessibleName("Switch to light theme");
   });
 
-  // With the setting on System the button follows the operating system (F26).
+  // With the setting on System the button follows the operating system.
   async function systemThenOsGoesDark(page: Page, nickname: string) {
     await page.emulateMedia({ colorScheme: "light" });
     await join(page, nickname);
@@ -93,7 +93,7 @@ test.describe("theme", () => {
     await expect.poll(() => pageBackground(page)).not.toBe(light);
   }
 
-  test("the button follows the operating system while the setting is System, both ways (F26)", async ({ page }) => {
+  test("the button follows the operating system while the setting is System, both ways", async ({ page }) => {
     await systemThenOsGoesDark(page, "theme-follow");
     await expect(themeButton(page)).toHaveAccessibleName("Switch to light theme");
     await page.emulateMedia({ colorScheme: "light" });
@@ -102,7 +102,7 @@ test.describe("theme", () => {
     await expect(themeButton(page)).toHaveAccessibleName("Switch to light theme");
   });
 
-  test("a click after the operating system went dark switches to light (F26)", async ({ page }) => {
+  test("a click after the operating system went dark switches to light", async ({ page }) => {
     await systemThenOsGoesDark(page, "theme-click");
     await expect(themeButton(page)).toHaveAccessibleName("Switch to light theme");
     await themeButton(page).click();
@@ -110,7 +110,7 @@ test.describe("theme", () => {
     await expect(themeButton(page)).toHaveAccessibleName("Switch to dark theme");
   });
 
-  test("a chosen theme ignores later changes of the operating system (F26)", async ({ page }) => {
+  test("a chosen theme ignores later changes of the operating system", async ({ page }) => {
     await page.emulateMedia({ colorScheme: "light" });
     await join(page, "theme-chosen");
     await showThemeButton(page);
@@ -132,7 +132,10 @@ const text = (code: string, key: string): string => translations[code][key];
 /** Picks a language in the switcher of the join form, whichever language the page is in now. */
 async function pickLanguage(page: Page, from: string, option: string): Promise<void> {
   await page.getByRole("button", { name: text(from, "languageMenu"), exact: true }).click();
-  await page.getByRole("menuitem", { name: new RegExp(option) }).or(page.getByRole("dialog").getByRole("button", { name: new RegExp(option) })).click();
+  await page
+    .getByRole("menuitem", { name: new RegExp(option) })
+    .or(page.getByRole("dialog").getByRole("button", { name: new RegExp(option) }))
+    .click();
 }
 
 test.describe("language", () => {
@@ -160,7 +163,7 @@ test.describe("language", () => {
     expect(await page.evaluate(() => localStorage.getItem("webspeak:language"))).toBe("de");
   });
 
-  test("the html lang attribute follows the language of the page (F27)", async ({ page }) => {
+  test("the html lang attribute follows the language of the page", async ({ page }) => {
     await page.goto("/");
     await pickLanguage(page, "en", "Deutsch");
     await expect(page.getByRole("button", { name: text("de", "enterVoice") })).toBeVisible();
@@ -171,7 +174,7 @@ test.describe("language", () => {
     }
   });
 
-  test("the html lang attribute is set at startup from the stored language (F27)", async ({ page }) => {
+  test("the html lang attribute is set at startup from the stored language", async ({ page }) => {
     await page.addInitScript(() => localStorage.setItem("webspeak:language", "de"));
     await page.goto("/");
     await expect(page.getByRole("button", { name: text("de", "enterVoice") })).toBeVisible();

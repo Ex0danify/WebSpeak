@@ -8,7 +8,7 @@ function initialStats(): ScreenShareWebRtcStats {
 }
 
 /** Reactive screen-share state the UI reads. Peers, timers, local streams and the start generation
- *  stay closure state in the composable (V-D3). */
+ *  stay closure state in the composable. */
 export const useScreenShareStore = defineStore("voiceScreenShare", () => {
   const screenShareStreams = reactive<ScreenShareStream[]>([]);
   const screenShareActive = ref(false);
@@ -38,8 +38,17 @@ export const useScreenShareStore = defineStore("voiceScreenShare", () => {
   }
 
   return {
-    screenShareStreams, screenShareActive, screenShareStarting, screenShareActiveStreamId, screenShareViewing,
-    screenShareViewingStreamId, screenShareRemoteStream, screenShareError, screenShareErrorCode,
-    screenShareRemoteVolume, screenShareWebRtcStats, reset,
+    screenShareStreams,
+    screenShareActive,
+    screenShareStarting,
+    screenShareActiveStreamId,
+    screenShareViewing,
+    screenShareViewingStreamId,
+    screenShareRemoteStream,
+    screenShareError,
+    screenShareErrorCode,
+    screenShareRemoteVolume,
+    screenShareWebRtcStats,
+    reset,
   };
 });

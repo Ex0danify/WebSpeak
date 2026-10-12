@@ -2,10 +2,8 @@
 import { cn } from "../../lib/cn";
 import { spinnerVariants, type SpinnerVariants } from "./spinner";
 
-// Indeterminate progress arc in `currentColor`. Decorative unless `label` is
-// given, which makes it a polite live region with that text. Under reduced
-// motion it stops rotating and stays visible as a static arc, so the loading
-// state is still shown without movement.
+// Indeterminate progress arc in `currentColor`. Decorative unless `label` is given, which makes it a polite live region with
+// that text. Under reduced motion it stops rotating and stays visible as a static arc.
 const props = defineProps<{
   size?: SpinnerVariants["size"];
   /** Accessible name, for example "Loading members". Omit next to visible text. */

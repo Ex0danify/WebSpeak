@@ -1,8 +1,5 @@
-// Components carry no <style> block: styling is Tailwind utilities and tokens, anything a
-// utility cannot say lives in src/shared/styles/main.css. Any <style> block in any .vue file
-// under src/ (shared/ui included) fails. There is no budget.
-//
-//   npm run check:scoped-style
+// Components carry no <style> block, styling is Tailwind utilities and tokens and anything a utility cannot say lives in
+// src/shared/styles/main.css. Any <style> block in any .vue file under src/ (shared/ui included) fails. There is no budget.
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";

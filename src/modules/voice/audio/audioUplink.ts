@@ -8,7 +8,7 @@ const INVALID_FRAME_WARN_INTERVAL_MS = 5_000;
 export function handleUplinkFrame(ctx: VoiceConnection, data: Buffer | string): void {
   const frame = typeof data === "string" ? Buffer.from(data) : data;
   if (!ctx.state.tsReady) {
-    // The browser keeps sending during a reconnect: count, do not answer 50 times a second.
+    // The browser keeps sending during a reconnect, count instead of answering 50 times a second.
     ctx.entry.audio.ingressDroppedFrames++;
     return;
   }
@@ -22,7 +22,8 @@ export function handleUplinkFrame(ctx: VoiceConnection, data: Buffer | string): 
     return;
   }
   const now = Date.now();
-  if (ctx.entry.audio.ingressLastAt !== null) ctx.entry.audio.ingressMaxGapMs = Math.max(ctx.entry.audio.ingressMaxGapMs, now - ctx.entry.audio.ingressLastAt);
+  if (ctx.entry.audio.ingressLastAt !== null)
+    ctx.entry.audio.ingressMaxGapMs = Math.max(ctx.entry.audio.ingressMaxGapMs, now - ctx.entry.audio.ingressLastAt);
   ctx.entry.audio.ingressFirstAt ??= now;
   ctx.entry.audio.ingressLastAt = now;
   ctx.entry.audio.ingressFrames++;
@@ -35,13 +36,13 @@ export function handleUplinkFrame(ctx: VoiceConnection, data: Buffer | string): 
       if (ctx.entry.whisperActive && ctx.entry.whisperTargetIds.size) ctx.tsClient.sendWhisper(encoded, [...ctx.entry.whisperTargetIds], 4);
       else ctx.tsClient.sendVoice(encoded, 4);
       const sentAt = Date.now();
-      if (ctx.entry.audio.tsSendLastAt !== null) ctx.entry.audio.tsSendMaxGapMs = Math.max(ctx.entry.audio.tsSendMaxGapMs, sentAt - ctx.entry.audio.tsSendLastAt);
+      if (ctx.entry.audio.tsSendLastAt !== null)
+        ctx.entry.audio.tsSendMaxGapMs = Math.max(ctx.entry.audio.tsSendMaxGapMs, sentAt - ctx.entry.audio.tsSendLastAt);
       ctx.entry.audio.tsSendFirstAt ??= sentAt;
       ctx.entry.audio.tsSendLastAt = sentAt;
       ctx.entry.audio.tsSendFrames++;
     } else {
-      // The Opus encoder is unavailable (init failed or torn down while
-      // frames are still in flight): say it instead of dropping silently.
+      // Encoder unavailable (init failed or torn down mid-flight), say so instead of dropping silently.
       const warnedAt = ctx.entry.opusEncoderWarnedAt;
       if (Date.now() - warnedAt > 5_000) {
         ctx.entry.opusEncoderWarnedAt = Date.now();

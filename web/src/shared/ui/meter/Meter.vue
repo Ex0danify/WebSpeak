@@ -3,21 +3,12 @@ import { computed, ref } from "vue";
 import { cn } from "../../lib/cn";
 import { meterFillClass, meterThresholdClass, meterVariants, type MeterVariants } from "./meter";
 
-// Input-level bar, 0 to 1. Two ways to drive it:
-//
-// - `modelValue` for values that change rarely (a saved level, a demo).
-// - `setLevel()` for a live level. It writes the --level custom property on
-//   the element directly, so a 50 Hz audio callback never touches Vue state
-//   and never re-renders this component or its siblings:
-//
-//     const meter = ref<InstanceType<typeof Meter> | null>(null);
-//     onLevel((rms) => meter.value?.setLevel(rms));
-//
-// Use one or the other on a given meter. A live meter is aria-hidden, since a
-// value that changes 50 times a second cannot be announced: print the number
-// beside it (as text) and that is what assistive tech reads. With
-// `modelValue` it is a `role="meter"` and needs `label`.
-// `threshold` (0 to 1) draws a fixed tick, for the VOX threshold.
+// Input-level bar, 0 to 1. `modelValue` is for values that change rarely, `setLevel()` is for a live level and writes the
+// --level custom property on the element directly, so a 50 Hz audio callback never re-renders Vue. Use one or the other per
+// meter.
+
+// A live meter is aria-hidden since a value that changes 50 times a second cannot be announced, so print the number beside it.
+// With `modelValue` it is a `role="meter"` and needs `label`. `threshold` (0 to 1) draws a fixed tick, for the VOX threshold.
 const props = defineProps<{
   modelValue?: number;
   threshold?: number;
@@ -40,9 +31,7 @@ defineExpose({ setLevel });
 
 const live = computed(() => props.modelValue === undefined);
 const level = computed(() => clamp(props.modelValue ?? 0));
-const thresholdStyle = computed(() =>
-  props.threshold === undefined ? undefined : { "--threshold": String(clamp(props.threshold)) },
-);
+const thresholdStyle = computed(() => (props.threshold === undefined ? undefined : { "--threshold": String(clamp(props.threshold)) }));
 </script>
 
 <template>

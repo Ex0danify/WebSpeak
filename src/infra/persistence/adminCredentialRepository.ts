@@ -9,7 +9,8 @@ export class AdminCredentialRepository {
   }
 
   get(): AdminCredential | null {
-    const row = this.context.database.prepare("SELECT credential_json FROM admin_credentials WHERE id = 1").get() as { credential_json?: string } | undefined;
+    const row = this.context.database.prepare("SELECT credential_json FROM admin_credentials WHERE id = 1").get() as
+      { credential_json?: string } | undefined;
     if (!row?.credential_json) return null;
     const credential = JSON.parse(row.credential_json) as Partial<AdminCredential>;
     return {
@@ -21,15 +22,15 @@ export class AdminCredentialRepository {
   }
 
   insert(credential: AdminCredential, now: string): void {
-    this.context.database.prepare(
-      "INSERT INTO admin_credentials (id, credential_json, created_at, updated_at) VALUES (1, ?, ?, ?)",
-    ).run(JSON.stringify(credential), now, now);
+    this.context.database
+      .prepare("INSERT INTO admin_credentials (id, credential_json, created_at, updated_at) VALUES (1, ?, ?, ?)")
+      .run(JSON.stringify(credential), now, now);
   }
 
   update(credential: AdminCredential): void {
     const now = new Date().toISOString();
-    this.context.database.prepare(
-      "UPDATE admin_credentials SET credential_json = ?, updated_at = ? WHERE id = 1",
-    ).run(JSON.stringify(credential), now);
+    this.context.database
+      .prepare("UPDATE admin_credentials SET credential_json = ?, updated_at = ? WHERE id = 1")
+      .run(JSON.stringify(credential), now);
   }
 }

@@ -1,19 +1,7 @@
-// User-visible-literal budget (a ratchet, i18n plan I0.3). For every non-test file under src/
-// outside `i18n/` folders (and web/index.html) it counts
-//   cjk       lines holding a CJK character, comments included
-//   literals  in .vue templates: text nodes and static title|aria-label|placeholder|alt|label
-//             attributes that hold a letter (bound `:title="..."` and `{{ }}` are not literals)
-// and fails when a count exceeds the file's budget in scripts/i18n-literals-budget.json.
-// Files without an entry have a budget of 0.
-//
-//   npm run check:i18n-literals                   check
-//   npm run check:i18n-literals -- --update       lower budgets to the current counts
-//                                                 (never raises one, never adds a file)
-//   npm run check:i18n-literals -- --init         also add entries for files over budget 0
-//                                                 (seeding only; review the diff)
-//
-// `ignore` entries ({ "file": "...", "reason": "..." }) exempt a whole file; each needs a reason.
-import { existsSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
+// Ratchet for user-visible literals outside `i18n/` folders: `cjk` counts lines with a CJK character (comments too), `literals`
+// counts .vue text nodes and static title|aria-label|placeholder|alt|label attributes holding a letter. `--update` lowers
+// budgets, `--init` seeds entries. `ignore` entries need a reason.
+import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -58,7 +46,7 @@ function countTemplateLiterals(source) {
     if (LETTER.test(text.replace(/\{\{[\s\S]*?\}\}/g, ""))) literals += 1;
     text = "";
   };
-  for (let i = 0; i < body.length; ) {
+  for (let i = 0; i < body.length;) {
     if (body.startsWith("<!--", i)) {
       const close = body.indexOf("-->", i);
       i = close < 0 ? body.length : close + 3;
@@ -94,7 +82,9 @@ function measure(path) {
 }
 
 const budget = JSON.parse(readFileSync(budgetPath, "utf8"));
-const ignored = new Set((budget.ignore ?? []).map((entry) => entry.file));
+// An ignore entry ending in "/" covers every file under that folder.
+const ignoredEntries = (budget.ignore ?? []).map((entry) => entry.file);
+const isIgnored = (file) => ignoredEntries.some((entry) => (entry.endsWith("/") ? file.startsWith(entry) : file === entry));
 const files = [...sourceFiles(join(root, "src")), join(root, "index.html")]
   .map((path) => relative(root, path).split("\\").join("/"))
   .sort();
@@ -111,7 +101,7 @@ for (const file of Object.keys(budget.files)) {
 }
 
 for (const file of files) {
-  if (ignored.has(file)) continue;
+  if (isIgnored(file)) continue;
   const current = measure(join(root, file));
   const entry = budget.files[file];
   for (const key of ["cjk", "literals"]) {
@@ -142,7 +132,13 @@ if (update) {
   writeFileSync(budgetPath, `${JSON.stringify({ ...budget, files: sorted }, null, 2)}\n`);
   console.log(`budget updated (${lowered.length} value(s) lowered, ${added.length} file(s) added)`);
 } else {
-  for (const change of lowered) console.log(`below budget: ${change.file} ${change.key} ${change.to} < ${change.from} (run check:i18n-literals -- --update)`);
-  const totals = Object.values(budget.files).reduce((sum, e) => ({ cjk: sum.cjk + e.cjk, literals: sum.literals + e.literals }), { cjk: 0, literals: 0 });
-  console.log(`OK: i18n literal budget (${Object.keys(budget.files).length} file(s), ${totals.cjk} CJK line(s), ${totals.literals} template literal(s) allowed)`);
+  for (const change of lowered)
+    console.log(`below budget: ${change.file} ${change.key} ${change.to} < ${change.from} (run check:i18n-literals -- --update)`);
+  const totals = Object.values(budget.files).reduce((sum, e) => ({ cjk: sum.cjk + e.cjk, literals: sum.literals + e.literals }), {
+    cjk: 0,
+    literals: 0,
+  });
+  console.log(
+    `OK: i18n literal budget (${Object.keys(budget.files).length} file(s), ${totals.cjk} CJK line(s), ${totals.literals} template literal(s) allowed)`,
+  );
 }

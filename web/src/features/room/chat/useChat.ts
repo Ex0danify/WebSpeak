@@ -23,8 +23,8 @@ export interface UseChatOptions {
   mobileSection: Ref<"channels" | "chat" | "voice" | "more">;
 }
 
-/** The chat panel: channel/server/private/events tabs, the message composer, private-conversation
- *  derivation, the event log's own sentence-building, and the scroll-to-end behavior. */
+/** The chat panel, with its channel, server, private and events tabs, the composer, private-conversation derivation, the event
+ *  log's sentence building and the scroll-to-end behavior. */
 export function useChat(options: UseChatOptions) {
   const { currentChannel, currentChannelName, selectedChannelId, chatTab, memberMenu, isMobileViewport, mobileSection } = options;
   const { state: voiceState } = options.session;
@@ -48,9 +48,13 @@ export function useChat(options: UseChatOptions) {
       if (!id) continue;
       const member = members.find((candidate) => candidate.id === id);
       const existing = conversations.get(message.conversationId);
-      conversations.set(message.conversationId, { id, name: member?.nickname ?? existing?.name ?? message.invokerName, lastMessage: Math.max(existing?.lastMessage ?? 0, message.timestamp) });
+      conversations.set(message.conversationId, {
+        id,
+        name: member?.nickname ?? existing?.name ?? message.invokerName,
+        lastMessage: Math.max(existing?.lastMessage ?? 0, message.timestamp),
+      });
     }
-    // The chat just opened from the member menu has no message yet: list it under the member's name (F25).
+    // The chat just opened from the member menu has no message yet: list it under the member's name.
     if (privateClientId.value && !conversations.has(String(privateClientId.value))) {
       const member = members.find((candidate) => candidate.id === privateClientId.value);
       if (member) conversations.set(String(privateClientId.value), { id: privateClientId.value, name: member.nickname, lastMessage: 0 });
@@ -60,18 +64,41 @@ export function useChat(options: UseChatOptions) {
 
   const visibleChatMessages = computed(() => {
     if (chatTab.value === "server") return chatMessages.filter((message) => message.scope === "server");
-    if (chatTab.value === "private") return chatMessages.filter((message) => message.scope === "private" && message.conversationId === String(privateClientId.value));
+    if (chatTab.value === "private")
+      return chatMessages.filter((message) => message.scope === "private" && message.conversationId === String(privateClientId.value));
     if (chatTab.value !== "channel") return [];
     const channelId = currentChannel.value?.id;
-    return chatMessages.filter((message) => message.scope === "channel" && (!message.targetId || message.targetId === "0" || !channelId || message.targetId === channelId));
+    return chatMessages.filter(
+      (message) =>
+        message.scope === "channel" && (!message.targetId || message.targetId === "0" || !channelId || message.targetId === channelId),
+    );
   });
 
-  const chatTabLabel = computed(() => chatTab.value === "channel" ? t("textChannel") : chatTab.value === "server" ? t("serverChat") : chatTab.value === "private" ? t("privateMessage") : t("eventLog"));
-  const chatPanelId = "chat-tabpanel";
-  const chatTabId = (key: string) => `chat-tab-${key}`;
-  const activeChatTabId = computed(() => chatTabId(chatTab.value === "private" ? `private-${privateClientId.value}` : chatTab.value));
-  const chatTitle = computed(() => chatTab.value === "channel" ? t("channelChat", { channel: currentChannelName.value }) : chatTab.value === "server" ? t("serverChat") : chatTab.value === "events" ? t("eventLog") : privateConversations.value.find((conversation) => conversation.id === privateClientId.value)?.name ?? t("privateMessage"));
-  const chatPlaceholder = computed(() => chatTab.value === "private" ? t("privateMessagePlaceholder") : chatTab.value === "server" ? t("serverMessagePlaceholder") : t("sendMessagePlaceholder"));
+  const chatTabLabel = computed(() =>
+    chatTab.value === "channel"
+      ? t("textChannel")
+      : chatTab.value === "server"
+        ? t("serverChat")
+        : chatTab.value === "private"
+          ? t("privateMessage")
+          : t("eventLog"),
+  );
+  const chatTitle = computed(() =>
+    chatTab.value === "channel"
+      ? t("channelChat", { channel: currentChannelName.value })
+      : chatTab.value === "server"
+        ? t("serverChat")
+        : chatTab.value === "events"
+          ? t("eventLog")
+          : (privateConversations.value.find((conversation) => conversation.id === privateClientId.value)?.name ?? t("privateMessage")),
+  );
+  const chatPlaceholder = computed(() =>
+    chatTab.value === "private"
+      ? t("privateMessagePlaceholder")
+      : chatTab.value === "server"
+        ? t("serverMessagePlaceholder")
+        : t("sendMessagePlaceholder"),
+  );
 
   function scrollChatToEnd() {
     const list = chatListEl.value;
@@ -88,7 +115,8 @@ export function useChat(options: UseChatOptions) {
     if (!messageDraft.value.trim()) return;
     if (chatTab.value === "channel") sendTextMessage(messageDraft.value, currentChannel.value?.id ?? selectedChannelId.value);
     else if (chatTab.value === "server") sendServerMessage(messageDraft.value);
-    else if (chatTab.value === "private" && privateClientId.value) sendPrivateMessage(privateClientId.value, messageDraft.value, String(privateClientId.value));
+    else if (chatTab.value === "private" && privateClientId.value)
+      sendPrivateMessage(privateClientId.value, messageDraft.value, String(privateClientId.value));
     messageDraft.value = "";
   }
 
@@ -98,25 +126,33 @@ export function useChat(options: UseChatOptions) {
     chatTab.value = "private";
     if (isMobileViewport.value) mobileSection.value = "chat";
     memberMenu.value = null;
-    nextTick(scrollChatToEnd);
+    void nextTick(scrollChatToEnd);
   }
 
-  // The gateway sends the kind and the names (an empty one with `unnamed`); the sentence is built
-  // here, so the log follows the language. `message` (English) is only shown for a kind this
-  // client does not know.
+  // The gateway sends the kind and the names (an empty one with `unnamed`) and the sentence is built here, so the log follows
+  // the language. `message` (English) is only shown for a kind this client does not know.
   function eventText(event: ServerEvent): string {
     const nickname = nicknameText(event.nickname ?? "", t);
     const channel = event.channelName || t("unnamedChannel");
     switch (event.kind) {
-      case "connection": return t("eventConnected");
-      case "joined": return t("eventMemberJoined", { nickname });
-      case "left": return t("eventMemberLeft", { nickname });
-      case "moved": return t("eventMemberMoved", { nickname });
-      case "poke": return `${nickname} ${t("pokedYou")}`;
-      case "channelCreated": return t("eventChannelCreated", { channel });
-      case "channelRenamed": return t("eventChannelRenamed", { channel });
-      case "channelDeleted": return t("eventChannelDeleted", { channel });
-      default: return event.message;
+      case "connection":
+        return t("eventConnected");
+      case "joined":
+        return t("eventMemberJoined", { nickname });
+      case "left":
+        return t("eventMemberLeft", { nickname });
+      case "moved":
+        return t("eventMemberMoved", { nickname });
+      case "poke":
+        return `${nickname} ${t("pokedYou")}`;
+      case "channelCreated":
+        return t("eventChannelCreated", { channel });
+      case "channelRenamed":
+        return t("eventChannelRenamed", { channel });
+      case "channelDeleted":
+        return t("eventChannelDeleted", { channel });
+      default:
+        return event.message;
     }
   }
 
@@ -127,9 +163,6 @@ export function useChat(options: UseChatOptions) {
     privateConversations,
     visibleChatMessages,
     chatTabLabel,
-    chatPanelId,
-    chatTabId,
-    activeChatTabId,
     chatTitle,
     chatPlaceholder,
     formatTime,

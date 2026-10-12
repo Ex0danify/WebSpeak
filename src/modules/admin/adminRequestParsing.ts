@@ -4,22 +4,22 @@ import { WELCOME_LANGUAGE_MAX } from "./adminSettingsNormalizer.js";
 export function readSettingsInput(body: Record<string, unknown>): AdminSettingsInput {
   const relayNodes = Array.isArray(body.relayNodes)
     ? body.relayNodes.map((value): RelayNodeInput => {
-      const node = asRecord(value);
-      return {
-        id: typeof node.id === "string" ? node.id.slice(0, 110) : undefined,
-        name: typeof node.name === "string" ? node.name.slice(0, 80) : "",
-        target: typeof node.target === "string" ? node.target.slice(0, 300) : "",
-        enabled: node.enabled === true,
-        token: typeof node.token === "string" ? node.token.slice(0, 512) : undefined,
-        tokenAction: readPasswordAction(node.tokenAction),
-      };
-    })
+        const node = asRecord(value);
+        return {
+          id: typeof node.id === "string" ? node.id.slice(0, 110) : undefined,
+          name: typeof node.name === "string" ? node.name.slice(0, 80) : "",
+          target: typeof node.target === "string" ? node.target.slice(0, 300) : "",
+          enabled: node.enabled === true,
+          token: typeof node.token === "string" ? node.token.slice(0, 512) : undefined,
+          tokenAction: readPasswordAction(node.tokenAction),
+        };
+      })
     : undefined;
   return {
     target: readString(body, "target", 300),
     serverPassword: typeof body.serverPassword === "string" ? body.serverPassword.slice(0, 512) : undefined,
     passwordAction: readPasswordAction(body.passwordAction),
-    accessMode: body.accessMode === "open" ? "open" : body.accessMode === "fixed" ? "fixed" : body.accessMode as never,
+    accessMode: body.accessMode === "open" ? "open" : body.accessMode === "fixed" ? "fixed" : (body.accessMode as never),
     siteName: readString(body, "siteName", 80),
     welcomeTexts: readWelcomeTexts(body.welcomeTexts),
     webRtcEnabled: body.webRtcEnabled === true,
@@ -45,7 +45,7 @@ function readPasswordAction(value: unknown): "keep" | "replace" | "remove" {
 
 const WELCOME_LANGUAGE_PATTERN = /^[a-z]{2,3}(-[A-Za-z0-9]{2,8})*$/;
 
-/** The welcome texts by language code; keys that are not language codes and non-string values are dropped. */
+/** Welcome texts by language code, non-language keys and non-string values are dropped. */
 function readWelcomeTexts(value: unknown): Record<string, string> | undefined {
   if (!value || typeof value !== "object" || Array.isArray(value)) return undefined;
   const texts: Record<string, string> = {};

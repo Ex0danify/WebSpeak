@@ -52,7 +52,7 @@ describe("JoinRateLimiter", () => {
     expect(limiter.allow("second", 3)).toBe(true);
   });
 
-  it("F5: a peer at its limit stays limited while many new peers arrive", () => {
+  it("a peer at its limit stays limited while many new peers arrive", () => {
     const limiter = new JoinRateLimiter();
     for (let i = 0; i < MAX_REQUESTS; i += 1) limiter.allow("busy", 0);
     for (let i = 0; i < 5000; i += 1) limiter.allow(`flood-${i}`, 1 + i);

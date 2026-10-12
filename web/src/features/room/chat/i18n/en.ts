@@ -17,8 +17,8 @@ export const en = {
   eventMemberJoined: "{{nickname}} joined the server",
   eventMemberLeft: "{{nickname}} left the server",
   eventMemberMoved: "{{nickname}} moved to another channel",
-  eventChannelCreated: "Channel \"{{channel}}\" was created",
-  eventChannelRenamed: "Channel renamed to \"{{channel}}\"",
-  eventChannelDeleted: "Channel \"{{channel}}\" was deleted",
+  eventChannelCreated: 'Channel "{{channel}}" was created',
+  eventChannelRenamed: 'Channel renamed to "{{channel}}"',
+  eventChannelDeleted: 'Channel "{{channel}}" was deleted',
   sendMessagePlaceholder: "Message the channel…",
 } satisfies Record<string, string>;

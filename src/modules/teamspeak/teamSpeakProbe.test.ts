@@ -3,8 +3,8 @@ import { afterEach, describe, expect, it } from "vitest";
 import { INIT_VERSION } from "@echosixhiya/teamspeak-client/handshake";
 import { buildInitPacket, probeTeamSpeak, readInitAnswer, TeamSpeakProbeError } from "./teamSpeakProbe.js";
 
-// The probe against a real UDP socket on the loopback interface that plays the TeamSpeak server:
-// it answers the first handshake packet, stays silent, or answers with something else.
+// Probe against a real loopback UDP socket playing the TS server: answers the first packet,
+// stays silent, or answers with something else.
 
 const sockets: Socket[] = [];
 afterEach(() => {
@@ -13,7 +13,7 @@ afterEach(() => {
 
 type Handler = (packet: Buffer, reply: (datagram: Buffer) => void, count: number) => void;
 
-/** A UDP socket on 127.0.0.1, `::1` or `::` (both families) that calls `handler` for every datagram. Returns its port and the datagrams it got. */
+/** A UDP socket on 127.0.0.1, ::1 or :: that calls handler for every datagram. Returns its port and the datagrams it got. */
 async function udpServer(handler: Handler, address = "127.0.0.1"): Promise<{ port: number; received: Buffer[] }> {
   const socket = createSocket(address === "127.0.0.1" ? "udp4" : "udp6");
   sockets.push(socket);
@@ -26,7 +26,7 @@ async function udpServer(handler: Handler, address = "127.0.0.1"): Promise<{ por
   return { port: socket.address().port, received };
 }
 
-/** The answer a TeamSpeak server gives to step 0: step 1, sixteen random bytes, the client's random bytes reversed. */
+/** The server's answer to the first packet: step 1, sixteen random bytes, the client's bytes reversed. */
 function step1For(packet: Buffer, overrides: { echo?: Buffer } = {}): Buffer {
   const answer = Buffer.alloc(11 + 21);
   answer.write("TS3INIT1", 0);
@@ -93,24 +93,32 @@ describe("probeTeamSpeak", () => {
   });
 
   it("asks again when a packet is lost, and succeeds on the answer to a later one", async () => {
-    const server = await udpServer((packet, reply, count) => { if (count === 2) reply(step1For(packet)); });
+    const server = await udpServer((packet, reply, count) => {
+      if (count === 2) reply(step1For(packet));
+    });
     await expect(probeTeamSpeak({ host: "127.0.0.1", port: server.port }, fast)).resolves.toMatchObject({ ok: true });
     expect(server.received).toHaveLength(2);
   });
 
   it("counts a late answer to an earlier packet", async () => {
-    const server = await udpServer((_packet, reply, count) => { if (count === 2) reply(step1For(server.received[0])); });
+    const server = await udpServer((_packet, reply, count) => {
+      if (count === 2) reply(step1For(server.received[0]));
+    });
     await expect(probeTeamSpeak({ host: "127.0.0.1", port: server.port }, fast)).resolves.toMatchObject({ ok: true });
   });
 
   it("fails with PROTOCOL_NEGOTIATION_FAILED when another service answers on the port", async () => {
     const server = await udpServer((_packet, reply) => reply(Buffer.from("HTTP/1.1 400 Bad Request\r\n\r\n")));
-    await expect(probeTeamSpeak({ host: "127.0.0.1", port: server.port }, fast)).rejects.toMatchObject({ code: "PROTOCOL_NEGOTIATION_FAILED" });
+    await expect(probeTeamSpeak({ host: "127.0.0.1", port: server.port }, fast)).rejects.toMatchObject({
+      code: "PROTOCOL_NEGOTIATION_FAILED",
+    });
   });
 
   it("does not take an answer that echoes other random bytes for its own", async () => {
     const server = await udpServer((packet, reply) => reply(step1For(packet, { echo: Buffer.from([9, 9, 9, 9]) })));
-    await expect(probeTeamSpeak({ host: "127.0.0.1", port: server.port }, fast)).rejects.toMatchObject({ code: "PROTOCOL_NEGOTIATION_FAILED" });
+    await expect(probeTeamSpeak({ host: "127.0.0.1", port: server.port }, fast)).rejects.toMatchObject({
+      code: "PROTOCOL_NEGOTIATION_FAILED",
+    });
   });
 
   it("fails with CONNECTION_REFUSED when the host answers that nothing listens on the port", async () => {

@@ -1,12 +1,8 @@
-// Literal colors live only in src/shared/styles/tokens.css. Every other .vue, .css and .ts file
-// under src/ (test files and test support excluded) is scanned, whole file, so <style> blocks,
-// inline `style=`, SVG attributes and class strings are all covered. A hit is
-//   colors          a hex, rgb()/rgba(), hsl()/hsla(), hwb(), oklch() or oklab() literal
-//   themeSelectors  a `data-theme` reference (dark-mode override rules that the design tokens
-//                   make unnecessary)
-// There is no budget and no allowlist: a surface that needs a color no token expresses gets a token.
-//
-//   npm run check:styles
+// Literal colors live only in src/shared/styles/tokens.css. Every other .vue, .css and .ts file under src/ (tests excluded) is
+// scanned whole, so <style> blocks, inline `style=`, SVG attributes and class strings are covered. Hits are color literals and
+// `data-theme` references.
+
+// There is no budget or allowlist, a surface that needs a color no token expresses gets a token.
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";

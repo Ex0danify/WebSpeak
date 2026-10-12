@@ -9,14 +9,11 @@ import { overflowScan } from "../helpers";
 // The merged common, join and room messages per language (a key lives in exactly one of the three).
 const translations = await loadJoinRoomTranslations();
 
-// No text is cut off or sits outside the screen at 390 px, and the page never scrolls sideways, in
-// all five languages: the join page, the demo, the admin console, and the room on each of the
-// phone's four panels. Layer 4 has the same check for German on the join page and the
-// room (`appearance.spec.ts`); this one adds the other pages and languages. What the scan finds today
-// is listed below with its finding: the test fails on anything else, and on a row that no longer
-// happens.
+// No text is cut off or sits outside the screen at 390 px and the page never scrolls sideways, in all five languages, on the
+// join page, the demo, the admin console and each of the phone's four room panels. Known findings are listed below, the test
+// fails on anything else or on a row that no longer happens.
 
-const known: Record<string, { finding: string; clipped: string[] }> = {};
+const known: Record<string, { source: string; clipped: string[] }> = {};
 
 const languages = ["en", "de"] as const;
 
@@ -65,7 +62,8 @@ for (const lang of languages) {
       if (row) seen.add(key);
       if (pageScrolls) problems.push(`${key}: the page scrolls sideways`);
       const expected = row?.clipped ?? [];
-      if (JSON.stringify(clipped) !== JSON.stringify(expected)) problems.push(`${key}: found ${JSON.stringify(clipped)}, listed ${JSON.stringify(expected)}`);
+      if (JSON.stringify(clipped) !== JSON.stringify(expected))
+        problems.push(`${key}: found ${JSON.stringify(clipped)}, listed ${JSON.stringify(expected)}`);
     }
     for (const key of Object.keys(known)) if (key.startsWith(`${lang} `) && !seen.has(key)) problems.push(`${key}: listed but not visited`);
     expect(problems).toEqual([]);

@@ -1,5 +1,5 @@
-// Layer rules for the gateway, from docs/design/gateway-decompose-plan.md section 2. Written against
-// the target tree (shared/, config/, infra/, modules/, transport/). SEVERITY is "error" since step G1.12.
+// Layer rules for the gateway, from docs/architecture.md. Written against
+// the tree (shared/, config/, infra/, modules/, transport/). SEVERITY "error" fails the run.
 const SEVERITY = "error";
 
 // Inside modules/ the order is relay < teamspeak < join < screenShare < voice < admin; a module may

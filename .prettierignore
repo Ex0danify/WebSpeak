@@ -1,0 +1,12 @@
+node_modules
+dist
+web/dist
+coverage
+test-results
+data
+.snapshots
+.idea
+package-lock.json
+web/package-lock.json
+web/public
+CHANGELOG.md

@@ -6,23 +6,14 @@ import { INIT_VERSION } from "@echosixhiya/teamspeak-client/handshake";
 import type { TeamSpeakTarget } from "../../shared/teamSpeakTarget.js";
 
 /**
- * What the admin console's "Test connection" can tell about the voice port.
- *
- * NO_ANSWER: the port stayed silent (nothing listens, a firewall drops the packets, or the
- * server process is down). PROTOCOL_NEGOTIATION_FAILED: something answered, but not with the
- * TeamSpeak handshake (a different service on that port).
+ * What the admin "Test connection" can tell about the voice port. NO_ANSWER is silence (nothing
+ * listens, firewall, server down), PROTOCOL_NEGOTIATION_FAILED means another service answered.
  */
 export type ProbeErrorCode =
-  | "HOST_NOT_FOUND"
-  | "UNREACHABLE"
-  | "CONNECTION_REFUSED"
-  | "NO_ANSWER"
-  | "PROTOCOL_NEGOTIATION_FAILED"
-  | "INTERNAL_ERROR";
+  "HOST_NOT_FOUND" | "UNREACHABLE" | "CONNECTION_REFUSED" | "NO_ANSWER" | "PROTOCOL_NEGOTIATION_FAILED" | "INTERNAL_ERROR";
 
 export interface TeamSpeakProbeResult {
   ok: true;
-  /** Round trip of the handshake packet, in milliseconds. */
   latencyMs: number;
 }
 
@@ -34,17 +25,19 @@ export interface TeamSpeakProbeOptions {
 }
 
 export class TeamSpeakProbeError extends Error {
-  constructor(readonly code: ProbeErrorCode, message: string, readonly cause?: unknown) {
+  constructor(
+    readonly code: ProbeErrorCode,
+    message: string,
+    readonly cause?: unknown,
+  ) {
     super(message);
     this.name = "TeamSpeakProbeError";
   }
 }
 
-// The first packet of the TeamSpeak connection handshake ("Init1", step 0), as the client SDK
-// sends it before anything else. The server answers with step 1 and holds no state for the
-// sender until the later steps (which are never sent here), so nothing shows up in a channel.
-// Layout of a client packet: MAC "TS3INIT1" (8), packet id (2), client id (2), type (1), then
-// version (4), step (1), timestamp (4), four random bytes (4), zero padding (8).
+// First packet of the TS handshake (Init1 step 0), sent like the SDK does. The server keeps no
+// state until later steps, so nothing shows in a channel. Layout: MAC TS3INIT1, packet id (2),
+// client id (2), type (1), version (4), step (1), time (4), random (4), padding (8).
 const INIT1_MAC = Buffer.from("TS3INIT1");
 const INIT1_TYPE = 0x08;
 const INIT1_PACKET_ID = 101;
@@ -68,9 +61,8 @@ export function buildInitPacket(random: Buffer): Buffer {
 }
 
 /**
- * The answer to step 0 is step 1: an Init1 packet whose data is the step byte 1, sixteen random
- * bytes and the client's four random bytes in reverse order. Returns the client's random bytes
- * (as hex) it echoes, or null when the datagram is not that answer.
+ * The first packet is answered by the second handshake stage (step byte 1, 16 random bytes, our 4 random bytes reversed).
+ * Returns our echoed bytes as hex, or null if the datagram is not that answer.
  */
 export function readInitAnswer(datagram: Buffer): string | null {
   if (datagram.length < SERVER_HEADER_LENGTH + STEP_1_LENGTH) return null;
@@ -81,10 +73,8 @@ export function readInitAnswer(datagram: Buffer): string | null {
 }
 
 /**
- * Checks that something answers the TeamSpeak protocol on the voice port (UDP) of `target`, by
- * sending the first handshake packet and waiting for the server's reply. It does not log in, so
- * it never creates a client and cannot check the server password. Resolves with the round trip or
- * throws a `TeamSpeakProbeError`.
+ * Checks that something speaks the TS protocol on the UDP voice port by sending the first handshake
+ * packet. No login, so no client and no password check. Resolves with the round trip or throws.
  */
 export async function probeTeamSpeak(target: TeamSpeakTarget, options: TeamSpeakProbeOptions = {}): Promise<TeamSpeakProbeResult> {
   const attempts = Math.max(1, Math.min(8, Math.floor(options.attempts ?? 3)));
@@ -126,14 +116,20 @@ function exchange(socket: Socket, attempts: number, attemptTimeoutMs: number): P
     };
     const sendNext = (): void => {
       if (sent >= attempts) {
-        done(() => reject(receivedOther
-          ? new TeamSpeakProbeError("PROTOCOL_NEGOTIATION_FAILED", "Something answered on the voice port, but not with the TeamSpeak handshake")
-          : new TeamSpeakProbeError("NO_ANSWER", "Nothing answered on the voice port")));
+        done(() =>
+          reject(
+            receivedOther
+              ? new TeamSpeakProbeError(
+                  "PROTOCOL_NEGOTIATION_FAILED",
+                  "Something answered on the voice port, but not with the TeamSpeak handshake",
+                )
+              : new TeamSpeakProbeError("NO_ANSWER", "Nothing answered on the voice port"),
+          ),
+        );
         return;
       }
       sent += 1;
-      // A fresh random per packet tells which one an answer belongs to, so a late answer to
-      // an earlier packet still counts and its round trip is measured from that packet.
+      // Fresh random per packet so a late answer to an earlier one still counts, timed from that packet.
       const random = randomBytes(4);
       sentAt.set(Buffer.from(random).toString("hex"), Date.now());
       timer = setTimeout(sendNext, attemptTimeoutMs);

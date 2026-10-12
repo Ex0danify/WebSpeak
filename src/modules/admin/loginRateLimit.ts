@@ -32,11 +32,12 @@ export class AdminLoginRateLimiter {
         this.attempts.delete(weakestPeer);
       }
     }
-    const attempt = !current || now - current.firstFailureAt >= WINDOW_MS
-      ? { failures: 1, firstFailureAt: now }
-      : { ...current, failures: current.failures + 1 };
+    const attempt =
+      !current || now - current.firstFailureAt >= WINDOW_MS
+        ? { failures: 1, firstFailureAt: now }
+        : { ...current, failures: current.failures + 1 };
     this.attempts.set(peer, attempt);
-    return Math.min(2000, 250 * (2 ** Math.min(3, attempt.failures - 1)));
+    return Math.min(2000, 250 * 2 ** Math.min(3, attempt.failures - 1));
   }
 
   recordSuccess(peer: string): void {

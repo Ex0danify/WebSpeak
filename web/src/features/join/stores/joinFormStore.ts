@@ -11,9 +11,8 @@ function initialServerTarget(query: URLSearchParams) {
   return splitTeamSpeakTarget(host, port || DEFAULT_TEAM_SPEAK_PORT);
 }
 
-/** The join fields that outlive the join page: `ClientLayout` reads them to record the server visit
- *  at the moment `connected` flips, and the room reads them for the invite link and the avatar name,
- *  when the join page is already being replaced. */
+/** The join fields that outlive the join page. `ClientLayout` reads them to record the server visit when `connected` flips, and
+ *  the room reads them for the invite link and avatar name while the join page is being replaced. */
 export const useJoinFormStore = defineStore("joinForm", () => {
   const query = new URLSearchParams(location.search);
   const initialTarget = initialServerTarget(query);

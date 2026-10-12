@@ -1,6 +1,6 @@
 import { DatabaseSync } from "node:sqlite";
 import { beforeEach, describe, expect, it } from "vitest";
-import { credential, invite, settings } from "../../../test/helpers/database.js";
+import { credential, invite, settings } from "../../../test/support/database.js";
 import { AdminCredentialRepository } from "./adminCredentialRepository.js";
 import { AuditRepository } from "./auditRepository.js";
 import { runMigrations } from "./databaseMigrations.js";
@@ -46,8 +46,12 @@ describe("SettingsRepository", () => {
     const repo = new SettingsRepository(context);
     repo.write(settings({ siteName: "Repo", webRtcEnabled: false }), "2026-01-01T00:00:00.000Z");
     expect(repo.get()).toMatchObject({
-      siteName: "Repo", accessMode: "open", webRtcEnabled: false, relayEnabled: true,
-      detectedProtocol: null, updatedAt: "2026-01-01T00:00:00.000Z",
+      siteName: "Repo",
+      accessMode: "open",
+      webRtcEnabled: false,
+      relayEnabled: true,
+      detectedProtocol: null,
+      updatedAt: "2026-01-01T00:00:00.000Z",
     });
   });
 
@@ -69,7 +73,10 @@ describe("RelayNodeRepository", () => {
       { id: "b", name: "B", enabled: true, host: "b.example", port: 1, tokenEncrypted: null, createdAt: "2026-01-02T00:00:00.000Z" },
       { id: "a", name: "A", enabled: false, host: "a.example", port: 2, tokenEncrypted: "enc", createdAt: "2026-01-01T00:00:00.000Z" },
     ]);
-    expect(repo.list().map((node) => [node.id, node.enabled])).toEqual([["a", false], ["b", true]]);
+    expect(repo.list().map((node) => [node.id, node.enabled])).toEqual([
+      ["a", false],
+      ["b", true],
+    ]);
     repo.replace([]);
     expect(repo.list()).toEqual([]);
   });

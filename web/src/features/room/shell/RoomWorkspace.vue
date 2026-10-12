@@ -1,7 +1,7 @@
 <template>
   <div :class="shellClass">
     <main :class="[workspaceClass, mobileSection === 'more' || mobileSection === 'channels' ? 'max-compact:hidden' : '']">
-      <h1 v-if="!isMobileViewport || (mobileSection !== 'channels' && mobileSection !== 'more')" class="sr-only">{{ t('voiceSpace') }}</h1>
+      <h1 v-if="!isMobileViewport || (mobileSection !== 'channels' && mobileSection !== 'more')" class="sr-only">{{ t("voiceSpace") }}</h1>
       <WorkspaceHeader
         :current-channel-name="currentChannelName"
         :is-mobile-viewport="isMobileViewport"
@@ -53,9 +53,9 @@
             <VoiceHeading :count="currentMembers.length" />
             <ScreenShareInlineError v-if="screenShareError" :text="screenShareErrorText" />
             <ScreenSharePlayer
+              v-model:remote-volume="screenShareRemoteVolume"
               :viewing="screenShareViewing"
               :remote-stream="screenShareRemoteStream"
-              v-model:remote-volume="screenShareRemoteVolume"
               :error="screenShareError"
               :error-text="screenShareErrorText"
               :fullscreen="screenShareFullscreen"
@@ -69,6 +69,7 @@
               @toggle-fullscreen="toggleScreenShareFullscreen"
             />
             <VoiceGrid
+              v-model:screen-share-settings-open="screenShareSettingsOpen"
               :current-members="currentMembers"
               :room-members="roomMembers"
               :speaking-ids="speakingIds"
@@ -78,7 +79,6 @@
               :screen-share-starting="screenShareStarting"
               :screen-share-viewing-stream-id="screenShareViewingStreamId"
               :screen-share-indicator-bars="screenShareIndicatorBars"
-              v-model:screen-share-settings-open="screenShareSettingsOpen"
               @open-member-actions="openMemberActions"
               @stop-screen-share="stopScreenShare"
               @start-screen-share="startScreenShareWithSettings"
@@ -93,7 +93,11 @@
               @ptt-down="onWhisperPttDown"
               @ptt-up="onWhisperPttUp"
             />
-            <MobileVoiceControls :microphone-muted="microphoneMuted" @toggle-microphone="toggleMicrophone" @open-settings="settingsOpen = true" />
+            <MobileVoiceControls
+              :microphone-muted="microphoneMuted"
+              @toggle-microphone="toggleMicrophone"
+              @open-settings="settingsOpen = true"
+            />
           </section>
 
           <ChatPanel
@@ -117,10 +121,16 @@
           />
         </div>
       </div>
-
     </main>
 
-    <MemberPanel v-model:member-query="memberQuery" :mobile-section="mobileSection" :is-mobile-viewport="isMobileViewport" :away="away" :has-matches="filteredMemberChannels.length > 0" @toggle-away="toggleAway">
+    <MemberPanel
+      v-model:member-query="memberQuery"
+      :mobile-section="mobileSection"
+      :is-mobile-viewport="isMobileViewport"
+      :away="away"
+      :has-matches="filteredMemberChannels.length > 0"
+      @toggle-away="toggleAway"
+    >
       <MemberTree
         :channels="filteredMemberChannels"
         :current-channel-id="currentChannel?.id"
@@ -144,22 +154,22 @@
         @set-volume="setVolume"
       />
       <template #footer>
-      <DesktopAudioDock
-        v-if="!isMobileViewport"
-        :accompaniment-active="accompanimentActive"
-        :microphone-muted="microphoneMuted"
-        :input-volume="inputVolume"
-        :noise-suppression-enabled="noiseSuppressionEnabled"
-        :output-muted="outputMuted"
-        :output-volume="outputVolume"
-        @toggle-microphone="toggleMicrophone"
-        @set-input-volume="setInputVolume"
-        @set-noise-suppression="setNoiseSuppressionEnabled"
-        @toggle-output-mute="toggleOutputMute"
-        @set-output-volume="setOutputVolume"
-        @open-settings="settingsOpen = true"
-        @toggle-accompaniment="toggleAccompaniment"
-      />
+        <DesktopAudioDock
+          v-if="!isMobileViewport"
+          :accompaniment-active="accompanimentActive"
+          :microphone-muted="microphoneMuted"
+          :input-volume="inputVolume"
+          :noise-suppression-enabled="noiseSuppressionEnabled"
+          :output-muted="outputMuted"
+          :output-volume="outputVolume"
+          @toggle-microphone="toggleMicrophone"
+          @set-input-volume="setInputVolume"
+          @set-noise-suppression="setNoiseSuppressionEnabled"
+          @toggle-output-mute="toggleOutputMute"
+          @set-output-volume="setOutputVolume"
+          @open-settings="settingsOpen = true"
+          @toggle-accompaniment="toggleAccompaniment"
+        />
       </template>
     </MemberPanel>
 
@@ -209,10 +219,8 @@ import WorkspaceHeader from "./WorkspaceHeader.vue";
 import type { useRoomShell } from "./useRoomShell";
 import { ScreenShareInlineError, ScreenSharePlayer, ScreenShareSettingsDialog } from "@/features/screenShare";
 
-/** The connected workspace. It takes the return values of the composables RoomView
- *  assembles; refs live inside these objects so they stay refs here (a top-level ref prop would
- *  be unwrapped by the parent template).
- *  `session` is the grouped room session. */
+/** The connected workspace. It takes the return values of the composables RoomView assembles, with refs inside these objects so
+ *  they stay refs here (a top-level ref prop would be unwrapped by the parent template). `session` is the grouped room session. */
 const props = defineProps<{
   session: RoomSession;
   shell: ReturnType<typeof useRoomShell>;
@@ -232,31 +240,87 @@ const { t } = useI18n();
 const { state: voiceState, reconnectNow } = props.session.session;
 const { members, serverEvents, pokeNotifications, speakingIds, volumes, whisperTargetIds, whisperActive } = props.session.roster;
 const {
-  microphoneMuted, noiseSuppressionEnabled, inputVolume, outputVolume, outputMuted, setVolume, setInputVolume,
-  setNoiseSuppressionEnabled, setOutputVolume, toggleOutputMute, accompanimentActive
+  microphoneMuted,
+  noiseSuppressionEnabled,
+  inputVolume,
+  outputVolume,
+  outputMuted,
+  setVolume,
+  setInputVolume,
+  setNoiseSuppressionEnabled,
+  setOutputVolume,
+  toggleOutputMute,
+  accompanimentActive,
 } = props.session.audio;
 const {
-  screenShareActive, screenShareStarting, screenShareViewing, screenShareViewingStreamId, screenShareRemoteStream,
-  screenShareError, screenShareRemoteVolume, screenShareWebRtcStats, stopScreenShare, leaveScreenShare
+  screenShareActive,
+  screenShareStarting,
+  screenShareViewing,
+  screenShareViewingStreamId,
+  screenShareRemoteStream,
+  screenShareError,
+  screenShareRemoteVolume,
+  screenShareWebRtcStats,
+  stopScreenShare,
+  leaveScreenShare,
 } = props.session.screenShare;
 const { mobileSection, isMobileViewport, dismissPoke } = props.shell;
 const {
-  memberQuery, away, toggleAway, currentChannel, currentChannelName, currentMembers, roomMembers,
-  filteredMemberChannels, selectChannel, dragOverChannelId, draggedMember, onMemberDragStart, onMemberDragEnd,
-  onMemberPointerDown, onMemberPointerMove, onMemberPointerUp, onMemberPointerCancel, onChannelDragOver,
-  onChannelDragLeave, onChannelDrop
+  memberQuery,
+  away,
+  toggleAway,
+  currentChannel,
+  currentChannelName,
+  currentMembers,
+  roomMembers,
+  filteredMemberChannels,
+  selectChannel,
+  dragOverChannelId,
+  draggedMember,
+  onMemberDragStart,
+  onMemberDragEnd,
+  onMemberPointerDown,
+  onMemberPointerMove,
+  onMemberPointerUp,
+  onMemberPointerCancel,
+  onChannelDragOver,
+  onChannelDragLeave,
+  onChannelDrop,
 } = props.tree;
 const {
-  chatTab, messageDraft, privateClientId, privateConversations, visibleChatMessages, chatTabLabel,
-  chatTitle, chatPlaceholder, formatTime, submitMessage, openPrivateChat,
-  setChatListElement, eventText
+  chatTab,
+  messageDraft,
+  privateClientId,
+  privateConversations,
+  visibleChatMessages,
+  chatTabLabel,
+  chatTitle,
+  chatPlaceholder,
+  formatTime,
+  submitMessage,
+  openPrivateChat,
+  setChatListElement,
+  eventText,
 } = props.chat;
 const {
-  setScreenVideoElement, setScreenSharePlayerElement, screenShareFullscreen, toggleScreenShareFullscreen,
-  screenShareResolutionOptions, screenShareResolutionPreset, screenShareFrameRateOptions, screenShareFrameRate,
-  screenShareSettingsOpen, startScreenShareWithSettings, screenShareIndicatorBars, screenShareErrorText,
-  screenSharePlayerViewers, screenSharePlayerViewerCount, screenSharePlayerOwnerName, screenShareStreamForMember,
-  toggleScreenShareForMember, screenShareViewerStyle
+  setScreenVideoElement,
+  setScreenSharePlayerElement,
+  screenShareFullscreen,
+  toggleScreenShareFullscreen,
+  screenShareResolutionOptions,
+  screenShareResolutionPreset,
+  screenShareFrameRateOptions,
+  screenShareFrameRate,
+  screenShareSettingsOpen,
+  startScreenShareWithSettings,
+  screenShareIndicatorBars,
+  screenShareErrorText,
+  screenSharePlayerViewers,
+  screenSharePlayerViewerCount,
+  screenSharePlayerOwnerName,
+  screenShareStreamForMember,
+  toggleScreenShareForMember,
+  screenShareViewerStyle,
 } = props.screenShare;
 const { settingsOpen, toggleMicrophone, toggleAccompaniment } = props.audioPanel;
 const { whisperPttActive, whisperTargets, clearWhisperTargets, onWhisperPttDown, onWhisperPttUp } = props.whisper;
@@ -265,13 +329,18 @@ const { openMemberActions, openMemberMenu } = props.memberMenu;
 const { themeIcon, themeLabel, cycleTheme, persistLanguage } = props.appearance;
 const { doShare, doDisconnect } = props;
 
-// Frame of the connected view. Desktop: member panel (318 px) beside the workspace, one viewport tall
-// (the height is divided by --ui-scale like the zoomed roots, see ClientLayout). Up to 980 px the member panel
-// moves below the workspace. Up to 740 px the shell is a column with the bottom navigation reserved.
-const shellClass = "grid h-dvh max-h-dvh min-h-0 grid-cols-[318px_minmax(0,1fr)] overflow-hidden bg-surface-1 desktop:h-[calc(100dvh/var(--ui-scale))] desktop:max-h-[calc(100dvh/var(--ui-scale))] max-medium:grid-cols-1 max-medium:grid-rows-[minmax(0,1fr)_minmax(210px,35dvh)] max-compact:flex max-compact:h-svh max-compact:max-h-svh max-compact:min-h-svh max-compact:flex-col max-compact:pb-[calc(74px+env(safe-area-inset-bottom,0px))]";
-const workspaceClass = "col-start-2 row-start-1 flex h-full min-h-0 min-w-0 flex-col bg-surface-1 max-medium:col-start-1 max-medium:h-auto max-compact:h-[calc(100svh-74px-env(safe-area-inset-bottom,0px))] max-compact:max-h-[calc(100svh-74px-env(safe-area-inset-bottom,0px))] max-compact:flex-auto max-compact:overflow-hidden";
-const scrollClass = "min-h-0 flex-1 overflow-y-auto pb-[env(safe-area-inset-bottom,0px)] max-compact:h-full max-compact:overscroll-contain max-compact:[scrollbar-gutter:stable]";
-const contentClass = "mx-auto w-[min(950px,calc(100%-64px))] pt-7.75 pb-16 text-fg max-wide:w-[min(900px,calc(100%-42px))] max-compact:m-0 max-compact:block max-compact:min-h-full max-compact:w-full max-compact:max-w-none max-compact:px-3.5 max-compact:pt-3.5 max-compact:pb-[calc(18px+env(safe-area-inset-bottom,0px))]";
+// Frame of the connected view. Desktop has the member panel (318 px) beside the workspace, one viewport tall (the height is
+// divided by --ui-scale like the zoomed roots). Up to 980 px the member panel moves below the workspace, up to 740 px the shell
+// is a column with the bottom navigation reserved.
+const shellClass =
+  "grid h-dvh max-h-dvh min-h-0 grid-cols-[318px_minmax(0,1fr)] overflow-hidden bg-surface-1 desktop:h-[calc(100dvh/var(--ui-scale))] desktop:max-h-[calc(100dvh/var(--ui-scale))] max-medium:grid-cols-1 max-medium:grid-rows-[minmax(0,1fr)_minmax(210px,35dvh)] max-compact:flex max-compact:h-svh max-compact:max-h-svh max-compact:min-h-svh max-compact:flex-col max-compact:pb-[calc(74px+env(safe-area-inset-bottom,0px))]";
+const workspaceClass =
+  "col-start-2 row-start-1 flex h-full min-h-0 min-w-0 flex-col bg-surface-1 max-medium:col-start-1 max-medium:h-auto max-compact:h-[calc(100svh-74px-env(safe-area-inset-bottom,0px))] max-compact:max-h-[calc(100svh-74px-env(safe-area-inset-bottom,0px))] max-compact:flex-auto max-compact:overflow-hidden";
+const scrollClass =
+  "min-h-0 flex-1 overflow-y-auto pb-[env(safe-area-inset-bottom,0px)] max-compact:h-full max-compact:overscroll-contain max-compact:[scrollbar-gutter:stable]";
+const contentClass =
+  "mx-auto w-[min(950px,calc(100%-64px))] pt-7.75 pb-16 text-fg max-wide:w-[min(900px,calc(100%-42px))] max-compact:m-0 max-compact:block max-compact:min-h-full max-compact:w-full max-compact:max-w-none max-compact:px-3.5 max-compact:pt-3.5 max-compact:pb-[calc(18px+env(safe-area-inset-bottom,0px))]";
 // The chat tab hands the whole height to the message list.
-const contentChatClass = "mx-auto w-[min(950px,calc(100%-64px))] pt-7.75 pb-16 text-fg max-wide:w-[min(900px,calc(100%-42px))] max-compact:m-0 max-compact:flex max-compact:h-full max-compact:min-h-0 max-compact:w-full max-compact:max-w-none max-compact:flex-col max-compact:px-3.5 max-compact:pt-0 max-compact:pb-[calc(8px+env(safe-area-inset-bottom,0px))]";
+const contentChatClass =
+  "mx-auto w-[min(950px,calc(100%-64px))] pt-7.75 pb-16 text-fg max-wide:w-[min(900px,calc(100%-42px))] max-compact:m-0 max-compact:flex max-compact:h-full max-compact:min-h-0 max-compact:w-full max-compact:max-w-none max-compact:flex-col max-compact:px-3.5 max-compact:pt-0 max-compact:pb-[calc(8px+env(safe-area-inset-bottom,0px))]";
 </script>

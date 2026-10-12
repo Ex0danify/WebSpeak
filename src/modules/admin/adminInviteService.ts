@@ -74,7 +74,10 @@ export class AdminInviteService {
     try {
       serverPassword = decryptSecret(record.serverPasswordEncrypted, this.masterSecret);
     } catch (error: unknown) {
-      this.logger.error({ err: error instanceof Error ? error.message : String(error), inviteId: record.id }, "Managed invite password could not be decrypted");
+      this.logger.error(
+        { err: error instanceof Error ? error.message : String(error), inviteId: record.id },
+        "Managed invite password could not be decrypted",
+      );
     }
     this.database.addAudit("INVITE_CONSUMED", { id: record.id });
     return { target: { host: record.targetHost, port: record.targetPort }, serverPassword, channel: record.channel };

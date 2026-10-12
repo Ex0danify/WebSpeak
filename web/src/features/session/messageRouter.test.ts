@@ -1,4 +1,4 @@
-// The dispatcher and the roster/chat handlers (Step V6.2). The per-module handlers are covered by their
+// The dispatcher and the roster/chat handlers. The per-module handlers are covered by their
 // modules' tests and by messages.*.test.ts, which drive every type through the whole composable.
 import { createPinia, setActivePinia } from "pinia";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -31,7 +31,8 @@ describe("createMessageRouter", () => {
   it("is not fooled by names on Object.prototype or by a non-string type", () => {
     const a = vi.fn();
     const route = createMessageRouter(unchecked({ a }));
-    for (const type of ["constructor", "toString", "__proto__", "hasOwnProperty", ["a"], { toString: () => "a" }, 1, null, undefined]) route({ type });
+    for (const type of ["constructor", "toString", "__proto__", "hasOwnProperty", ["a"], { toString: () => "a" }, 1, null, undefined])
+      route({ type });
     route({});
     expect(a).not.toHaveBeenCalled();
   });
@@ -54,7 +55,14 @@ describe("roster handlers", () => {
   }
 
   it("claims exactly the roster, chat, event and poke types", () => {
-    expect(Object.keys(setup().handlers).sort()).toEqual(["channelList", "chatMessage", "memberAvatar", "memberEnter", "pokeReceived", "serverEvent"]);
+    expect(Object.keys(setup().handlers).sort()).toEqual([
+      "channelList",
+      "chatMessage",
+      "memberAvatar",
+      "memberEnter",
+      "pokeReceived",
+      "serverEvent",
+    ]);
   });
 
   it("memberEnter adds a member once and re-syncs volumes", () => {
@@ -78,7 +86,13 @@ describe("roster handlers", () => {
   it("memberAvatar updates the roster and the channel tree, matching the uid when given", () => {
     const { handlers, session } = setup();
     session.members.push({ id: 5, uid: "u", nickname: "a", isSelf: false } as never);
-    session.channels.push({ id: "1", members: [{ id: 5, uid: "u", nickname: "a" }, { id: 6, uid: "v", nickname: "b" }] } as never);
+    session.channels.push({
+      id: "1",
+      members: [
+        { id: 5, uid: "u", nickname: "a" },
+        { id: 6, uid: "v", nickname: "b" },
+      ],
+    } as never);
     handlers.memberAvatar!({ id: 5, uid: "other", avatar: "x" });
     expect(session.members[0]!.avatar).toBeUndefined();
     handlers.memberAvatar!({ id: 5, uid: "u", avatar: "x" });

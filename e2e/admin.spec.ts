@@ -1,6 +1,6 @@
 import type { Page } from "@playwright/test";
 import { expect, test } from "./fixtures";
-import { TEST_ADMIN_PASSWORD, type Gateway } from "../test/helpers/gateway";
+import { TEST_ADMIN_PASSWORD, type Gateway } from "../test/support/gateway";
 
 // The admin console against a gateway of its own (`ownGateway`), because these tests change what
 // every visitor sees and use up the login rate limit. The console follows the stored language, else the
@@ -102,7 +102,11 @@ test.describe("first sign in", () => {
 });
 
 test.describe("overview", () => {
-  test("shows the status, the target and the recent events, and links to the settings and the guest page", async ({ page, ownGateway, isMobile }) => {
+  test("shows the status, the target and the recent events, and links to the settings and the guest page", async ({
+    page,
+    ownGateway,
+    isMobile,
+  }) => {
     const gateway = await ownGateway();
     await login(page, gateway);
     await expect(page.getByRole("heading", { name: "WebSpeak is running" })).toBeVisible();
@@ -115,7 +119,10 @@ test.describe("overview", () => {
     await page.getByRole("link", { name: "Manage" }).click();
     await expect(page.getByRole("heading", { name: "Server settings" })).toBeVisible();
     expect(path(page)).toBe("/admin/server");
-    for (const [link, heading] of [["Operations", "Operations"], ["Overview", "Overview"]] as const) {
+    for (const [link, heading] of [
+      ["Operations", "Operations"],
+      ["Overview", "Overview"],
+    ] as const) {
       await page.getByRole("link", { name: link, exact: true }).first().click();
       await expect(page.getByRole("heading", { name: heading, level: 1 })).toBeVisible();
     }
@@ -124,18 +131,21 @@ test.describe("overview", () => {
 
 test.describe("language", () => {
   // The console starts from the same detection as the join page: a stored language, else the browser's, else
-  // English (bug F28: it used to fall back to Chinese for every browser but German, Russian and Japanese).
+  // English.
   test.beforeEach(async ({ page }) => {
     await page.addInitScript(() => localStorage.removeItem("webspeak:language"));
   });
 
-  test("an English browser gets the console in English, as the join page does (F28)", async ({ page, ownGateway }) => {
+  test("an English browser gets the console in English, as the join page does", async ({ page, ownGateway }) => {
     const gateway = await ownGateway();
     await page.goto(`${gateway.url}/admin`);
     await expect(page.getByRole("heading", { name: "Welcome back" })).toBeVisible();
   });
 
-  test("a browser in another language gets the console in that language, and the stored language wins over it (F28)", async ({ browser, ownGateway }) => {
+  test("a browser in another language gets the console in that language, and the stored language wins over it", async ({
+    browser,
+    ownGateway,
+  }) => {
     const gateway = await ownGateway();
     const german = await browser.newContext({ locale: "de-DE" });
     const germanPage = await german.newPage();

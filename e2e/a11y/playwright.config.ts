@@ -14,9 +14,7 @@ export default defineConfig({
   fullyParallel: true,
   workers: 4,
   retries: ci ? 1 : 0,
-  reporter: ci
-    ? [["list"], ["junit", { outputFile: "../../test-results/junit-a11y.xml" }]]
-    : [["list"]],
+  reporter: ci ? [["list"], ["junit", { outputFile: "../../test-results/junit-a11y.xml" }]] : [["list"]],
   use: {
     trace: "on-first-retry",
     locale: "en-US",

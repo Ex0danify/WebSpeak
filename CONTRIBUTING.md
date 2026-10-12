@@ -93,3 +93,5 @@ A new server event kind needs the same: `kind` and `params` on the wire, an `eve
 | `npm run test:e2e` | `language.matrix.spec.ts` loads the main pages in every discovered language (build the web app first) |
 
 The first four run inside the `build` scripts.
+
+`npm run format` rewrites the code with Prettier (140 columns, Tailwind class order); `npm run format:check` is the CI check. `npm run lint` (ESLint with typescript-eslint and eslint-plugin-vue, including the unawaited-promise rules) must be clean too, `npm run lint:fix` applies the safe fixes. After pulling, `git config blame.ignoreRevsFile .git-blame-ignore-revs` keeps the mass reformat out of `git blame`.

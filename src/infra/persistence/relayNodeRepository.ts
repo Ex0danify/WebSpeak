@@ -6,9 +6,7 @@ export class RelayNodeRepository {
   constructor(private readonly context: PersistenceContext) {}
 
   list(): PersistedRelayNode[] {
-    const rows = this.context.database.prepare(
-      "SELECT * FROM relay_nodes ORDER BY created_at ASC, id ASC",
-    ).all() as RelayNodeRow[];
+    const rows = this.context.database.prepare("SELECT * FROM relay_nodes ORDER BY created_at ASC, id ASC").all() as RelayNodeRow[];
     return rows.map((row) => ({
       id: row.id,
       name: row.name,

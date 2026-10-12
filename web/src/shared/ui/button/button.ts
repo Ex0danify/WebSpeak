@@ -32,13 +32,15 @@ export const buttonVariants = cva(
         // Text that acts like a link, in the accent color; size="inline" takes the text size and line of its surroundings.
         link: "border-transparent bg-transparent text-accent hover:underline",
         // Round control floating over video, on the fixed media colors.
-        media: "rounded-full border-media-line bg-media-scrim text-media-fg shadow-lg backdrop-blur-sm hover:border-media-accent/75 hover:bg-media-accent/30",
+        media:
+          "rounded-full border-media-line bg-media-scrim text-media-fg shadow-lg backdrop-blur-sm hover:border-media-accent/75 hover:bg-media-accent/30",
       },
       size: {
-        sm: "h-8 px-3 text-xs",
-        md: "h-10 px-4 text-sm max-compact:h-11",
+        sm: "h-8 px-3 text-xs max-compact:h-11 pointer-coarse:h-11",
+        md: "h-10 px-4 text-sm max-compact:h-11 pointer-coarse:h-11",
         lg: "h-12 px-6 text-base",
-        xs: "h-6.25 gap-1 px-1.75 text-2xs leading-tight",
+        // Small pill inside a card. On a phone or a touch screen the look stays and a 44 px area around it takes the tap.
+        xs: "h-6.25 gap-1 px-1.75 text-2xs leading-tight max-compact:relative max-compact:after:absolute max-compact:after:top-1/2 max-compact:after:left-1/2 max-compact:after:size-11 max-compact:after:min-w-full max-compact:after:-translate-1/2 max-compact:after:content-[''] pointer-coarse:relative pointer-coarse:after:absolute pointer-coarse:after:top-1/2 pointer-coarse:after:left-1/2 pointer-coarse:after:size-11 pointer-coarse:after:min-w-full pointer-coarse:after:-translate-1/2 pointer-coarse:after:content-['']",
         // Text-sized control inside a line of text; 44 px tall on a phone without moving the line.
         inline: "h-auto px-0 py-0 font-normal max-compact:-my-3.75 max-compact:py-3.75",
         // Full-width list row (a channel heading): left-aligned, as tall as its content, 44 px on a phone.
@@ -48,7 +50,7 @@ export const buttonVariants = cva(
       // feature that is switched on, none when the pressed state is only for assistive tech.
       // Becomes a square icon button on a phone (hide the label yourself there).
       squareOnPhone: {
-        true: "max-compact:size-9 max-compact:px-0 max-phone:size-8",
+        true: "max-compact:size-11 max-compact:px-0",
         false: "",
       },
       pressedTone: {
@@ -64,8 +66,8 @@ export const buttonVariants = cva(
     },
     compoundVariants: [
       { iconOnly: true, size: "xs", class: "w-6.25" },
-      { iconOnly: true, size: "sm", class: "w-8" },
-      { iconOnly: true, size: "md", class: "w-10 max-compact:w-11" },
+      { iconOnly: true, size: "sm", class: "w-8 max-compact:w-11 pointer-coarse:w-11" },
+      { iconOnly: true, size: "md", class: "w-10 max-compact:w-11 pointer-coarse:w-11" },
       { iconOnly: true, size: "lg", class: "w-12" },
     ],
     defaultVariants: { variant: "primary", size: "md", iconOnly: false, squareOnPhone: false, pressedTone: "danger" },

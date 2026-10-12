@@ -1,5 +1,4 @@
-// Stamps a finished web build with a fingerprint of its inputs, so a test run
-// can refuse to serve a bundle that no longer matches the sources.
+// Stamps a finished web build with a fingerprint of its inputs, so a test run refuses to serve a stale bundle.
 //
 // CLI (run from web/ at the end of the build): node ../scripts/build-stamp.mjs
 import { execFileSync } from "node:child_process";

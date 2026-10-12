@@ -1,7 +1,5 @@
-// CJK-line budget for the gateway side (a ratchet, i18n plan I0.5). For every text file under
-// src/, test/, e2e/ and scripts/ it counts lines holding a CJK character,
-// comments included, and fails when a count exceeds the file's budget in
-// scripts/gateway-literals-budget.json. Files without an entry have a budget of 0.
+// CJK-line budget for the gateway side (a ratchet). Counts lines with a CJK character (comments included)
+// under src/, test/, e2e/ and scripts/ and fails above the file's budget in gateway-literals-budget.json, default 0.
 //
 //   npm run check:gateway-literals                   check
 //   npm run check:gateway-literals -- --update       lower budgets to the current counts
@@ -40,7 +38,10 @@ function sourceFiles(dir) {
   return files;
 }
 
-const countCjk = (path) => readFileSync(path, "utf8").split("\n").filter((line) => CJK.test(line)).length;
+const countCjk = (path) =>
+  readFileSync(path, "utf8")
+    .split("\n")
+    .filter((line) => CJK.test(line)).length;
 
 const budget = JSON.parse(readFileSync(budgetPath, "utf8"));
 const ignored = new Set((budget.ignore ?? []).map((entry) => entry.file));
@@ -89,7 +90,8 @@ if (update) {
   writeFileSync(budgetPath, `${JSON.stringify({ ...budget, files: sorted }, null, 2)}\n`);
   console.log(`budget updated (${lowered.length} value(s) lowered, ${added.length} file(s) added)`);
 } else {
-  for (const change of lowered) console.log(`below budget: ${change.file} ${change.to} < ${change.from} (run check:gateway-literals -- --update)`);
+  for (const change of lowered)
+    console.log(`below budget: ${change.file} ${change.to} < ${change.from} (run check:gateway-literals -- --update)`);
   const total = Object.values(budget.files).reduce((sum, n) => sum + n, 0);
   console.log(`OK: gateway literal budget (${Object.keys(budget.files).length} file(s), ${total} CJK line(s) allowed)`);
 }

@@ -37,10 +37,16 @@ async function mountUseWhisper(overrides: Record<string, unknown> = {}) {
     setWhisperActive: vi.fn(),
     ...overrides,
   };
-  const wrapper = mount(defineComponent({ setup: () => useWhisper({
-    roster: { whisperTargetIds: options.whisperTargetIds, members: options.members },
-    actions: { setWhisperTargets: options.setWhisperTargets, setWhisperActive: options.setWhisperActive },
-  }), template: "<div/>" }));
+  const wrapper = mount(
+    defineComponent({
+      setup: () =>
+        useWhisper({
+          roster: { whisperTargetIds: options.whisperTargetIds, members: options.members },
+          actions: { setWhisperTargets: options.setWhisperTargets, setWhisperActive: options.setWhisperActive },
+        }),
+      template: "<div/>",
+    }),
+  );
   return { wrapper, vm: wrapper.vm as unknown as Exposed, options, whisperTargetIds };
 }
 
@@ -128,7 +134,9 @@ describe("push-to-talk", () => {
     vm.onWhisperPttDown(pointerEvent(7, true));
     const upEvent = pointerEvent(7, true);
     vm.onWhisperPttUp(upEvent);
-    expect((upEvent.currentTarget as unknown as { releasePointerCapture: (id: number) => void }).releasePointerCapture).toHaveBeenCalledWith(7);
+    expect(
+      (upEvent.currentTarget as unknown as { releasePointerCapture: (id: number) => void }).releasePointerCapture,
+    ).toHaveBeenCalledWith(7);
     expect(vm.whisperPttActive).toBe(false);
     expect(options.setWhisperActive).toHaveBeenLastCalledWith(false);
   });

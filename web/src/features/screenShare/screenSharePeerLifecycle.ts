@@ -24,7 +24,7 @@ export interface ScreenSharePeerContext {
   outputSettings: () => ScreenShareOutputSettings | null;
 }
 
-/** Peer connections and their negotiation timers: create, arm/clear the timeout, close, fail. */
+/** Peer connections and their negotiation timers, covering create, arm/clear the timeout, close and fail. */
 export function createScreenSharePeerLifecycle(ctx: ScreenSharePeerContext) {
   const peerTimers = new Map<string, ReturnType<typeof setTimeout>>();
 
@@ -37,11 +37,14 @@ export function createScreenSharePeerLifecycle(ctx: ScreenSharePeerContext) {
 
   function armScreenSharePeerTimer(peerId: string): void {
     clearScreenSharePeerTimer(peerId);
-    peerTimers.set(peerId, setTimeout(() => {
-      peerTimers.delete(peerId);
-      if (!ctx.peers.has(peerId)) return;
-      failScreenSharePeer(peerId, text("screenShareP2PTimeout"));
-    }, SCREEN_SHARE_NEGOTIATION_TIMEOUT_MS));
+    peerTimers.set(
+      peerId,
+      setTimeout(() => {
+        peerTimers.delete(peerId);
+        if (!ctx.peers.has(peerId)) return;
+        failScreenSharePeer(peerId, text("screenShareP2PTimeout"));
+      }, SCREEN_SHARE_NEGOTIATION_TIMEOUT_MS),
+    );
   }
 
   function closeScreenSharePeer(peerId: string): void {
@@ -52,7 +55,11 @@ export function createScreenSharePeerLifecycle(ctx: ScreenSharePeerContext) {
     ctx.stats.forgetPeerStats(peerId);
     ctx.pendingIce.delete(peerId);
     ctx.peerStreams.delete(peerId);
-    try { peer?.close(); } catch { /* closing an already closed peer is harmless */ }
+    try {
+      peer?.close();
+    } catch {
+      /* closing an already closed peer is harmless */
+    }
     if (!ctx.peers.size) ctx.stats.stopScreenShareStatsPolling();
   }
 
@@ -80,9 +87,8 @@ export function createScreenSharePeerLifecycle(ctx: ScreenSharePeerContext) {
   function createScreenSharePeer(streamId: string, peerId: string, role: "owner" | "viewer"): RTCPeerConnection {
     const existing = ctx.peers.get(peerId);
     if (existing) return existing;
-    // STUN discovers server-reflexive candidates; it does not carry media.
-    // TURN is accepted only when explicitly configured by the deployment, and
-    // would use that external TURN service rather than the WebSpeak gateway.
+    // STUN discovers server-reflexive candidates, it does not carry media. TURN is only used when the deployment configures it,
+    // and then it is that external service, not the WebSpeak gateway.
     const peer = new RTCPeerConnection({ iceServers: getScreenShareIceServers() });
     ctx.peers.set(peerId, peer);
     ctx.peerRoles.set(peerId, role);
@@ -124,10 +130,8 @@ export function createScreenSharePeerLifecycle(ctx: ScreenSharePeerContext) {
       ctx.viewing.value = true;
     };
     peer.onconnectionstatechange = () => {
-      // `completed` belongs to RTCIceConnectionState, not the aggregate
-      // RTCPeerConnection.connectionState. Treating it as a connection state
-      // both trips the type checker and can hide the actual failed/closed
-      // transitions we need to handle here.
+      // `completed` belongs to RTCIceConnectionState, not the aggregate RTCPeerConnection.connectionState. Treating it as a
+      // connection state trips the type checker and can hide the failed/closed transitions we need.
       if (peer.connectionState === "connected") {
         clearScreenSharePeerTimer(peerId);
       } else if (peer.connectionState === "failed") {
@@ -139,7 +143,11 @@ export function createScreenSharePeerLifecycle(ctx: ScreenSharePeerContext) {
   }
 
   return {
-    armScreenSharePeerTimer, closeScreenSharePeer, closeAllScreenSharePeers, setScreenShareP2PError,
-    failScreenSharePeer, createScreenSharePeer,
+    armScreenSharePeerTimer,
+    closeScreenSharePeer,
+    closeAllScreenSharePeers,
+    setScreenShareP2PError,
+    failScreenSharePeer,
+    createScreenSharePeer,
   };
 }

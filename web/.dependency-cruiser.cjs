@@ -1,5 +1,5 @@
-// Layer rules from docs/design/project-structure.md section 3, written against the
-// target paths (features/, shared/, views/, app/). Step S7.1 made every rule an error.
+// Layer rules from docs/architecture.md, written against the
+// paths (features/, shared/, views/). Every rule is an error.
 const SEVERITY = "error";
 
 // Code that composes the whole app and may reach into any feature: the entry point, the Vitest
@@ -15,11 +15,8 @@ module.exports = {
       name: "no-circular",
       severity: SEVERITY,
       comment:
-        "Import cycles are forbidden. The five admin stores call each other's use*Store() inside actions " +
-        "(lazy, safe at runtime); breaking that knot is an admin refactor, tracked as SF3 in structure-findings.md.",
-      from: {
-        pathNot: "^src/features/admin/admin(Session|Overview|Operations|ServerSettings|Format)\\.ts$",
-      },
+        "Import cycles are forbidden. The admin stores reach each other through adminSiblings.ts.",
+      from: {},
       to: { circular: true },
     },
     {

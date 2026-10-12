@@ -16,7 +16,8 @@ export const de: Record<string, string> = {
   accompanimentActive: "Begleitung aktiv",
   accompanimentNeedsWebRtc: "Die Begleitungsfunktion benötigt WebRTC.",
   accompanimentNoAudio: "Die ausgewählte Quelle enthält kein teilbares Audio. Wähle sie erneut und aktiviere die Audiofreigabe.",
-  accompanimentPermissionDenied: "Begleitungs-Audio konnte nicht abgerufen werden. Erlaube die Bildschirmfreigabe und aktiviere die Audiofreigabe.",
+  accompanimentPermissionDenied:
+    "Begleitungs-Audio konnte nicht abgerufen werden. Erlaube die Bildschirmfreigabe und aktiviere die Audiofreigabe.",
   accompanimentUnsupported: "Dieser Browser unterstützt das Teilen von Begleitung nicht.",
   startScreenShare: "Bildschirm teilen",
   screenShareStarting: "Live-Stream wird gestartet",

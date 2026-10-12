@@ -1,4 +1,4 @@
-// Characterization of the screenShare* gateway messages (Step V0.3b, part 2).
+// Characterization of the screenShare* gateway messages.
 import { flushPromises } from "@vue/test-utils";
 import { afterEach, describe, expect, it } from "vitest";
 import { createVoiceHarness, type VoiceHarness } from "@/testSupport/harness";
@@ -17,17 +17,45 @@ async function push(socket: FakeWebSocket, message: Record<string, unknown>): Pr
   await flushPromises();
 }
 
-const stream = (overrides: Record<string, unknown> = {}) => ({ streamId: "s1", ownerPeerId: "peer-owner", ownerNickname: "Ana", name: "Ana's screen", audio: true, createdAt: 10, viewerCount: 0, viewers: [], ...overrides });
+const stream = (overrides: Record<string, unknown> = {}) => ({
+  streamId: "s1",
+  ownerPeerId: "peer-owner",
+  ownerNickname: "Ana",
+  name: "Ana's screen",
+  audio: true,
+  createdAt: 10,
+  viewerCount: 0,
+  viewers: [],
+  ...overrides,
+});
 
 afterEach(() => harness?.dispose());
 
 describe("screenShareList", () => {
   it("replaces the stream list, normalizing fields and skipping invalid entries", async () => {
     const socket = await connected();
-    await push(socket, { type: "screenShareList", streams: [stream(), { streamId: "bad" }, null, { streamId: "s2", ownerPeerId: "ts-1", source: "teamspeak", ownerClientId: 4 }] });
+    await push(socket, {
+      type: "screenShareList",
+      streams: [stream(), { streamId: "bad" }, null, { streamId: "s2", ownerPeerId: "ts-1", source: "teamspeak", ownerClientId: 4 }],
+    });
     expect(harness.voice.screenShare.screenShareStreams.map((s) => s.streamId)).toEqual(["s1", "s2"]);
-    expect(harness.voice.screenShare.screenShareStreams[0]).toMatchObject({ source: "browser", ownerNickname: "Ana", name: "Ana's screen", audio: true, createdAt: 10, viewerCount: 0, viewers: [] });
-    expect(harness.voice.screenShare.screenShareStreams[1]).toMatchObject({ source: "teamspeak", ownerClientId: 4, ownerNickname: "", name: "", audio: false, viewerCount: 0 });
+    expect(harness.voice.screenShare.screenShareStreams[0]).toMatchObject({
+      source: "browser",
+      ownerNickname: "Ana",
+      name: "Ana's screen",
+      audio: true,
+      createdAt: 10,
+      viewerCount: 0,
+      viewers: [],
+    });
+    expect(harness.voice.screenShare.screenShareStreams[1]).toMatchObject({
+      source: "teamspeak",
+      ownerClientId: 4,
+      ownerNickname: "",
+      name: "",
+      audio: false,
+      viewerCount: 0,
+    });
     await push(socket, { type: "screenShareList" });
     expect(harness.voice.screenShare.screenShareStreams).toHaveLength(0);
   });
@@ -128,7 +156,9 @@ describe("screenShareJoined", () => {
     expect(harness.voice.screenShare.screenShareViewing.value).toBe(true);
     expect(harness.voice.screenShare.screenShareViewingStreamId.value).toBe("s1");
     expect(FakeRTCPeerConnection.instances).toHaveLength(1);
-    expect(socket.sentOfType("screenShareSignal")).toMatchObject([{ streamId: "s1", targetPeerId: "peer-owner", signal: { kind: "offer", sdp: "fake-offer" } }]);
+    expect(socket.sentOfType("screenShareSignal")).toMatchObject([
+      { streamId: "s1", targetPeerId: "peer-owner", signal: { kind: "offer", sdp: "fake-offer" } },
+    ]);
   });
 
   it("waits for the offer of a TeamSpeak stream instead of sending one", async () => {
@@ -149,7 +179,12 @@ describe("screenShareSignal", () => {
   it("applies a browser owner's answer to the viewer peer", async () => {
     const socket = await connected();
     await push(socket, { type: "screenShareJoined", stream: stream() });
-    await push(socket, { type: "screenShareSignal", streamId: "s1", fromPeerId: "peer-owner", signal: { kind: "answer", sdp: "remote-answer" } });
+    await push(socket, {
+      type: "screenShareSignal",
+      streamId: "s1",
+      fromPeerId: "peer-owner",
+      signal: { kind: "answer", sdp: "remote-answer" },
+    });
     expect(FakeRTCPeerConnection.instances[0].remoteDescription).toEqual({ type: "answer", sdp: "remote-answer" });
   });
 
@@ -180,7 +215,9 @@ describe("screenShareNativeViewerJoined / screenShareViewerLeft", () => {
     const [{ requestId }] = socket.sentOfType("screenShareStart") as [{ requestId: string }];
     await push(socket, { type: "screenShareStarted", owner: true, requestId, stream: stream({ streamId: "mine", ownerPeerId: "me" }) });
     await push(socket, { type: "screenShareNativeViewerJoined", streamId: "mine", viewerPeerId: "ts-viewer-1" });
-    expect(socket.sentOfType("screenShareSignal")).toMatchObject([{ streamId: "mine", targetPeerId: "ts-viewer-1", signal: { kind: "offer" } }]);
+    expect(socket.sentOfType("screenShareSignal")).toMatchObject([
+      { streamId: "mine", targetPeerId: "ts-viewer-1", signal: { kind: "offer" } },
+    ]);
     const peer = FakeRTCPeerConnection.instances[0];
     await push(socket, { type: "screenShareViewerLeft", viewerPeerId: "ts-viewer-1" });
     expect(peer.closed).toBe(true);

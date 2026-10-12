@@ -5,8 +5,7 @@ import type { ScreenSharePeerSignal } from "./screenShareProtocol.js";
 import { ScreenShareHub, screenStreamKey, type ScreenStreamRecord } from "./screenShareHub.js";
 import type { ScreenShareParticipant } from "./screenShareTypes.js";
 
-// The screen-share module sits below voice and may not import it, so this is
-// a private copy of voice's `parseNumber`.
+// Screen share sits below voice and cannot import it, so this is a private copy of its parseNumber.
 function parseNumber(value: string | undefined): number | undefined {
   if (!value || !/^\d+$/.test(value)) return undefined;
   const parsed = Number(value);
@@ -35,11 +34,8 @@ export function parseStreamSignalPayload(raw: string): { cmd: string; args: Reco
 
 export function toBrowserScreenSignal(payload: { cmd: string; args: Record<string, unknown> }): ScreenSharePeerSignal | null {
   const args = payload.args;
-  // TeamSpeak's native screen-share source wraps the initial SDP in a
-  // `joinResponse` message after it accepts a viewer's join request. The
-  // browser-side protocol uses the regular offer shape, so normalize it here
-  // before forwarding it. Without this mapping the native source can accept a
-  // viewer while the browser waits forever for its first SDP.
+  // A native TS share source wraps its first SDP in joinResponse after accepting a viewer. The
+  // browser expects a normal offer, without this mapping the viewer waits forever.
   if (payload.cmd === "joinResponse") {
     const decision = args.decision;
     if (decision === false || decision === 0 || decision === "0") return { kind: "close" };
@@ -68,11 +64,8 @@ export function toBrowserScreenSignal(payload: { cmd: string; args: Record<strin
 }
 
 /**
- * A gateway session can connect after a native TeamSpeak stream has already
- * started. TS6 does not replay that stream in the normal welcome snapshot;
- * requeststreaminfo is the official client-protocol query for this case.
- * Query each visible client once per TeamSpeak target, then let the normal
- * raw notification path announce the discovered stream to web viewers.
+ * A session can connect after a native stream started, and TS6 does not replay it in the welcome
+ * snapshot. Ask each visible client once per target and let the raw notification path announce it.
  */
 export async function discoverExistingTeamSpeakStreams(hub: ScreenShareHub, entry: ScreenShareParticipant): Promise<void> {
   const targetKey = teamSpeakTargetKey(entry.target);
@@ -84,11 +77,14 @@ export async function discoverExistingTeamSpeakStreams(hub: ScreenShareHub, entr
     try {
       await entry.tsClient.sendProtocolCommand(`requeststreaminfo clid=${clientId}`);
     } catch (error: unknown) {
-      hub.host.logger.debug({
-        target: formatTeamSpeakTarget(entry.target),
-        clientId,
-        err: error instanceof Error ? error.message : String(error),
-      }, "Could not query existing TeamSpeak screen stream");
+      hub.host.logger.debug(
+        {
+          target: formatTeamSpeakTarget(entry.target),
+          clientId,
+          err: error instanceof Error ? error.message : String(error),
+        },
+        "Could not query existing TeamSpeak screen stream",
+      );
     }
   }
 }
@@ -100,10 +96,13 @@ export function handleRawScreenNotification(hub: ScreenShareHub, entry: ScreenSh
     const viewerClientId = parseNumber(params.clid);
     if (!streamId || !viewerClientId) return;
     const targetKey = teamSpeakTargetKey(entry.target);
-    const stream = [...hub.screenStreams.values()].find((candidate) => candidate.targetKey === targetKey
-      && candidate.source === "browser"
-      && candidate.teamSpeakPublisherEntryId === entry.id
-      && candidate.teamSpeakStreamId === streamId);
+    const stream = [...hub.screenStreams.values()].find(
+      (candidate) =>
+        candidate.targetKey === targetKey &&
+        candidate.source === "browser" &&
+        candidate.teamSpeakPublisherEntryId === entry.id &&
+        candidate.teamSpeakStreamId === streamId,
+    );
     if (!stream) return;
     stream.nativeViewerClids.add(viewerClientId);
     stream.viewerCount = hub.screenShareViewerCount(stream);
@@ -121,16 +120,19 @@ export function handleRawScreenNotification(hub: ScreenShareHub, entry: ScreenSh
     const sourceClientId = parseNumber(params.clid);
     if (!streamId || !sourceClientId) return;
     const targetKey = teamSpeakTargetKey(entry.target);
-    const publisherEntry = [...hub.host.participants()].find((candidate) => candidate.target
-      && teamSpeakTargetKey(candidate.target) === targetKey
-      && candidate.tsClient.getClientId() === sourceClientId);
-    // Every session on the target gets this notification. The stream is the published browser share of its
-    // source client whether or not an earlier session has paired it already, so it is never announced a
-    // second time as a native stream of its own sharer (F19). Pairing twice with the same id is harmless.
+    const publisherEntry = [...hub.host.participants()].find(
+      (candidate) =>
+        candidate.target && teamSpeakTargetKey(candidate.target) === targetKey && candidate.tsClient.getClientId() === sourceClientId,
+    );
+    // Every session on the target gets this notification. If it is the browser share of its source
+    // client it must not be announced again as a native stream, pairing twice is harmless.
     const browserStream = publisherEntry
-      ? [...hub.screenStreams.values()].find((candidate) => candidate.targetKey === targetKey
-        && candidate.source === "browser"
-        && candidate.teamSpeakPublisherEntryId === publisherEntry.id)
+      ? [...hub.screenStreams.values()].find(
+          (candidate) =>
+            candidate.targetKey === targetKey &&
+            candidate.source === "browser" &&
+            candidate.teamSpeakPublisherEntryId === publisherEntry.id,
+        )
       : undefined;
     if (browserStream) {
       browserStream.teamSpeakStreamId ??= streamId;
@@ -164,9 +166,8 @@ export function handleRawScreenNotification(hub: ScreenShareHub, entry: ScreenSh
     if (params.name) delete stream.nameKind;
     stream.audio = params.audio === "1";
     hub.screenStreams.set(key, stream);
-    // Every gateway session attached to the same TS target sees the same
-    // raw notification. Only the first one should announce a new stream to
-    // browsers; otherwise each connected user receives duplicate cards.
+    // Every session on the same target sees this notification, only the first one announces a
+    // new stream or viewers get duplicate cards.
     if (!current) {
       hub.broadcastScreenMessage(stream, { type: "screenShareStarted", stream: hub.describeScreenStream(stream), owner: false });
     }
@@ -181,9 +182,9 @@ export function handleRawScreenNotification(hub: ScreenShareHub, entry: ScreenSh
       hub.stopScreenStream(stream, "source-stopped");
       return;
     }
-    const browserStream = [...hub.screenStreams.values()].find((candidate) => candidate.targetKey === targetKey
-      && candidate.source === "browser"
-      && candidate.teamSpeakStreamId === streamId);
+    const browserStream = [...hub.screenStreams.values()].find(
+      (candidate) => candidate.targetKey === targetKey && candidate.source === "browser" && candidate.teamSpeakStreamId === streamId,
+    );
     if (browserStream) {
       browserStream.teamSpeakStreamId = undefined;
       browserStream.nativeViewerClids.clear();
@@ -202,10 +203,13 @@ export function handleRawScreenNotification(hub: ScreenShareHub, entry: ScreenSh
     const viewerClientId = parseNumber(params.clid);
     if (!streamId || !viewerClientId) return;
     const targetKey = teamSpeakTargetKey(entry.target);
-    const stream = [...hub.screenStreams.values()].find((candidate) => candidate.targetKey === targetKey
-      && candidate.source === "browser"
-      && candidate.teamSpeakStreamId === streamId
-      && candidate.nativeViewerClids.has(viewerClientId));
+    const stream = [...hub.screenStreams.values()].find(
+      (candidate) =>
+        candidate.targetKey === targetKey &&
+        candidate.source === "browser" &&
+        candidate.teamSpeakStreamId === streamId &&
+        candidate.nativeViewerClids.has(viewerClientId),
+    );
     if (!stream) return;
     stream.nativeViewerClids.delete(viewerClientId);
     stream.viewerCount = hub.screenShareViewerCount(stream);
@@ -221,12 +225,16 @@ export function handleRawScreenNotification(hub: ScreenShareHub, entry: ScreenSh
     const streamId = params.id || params.stream_id;
     if (!streamId) return;
     const targetKey = teamSpeakTargetKey(entry.target);
-    const browserStream = notification.name === "notifystreamsignaling"
-      ? [...hub.screenStreams.values()].find((candidate) => candidate.targetKey === targetKey
-        && candidate.source === "browser"
-        && candidate.teamSpeakPublisherEntryId === entry.id
-        && candidate.teamSpeakStreamId === streamId)
-      : undefined;
+    const browserStream =
+      notification.name === "notifystreamsignaling"
+        ? [...hub.screenStreams.values()].find(
+            (candidate) =>
+              candidate.targetKey === targetKey &&
+              candidate.source === "browser" &&
+              candidate.teamSpeakPublisherEntryId === entry.id &&
+              candidate.teamSpeakStreamId === streamId,
+          )
+        : undefined;
     if (browserStream) {
       const viewerClientId = parseNumber(params.clid);
       if (!viewerClientId || !browserStream.nativeViewerClids.has(viewerClientId)) return;
@@ -244,9 +252,10 @@ export function handleRawScreenNotification(hub: ScreenShareHub, entry: ScreenSh
     }
     const stream = hub.screenStreams.get(screenStreamKey(targetKey, streamId));
     if (!stream || stream.source !== "teamspeak" || !stream.viewerEntryIds.has(entry.id)) return;
-    const payload = notification.name === "notifyrespondjoinstreamrequest"
-      ? { cmd: "offer", args: { offer: params.offer || "" } }
-      : parseStreamSignalPayload(params.json || params.data || "");
+    const payload =
+      notification.name === "notifyrespondjoinstreamrequest"
+        ? { cmd: "offer", args: { offer: params.offer || "" } }
+        : parseStreamSignalPayload(params.json || params.data || "");
     if (!payload) return;
     const signal = toBrowserScreenSignal(payload);
     if (!signal) return;

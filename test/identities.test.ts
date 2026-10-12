@@ -35,7 +35,7 @@ describe("seeded identities", () => {
     expect(identityFromString(store.get(0).privateMaterial).securityLevel()).toBeGreaterThanOrEqual(8);
   });
 
-  it("names them the way TeamSpeak 6 does, SHA-256 of the public key, which is not the SDK's SHA-1 UID (F36)", () => {
+  it("names them the way TeamSpeak 6 does, SHA-256 of the public key, which is not the SDK's SHA-1 UID", () => {
     const { store } = tempStore();
     const { privateMaterial, uid } = store.get(0);
     const publicKey = identityFromString(privateMaterial).publicKeyBase64();
@@ -46,8 +46,8 @@ describe("seeded identities", () => {
   });
 
   it("reproduces the UID a real TeamSpeak 6 server reported for a known public key", () => {
-    // Measured on teamspeak6-server 6.0.0-beta13.1 (step 5.2b): the client database listed this UID
-    // for the identity with this public key. SHA-1 of the same key is jLjx5pIMJszva8Z6CM51YeSQyNI=.
+    // Measured on teamspeak6-server 6.0.0-beta13.1: the client database listed this UID for the identity
+    // with this public key. SHA-1 of the same key is jLjx5pIMJszva8Z6CM51YeSQyNI=.
     const publicKey = "ME0DAgcAAgEgAiEAht8kWseAlIxVe0M9FD3buO6Dt3wn1tKDlmcP81X0vQ0CIQCoeJwd6WkaZ40RT/vKF3J/t6PRmKmEUyPwqg9qvnrG0Q==";
     expect(serverUidOf(publicKey)).toBe("5xNaN5EbsO/Ccg929pS4u2awXacScXRizfuG/oSlNX8=");
     expect(getUidFromPublicKey(publicKey)).toBe("jLjx5pIMJszva8Z6CM51YeSQyNI=");
@@ -71,7 +71,11 @@ describe("storage state of a returning user", () => {
     const [origin] = state.origins;
     expect(origin.origin).toBe("http://127.0.0.1:1234");
     expect(origin.localStorage).toEqual([{ name: "webspeak:remember-identity", value: "1" }]);
-    const [database] = origin.indexedDB as { name: string; version: number; stores: { name: string; keyPath: string; records: { value: Record<string, unknown> }[] }[] }[];
+    const [database] = origin.indexedDB as {
+      name: string;
+      version: number;
+      stores: { name: string; keyPath: string; records: { value: Record<string, unknown> }[] }[];
+    }[];
     expect(database).toMatchObject({ name: "webspeak-local", version: 1 });
     expect(database.stores.map((s) => s.name).sort()).toEqual(["favorites", "identities", "preferences", "recent"]);
     const identities = database.stores.find((s) => s.name === "identities")!;

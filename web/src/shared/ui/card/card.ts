@@ -1,12 +1,15 @@
 import { cva, type VariantProps } from "class-variance-authority";
 
-export const cardVariants = cva("box-border flex min-w-0 flex-col rounded-lg border border-line bg-surface-1 font-sans text-sm/[normal] text-fg", {
-  variants: {
-    // A floating card (a login box) rather than a surface in the page.
-    raised: { true: "shadow-lg", false: "" },
+export const cardVariants = cva(
+  "box-border flex min-w-0 flex-col rounded-lg border border-line bg-surface-1 font-sans text-sm/[normal] text-fg",
+  {
+    variants: {
+      // A floating card (a login box) rather than a surface in the page.
+      raised: { true: "shadow-lg", false: "" },
+    },
+    defaultVariants: { raised: false },
   },
-  defaultVariants: { raised: false },
-});
+);
 
 export const cardBodyVariants = cva("min-w-0 flex-1", {
   variants: {

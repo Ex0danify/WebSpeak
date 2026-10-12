@@ -1,15 +1,7 @@
 import { canAcceptSession, MAX_ACTIVE_SESSIONS } from "../../../shared/constants.js";
 
 export type ConnectionState =
-  | "idle"
-  | "connecting"
-  | "authenticating"
-  | "syncing"
-  | "connected"
-  | "interrupted"
-  | "reconnecting"
-  | "disconnecting"
-  | "failed";
+  "idle" | "connecting" | "authenticating" | "syncing" | "connected" | "interrupted" | "reconnecting" | "disconnecting" | "failed";
 
 export type SessionTeardownReason =
   | "client-disconnect"

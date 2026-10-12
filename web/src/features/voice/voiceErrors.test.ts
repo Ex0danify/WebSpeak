@@ -1,4 +1,4 @@
-// Step V1.2: the microphone failure mapping (split out of errors.test.ts, Step S3.2).
+// The microphone failure mapping.
 import { describe, expect, it } from "vitest";
 import { audioNoticeText, microphoneErrorText, normalizeMicrophoneFailure } from "./voiceErrors";
 
@@ -20,10 +20,7 @@ describe("normalizeMicrophoneFailure", () => {
     expect(normalizeMicrophoneFailure(domError(name))).toEqual({ code, text: { key } });
   });
 
-  // Bug kept on purpose (plan V-D4), logged as VD1 in docs/design/voice-decompose-findings.md: the
-  // table key is spelled TYPEFERROR, so a real TypeError never reaches its own sentence. This asserts
-  // the correct message and is expected to fail until the key is fixed.
-  it.fails("VD1: a TypeError gets its own sentence", () => {
+  it("a TypeError gets its own sentence", () => {
     expect(normalizeMicrophoneFailure(domError("TypeError"))).toEqual({
       code: "MIC_TYPEERROR",
       text: { key: "micFailedParameters" },
@@ -87,7 +84,10 @@ describe("audioNoticeText", () => {
   });
 
   it("names the encoder failure specially and never prints the gateway detail", () => {
-    expect(audioNoticeText("AUDIO_ENCODER_UNAVAILABLE")).toEqual({ key: "audioNoticeEncoder", params: { code: "AUDIO_ENCODER_UNAVAILABLE" } });
+    expect(audioNoticeText("AUDIO_ENCODER_UNAVAILABLE")).toEqual({
+      key: "audioNoticeEncoder",
+      params: { code: "AUDIO_ENCODER_UNAVAILABLE" },
+    });
     expect(audioNoticeText("AUDIO_ENCODER_UNAVAILABLE", { detail: "boom" })).toEqual({
       key: "audioNoticeEncoder",
       params: { code: "AUDIO_ENCODER_UNAVAILABLE" },
@@ -96,6 +96,9 @@ describe("audioNoticeText", () => {
 
   it("gives every other code the generic audio-link sentence", () => {
     expect(audioNoticeText("AUDIO_X")).toEqual({ key: "audioNoticeLink", params: { code: "AUDIO_X" } });
-    expect(audioNoticeText("AUDIO_X", { detail: "boom" })).toEqual({ key: "audioNoticeLinkDetail", params: { code: "AUDIO_X", detail: "boom" } });
+    expect(audioNoticeText("AUDIO_X", { detail: "boom" })).toEqual({
+      key: "audioNoticeLinkDetail",
+      params: { code: "AUDIO_X", detail: "boom" },
+    });
   });
 });

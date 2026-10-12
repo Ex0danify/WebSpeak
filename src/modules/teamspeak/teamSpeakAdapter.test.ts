@@ -125,14 +125,14 @@ describe("detectTeamSpeakProtocol", () => {
     expect(detectTeamSpeakProtocol("build 1655727713 platform Linux version 3.13.7")).toBe("ts3");
   });
 
-  // F8: a ".6.x" component inside a TS3 version is not a TS6 version.
-  it("F8: reads a TS3 server version such as 3.6.1 as ts3", () => {
+  // A ".6.x" component inside a TS3 version is not a TS6 version.
+  it("reads a TS3 server version such as 3.6.1 as ts3", () => {
     expect(detectTeamSpeakProtocol("3.6.1 1568900000 Linux")).toBe("ts3");
     expect(detectTeamSpeakProtocol("TeamSpeak 3.6.1")).toBe("ts3");
     expect(detectTeamSpeakProtocol("version=3.6.1 platform=Linux")).toBe("ts3");
   });
 
-  it("F8: still reads a bare 6.x version as ts6", () => {
+  it("still reads a bare 6.x version as ts6", () => {
     expect(detectTeamSpeakProtocol("6.0.0-beta13.1 Linux")).toBe("ts6");
     expect(detectTeamSpeakProtocol("version=6.0.0")).toBe("ts6");
   });

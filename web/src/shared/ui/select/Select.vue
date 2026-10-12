@@ -41,11 +41,17 @@ defineExpose({ focus: () => selectEl.value?.focus(), el: selectEl });
       v-model="model"
       :aria-invalid="isInvalid ? 'true' : undefined"
       :aria-describedby="describedBy"
-      :class="cn(controlVariants({ invalid: isInvalid }), 'peer cursor-pointer appearance-none truncate pr-9 disabled:cursor-not-allowed', selectClass)"
+      :class="
+        cn(
+          controlVariants({ invalid: isInvalid }),
+          'peer cursor-pointer appearance-none truncate pr-9 disabled:cursor-not-allowed',
+          selectClass,
+        )
+      "
     >
       <slot />
     </select>
-    <span class="pointer-events-none absolute right-3 top-0 flex h-10 items-center text-fg-muted max-compact:h-11 peer-disabled:opacity-50">
+    <span class="pointer-events-none absolute top-0 right-3 flex h-10 items-center text-fg-muted peer-disabled:opacity-50 max-compact:h-11">
       <Icon name="chevron-down" />
     </span>
   </div>

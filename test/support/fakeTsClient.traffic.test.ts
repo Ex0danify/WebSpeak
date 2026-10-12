@@ -87,13 +87,23 @@ describe("text messages", () => {
     const bob = await join("bob");
     const carol = await join("carol");
     await carol.switchChannel(2n);
-    const inbox = { alice: collect<TSChatMessage>(alice, "textMessage"), bob: collect<TSChatMessage>(bob, "textMessage"), carol: collect<TSChatMessage>(carol, "textMessage") };
+    const inbox = {
+      alice: collect<TSChatMessage>(alice, "textMessage"),
+      bob: collect<TSChatMessage>(bob, "textMessage"),
+      carol: collect<TSChatMessage>(carol, "textMessage"),
+    };
     await alice.sendTextMessage("channel", "to the channel", alice.getChannelId());
     await alice.sendTextMessage("server", "to everyone");
     await alice.sendTextMessage("private", "psst", BigInt(carol.getClientId()));
     expect(inbox.alice).toEqual([]);
-    expect(inbox.bob.map((m) => [m.targetMode, m.message])).toEqual([[2, "to the channel"], [3, "to everyone"]]);
-    expect(inbox.carol.map((m) => [m.targetMode, m.message, m.targetId])).toEqual([[3, "to everyone", 0n], [1, "psst", BigInt(carol.getClientId())]]);
+    expect(inbox.bob.map((m) => [m.targetMode, m.message])).toEqual([
+      [2, "to the channel"],
+      [3, "to everyone"],
+    ]);
+    expect(inbox.carol.map((m) => [m.targetMode, m.message, m.targetId])).toEqual([
+      [3, "to everyone", 0n],
+      [1, "psst", BigInt(carol.getClientId())],
+    ]);
     expect(inbox.bob[0]).toMatchObject({ invokerName: "alice", invokerId: alice.getClientId(), invokerUid: alice.uid, targetId: 0n });
     expect(alice.sentMessages.map((m) => m.scope)).toEqual(["channel", "server", "private"]);
   });
@@ -189,7 +199,9 @@ describe("operations outside a session and injected failures", () => {
     const alice = await join("alice");
     server.onCommand = (command) => (command === "version" ? [{ version: "6.0.0" }] : []);
     const seen: string[] = [];
-    server.onProtocolCommand = (command) => { seen.push(command); };
+    server.onProtocolCommand = (command) => {
+      seen.push(command);
+    };
     await expect(alice.execCommandWithResponse("version")).resolves.toEqual([{ version: "6.0.0" }]);
     await alice.sendProtocolCommand("requeststreaminfo clid=2");
     expect(alice.commands).toEqual(["version"]);

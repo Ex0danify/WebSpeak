@@ -9,9 +9,9 @@ export class MetaRepository {
   }
 
   set(key: string, value: string): void {
-    this.context.database.prepare(
-      "INSERT INTO metadata (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value",
-    ).run(key, value);
+    this.context.database
+      .prepare("INSERT INTO metadata (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value")
+      .run(key, value);
   }
 
   nextVisitorNumber(): number {
@@ -19,9 +19,7 @@ export class MetaRepository {
     this.context.transaction(() => {
       const currentValue = this.get("visitor_count");
       const current = currentValue ? Number.parseInt(currentValue, 10) : 0;
-      nextNumber = Number.isSafeInteger(current) && current >= 0 && current < Number.MAX_SAFE_INTEGER
-        ? current + 1
-        : 1;
+      nextNumber = Number.isSafeInteger(current) && current >= 0 && current < Number.MAX_SAFE_INTEGER ? current + 1 : 1;
       this.set("visitor_count", String(nextNumber));
     });
     return nextNumber;

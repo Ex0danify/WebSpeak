@@ -6,7 +6,9 @@ const middle = () => 0.5;
 
 describe("reconnectDelayMs", () => {
   it("follows the backoff table when there is no jitter", () => {
-    expect([1, 2, 3, 4, 5, 6, 7].map((attempt) => reconnectDelayMs(attempt, middle))).toEqual([1_000, 2_000, 4_000, 8_000, 15_000, 30_000, 30_000]);
+    expect([1, 2, 3, 4, 5, 6, 7].map((attempt) => reconnectDelayMs(attempt, middle))).toEqual([
+      1_000, 2_000, 4_000, 8_000, 15_000, 30_000, 30_000,
+    ]);
     expect(RECONNECT_DELAYS_MS).toEqual([1_000, 2_000, 4_000, 8_000, 15_000, 30_000, 30_000]);
   });
 

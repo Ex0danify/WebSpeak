@@ -1,13 +1,20 @@
-// useWebRtcTransport on its own (Step V4.4): stores, browser stubs and stub deps, no composable around it.
+// useWebRtcTransport on its own: stores, browser stubs and stub deps, no composable around it.
 // The wire messages (webrtcOffer, webrtcAnswer, webrtcError) are also pinned by messages.connection.test.ts.
-// The accompaniment lives in useWebRtcAccompaniment.test.ts.
+// The accompaniment lives in useWebRtcAccompaniment.test.ts, the microphone monitor in useWebRtcTransport.micMonitor.test.ts.
 import { describe, expect, it, vi } from "vitest";
 import { useVoiceAudioStore } from "../stores/voiceAudioStore";
-import { FakeAnalyserNode, FakeMediaStream, FakeMediaStreamTrack, FakeRTCPeerConnection } from "@/testSupport/browserStubs";
+import { FakeMediaStream, FakeMediaStreamTrack, FakeRTCPeerConnection } from "@/testSupport/browserStubs";
 import {
-  looseSrcObject, recordSources, rtc, sentTypes, setup, shareAccompaniment, socketStub, started, useTransportFixture,
+  looseSrcObject,
+  recordSources,
+  rtc,
+  sentTypes,
+  setup,
+  shareAccompaniment,
+  socketStub,
+  started,
+  useTransportFixture,
 } from "@/testSupport/webRtcTransportFixture";
-import { useWebRtcTransport } from "./useWebRtcTransport";
 
 useTransportFixture();
 
@@ -141,7 +148,10 @@ describe("startWebRtcTransport", () => {
     let sequence = 3;
     const made = setup({ connectionSequence: () => sequence });
     const socket = socketStub();
-    vi.spyOn(FakeRTCPeerConnection.prototype, "createOffer").mockImplementationOnce(async () => { sequence = 4; return { type: "offer", sdp: "x" }; });
+    vi.spyOn(FakeRTCPeerConnection.prototype, "createOffer").mockImplementationOnce(async () => {
+      sequence = 4;
+      return { type: "offer", sdp: "x" };
+    });
     await made.transport.startWebRtcTransport(3, socket);
     expect(socket.send).not.toHaveBeenCalled();
   });
@@ -229,7 +239,11 @@ describe("fallbackFromWebRtc", () => {
 
   it("reports a failed microphone restart as a microphone error", async () => {
     const failure = new Error("busy");
-    const { deps, session, socket, transport } = await started({ startMicrophone: vi.fn(async () => { throw failure; }) });
+    const { deps, session, socket, transport } = await started({
+      startMicrophone: vi.fn(async () => {
+        throw failure;
+      }),
+    });
     session.state.connected = true;
     await transport.fallbackFromWebRtc(3, socket);
     expect(deps.setMicrophoneError).toHaveBeenCalledWith(failure);
@@ -281,7 +295,9 @@ describe("stopWebRtcTransport", () => {
     const shared = await shareAccompaniment(peer, transport);
     const mixGain = transport.getWebRtcMixMicGain() as unknown as { disconnected: boolean };
     let mixGoneAtRelease: boolean | null = null;
-    shared.audio.stop = () => { mixGoneAtRelease = mixGain.disconnected; };
+    shared.audio.stop = () => {
+      mixGoneAtRelease = mixGain.disconnected;
+    };
     transport.stopWebRtcTransport();
     expect(mixGoneAtRelease).toBe(false);
     expect(mixGain.disconnected).toBe(true);
@@ -294,12 +310,14 @@ describe("stopWebRtcTransport", () => {
   });
 });
 
-
 describe("mix stream", () => {
   it("replaceWebRtcAudioTrack puts a fresh mix on the audio sender", async () => {
     const { peer, transport } = await started();
     const replaceTrack = vi.fn(async () => undefined);
-    vi.spyOn(peer, "getSenders").mockReturnValue([{ track: { kind: "video" } }, { track: { kind: "audio" }, replaceTrack }] as unknown as RTCRtpSender[]);
+    vi.spyOn(peer, "getSenders").mockReturnValue([
+      { track: { kind: "video" } },
+      { track: { kind: "audio" }, replaceTrack },
+    ] as unknown as RTCRtpSender[]);
     const before = transport.getWebRtcMixMicGain();
     await transport.replaceWebRtcAudioTrack();
     expect(replaceTrack).toHaveBeenCalledTimes(1);
@@ -320,81 +338,3 @@ describe("mix stream", () => {
     expect(transport.getWebRtcMixMicGain()).toBeNull();
   });
 });
-
-describe("microphone monitor", () => {
-  function analyserReading(value: number): void {
-    vi.spyOn(FakeAnalyserNode.prototype, "getFloatTimeDomainData").mockImplementation((target: Float32Array) => { target.fill(value); });
-  }
-
-  it("reports the level every 50 ms, scaled by six and capped at one", async () => {
-    vi.useFakeTimers();
-    analyserReading(0.05);
-    const { deps } = await started();
-    await vi.advanceTimersByTimeAsync(49);
-    expect(deps.micLevel.value).toBe(0);
-    await vi.advanceTimersByTimeAsync(1);
-    expect(deps.micLevel.value).toBeCloseTo(0.3);
-    analyserReading(0.5);
-    await vi.advanceTimersByTimeAsync(50);
-    expect(deps.micLevel.value).toBe(1);
-  });
-
-  it("marks the own client speaking above the VOX threshold and clears it below", async () => {
-    vi.useFakeTimers();
-    analyserReading(0.5);
-    const made = setup();
-    made.session.state.tsClientId = 9;
-    made.audio.voxThreshold = 0.1;
-    const socket = socketStub();
-    made.session.ws = socket;
-    await made.transport.startWebRtcTransport(3, socket);
-    await vi.advanceTimersByTimeAsync(50);
-    expect(made.deps.markSpeaking).toHaveBeenCalledWith(9);
-    analyserReading(0.01);
-    await vi.advanceTimersByTimeAsync(50);
-    expect(made.deps.clearSpeaking).toHaveBeenCalledWith(9);
-  });
-
-  it("does not mark speaking while muted or when the track is disabled", async () => {
-    vi.useFakeTimers();
-    analyserReading(0.5);
-    const made = setup();
-    made.session.state.tsClientId = 9;
-    made.audio.microphoneMuted = true;
-    const socket = socketStub();
-    await made.transport.startWebRtcTransport(3, socket);
-    await vi.advanceTimersByTimeAsync(50);
-    expect(made.deps.markSpeaking).not.toHaveBeenCalled();
-    expect(made.deps.clearSpeaking).toHaveBeenCalledWith(9);
-  });
-
-  it("does not mark speaking while the microphone track is disabled", async () => {
-    vi.useFakeTimers();
-    analyserReading(0.5);
-    const made = setup();
-    made.session.state.tsClientId = 9;
-    const socket = socketStub();
-    await made.transport.startWebRtcTransport(3, socket);
-    rtc.micStream!.getAudioTracks()[0]!.enabled = false;
-    await vi.advanceTimersByTimeAsync(50);
-    expect(made.deps.markSpeaking).not.toHaveBeenCalled();
-    expect(made.deps.clearSpeaking).toHaveBeenCalledWith(9);
-  });
-
-  it("stops on transport stop", async () => {
-    vi.useFakeTimers();
-    analyserReading(0.5);
-    const { deps, transport } = await started();
-    transport.stopWebRtcTransport();
-    deps.micLevel.value = 0;
-    await vi.advanceTimersByTimeAsync(500);
-    expect(deps.micLevel.value).toBe(0);
-  });
-
-  it("gives up quietly when the analyser graph cannot be built", async () => {
-    vi.spyOn(rtc.ctx, "createAnalyser").mockImplementation(() => { throw new Error("no analyser"); });
-    const { peer } = await started();
-    expect(peer.closed).toBe(false);
-  });
-});
-

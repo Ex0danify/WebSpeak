@@ -3,9 +3,8 @@ import { computed, useId, useSlots } from "vue";
 import { cn } from "../../lib/cn";
 import { cardBodyVariants, cardVariants, type CardVariants } from "./card";
 
-// A surface with a 1 px border and no shadow. The optional header holds a
-// title (or the `header` slot) and an `actions` slot; `footer` sits below the
-// body. Use `as="section"` for a landmark: it is then labelled by the title.
+// A surface with a 1 px border and no shadow. The optional header holds a title (or the `header` slot) and an `actions` slot,
+// `footer` sits below the body. Use `as="section"` for a landmark, it is then labelled by the title.
 const props = withDefaults(
   defineProps<{
     title?: string;
@@ -32,14 +31,12 @@ const labelled = computed(() => props.as === "section" && Boolean(props.title));
 </script>
 
 <template>
-  <component
-    :is="as"
-    :aria-labelledby="labelled ? titleId : undefined"
-    :class="cn(cardVariants({ raised }), props.class)"
-  >
+  <component :is="as" :aria-labelledby="labelled ? titleId : undefined" :class="cn(cardVariants({ raised }), props.class)">
     <header v-if="hasHeader" class="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 border-b border-line px-5 py-3.5">
       <slot name="header">
-        <component :is="headingTag" :id="titleId" class="m-0 min-w-0 break-words text-base font-semibold leading-snug">{{ title }}</component>
+        <component :is="headingTag" :id="titleId" class="m-0 min-w-0 text-base leading-snug font-semibold break-words">{{
+          title
+        }}</component>
       </slot>
       <div v-if="$slots.actions" class="flex shrink-0 items-center gap-2"><slot name="actions" /></div>
     </header>

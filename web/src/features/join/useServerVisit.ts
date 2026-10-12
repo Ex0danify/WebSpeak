@@ -30,7 +30,10 @@ export function useServerVisit({ voiceState, identityMaterial }: UseServerVisitO
     void recordRecentServer(recent);
   }
 
-  watch(() => voiceState.connected, (connected) => {
-    if (connected) recordServerVisit();
-  });
+  watch(
+    () => voiceState.connected,
+    (connected) => {
+      if (connected) recordServerVisit();
+    },
+  );
 }

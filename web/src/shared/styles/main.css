@@ -1,6 +1,3 @@
-/*
- * WebSpeak styling entry point (Tailwind CSS v4).
- */
 @layer theme, base, components, utilities;
 
 @import "tailwindcss/theme.css" layer(theme);
@@ -17,8 +14,7 @@
 }
 
 /*
- * Legacy resets the scoped view styles still rely on. Preflight (above) already sets
- * equivalent values for these; kept until step 6.4/6.5 clear the legacy CSS they support.
+ * Resets the scoped view styles still rely on. Preflight already sets equivalents, so they go with the legacy CSS.
  */
 @layer base {
   button,
@@ -32,9 +28,8 @@
 }
 
 /*
- * Admin viewport lock. The document never scrolls on desktop (each admin page is its own
- * scroll surface) and grows on narrow screens. Utilities cannot reach html/body/#app from a
- * component.
+ * Admin viewport lock. The document never scrolls on desktop (each admin page scrolls itself) and grows on
+ * narrow screens. Utilities cannot reach html/body/#app from a component.
  */
 @layer components {
   html:has(.admin-root),
@@ -67,9 +62,7 @@
   }
 }
 
-/*
- * Native scroll surfaces use the palette everywhere (a pseudo-element has no utility).
- */
+/* Scrollbars use the palette everywhere, a pseudo-element has no utility class. */
 @layer base {
   * {
     scrollbar-color: var(--color-line-strong) transparent;
@@ -100,23 +93,14 @@
 }
 
 /*
- * Document frame and focus ring. Deliberately outside every layer: they must keep beating
- * the utilities, as the scoped global rules of ClientLayout did.
- *
- * The document itself never becomes the scroll surface; each view owns its scroll area so
- * headers, controls and the mobile navigation stay fixed. main.ts sets --ui-scale (> 1 only on
- * large viewports) and App.vue zooms #app by it, so #app divides its height by the scale to land
- * on exactly one viewport while html and body stay pinned to the real one. Phones use svh so the
- * browser toolbar does not resize the layout.
+ * Outside every layer on purpose, so the frame and focus ring keep beating the utilities. App.vue zooms #app by
+ * --ui-scale, so #app divides its height by it to land on one viewport. Phones use svh to ignore the browser toolbar.
  */
 :root {
   --ui-scale: 1;
 }
 
-/*
- * The complete application scales from the 1920x1080 reference viewport, so typography, spacing,
- * controls and icons grow together on a high-resolution viewport instead of drifting apart.
- */
+/* The whole app scales from the 1920x1080 reference viewport, so type, spacing and icons grow together. */
 #app {
   zoom: var(--ui-scale);
 }

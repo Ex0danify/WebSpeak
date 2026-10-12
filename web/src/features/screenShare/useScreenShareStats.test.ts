@@ -1,12 +1,9 @@
-// The screen-share stats module (Step V5.1, split out of useScreenSharePeers): the pure record readers and the
-// one-second poll. Peers are created through the module's own entry points, on stub peers whose
-// stats a test controls (test-support/screen-share-peers.ts).
+// The screen-share stats module, meaning the pure record readers and the one-second poll. Peers come from the module's own
+// entry points, on stub peers whose stats a test controls (testSupport/screenSharePeers.ts).
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { BrowserStubs } from "@/testSupport/browserStubs";
 import { displayStream, installPeerEnvironment, makeStream, queueStats, setupPeers, type Stat } from "@/testSupport/screenSharePeers";
-import {
-  screenShareStatsNumber, screenShareStatsRecord, screenShareStatsString, screenShareVideoStatsKind,
-} from "./useScreenShareStats";
+import { screenShareStatsNumber, screenShareStatsRecord, screenShareStatsString, screenShareVideoStatsKind } from "./useScreenShareStats";
 
 let stubs: BrowserStubs;
 
@@ -97,7 +94,12 @@ describe("polling", () => {
     await addViewer(context, []);
     const [peer] = context.peers;
     let release: () => void = () => {};
-    const getStats = vi.spyOn(peer, "getStats").mockImplementation(() => new Promise((resolve) => { release = () => resolve({ forEach: () => {} } as never); }));
+    const getStats = vi.spyOn(peer, "getStats").mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          release = () => resolve({ forEach: () => {} } as never);
+        }),
+    );
     await vi.advanceTimersByTimeAsync(3_000);
     expect(getStats).toHaveBeenCalledTimes(1);
     release();
@@ -151,10 +153,29 @@ describe("polling", () => {
 
 describe("peer sample", () => {
   const owner: Stat[] = [
-    { id: "out", type: "outbound-rtp", kind: "video", codecId: "codec", bytesSent: 10_000, framesEncoded: 100, packetsSent: 90, frameWidth: 1280, frameHeight: 720, qualityLimitationReason: "cpu", framesDropped: 2 },
+    {
+      id: "out",
+      type: "outbound-rtp",
+      kind: "video",
+      codecId: "codec",
+      bytesSent: 10_000,
+      framesEncoded: 100,
+      packetsSent: 90,
+      frameWidth: 1280,
+      frameHeight: 720,
+      qualityLimitationReason: "cpu",
+      framesDropped: 2,
+    },
     { id: "codec", type: "codec", mimeType: "video/VP9" },
     { id: "remote", type: "remote-inbound-rtp", kind: "video", packetsLost: 10, roundTripTime: 0.05, jitter: 0.002 },
-    { id: "pair", type: "candidate-pair", nominated: true, localCandidateId: "local", availableOutgoingBitrate: 2_000_000, currentRoundTripTime: 0.9 },
+    {
+      id: "pair",
+      type: "candidate-pair",
+      nominated: true,
+      localCandidateId: "local",
+      availableOutgoingBitrate: 2_000_000,
+      currentRoundTripTime: 0.9,
+    },
     { id: "local", type: "local-candidate", candidateType: "srflx" },
   ];
 
@@ -163,10 +184,25 @@ describe("peer sample", () => {
     await addOwner(context, owner);
     await vi.advanceTimersByTimeAsync(0);
     expect(context.stats.peers[0]).toEqual({
-      peerId: "p1", role: "owner", direction: "outbound", connectionState: "connected", iceConnectionState: "connected",
-      codec: "video/VP9", candidateType: "srflx", width: 1280, height: 720, frameRate: null, bitrateKbps: null,
-      packetsLost: 10, packetsTotal: 100, lossPercent: 10, framesDropped: 2, jitterMs: 2, roundTripTimeMs: 50,
-      availableOutgoingBitrateKbps: 2_000, qualityLimitationReason: "cpu",
+      peerId: "p1",
+      role: "owner",
+      direction: "outbound",
+      connectionState: "connected",
+      iceConnectionState: "connected",
+      codec: "video/VP9",
+      candidateType: "srflx",
+      width: 1280,
+      height: 720,
+      frameRate: null,
+      bitrateKbps: null,
+      packetsLost: 10,
+      packetsTotal: 100,
+      lossPercent: 10,
+      framesDropped: 2,
+      jitterMs: 2,
+      roundTripTimeMs: 50,
+      availableOutgoingBitrateKbps: 2_000,
+      qualityLimitationReason: "cpu",
     });
     context.module.closeAllScreenSharePeers();
   });
@@ -175,10 +211,27 @@ describe("peer sample", () => {
     const context = setupPeers();
     await addViewer(context, [
       ...owner,
-      { id: "in", type: "inbound-rtp", kind: "video", framesDecoded: 5, bytesReceived: 500, packetsReceived: 45, packetsLost: 5, jitter: 0.01 },
+      {
+        id: "in",
+        type: "inbound-rtp",
+        kind: "video",
+        framesDecoded: 5,
+        bytesReceived: 500,
+        packetsReceived: 45,
+        packetsLost: 5,
+        jitter: 0.01,
+      },
     ]);
     await vi.advanceTimersByTimeAsync(0);
-    expect(context.stats.peers[0]).toMatchObject({ role: "viewer", direction: "inbound", packetsLost: 5, packetsTotal: 50, lossPercent: 10, jitterMs: 10, width: null });
+    expect(context.stats.peers[0]).toMatchObject({
+      role: "viewer",
+      direction: "inbound",
+      packetsLost: 5,
+      packetsTotal: 50,
+      lossPercent: 10,
+      jitterMs: 10,
+      width: null,
+    });
     context.module.closeAllScreenSharePeers();
   });
 
@@ -191,11 +244,13 @@ describe("peer sample", () => {
     await vi.advanceTimersByTimeAsync(0);
     expect(context.stats.peers[0]).toMatchObject({ frameRate: null, bitrateKbps: null });
     clock = 1_100;
-    record.framesEncoded = 103; record.bytesSent = 10_100;
+    record.framesEncoded = 103;
+    record.bytesSent = 10_100;
     await vi.advanceTimersByTimeAsync(1_000);
     expect(context.stats.peers[0]).toMatchObject({ frameRate: null, bitrateKbps: null });
     clock = 2_000;
-    record.framesEncoded = 130; record.bytesSent = 20_000;
+    record.framesEncoded = 130;
+    record.bytesSent = 20_000;
     await vi.advanceTimersByTimeAsync(1_000);
     expect(context.stats.peers[0].frameRate).toBeCloseTo((27 * 1_000) / 900);
     expect(context.stats.peers[0].bitrateKbps).toBeCloseTo((9_900 * 8) / 900);

@@ -46,7 +46,7 @@ const EXPECTED_SERVER_IDS: Record<string, WebSpeakErrorCode> = {
   "3331": "flooding",
 };
 
-/** Message strings are translated by the browser, so they are pinned. */
+/** English messages are pinned so a change is a conscious one. */
 const EXPECTED_MESSAGES: Record<WebSpeakErrorCode, string> = {
   invalid_target: "The TeamSpeak server address is invalid",
   invalid_nickname: "TeamSpeak refused the nickname: it must be 3-30 characters long",
@@ -188,9 +188,12 @@ describe("teamSpeakServerErrorCode", () => {
     expect(teamSpeakServerErrorCode("0203")).toBeNull();
   });
 
-  it.each([undefined, null, "", "  ", "abc", "12345678", "0x", "0xzzzz", "515a", "-515", "5.15", 999, {}, []])("returns null for %j", (id) => {
-    expect(teamSpeakServerErrorCode(id)).toBeNull();
-  });
+  it.each([undefined, null, "", "  ", "abc", "12345678", "0x", "0xzzzz", "515a", "-515", "5.15", 999, {}, []])(
+    "returns null for %j",
+    (id) => {
+      expect(teamSpeakServerErrorCode(id)).toBeNull();
+    },
+  );
 
   it("returns null for well-formed ids that are deliberately not mapped", () => {
     for (const id of ["512", "516", "1029", "1799", "3328", "0x0200"]) expect(teamSpeakServerErrorCode(id)).toBeNull();
@@ -241,13 +244,6 @@ describe("clientConnectionFailureCode", () => {
   });
 
   it("returns nothing outside the ClientConnectionFailureCode list", () => {
-    const returned = new Set<string>(ALL_CODES.map((code) => clientConnectionFailureCode(new WebSpeakError(code, "x", false), "secret")));
-    returned.add(clientConnectionFailureCode(new WebSpeakError("authentication_failed", "x", false)));
-    expect([...returned].sort()).toEqual(CLIENT_CONNECTION_FAILURE_CODES.filter((code) => code !== "INVALID_PARAMETER").sort());
-  });
-
-  // IF4: INVALID_PARAMETER is in the union (and has a web message) but no WebSpeakErrorCode maps to it.
-  it.fails("IF4: every ClientConnectionFailureCode is reachable", () => {
     const returned = new Set<string>(ALL_CODES.map((code) => clientConnectionFailureCode(new WebSpeakError(code, "x", false), "secret")));
     returned.add(clientConnectionFailureCode(new WebSpeakError("authentication_failed", "x", false)));
     expect([...returned].sort()).toEqual([...CLIENT_CONNECTION_FAILURE_CODES].sort());

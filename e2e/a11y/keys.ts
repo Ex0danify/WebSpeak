@@ -13,16 +13,18 @@ export interface Stop {
 }
 
 /**
- * Describes the focused element, or returns `null` when the document has the focus. A box shadow is
- * a ring when one of its layers has no offset and a spread of 2 px or more (`0 0 0 3px accent`), so a
- * resting shadow (a slider thumb, an input) does not count. The element is not blurred to compare:
- * that would run the page's own focus handlers (the dock's panels open and close on focus).
+ * Describes the focused element, or `null` when the document has the focus. A box shadow counts as a ring when a layer has no
+ * offset and a spread of 2 px or more, so a resting shadow (slider thumb, input) doesn't. It never blurs the element to
+ * compare, that would run the page's focus handlers.
  */
 export function describeFocus(page: Page): Promise<Stop | null> {
   return page.evaluate(() => {
     const element = document.activeElement as HTMLElement | null;
     if (!element || element === document.body) return null;
-    const book = ((window as unknown as { __stops?: { ids: WeakMap<Element, number>; last: number } }).__stops ??= { ids: new WeakMap(), last: 0 });
+    const book = ((window as unknown as { __stops?: { ids: WeakMap<Element, number>; last: number } }).__stops ??= {
+      ids: new WeakMap(),
+      last: 0,
+    });
     if (!book.ids.has(element)) book.ids.set(element, ++book.last);
     const style = getComputedStyle(element);
     const outlineWidth = Number.parseFloat(style.outlineWidth) || 0;
@@ -42,10 +44,9 @@ export function describeFocus(page: Page): Promise<Stop | null> {
 }
 
 /**
- * Presses Tab until the first stop comes round again and returns the stops of one round, and how
- * many presses left the focus on the document itself. A round has one of those, the wrap through
- * the browser's own controls; more than one is a Tab press that lands on nothing. `closed` is false
- * when no round closes within `max` presses, which is what a keyboard trap looks like.
+ * Presses Tab until the first stop comes round again, returns one round of stops and how many presses left the focus on the
+ * document itself (one per round is fine, more is a Tab that lands on nothing). `closed` is false after `max` presses, like a
+ * keyboard trap.
  */
 export async function tabRound(page: Page, max = 80): Promise<{ stops: Stop[]; gaps: number; closed: boolean }> {
   // Start from the top of the document, like a person who has just loaded the page.

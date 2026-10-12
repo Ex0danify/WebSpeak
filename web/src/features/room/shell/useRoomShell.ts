@@ -15,7 +15,14 @@ export interface UseRoomShellOptions {
 /** Shell state of the connected room: the mobile viewport flag and active mobile section, the
  *  viewport and `devicechange` listeners (registered on mount, removed on unmount), and the member
  *  actions the shell owns (poke, copy nickname, dismiss a poke banner). */
-export function useRoomShell({ memberMenu, pokeNotifications, accompanimentActive, stopAccompaniment, refreshAudioDevices, sendPoke }: UseRoomShellOptions) {
+export function useRoomShell({
+  memberMenu,
+  pokeNotifications,
+  accompanimentActive,
+  stopAccompaniment,
+  refreshAudioDevices,
+  sendPoke,
+}: UseRoomShellOptions) {
   const { t } = useI18n();
   const mobileSection = ref<"channels" | "chat" | "voice" | "more">("channels");
   const isMobileViewport = ref(false);
@@ -25,7 +32,9 @@ export function useRoomShell({ memberMenu, pokeNotifications, accompanimentActiv
   let viewportChangeHandler: (() => void) | undefined;
 
   onMounted(() => {
-    deviceChangeHandler = () => { void refreshAudioDevices().catch(() => undefined); };
+    deviceChangeHandler = () => {
+      void refreshAudioDevices().catch(() => undefined);
+    };
     navigator.mediaDevices?.addEventListener("devicechange", deviceChangeHandler);
     viewportMediaQuery = window.matchMedia("(max-width: 740px)");
     viewportChangeHandler = () => {
@@ -47,7 +56,10 @@ export function useRoomShell({ memberMenu, pokeNotifications, accompanimentActiv
   }
 
   function copyMemberName(member: ChannelMember): void {
-    navigator.clipboard?.writeText(member.nickname).then(() => showToast(t("copiedNickname")), () => showToast(t("copyFailedToast"), "danger"));
+    navigator.clipboard?.writeText(member.nickname).then(
+      () => showToast(t("copiedNickname")),
+      () => showToast(t("copyFailedToast"), "danger"),
+    );
   }
 
   function dismissPoke(id: string): void {

@@ -1,4 +1,4 @@
-// useAudioPreferences on its own (Step V2.3): stores plus a fake IndexedDB, and the deps as spies.
+// useAudioPreferences on its own: stores plus a fake IndexedDB, and the deps as spies.
 import { IDBFactory } from "fake-indexeddb";
 import { createPinia, setActivePinia } from "pinia";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
@@ -191,7 +191,16 @@ describe("persistence round trip", () => {
     const second = setup();
     second.session.members.push({ id: 11, nickname: "A again", uid: "u1" });
     await second.prefs.audioPreferencesReady;
-    expect(second.audio).toMatchObject({ selectedInputDeviceId: "mic-9", selectedOutputDeviceId: "spk-9", microphoneMuted: true, noiseSuppressionEnabled: false, voxThreshold: 0.02, inputVolume: 0.6, outputVolume: 0.4, notificationVolume: 0.7 });
+    expect(second.audio).toMatchObject({
+      selectedInputDeviceId: "mic-9",
+      selectedOutputDeviceId: "spk-9",
+      microphoneMuted: true,
+      noiseSuppressionEnabled: false,
+      voxThreshold: 0.02,
+      inputVolume: 0.6,
+      outputVolume: 0.4,
+      notificationVolume: 0.7,
+    });
     expect(second.audio.volumes[11]).toBe(2.5);
   });
 });

@@ -1,8 +1,8 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { FakeTeamSpeakServer } from "../../../../test/helpers/fakeTsClient.js";
-import { useGateway } from "../../../../test/helpers/gateway.js";
-import { ask, errorOf, joinVoice } from "../../../../test/helpers/voice.js";
-import type { WsClient } from "../../../../test/helpers/wsClient.js";
+import { FakeTeamSpeakServer } from "../../../../test/support/fakeTsClient.js";
+import { useGateway } from "../../../../test/support/gateway.js";
+import { ask, errorOf, joinVoice } from "../../../../test/support/voice.js";
+import type { WsClient } from "../../../../test/support/wsClient.js";
 
 const gateways = useGateway();
 afterEach(() => vi.restoreAllMocks());
@@ -40,7 +40,9 @@ describe("a text frame goes to the first handler that claims it", () => {
   it("a malformed offer is not an offer: it falls through to the command parser", async () => {
     const gateway = await gateways.start({ voiceBridgeOptions: WEBRTC_ON });
     const alice = await joinVoice(gateway, { nickname: "alice" });
-    expect(await errorFor(alice.socket, { type: "webrtcOffer", payload: { sdp: { type: "answer", sdp: "v=0" } } })).toMatchObject({ code: "UNKNOWN_MESSAGE_TYPE" });
+    expect(await errorFor(alice.socket, { type: "webrtcOffer", payload: { sdp: { type: "answer", sdp: "v=0" } } })).toMatchObject({
+      code: "UNKNOWN_MESSAGE_TYPE",
+    });
   });
 
   it("webrtcStop is answered with nothing, ready or not, and does not reach the command parser", async () => {
@@ -71,14 +73,18 @@ describe("a text frame goes to the first handler that claims it", () => {
     const early = await gateway.openVoice(gateway.ticket({ nickname: "early" }));
     expect(await errorFor(early, "not json")).toMatchObject({ code: "INVALID_JSON" });
     expect(await errorFor(early, { type: "dance" })).toMatchObject({ code: "UNKNOWN_MESSAGE_TYPE" });
-    expect(await errorFor(early, { type: "poke", requestId: "r1", payload: { clientId: 1, message: "hi" } })).toMatchObject({ code: "SESSION_NOT_READY" });
+    expect(await errorFor(early, { type: "poke", requestId: "r1", payload: { clientId: 1, message: "hi" } })).toMatchObject({
+      code: "SESSION_NOT_READY",
+    });
     release();
   });
 
   it("a ready session claims screen share, command and unknown frames in that order without closing the socket", async () => {
     const gateway = await gateways.start({ ts: new FakeTeamSpeakServer() });
     const alice = await joinVoice(gateway, { nickname: "alice" });
-    expect(await errorFor(alice.socket, { type: "screenShareJoin" })).toMatchObject({ code: expect.stringMatching(/^INVALID_SCREEN_SHARE/) });
+    expect(await errorFor(alice.socket, { type: "screenShareJoin" })).toMatchObject({
+      code: expect.stringMatching(/^INVALID_SCREEN_SHARE/),
+    });
     expect(await errorFor(alice.socket, { type: "dance" })).toMatchObject({ code: "UNKNOWN_MESSAGE_TYPE" });
     expect(alice.socket.closeInfo).toBeNull();
   });

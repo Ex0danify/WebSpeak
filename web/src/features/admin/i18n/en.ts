@@ -33,7 +33,8 @@ export const en = {
   connectionFailed: "Connection failed",
   packetLossRate: "Packet loss",
   serverAnswered: "TeamSpeak server answered",
-  serverAnsweredHint: "The server replied to the connection handshake on this port. No client was created, so the server password was not checked.",
+  serverAnsweredHint:
+    "The server replied to the connection handshake on this port. No client was created, so the server password was not checked.",
   noAnswerError: "No answer from the TeamSpeak server",
   noAnswerHint: "Nothing answered on this voice port. Check the port, that the server is running and that UDP is not blocked.",
   hostPing: "Host ping",
@@ -60,9 +61,11 @@ export const en = {
   webrtcPortRangeLead: "Allow the complete range through the host firewall and security group.",
   webrtcPortStart: "Start port",
   webrtcPortEnd: "End port",
-  webrtcApplyHint: "The range can only be edited while WebRTC is off. It is locked while enabled and applies to new connections after saving.",
+  webrtcApplyHint:
+    "The range can only be edited while WebRTC is off. It is locked while enabled and applies to new connections after saving.",
   webrtcPortNoticeTitle: "Allow WebRTC ports first",
-  webrtcPortNotice: "Ports must be opened: {{range}} (UDP). Allow this range in the host firewall, security group, and Docker port mapping first.",
+  webrtcPortNotice:
+    "Ports must be opened: {{range}} (UDP). Allow this range in the host firewall, security group, and Docker port mapping first.",
   relaySettings: "Relay server",
   relaySettingsLead: "Configure the relay used by accelerated guest connections; its name is shown on the welcome page.",
   relayName: "Relay display name",
@@ -91,7 +94,8 @@ export const en = {
   latency: "Latency",
   internalPort: "Internal port",
   unknown: "Unknown",
-  legacyImported: "Legacy config.json was imported. WebSpeak is now managed here and the old file is no longer a live configuration source.",
+  legacyImported:
+    "Legacy config.json was imported. WebSpeak is now managed here and the old file is no longer a live configuration source.",
   gotIt: "Got it",
   settingsSaved: "Settings saved.",
   systemStatus: "SYSTEM STATUS",
@@ -180,7 +184,8 @@ export const en = {
   logsUnavailable: "Log file unavailable",
   noLogs: "No logs are available.",
   operationFailed: "The operation failed. Try again later.",
-  updateNotice: "Running version {{version}}. Export a backup before upgrading, then replace the application version using the deployment guide.",
+  updateNotice:
+    "Running version {{version}}. Export a backup before upgrading, then replace the application version using the deployment guide.",
   version: "Version",
   audit: "Audit trail",
   auditLead: "Administrator and system actions; chat content and secrets are excluded.",

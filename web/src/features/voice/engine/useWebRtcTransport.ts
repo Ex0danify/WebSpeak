@@ -8,46 +8,39 @@ import type { SinkAudioContext, SinkAudioElement } from "../voiceTypes";
 import type { MessageHandlers } from "@/features/session";
 import { useWebRtcAccompaniment } from "./useWebRtcAccompaniment";
 
-/** Late-bound pieces owned by other modules or still in the assembler (V-D2): resolved at call time. */
+/** Late-bound pieces owned by other modules, resolved at call time. */
 export interface WebRtcTransportDeps {
-  // microphone
   getMicStream(): MediaStream | null;
   getProcessedMicStream(): MediaStream | null;
   ensureMicrophone(): Promise<void>;
   startMicrophone(): Promise<void>;
   stopCaptureGraph(): void;
   setMicrophoneError(error: unknown): LocalizedText;
-  // audio output
   getAudioCtx(): SinkAudioContext;
   effectiveOutputVolume(): number;
   stopWebRtcPlayback(): void;
   attachWebRtcPlayback(output: SinkAudioElement, stream: MediaStream): void;
   syncWebRtcPlayback(): Promise<void>;
   setAudioNotice(code: string, params?: TextParams): void;
-  // downlink, commands
   markSpeaking(clientId: number): void;
   clearSpeaking(clientId: number): void;
   sendCmd(type: string, payload?: Record<string, unknown>): void;
-  // connection (the assembler until V6.1)
   connectionSequence(): number;
   hasLastConnection(): boolean;
-  /** The transport's flag: PCM is not sent over the WebSocket while WebRTC carries the microphone. */
+  /** The transport's flag, PCM is not sent over the WebSocket while WebRTC carries the microphone. */
   webrtcActive: Ref<boolean>;
-  /** The microphone level; the assembler owns the ref (it is public) and the capture chunk writes it too. */
+  /** The microphone level. The assembler owns the ref (it is public) and the capture chunk writes it too. */
   micLevel: Ref<number>;
 }
 
-/** The WebRTC voice transport: the peer, the microphone mix stream, the mic monitor, the answer, the
- *  fallback to the PCM WebSocket path and the accompaniment (`useWebRtcAccompaniment`) that joins the mix. The peer, the mix nodes and the monitor are non-reactive
- *  closure state, never stored in Pinia. */
+/** The WebRTC voice transport, covering the peer, the mic mix stream, the mic monitor, the answer, the PCM WebSocket fallback
+ *  and the accompaniment that joins the mix. Peer, mix nodes and monitor are non-reactive closure state, never in Pinia. */
 export function useWebRtcTransport(deps: WebRtcTransportDeps) {
   const session = useSessionStore();
   const { ws } = storeToRefs(session);
   const { state } = session;
   const audio = useVoiceAudioStore();
-  const {
-    microphoneMuted, inputVolume, voxThreshold, selectedOutputDeviceId, accompanimentActive,
-  } = storeToRefs(audio);
+  const { microphoneMuted, inputVolume, voxThreshold, selectedOutputDeviceId, accompanimentActive } = storeToRefs(audio);
   const { volumes } = audio;
   const { webrtcActive, micLevel } = deps;
 
@@ -82,9 +75,8 @@ export function useWebRtcTransport(deps: WebRtcTransportDeps) {
     const destination = ctx.createMediaStreamDestination();
     destination.channelCount = 1;
     destination.channelCountMode = "explicit";
-    // Use the browser-native processed track plus the browser-side RNNoise
-    // graph. Display/application audio is added separately below and never
-    // passes through this microphone denoiser.
+    // Browser-native processed track plus the browser-side RNNoise graph. Display/application audio is added below and
+    // never goes through this denoiser.
     const microphoneStream = deps.getProcessedMicStream() ?? micStream;
     const microphoneSource = ctx.createMediaStreamSource(microphoneStream);
     const microphoneGain = ctx.createGain();
@@ -100,9 +92,8 @@ export function useWebRtcTransport(deps: WebRtcTransportDeps) {
     const accompanimentTrack = accompanimentStream?.getAudioTracks()[0];
     if (accompanimentTrack) {
       const accompanimentSource = ctx.createMediaStreamSource(accompanimentStream!);
-      // Keep the captured application audio at its source level. Do not add
-      // a fixed attenuation/gain node: it makes music sound quieter than the
-      // source and encourages later "compensation" steps to pump its volume.
+      // Keep the captured application audio at its source level. No fixed gain node, it makes music quieter than the source
+      // and invites later 'compensation' steps that pump its volume.
       accompanimentSource.connect(destination);
       webrtcMixAccompanimentSource = accompanimentSource;
     }
@@ -138,11 +129,8 @@ export function useWebRtcTransport(deps: WebRtcTransportDeps) {
     peer.addTrack(mixedTrack, mixedStream);
     peer.ontrack = (event) => {
       const stream = event.streams[0] ?? new MediaStream([event.track]);
-      // Use the browser's native WebRTC media output. Routing the remote
-      // track through AudioContext made playback depend on autoplay policy:
-      // the control channel could report speaking while a suspended context
-      // silently discarded the actual audio. A hidden autoplaying media
-      // element keeps WebRTC's decoder and jitter buffer on the native path.
+      // Native WebRTC output, not an AudioContext. A suspended context silently ate the audio while the control channel
+      // still reported speaking, and a hidden autoplaying media element keeps the decoder and jitter buffer native.
       deps.stopWebRtcPlayback();
       const output = document.createElement("audio") as SinkAudioElement;
       output.autoplay = true;
@@ -177,11 +165,16 @@ export function useWebRtcTransport(deps: WebRtcTransportDeps) {
       if (sequence !== deps.connectionSequence() || webrtcPeer !== peer || socket.readyState !== WebSocket.OPEN) return;
       const description = peer.localDescription;
       if (!description) throw new Error("WebRTC offer was not created");
-      socket.send(JSON.stringify({ type: "webrtcOffer", payload: {
-        sdp: { type: description.type, sdp: description.sdp },
-        muted: microphoneMuted.value,
-        accompanimentActive: accompanimentActive.value,
-      } }));
+      socket.send(
+        JSON.stringify({
+          type: "webrtcOffer",
+          payload: {
+            sdp: { type: description.type, sdp: description.sdp },
+            muted: microphoneMuted.value,
+            accompanimentActive: accompanimentActive.value,
+          },
+        }),
+      );
       window.setTimeout(() => {
         if (webrtcPeer === peer && !peer.remoteDescription) void fallbackFromWebRtc(sequence, socket, "WEBRTC_ANSWER_TIMEOUT");
       }, 8_000);
@@ -234,10 +227,12 @@ export function useWebRtcTransport(deps: WebRtcTransportDeps) {
     if (socket.readyState === WebSocket.OPEN) socket.send(JSON.stringify({ type: "webrtcStop" }));
     stopWebRtcTransport();
     if (socket.readyState === WebSocket.OPEN && state.connected) {
-      // Degrading to the compatibility transport must be visible: the user is
-      // still connected, but with different latency and audio quality.
+      // Falling back to the compatibility transport must be visible, the user stays connected but with different latency and
+      // quality.
       deps.setAudioNotice("WEBRTC_FALLBACK", { code: safeClientErrorCode(reasonCode) || "WEBRTC_UNAVAILABLE" });
-      try { await deps.startMicrophone(); } catch (error: unknown) {
+      try {
+        await deps.startMicrophone();
+      } catch (error: unknown) {
         deps.setMicrophoneError(error);
       }
     }
@@ -298,9 +293,12 @@ export function useWebRtcTransport(deps: WebRtcTransportDeps) {
   }
 
   function isSessionDescription(value: unknown, type: "answer"): value is RTCSessionDescriptionInit {
-    return Boolean(value) && typeof value === "object"
-      && (value as { type?: unknown }).type === type
-      && typeof (value as { sdp?: unknown }).sdp === "string";
+    return (
+      Boolean(value) &&
+      typeof value === "object" &&
+      (value as { type?: unknown }).type === type &&
+      typeof (value as { sdp?: unknown }).sdp === "string"
+    );
   }
 
   function syncWebRtcMemberVolumes(): void {
@@ -311,7 +309,6 @@ export function useWebRtcTransport(deps: WebRtcTransportDeps) {
       deps.sendCmd("setMemberVolume", { clientId, volume });
     }
   }
-
 
   /** The live peer, if any (accompaniment and member volume ask whether WebRTC is in play). */
   function getWebRtcPeer(): RTCPeerConnection | null {
@@ -338,14 +335,24 @@ export function useWebRtcTransport(deps: WebRtcTransportDeps) {
       void applyWebRtcAnswer(msg.payload?.sdp);
     },
     webrtcError: (msg) => {
-      if (ws.value) void fallbackFromWebRtc(deps.connectionSequence(), ws.value, safeClientErrorCode(msg.code) || "WEBRTC_NEGOTIATION_FAILED");
+      if (ws.value)
+        void fallbackFromWebRtc(deps.connectionSequence(), ws.value, safeClientErrorCode(msg.code) || "WEBRTC_NEGOTIATION_FAILED");
     },
   };
 
   return {
     handlers,
-    startWebRtcTransport, applyWebRtcAnswer, fallbackFromWebRtc, stopWebRtcTransport, stopWebRtcMix,
-    replaceWebRtcAudioTrack, syncWebRtcMemberVolumes, startAccompaniment, stopAccompaniment, releaseAccompanimentStream,
-    getWebRtcPeer, getWebRtcMixMicGain,
+    startWebRtcTransport,
+    applyWebRtcAnswer,
+    fallbackFromWebRtc,
+    stopWebRtcTransport,
+    stopWebRtcMix,
+    replaceWebRtcAudioTrack,
+    syncWebRtcMemberVolumes,
+    startAccompaniment,
+    stopAccompaniment,
+    releaseAccompanimentStream,
+    getWebRtcPeer,
+    getWebRtcMixMicGain,
   };
 }

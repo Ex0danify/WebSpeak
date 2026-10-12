@@ -15,7 +15,10 @@ function setup(serverOptions?: FakeServerOptions) {
 }
 
 async function failureOf(promise: Promise<unknown>, serverPassword = ""): Promise<string> {
-  const error = await promise.then(() => null, (caught: unknown) => caught);
+  const error = await promise.then(
+    () => null,
+    (caught: unknown) => caught,
+  );
   expect(error, "the call must fail").not.toBeNull();
   return clientConnectionFailureCode(normalizeTeamSpeakError(error), serverPassword);
 }
@@ -49,7 +52,9 @@ describe("connect", () => {
     const { make } = setup({ withholdSnapshot: true });
     const client = make("alice");
     let snapshots = 0;
-    client.on("directorySnapshot", () => { snapshots++; });
+    client.on("directorySnapshot", () => {
+      snapshots++;
+    });
     await client.connect();
     expect(snapshots).toBe(0);
   });
@@ -120,7 +125,12 @@ describe("server rules that surface as connection failure codes", () => {
   });
 
   it("refuses a protected default channel without its password and accepts it with the password", async () => {
-    const { make } = setup({ channels: [{ id: 1n, name: "Vault", password: "open" }, { id: 2n, name: "Lobby" }] });
+    const { make } = setup({
+      channels: [
+        { id: 1n, name: "Vault", password: "open" },
+        { id: 2n, name: "Lobby" },
+      ],
+    });
     expect(await failureOf(make("alice", { defaultChannel: "Vault" }).connect())).toBe("CHANNEL_PASSWORD_REQUIRED");
     const ok = make("bob", { defaultChannel: "Vault", channelPassword: "open" });
     await ok.connect();
@@ -157,7 +167,9 @@ describe("kick, ban and dropped transport", () => {
     const alice = make("alice");
     await alice.connect();
     let code = "";
-    alice.on("kicked", (reason) => { code = clientConnectionFailureCode(reason); });
+    alice.on("kicked", (reason) => {
+      code = clientConnectionFailureCode(reason);
+    });
     server.kick(alice, "", true);
     expect(code).toBe("BANNED");
     expect(await failureOf(alice.connect())).toBe("BANNED");
@@ -208,7 +220,12 @@ describe("channel rules", () => {
   });
 
   it("needs the channel password to switch into a protected channel", async () => {
-    const { make } = setup({ channels: [{ id: 1n, name: "Lobby" }, { id: 2n, name: "Vault", password: "open" }] });
+    const { make } = setup({
+      channels: [
+        { id: 1n, name: "Lobby" },
+        { id: 2n, name: "Vault", password: "open" },
+      ],
+    });
     const alice = make("alice");
     await alice.connect();
     expect(normalizeTeamSpeakError(await alice.switchChannel(2n).catch((e: unknown) => e)).code).toBe("channel_password_required");
@@ -240,7 +257,12 @@ describe("move permission", () => {
   });
 
   it("lets an admin move another client, tells the moved client, and ignores the channel password", async () => {
-    const { make, server } = setup({ channels: [{ id: 1n, name: "Lobby" }, { id: 2n, name: "Vault", password: "open" }] });
+    const { make, server } = setup({
+      channels: [
+        { id: 1n, name: "Lobby" },
+        { id: 2n, name: "Vault", password: "open" },
+      ],
+    });
     const admin = make("admin");
     const bob = make("bob");
     server.adminUids.add(admin.uid);

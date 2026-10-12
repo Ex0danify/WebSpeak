@@ -14,9 +14,7 @@ export default defineConfig({
   fullyParallel: true,
   workers: 4,
   retries: ci ? 1 : 0,
-  reporter: ci
-    ? [["list"], ["junit", { outputFile: "../test-results/junit-e2e.xml" }]]
-    : [["list"]],
+  reporter: ci ? [["list"], ["junit", { outputFile: "../test-results/junit-e2e.xml" }]] : [["list"]],
   use: {
     // The gateway fixture sets baseURL: every worker runs its own gateway.
     trace: "on-first-retry",

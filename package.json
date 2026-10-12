@@ -9,9 +9,10 @@
     "node": ">=22.5.0"
   },
   "scripts": {
+    "check:gateway-types": "tsc --noEmit -p tsconfig.eslint.json",
     "check:gateway-size": "node scripts/check-gateway-size.mjs",
     "dev": "tsx src/index.ts",
-    "build": "tsc && npm run check:gateway-size && npm run check:gateway-names && npm run check:gateway-deps && npm run check:gateway-literals",
+    "build": "tsc && npm run check:gateway-types && npm run check:gateway-size && npm run check:gateway-names && npm run check:gateway-deps && npm run check:gateway-literals && npm run check:comment-refs",
     "start": "node dist/index.js",
     "web:dev": "cd web && npx vite --host",
     "web:build": "npm --prefix web run build",
@@ -28,7 +29,12 @@
     "check:gateway-deps": "depcruise src --config .dependency-cruiser.cjs",
     "check:gateway-names": "node scripts/check-gateway-names.mjs",
     "check:gateway-literals": "node scripts/check-gateway-literals.mjs",
-    "i18n:create": "node web/scripts/create-language.mjs"
+    "check:comment-refs": "node scripts/check-comment-refs.mjs",
+    "i18n:create": "node web/scripts/create-language.mjs",
+    "format": "prettier --write web/src web/scripts e2e src test scripts",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format:check": "prettier --check web/src web/scripts e2e src test scripts"
   },
   "dependencies": {
     "@discordjs/opus": "^0.10.0",
@@ -40,16 +46,24 @@
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.13.0",
+    "@eslint/js": "^10.0.1",
     "@playwright/test": "^1.63.0",
     "@types/express": "^5.0.3",
     "@types/node": "^22.15.0",
     "@types/ws": "^8.18.1",
     "@vitest/coverage-v8": "^5.0.2",
     "dependency-cruiser": "^18.5.0",
+    "eslint": "^10.12.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-vue": "^10.11.1",
     "fake-indexeddb": "^6.2.5",
+    "globals": "^17.13.0",
     "happy-dom": "^20.14.5",
+    "prettier": "^3.9.10",
+    "prettier-plugin-tailwindcss": "^0.8.1",
     "tsx": "^4.21.0",
     "typescript": "^6.0.2",
+    "typescript-eslint": "^8.71.1",
     "vitest": "^5.0.2"
   },
   "overrides": {

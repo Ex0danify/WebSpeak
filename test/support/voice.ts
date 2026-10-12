@@ -12,9 +12,8 @@ export interface VoiceSession {
 }
 
 /**
- * Joins with a fresh ticket and waits until the gateway has sent the whole
- * initial state (`connected`, then `channelList`). Nicknames must be unique
- * per gateway, because the fake client is found by its nickname.
+ * Joins with a fresh ticket and waits for the whole initial state (connected, then channelList).
+ * Nicknames must be unique per gateway, the fake client is found by nickname.
  */
 export async function joinVoice(gateway: Gateway, payload: Partial<JoinTicketPayload> & { nickname: string }): Promise<VoiceSession> {
   const socket = await gateway.openVoice(gateway.ticket(payload));
@@ -26,7 +25,12 @@ export async function joinVoice(gateway: Gateway, payload: Partial<JoinTicketPay
 }
 
 /** Sends a command with a request id and returns the first message that answers that id. */
-export async function ask(session: VoiceSession, type: string, payload: Record<string, unknown>, requestId = `r-${Math.random().toString(36).slice(2)}`): Promise<JsonMessage> {
+export async function ask(
+  session: VoiceSession,
+  type: string,
+  payload: Record<string, unknown>,
+  requestId = `r-${Math.random().toString(36).slice(2)}`,
+): Promise<JsonMessage> {
   const after = session.socket.mark();
   session.socket.send({ type, requestId, payload });
   return session.socket.waitForMessage((message) => message.requestId === requestId, { after });

@@ -1,26 +1,21 @@
 import { fileURLToPath } from "node:url";
 import { test as base, expect, type BrowserContext } from "@playwright/test";
 import { Session } from "../helpers/session";
-import { type Gateway, type GatewayOptions, startGateway } from "../../test/helpers/gateway";
-import type { FakeRemoteMember } from "../../test/helpers/fakeTsClient";
+import { type Gateway, type GatewayOptions, startGateway } from "../../test/support/gateway";
+import type { FakeRemoteMember } from "../../test/support/fakeTsClient";
 import { JoinRateLimiter } from "../../src/modules/join/joinRateLimit";
 import { startGalleryServer } from "./gallery";
 
-// The join-ticket limit is 30 a minute per peer, and every browser of a worker reaches its gateway
-// from 127.0.0.1, so a worker that runs join-heavy specs at speed is refused with RATE_LIMITED and
-// its tests time out waiting for the room, on a different test each run. The limiter is tested by
-// itself in layer 3 (`server.join-ticket.test.ts`), and the server builds it inside `createWebServer`
-// with no way to pass another, so the browser tests switch it off in their own process. This does
-// not touch product code, and Vitest runs in another process.
+// Every browser of a worker joins from 127.0.0.1, so join-heavy specs would hit the 30 a minute ticket limit and time
+// out on a different test each run. createWebServer gives no way to swap the limiter, so this process switches it off.
 JoinRateLimiter.prototype.allow = () => true;
 
 const staticDir = fileURLToPath(new URL("../../web/dist", import.meta.url));
 
 interface WorkerFixtures {
   /**
-   * The real gateway of this worker: the same wiring as `src/index.ts`, a temporary data
-   * directory, sessions on a fake TeamSpeak server that the test can script through
-   * `gateway.ts`, and the fresh web build. One per worker, so workers never share state.
+   * The real gateway of this worker, wired like `src/index.ts`, with a temp data dir and a fake TeamSpeak
+   * server that tests script through `gateway.ts`. One per worker, so workers never share state.
    */
   gateway: Gateway;
   /**
@@ -31,8 +26,8 @@ interface WorkerFixtures {
 }
 
 /**
- * What a test puts on the fake TeamSpeak server besides the browsers. Everything is undone after the
- * test (members first), because the gateway of a worker is shared by its tests.
+ * What a test puts on the fake TeamSpeak server besides the browsers. Undone after the test, members first,
+ * because the gateway of a worker is shared by its tests.
  */
 export interface Script {
   /** A channel of its own, so a count or a list holds only what the test put there. Returns its id. */
@@ -47,9 +42,8 @@ export interface Script {
 let nextChannelId = 100n;
 
 /**
- * Stores the language before the first script of every page of `context`, so a test reads the same
- * text whatever the browser's locale. Only a first visit: a test that switches language (or removes
- * the stored value) must still see its own choice after a reload. Failing storage is not an error.
+ * Stores the language before the first script of every page of `context`, so a test reads the same text
+ * whatever the browser's locale. Only on the first visit, so a test that switches language keeps its choice after a reload.
  */
 async function pinLanguage(context: BrowserContext, language: string | null): Promise<void> {
   if (language === null) return;
@@ -77,9 +71,8 @@ interface TestFixtures {
   openSession: () => Promise<Session>;
   script: Script;
   /**
-   * A gateway of its own for a test that changes what every visitor sees (server settings, invites,
-   * the administrator's password, the login rate limit), so the worker's shared gateway stays as
-   * the other tests expect. Same wiring and fresh build; stopped after the test.
+   * A gateway of its own for a test that changes what every visitor sees (server settings, invites, admin
+   * password, login rate limit), so the shared one stays as other tests expect. Stopped after the test.
    */
   ownGateway: (options?: GatewayOptions) => Promise<Gateway>;
   /** Attaches what the gateway logged during a failed test. */

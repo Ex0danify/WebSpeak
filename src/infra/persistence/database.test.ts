@@ -1,6 +1,6 @@
 import { DatabaseSync } from "node:sqlite";
 import { describe, expect, it } from "vitest";
-import { credential, settings, useDatabaseFixture } from "../../../test/helpers/database.js";
+import { credential, settings, useDatabaseFixture } from "../../../test/support/database.js";
 import type { AdminCredential } from "../security/adminPassword.js";
 
 const fx = useDatabaseFixture();
@@ -18,7 +18,9 @@ describe("admin credential", () => {
   it("rejects a second initialization and leaves the first one untouched", () => {
     const database = fx.open();
     database.initializeAdmin(credential, settings());
-    expect(() => database.initializeAdmin({ ...credential, username: "other" }, settings({ siteName: "Other" }))).toThrow("already initialized");
+    expect(() => database.initializeAdmin({ ...credential, username: "other" }, settings({ siteName: "Other" }))).toThrow(
+      "already initialized",
+    );
     expect(database.getAdminCredential()?.username).toBe("root");
     expect(database.getSettings().siteName).toBe("Test site");
     expect(database.recentAudit(50).filter((entry) => entry.event === "ADMIN_INITIALIZED")).toHaveLength(1);
@@ -90,7 +92,10 @@ describe("settings", () => {
     database.updateSettings(settings({ tsPort: 9989 }), "LEGACY_CONFIG_IMPORTED");
     const raw = new DatabaseSync(fx.path);
     try {
-      const rows = raw.prepare("SELECT event, details_json FROM audit_events ORDER BY id").all() as Array<{ event: string; details_json: string }>;
+      const rows = raw.prepare("SELECT event, details_json FROM audit_events ORDER BY id").all() as Array<{
+        event: string;
+        details_json: string;
+      }>;
       expect(rows.map((row) => row.event)).toEqual(["SETTINGS_CHANGED", "LEGACY_CONFIG_IMPORTED"]);
       expect(JSON.parse(rows[1]!.details_json)).toEqual({ accessMode: "open", target: "ts.example.org:9989" });
     } finally {
@@ -117,7 +122,12 @@ describe("settings", () => {
     database.recordConnectionTest({ protocol: null, latencyMs: null, error: "TIMEOUT" });
     expect(database.getSettings()).toMatchObject({ detectedProtocol: null, lastTestLatencyMs: null, lastTestError: "TIMEOUT" });
     database.clearConnectionTest();
-    expect(database.getSettings()).toMatchObject({ detectedProtocol: null, lastTestAt: null, lastTestLatencyMs: null, lastTestError: null });
+    expect(database.getSettings()).toMatchObject({
+      detectedProtocol: null,
+      lastTestAt: null,
+      lastTestLatencyMs: null,
+      lastTestError: null,
+    });
   });
 
   it("does not let a settings save clear the last connection test (the service does that on a target change)", () => {
@@ -134,7 +144,15 @@ describe("settings", () => {
 });
 
 describe("relay nodes", () => {
-  const node = (id: string, overrides = {}) => ({ id, name: id, enabled: true, host: `${id}.example.org`, port: 39087, tokenEncrypted: "enc", ...overrides });
+  const node = (id: string, overrides = {}) => ({
+    id,
+    name: id,
+    enabled: true,
+    host: `${id}.example.org`,
+    port: 39087,
+    tokenEncrypted: "enc",
+    ...overrides,
+  });
 
   it("replaces the whole list and lists it oldest first", () => {
     const database = fx.open();

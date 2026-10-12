@@ -1,13 +1,14 @@
 import { ServerError } from "@echosixhiya/teamspeak-client";
 import { describe, expect, it } from "vitest";
-import { FakeTeamSpeakServer } from "../../../../test/helpers/fakeTsClient.js";
-import { type Gateway, useGateway } from "../../../../test/helpers/gateway.js";
-import { ask, errorOf, joinVoice } from "../../../../test/helpers/voice.js";
+import { FakeTeamSpeakServer } from "../../../../test/support/fakeTsClient.js";
+import { type Gateway, useGateway } from "../../../../test/support/gateway.js";
+import { ask, errorOf, joinVoice } from "../../../../test/support/voice.js";
 
 const gateways = useGateway();
 
 const PROTECTED = { id: 4n, name: "Vault", password: "open-sesame" };
-const newServer = () => new FakeTeamSpeakServer({ channels: [{ id: 1n, name: "Lobby" }, { id: 2n, name: "Room A" }, { id: 3n, name: "Room B" }, PROTECTED] });
+const newServer = () =>
+  new FakeTeamSpeakServer({ channels: [{ id: 1n, name: "Lobby" }, { id: 2n, name: "Room A" }, { id: 3n, name: "Room B" }, PROTECTED] });
 
 async function alice(gateway: Gateway) {
   return joinVoice(gateway, { nickname: "alice" });
@@ -19,7 +20,11 @@ describe("switching channels", () => {
     const session = await alice(gateway);
     const answer = await ask(session, "switchChannel", { channelId: "2" }, "sw1");
     expect(answer).toEqual({ type: "channelSwitched", requestId: "sw1", channelId: "2" });
-    const list = await session.socket.waitForMessage((message) => message.type === "channelList" && (message.channels as { name: string; members: unknown[] }[]).find((c) => c.name === "Room A")!.members.length === 1);
+    const list = await session.socket.waitForMessage(
+      (message) =>
+        message.type === "channelList" &&
+        (message.channels as { name: string; members: unknown[] }[]).find((c) => c.name === "Room A")!.members.length === 1,
+    );
     expect(list).toBeDefined();
     expect(session.client.getChannelId()).toBe(2n);
   });
@@ -27,7 +32,11 @@ describe("switching channels", () => {
   it("treats a switch to the channel the session is already in as done", async () => {
     const gateway = await gateways.start({ ts: newServer() });
     const session = await alice(gateway);
-    expect(await ask(session, "switchChannel", { channelId: "1" }, "same")).toEqual({ type: "channelSwitched", requestId: "same", channelId: "1" });
+    expect(await ask(session, "switchChannel", { channelId: "1" }, "same")).toEqual({
+      type: "channelSwitched",
+      requestId: "same",
+      channelId: "1",
+    });
   });
 
   it("refuses a protected channel without its password, and a wrong one, with CHANNEL_PASSWORD_REQUIRED", async () => {
@@ -43,33 +52,43 @@ describe("switching channels", () => {
   it("enters a protected channel with its password", async () => {
     const gateway = await gateways.start({ ts: newServer() });
     const session = await alice(gateway);
-    expect(await ask(session, "switchChannel", { channelId: "4", password: "open-sesame" }, "pw")).toMatchObject({ type: "channelSwitched", channelId: "4" });
+    expect(await ask(session, "switchChannel", { channelId: "4", password: "open-sesame" }, "pw")).toMatchObject({
+      type: "channelSwitched",
+      channelId: "4",
+    });
     expect(session.client.getChannelId()).toBe(4n);
   });
 
-  // TeamSpeak answers a switch to a deleted channel with error 768 "invalid channelID", and the
-  // gateway's classifier reads "invalid ... channel" as a password problem. Moving another member
-  // already answers CHANNEL_NOT_FOUND for the same case, so that is the correct code here too.
-  it("F16: a switch to a channel that does not exist answers CHANNEL_NOT_FOUND, not a password request", async () => {
+  // TS answers a switch to a deleted channel with error 768 invalid channelID, which the classifier reads
+  // as a password problem. Moving another member already answers CHANNEL_NOT_FOUND, so do the same here.
+  it("a switch to a channel that does not exist answers CHANNEL_NOT_FOUND, not a password request", async () => {
     const gateway = await gateways.start({ ts: newServer() });
     const session = await alice(gateway);
-    expect(await ask(session, "switchChannel", { channelId: "999" }, "gone")).toMatchObject({ type: "error", requestId: "gone", error: { code: "CHANNEL_NOT_FOUND" } });
+    expect(await ask(session, "switchChannel", { channelId: "999" }, "gone")).toMatchObject({
+      type: "error",
+      requestId: "gone",
+      error: { code: "CHANNEL_NOT_FOUND" },
+    });
     expect(session.client.getChannelId()).toBe(1n);
   });
 
-  it("F16: a channel that the server deleted after the session's tree is answered CHANNEL_NOT_FOUND too (error 768)", async () => {
+  it("a channel that the server deleted after the session's tree is answered CHANNEL_NOT_FOUND too (error 768)", async () => {
     const gateway = await gateways.start({ ts: newServer() });
     const session = await alice(gateway);
     // The tree still lists the channel, so the request reaches the server, which answers "invalid channelID".
-    const stale = (session.client as unknown as { switchChannel: (id: bigint, password?: string) => Promise<void> });
-    stale.switchChannel = async () => { throw new ServerError("768", "invalid channelID"); };
+    const stale = session.client as unknown as { switchChannel: (id: bigint, password?: string) => Promise<void> };
+    stale.switchChannel = async () => {
+      throw new ServerError("768", "invalid channelID");
+    };
     expect(errorOf(await ask(session, "switchChannel", { channelId: "2" }))).toMatchObject({ code: "CHANNEL_NOT_FOUND" });
   });
 
-  it("F16: an error that only says 'invalid channel' is not read as a password problem", async () => {
+  it("an error that only says 'invalid channel' is not read as a password problem", async () => {
     const gateway = await gateways.start({ ts: newServer() });
     const session = await alice(gateway);
-    (session.client as unknown as { switchChannel: () => Promise<void> }).switchChannel = async () => { throw new Error("invalid channel state"); };
+    (session.client as unknown as { switchChannel: () => Promise<void> }).switchChannel = async () => {
+      throw new Error("invalid channel state");
+    };
     expect(errorOf(await ask(session, "switchChannel", { channelId: "2" }))).toMatchObject({ code: "CHANNEL_SWITCH_FAILED" });
   });
 });
@@ -80,9 +99,18 @@ describe("moving another member", () => {
     const bob = gateway.ts.addMember("bob", 2n);
     const session = await alice(gateway);
     gateway.ts.adminUids.add(session.client.uid);
-    expect(await ask(session, "moveClient", { clientId: bob.id, channelId: "3" }, "mv")).toEqual({ type: "commandCompleted", requestId: "mv" });
+    expect(await ask(session, "moveClient", { clientId: bob.id, channelId: "3" }, "mv")).toEqual({
+      type: "commandCompleted",
+      requestId: "mv",
+    });
     expect(gateway.ts.members.get(bob.id)!.channelID).toBe(3n);
-    await session.socket.waitForMessage((message) => message.type === "channelList" && (message.channels as { name: string; members: { nickname: string }[] }[]).find((c) => c.name === "Room B")!.members.some((m) => m.nickname === "bob"));
+    await session.socket.waitForMessage(
+      (message) =>
+        message.type === "channelList" &&
+        (message.channels as { name: string; members: { nickname: string }[] }[])
+          .find((c) => c.name === "Room B")!
+          .members.some((m) => m.nickname === "bob"),
+    );
   });
 
   it("does not need the target channel's password, because moving is an administrator operation", async () => {
@@ -120,7 +148,10 @@ describe("poke", () => {
     const gateway = await gateways.start({ ts: newServer() });
     const bob = gateway.ts.addMember("bob", 2n);
     const session = await alice(gateway);
-    expect(await ask(session, "poke", { clientId: bob.id, message: "  wake up  " }, "pk")).toEqual({ type: "commandCompleted", requestId: "pk" });
+    expect(await ask(session, "poke", { clientId: bob.id, message: "  wake up  " }, "pk")).toEqual({
+      type: "commandCompleted",
+      requestId: "pk",
+    });
     expect(session.client.pokes).toEqual([{ clientId: bob.id, message: "wake up" }]);
   });
 
@@ -138,8 +169,19 @@ describe("poke", () => {
     const after = session.socket.mark();
     bob.poke(session.client, "over here");
     const received = await session.socket.waitForMessage("pokeReceived", { after });
-    expect(received).toEqual({ type: "pokeReceived", invokerId: bob.id, invokerUid: "remote-bob", invokerName: "bob", message: "over here", timestamp: expect.any(Number) });
-    expect((await session.socket.waitForMessage("serverEvent", { after })).event).toMatchObject({ kind: "poke", message: "bob poked you", nickname: "bob" });
+    expect(received).toEqual({
+      type: "pokeReceived",
+      invokerId: bob.id,
+      invokerUid: "remote-bob",
+      invokerName: "bob",
+      message: "over here",
+      timestamp: expect.any(Number),
+    });
+    expect((await session.socket.waitForMessage("serverEvent", { after })).event).toMatchObject({
+      kind: "poke",
+      message: "bob poked you",
+      nickname: "bob",
+    });
   });
 });
 
@@ -147,9 +189,15 @@ describe("away and mute", () => {
   it("sets the away flag with a trimmed message on the server, and the tree shows it", async () => {
     const gateway = await gateways.start({ ts: newServer() });
     const session = await alice(gateway);
-    expect(await ask(session, "setAway", { away: true, message: "  lunch  " }, "aw")).toEqual({ type: "commandCompleted", requestId: "aw" });
+    expect(await ask(session, "setAway", { away: true, message: "  lunch  " }, "aw")).toEqual({
+      type: "commandCompleted",
+      requestId: "aw",
+    });
     expect(gateway.ts.members.get(session.id)).toMatchObject({ away: true, awayMessage: "lunch" });
-    await session.socket.waitForMessage((message) => message.type === "channelList" && (message.channels as { members: { away?: boolean }[] }[])[0]!.members[0]?.away === true);
+    await session.socket.waitForMessage(
+      (message) =>
+        message.type === "channelList" && (message.channels as { members: { away?: boolean }[] }[])[0]!.members[0]?.away === true,
+    );
     await ask(session, "setAway", { away: false }, "back");
     expect(gateway.ts.members.get(session.id)).toMatchObject({ away: false, awayMessage: "" });
   });
@@ -179,7 +227,12 @@ describe("latency probe", () => {
     const session = await alice(gateway);
     session.socket.send({ type: "latencyProbe", payload: { sequence: "s1" } });
     const pong = await session.socket.waitForMessage("latencyPong");
-    expect(pong).toMatchObject({ sequence: "s1", teamSpeakReachable: true, teamSpeakLatencyMs: expect.any(Number), teamSpeakErrorCode: null });
+    expect(pong).toMatchObject({
+      sequence: "s1",
+      teamSpeakReachable: true,
+      teamSpeakLatencyMs: expect.any(Number),
+      teamSpeakErrorCode: null,
+    });
     expect(session.client.commands).toEqual(["version"]);
   });
 

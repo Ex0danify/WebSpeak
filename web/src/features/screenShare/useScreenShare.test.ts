@@ -36,8 +36,15 @@ function member(id: number, nickname: string): ChannelMember {
 
 function stream(overrides: Partial<ScreenShareStream> = {}): ScreenShareStream {
   return {
-    streamId: "s1", source: "browser", ownerPeerId: "peer-1", ownerNickname: "Lucas", name: "Screen",
-    audio: true, createdAt: Date.now(), viewerCount: 0, viewers: [],
+    streamId: "s1",
+    source: "browser",
+    ownerPeerId: "peer-1",
+    ownerNickname: "Lucas",
+    name: "Screen",
+    audio: true,
+    createdAt: Date.now(),
+    viewerCount: 0,
+    viewers: [],
     ...overrides,
   };
 }
@@ -164,7 +171,10 @@ describe("screenShareErrorText", () => {
 
 describe("active stream derivations", () => {
   it("finds the viewed stream and derives viewers/count/owner", async () => {
-    const viewers: ScreenShareViewer[] = [{ peerId: "a", nickname: "Ana" }, { peerId: "b", nickname: "Bo" }];
+    const viewers: ScreenShareViewer[] = [
+      { peerId: "a", nickname: "Ana" },
+      { peerId: "b", nickname: "Bo" },
+    ];
     const { vm, screenShareStreams } = await mountUseScreenShare({ screenShareViewingStreamId: ref("s1") });
     screenShareStreams.push(stream({ streamId: "s1", ownerNickname: "Lucas", viewerCount: 2, viewers }));
     await flushPromises();

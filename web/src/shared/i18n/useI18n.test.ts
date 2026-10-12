@@ -33,10 +33,13 @@ describe("language detection", () => {
     expect(useI18n().language.value).toBe(expected);
   });
 
-  it.each(["en-US", "fr-FR", "es", "zh-CN", "ru-RU", "ja-JP", ""])("falls back to English for the browser language '%s'", async (browser) => {
-    const { useI18n } = await load({ browser });
-    expect(useI18n().language.value).toBe("en");
-  });
+  it.each(["en-US", "fr-FR", "es", "zh-CN", "ru-RU", "ja-JP", ""])(
+    "falls back to English for the browser language '%s'",
+    async (browser) => {
+      const { useI18n } = await load({ browser });
+      expect(useI18n().language.value).toBe("en");
+    },
+  );
 
   it.each([
     [["fr-FR", "de", "en"], "de"],
@@ -104,7 +107,7 @@ describe("setLanguage and loadLanguage", () => {
   });
 });
 
-describe("document language (F27)", () => {
+describe("document language", () => {
   it.each([
     ["en", "en"],
     ["de", "de"],
@@ -127,7 +130,7 @@ describe("document language (F27)", () => {
   });
 });
 
-describe("document title and description (I5.2)", () => {
+describe("document title and description", () => {
   it("follows the language and the site name", async () => {
     document.head.innerHTML = '<meta name="description" content="x">';
     const { useI18n, translations } = await load({ browser: "en-US" });
@@ -176,13 +179,13 @@ describe("t", () => {
   });
 
   // The value is inserted literally: t() passes it as a function, not as a replacement pattern.
-  it("F10: a value containing $& is inserted literally", async () => {
+  it("a value containing $& is inserted literally", async () => {
     const { useI18n, translations } = await load({ stored: "en" });
     translations.en[key] = "Hello {{name}}";
     expect(useI18n().t(key, { name: "$& {{name}}" })).toBe("Hello $& {{name}}");
   });
 
-  it.each(["a$&b", "$$", "x$`y", "x$'y", "$1"])("F10: the value %s is inserted as it is", async (value) => {
+  it.each(["a$&b", "$$", "x$`y", "x$'y", "$1"])("the value %s is inserted as it is", async (value) => {
     const { useI18n, translations } = await load({ stored: "en" });
     translations.en[key] = "Hello {{name}}!";
     expect(useI18n().t(key, { name: value })).toBe(`Hello ${value}!`);

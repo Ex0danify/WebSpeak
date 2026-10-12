@@ -1,5 +1,7 @@
 <template>
-  <div class="h-dvh max-h-dvh min-h-0 overflow-hidden bg-surface-0 leading-[normal] text-fg outline-none desktop:h-[calc(100dvh/var(--ui-scale))] desktop:max-h-[calc(100dvh/var(--ui-scale))] max-compact:h-svh max-compact:max-h-svh max-compact:min-h-svh">
+  <div
+    class="h-dvh max-h-dvh min-h-0 overflow-hidden bg-surface-0 leading-[normal] text-fg outline-none max-compact:h-svh max-compact:max-h-svh max-compact:min-h-svh desktop:h-[calc(100dvh/var(--ui-scale))] desktop:max-h-[calc(100dvh/var(--ui-scale))]"
+  >
     <RouterView />
     <Toaster :label="t('notifications')" :dismiss-label="t('close')" class="p-6 desktop:p-[calc(24px/var(--ui-scale))]" />
   </div>
@@ -45,7 +47,10 @@ watch(inRoom, (value) => {
 onMounted(() => {
   void loadLocalPreferences().then((preferences) => {
     if (!readStorage("webspeak:language") && isLanguage(preferences.language)) language.value = preferences.language;
-    if (!readStorage("webspeak:theme") && (preferences.theme === "system" || preferences.theme === "light" || preferences.theme === "dark")) {
+    if (
+      !readStorage("webspeak:theme") &&
+      (preferences.theme === "system" || preferences.theme === "light" || preferences.theme === "dark")
+    ) {
       setThemeMode(preferences.theme);
     }
   });

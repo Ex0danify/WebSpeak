@@ -5,11 +5,19 @@ const offer = (payload: Record<string, unknown>) => JSON.stringify({ type: "webr
 
 describe("parseWebRtcOffer", () => {
   it("accepts an offer and defaults the flags to false", () => {
-    expect(parseWebRtcOffer(offer({ sdp: { type: "offer", sdp: "v=0" } }))).toEqual({ type: "offer", sdp: "v=0", muted: false, accompanimentActive: false });
+    expect(parseWebRtcOffer(offer({ sdp: { type: "offer", sdp: "v=0" } }))).toEqual({
+      type: "offer",
+      sdp: "v=0",
+      muted: false,
+      accompanimentActive: false,
+    });
   });
 
   it("carries the muted and accompaniment flags", () => {
-    expect(parseWebRtcOffer(offer({ sdp: { type: "offer", sdp: "v=0" }, muted: true, accompanimentActive: true }))).toMatchObject({ muted: true, accompanimentActive: true });
+    expect(parseWebRtcOffer(offer({ sdp: { type: "offer", sdp: "v=0" }, muted: true, accompanimentActive: true }))).toMatchObject({
+      muted: true,
+      accompanimentActive: true,
+    });
   });
 
   it.each([

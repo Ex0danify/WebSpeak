@@ -1,7 +1,4 @@
-/**
- * Prevents one persisted TeamSpeak identity from being used by two live
- * browser sessions at the same target at the same time.
- */
+/** Stops one persisted TS identity from being used by two live browser sessions on the same target. */
 export class IdentityLeaseStore {
   private readonly owners = new Map<string, string>();
 

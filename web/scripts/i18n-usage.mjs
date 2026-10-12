@@ -1,20 +1,9 @@
-// Read-only report: which files use each i18n key, and which feature should own it.
-//
-//   npm run i18n:usage                 # summary per owner + keys that would change module
-//   npm run i18n:usage -- --keys       # also list every key with its consuming files
-//   npm run i18n:usage -- --owner=voice --keys
-//   npm run i18n:usage -- --json
-//
-// A key counts as used by a file when its name appears there as a quoted string literal
-// ('key', "key" or `key`). That covers t('key') and also keys held in maps or props
-// (labelKey: 'key'), which a t()-only scan would miss. Test files and the i18n module folders
-// themselves are not consumers. Keys built at runtime (t(`prefix${x}`)) cannot be seen; they
-// are listed as "dynamic" call sites so a person can check them by hand.
-//
-// Owner rule (structure-plan S0.6): one consuming feature -> that feature; several -> common;
-// none -> unused. A file's feature comes from its path, in either the old layout
-// (components/<x>/, composables/voice/, stores/voiceX, views/XView.vue) or the new one
-// (features/<x>/, shared/). Nothing is changed.
+// Read-only report of which files use each i18n key and which feature should own it. Flags: --keys, --owner=<feature>, --json.
+// A file uses a key when its name appears as a quoted string literal, which catches maps and props like labelKey, not only
+// t('key').
+
+// Owner rule: one consuming feature owns the key, several make it common, none means unused. Keys built at runtime cannot be
+// seen and are listed as dynamic call sites to check by hand.
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { basename, dirname, join, relative, sep } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -38,20 +27,23 @@ function walk(dir, out = []) {
 
 const all = walk(srcDir).map((file) => relative(srcDir, file).split(sep).join("/"));
 
-// i18n modules: every folder holding an index.ts next to <lang>.ts files, old or relocated.
-const moduleDirs = [...new Set(all
-  .filter((file) => /(^|\/)i18n\/(?:[^/]+\/)?en\.ts$/.test(file))
-  .map((file) => dirname(file)))].sort();
+// i18n modules are folders with an index.ts next to <lang>.ts files.
+const moduleDirs = [...new Set(all.filter((file) => /(^|\/)i18n\/(?:[^/]+\/)?en\.ts$/.test(file)).map((file) => dirname(file)))].sort();
 
-// key -> { module, languages declared in }
 const keys = new Map();
 for (const dir of moduleDirs) {
   const moduleName = dir.replace(/^(?:.*\/)?i18n\/?/, "") || basename(dirname(dir));
   const label = dir.includes("features/") || dir.includes("shared/") ? dir.replace(/\/i18n(\/|$)/, "$1").replace(/\/$/, "") : moduleName;
-  for (const language of readdirSync(join(srcDir, dir)).filter((name) => name.endsWith(".ts") && name !== "index.ts" && !name.endsWith(".test.ts")).map((name) => name.slice(0, -3))) {
+  for (const language of readdirSync(join(srcDir, dir))
+    .filter((name) => name.endsWith(".ts") && name !== "index.ts" && !name.endsWith(".test.ts"))
+    .map((name) => name.slice(0, -3))) {
     const path = join(srcDir, dir, `${language}.ts`);
     let source;
-    try { source = readFileSync(path, "utf8"); } catch { continue; }
+    try {
+      source = readFileSync(path, "utf8");
+    } catch {
+      continue;
+    }
     for (const match of source.matchAll(KEY)) {
       const key = match[1] ?? match[2];
       const entry = keys.get(key) ?? { module: label, dir };
@@ -61,13 +53,12 @@ for (const dir of moduleDirs) {
 }
 
 const isConsumer = (file) =>
-  /\.(vue|ts)$/.test(file)
-  && !/\.(test|spec)\.ts$/.test(file)
-  && !file.includes("/test-support/")
-  && !moduleDirs.some((dir) => file.startsWith(`${dir}/`))
-  && !/(^|\/)i18n\/useI18n\.ts$/.test(file);
+  /\.(vue|ts)$/.test(file) &&
+  !/\.(test|spec)\.ts$/.test(file) &&
+  !file.includes("/test-support/") &&
+  !moduleDirs.some((dir) => file.startsWith(`${dir}/`)) &&
+  !/(^|\/)i18n\/useI18n\.ts$/.test(file);
 
-/** The feature a source file belongs to, from its path. */
 function featureOf(file) {
   let m;
   if ((m = file.match(/^features\/([^/]+)\//))) return m[1];
@@ -75,7 +66,8 @@ function featureOf(file) {
   if ((m = file.match(/^components\/(admin|join|demo)\//))) return m[1];
   if (file.startsWith("components/room/")) return /ScreenShare/.test(file) ? "screenShare" : "room";
   if (file.startsWith("shared/ui/")) return "shared";
-  if ((m = file.match(/^views\/(Admin|Demo|Room|Join)View?\.vue$/))) return { Admin: "admin", Demo: "demo", Room: "room", Join: "join" }[m[1]];
+  if ((m = file.match(/^views\/(Admin|Demo|Room|Join)View?\.vue$/)))
+    return { Admin: "admin", Demo: "demo", Room: "room", Join: "join" }[m[1]];
   if (file.startsWith("composables/voice/")) {
     if (/screenShare|ScreenShare/.test(file)) return "screenShare";
     if (/useConnection|useSessionActions|message-router|ice-servers|voiceSession/.test(file)) return "session";

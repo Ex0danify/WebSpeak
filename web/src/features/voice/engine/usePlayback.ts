@@ -5,7 +5,7 @@ import { MAX_REMOTE_DECODE_QUEUE_FRAMES, MAX_REMOTE_PLAY_AHEAD_SECONDS, SPEAKING
 import type { SinkAudioContext } from "../voiceTypes";
 import type { MessageHandlers } from "@/features/session";
 
-/** Late-bound pieces owned by other modules (V-D2). */
+/** Late-bound pieces owned by other modules. */
 export interface PlaybackDeps {
   getAudioCtx(): SinkAudioContext;
   effectiveOutputVolume(): number;
@@ -13,9 +13,8 @@ export interface PlaybackDeps {
   webrtcActive: Ref<boolean>;
 }
 
-/** Downlink playback (hot path): one decoder, gain node and schedule per remote client, and the
- *  speaking indicator. Every map, decoder and node here is non-reactive closure state; only
- *  `speakingIds` is reactive, and it lives in the session store. */
+/** Downlink playback, the hot path. One decoder, gain node and schedule per remote client, plus the speaking indicator. Maps,
+ *  decoders and nodes are non-reactive closure state, only `speakingIds` is reactive and it lives in the session store. */
 export function usePlayback(deps: PlaybackDeps) {
   const { getAudioCtx, effectiveOutputVolume, webrtcActive } = deps;
   const { state, members, speakingIds } = useSessionStore();
@@ -64,19 +63,22 @@ export function usePlayback(deps: PlaybackDeps) {
     const now = ctx.currentTime;
     const scheduledUntil = remotePlayTimes.get(clientId) ?? now;
     const decodeQueueSize = decoder?.decodeQueueSize ?? 0;
-    if (
-      decoder &&
-      (scheduledUntil > now + MAX_REMOTE_PLAY_AHEAD_SECONDS || decodeQueueSize >= MAX_REMOTE_DECODE_QUEUE_FRAMES)
-    ) {
+    if (decoder && (scheduledUntil > now + MAX_REMOTE_PLAY_AHEAD_SECONDS || decodeQueueSize >= MAX_REMOTE_DECODE_QUEUE_FRAMES)) {
       resetRemotePlayback(clientId);
       decoder = undefined;
     }
 
     if (!decoder) {
-      const gainNode = ctx.createGain();
+      // A rebuilt decoder keeps the speaker's gain node: replacing it would leave the old one
+      // connected, and it would stay at whatever level it last had.
+      let gainNode = remoteGains.get(clientId);
+      if (!gainNode) {
+        gainNode = ctx.createGain();
+        gainNode.connect(ctx.destination);
+        remoteGains.set(clientId, gainNode);
+      }
       gainNode.gain.value = (volumes[clientId] ?? 1) * effectiveOutputVolume();
-      gainNode.connect(ctx.destination);
-      remoteGains.set(clientId, gainNode);
+      const speakerGain = gainNode;
       const generation = ++nextRemoteDecoderGeneration;
       const nextDecoder = new AudioDecoder({
         output: (chunk: AudioData) => {
@@ -94,18 +96,22 @@ export function usePlayback(deps: PlaybackDeps) {
             }
             const source = ctx.createBufferSource();
             source.buffer = buffer;
-            source.connect(gainNode);
+            source.connect(speakerGain);
             let sources = remotePlaybackSources.get(clientId);
             if (!sources) {
               sources = new Set<AudioBufferSourceNode>();
               remotePlaybackSources.set(clientId, sources);
             }
             sources.add(source);
-            source.addEventListener("ended", () => {
-              source.disconnect();
-              sources?.delete(source);
-              if (sources?.size === 0) remotePlaybackSources.delete(clientId);
-            }, { once: true });
+            source.addEventListener(
+              "ended",
+              () => {
+                source.disconnect();
+                sources?.delete(source);
+                if (sources?.size === 0) remotePlaybackSources.delete(clientId);
+              },
+              { once: true },
+            );
             let playTime = remotePlayTimes.get(clientId) ?? ctx.currentTime;
             if (playTime < ctx.currentTime) playTime = ctx.currentTime;
             if (playTime + numberOfFrames / sampleRate > ctx.currentTime + MAX_REMOTE_PLAY_AHEAD_SECONDS) {
@@ -141,14 +147,18 @@ export function usePlayback(deps: PlaybackDeps) {
       decoder.decode(new EncodedAudioChunk({ type: "key", timestamp, duration: 20_000, data: opusData }));
       remoteDecodeTimestamps.set(clientId, timestamp + 20_000);
     } catch {
-      // Ignore malformed frames; the next valid frame can still be decoded.
+      // Ignore malformed frames, the next valid frame can still be decoded.
     }
   }
 
   function clearRemotePlayback(clientId: number): void {
     const decoder = remoteDecoders.get(clientId);
     if (decoder) {
-      try { decoder.close(); } catch { /* already closed */ }
+      try {
+        decoder.close();
+      } catch {
+        /* already closed */
+      }
     }
     remoteDecoders.delete(clientId);
     remoteDecoderGenerations.delete(clientId);
@@ -157,7 +167,11 @@ export function usePlayback(deps: PlaybackDeps) {
     const sources = remotePlaybackSources.get(clientId);
     if (sources) {
       for (const source of sources) {
-        try { source.stop(); } catch { /* already ended */ }
+        try {
+          source.stop();
+        } catch {
+          /* already ended */
+        }
         source.disconnect();
       }
       remotePlaybackSources.delete(clientId);
@@ -169,9 +183,8 @@ export function usePlayback(deps: PlaybackDeps) {
   }
 
   function handleAudioFrame(data: Uint8Array): void {
-    // WebRTC carries the realtime downlink after negotiation. Ignore any
-    // in-flight fallback WebSocket packets so a transport switch cannot
-    // produce duplicate or delayed playback.
+    // WebRTC carries the downlink after negotiation. Ignore in-flight fallback WebSocket packets so a transport switch
+    // cannot produce duplicate or delayed playback.
     if (webrtcActive.value) return;
     if (data.length < 4) return;
     const clientId = (data[1] << 8) | data[2];
@@ -180,7 +193,7 @@ export function usePlayback(deps: PlaybackDeps) {
     playAudioFrame(clientId, data.slice(3));
   }
 
-  /** The downlink half of `disconnect`: drop every decoder, source, gain and speaking timer, in the original order. */
+  /** The downlink half of `disconnect`, dropping every decoder, source, gain and speaking timer. */
   function resetDownlink(): void {
     for (const clientId of new Set([...remoteDecoders.keys(), ...remotePlaybackSources.keys()])) clearRemotePlayback(clientId);
     remoteDecoderGenerations.clear();

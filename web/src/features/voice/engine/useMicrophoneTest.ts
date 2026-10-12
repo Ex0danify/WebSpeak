@@ -2,7 +2,7 @@ import { storeToRefs } from "pinia";
 import { useVoiceAudioStore } from "../stores/voiceAudioStore";
 import { useSessionStore } from "@/features/session";
 
-/** What the microphone test needs from the microphone itself (late-bound: the microphone owns the stream). */
+/** What the microphone test needs from the microphone itself (late-bound, the microphone owns the stream). */
 export interface MicrophoneTestMic {
   prepareInputDevices(): Promise<void>;
   getMicStream(): MediaStream | null;

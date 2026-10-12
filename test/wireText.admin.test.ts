@@ -1,14 +1,14 @@
-// Step I2.7: no admin or join HTTP response carries a sentence. Every refusal is `{ ok: false, code }` (the
+// No admin or join HTTP response carries a sentence. Every refusal is `{ ok: false, code }` (the
 // rate limiter adds `retryAfterMs`), the web app renders the code, and nothing here needs an English `message`.
 import { describe, expect, it } from "vitest";
-import { useGateway } from "./helpers/gateway.js";
+import { useGateway } from "./support/gateway.js";
 
 const gateways = useGateway();
 const JSON_HEADERS = { "content-type": "application/json" };
 
 async function refusal(response: Response): Promise<Record<string, unknown>> {
   expect(response.ok, `${response.url} -> ${response.status}`).toBe(false);
-  return await response.json() as Record<string, unknown>;
+  return (await response.json()) as Record<string, unknown>;
 }
 
 describe("admin and join refusals carry a code and nothing else", () => {
@@ -43,7 +43,11 @@ describe("admin and join refusals carry a code and nothing else", () => {
 
   it("answers join-ticket refusals", async () => {
     const gateway = await gateways.start();
-    const response = await gateway.request("/api/join-ticket", { method: "POST", headers: JSON_HEADERS, body: JSON.stringify({ nickname: "" }) });
+    const response = await gateway.request("/api/join-ticket", {
+      method: "POST",
+      headers: JSON_HEADERS,
+      body: JSON.stringify({ nickname: "" }),
+    });
     const body = await refusal(response);
     expect(Object.keys(body).sort()).toEqual(["code", "ok"]);
     expect(body.ok).toBe(false);

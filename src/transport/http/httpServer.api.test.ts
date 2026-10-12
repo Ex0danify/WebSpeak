@@ -2,8 +2,8 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { settingsInput } from "../../../test/helpers/adminService.js";
-import { useGateway } from "../../../test/helpers/gateway.js";
+import { settingsInput } from "../../../test/support/adminService.js";
+import { useGateway } from "../../../test/support/gateway.js";
 
 const gateways = useGateway();
 const JSON_HEADERS = { "content-type": "application/json" };
@@ -25,37 +25,67 @@ describe("/api/public-config", () => {
     const response = await gateway.request("/api/public-config");
     expect(response.status).toBe(200);
     expect(response.headers.get("cache-control")).toBe("no-store");
-    const config = await response.json() as Record<string, unknown>;
+    const config = (await response.json()) as Record<string, unknown>;
     expect(Object.keys(config).sort()).toEqual([
-      "accelerationAvailable", "accelerationRelays", "accessMode", "initialized", "siteName", "target",
-      "version", "visitorNumber", "visitorTotal", "welcomeTexts",
+      "accelerationAvailable",
+      "accelerationRelays",
+      "accessMode",
+      "initialized",
+      "siteName",
+      "target",
+      "version",
+      "visitorNumber",
+      "visitorTotal",
+      "welcomeTexts",
     ]);
-    expect(config).toMatchObject({ version: "9.9.9", initialized: true, siteName: "WebSpeak", accelerationAvailable: false, accelerationRelays: [] });
+    expect(config).toMatchObject({
+      version: "9.9.9",
+      initialized: true,
+      siteName: "WebSpeak",
+      accelerationAvailable: false,
+      accelerationRelays: [],
+    });
     expect(Object.keys(config.welcomeTexts as object).sort()).toEqual(["de", "en"]);
   });
 
   it("reflects what the administrator saves", async () => {
     const gateway = await gateways.start();
     const admin = await gateway.adminLogin();
-    const saved = await admin.put("server", settingsInput({ siteName: "Renamed", welcomeTexts: { de: "hallo", en: "hello" }, target: "voice.example.org:9988", accessMode: "fixed" }));
+    const saved = await admin.put(
+      "server",
+      settingsInput({
+        siteName: "Renamed",
+        welcomeTexts: { de: "hallo", en: "hello" },
+        target: "voice.example.org:9988",
+        accessMode: "fixed",
+      }),
+    );
     expect(saved.status).toBe(200);
     const config = await (await gateway.request("/api/public-config")).json();
-    expect(config).toMatchObject({ siteName: "Renamed", welcomeTexts: { de: "hallo", en: "hello" }, accessMode: "fixed", target: "voice.example.org:9988" });
+    expect(config).toMatchObject({
+      siteName: "Renamed",
+      welcomeTexts: { de: "hallo", en: "hello" },
+      accessMode: "fixed",
+      target: "voice.example.org:9988",
+    });
   });
 
   it("never contains the server password or a relay token after they are saved", async () => {
     const gateway = await gateways.start();
     const admin = await gateway.adminLogin();
-    const saved = await admin.put("server", settingsInput({
-      passwordAction: "replace",
-      serverPassword: "s3cret-server-pass",
-      relaySettingsAction: "replace",
-      relayEnabled: true,
-      relayName: "Relay one",
-      relayTarget: "relay.example.org:39087",
-      relayTokenAction: "replace",
-      relayToken: "s3cret-relay-token",
-    }));
+    const saved = await admin.put(
+      "server",
+      settingsInput({
+        passwordAction: "replace",
+        serverPassword: "s3cret-server-pass",
+        relaySettingsAction: "replace",
+        relayEnabled: true,
+        relayName: "Relay one",
+        relayTarget: "relay.example.org:39087",
+        relayTokenAction: "replace",
+        relayToken: "s3cret-relay-token",
+      }),
+    );
     expect(saved.status).toBe(200);
     expect(gateway.adminService.getConnectionPolicy().serverPassword, "the password really was saved").toBe("s3cret-server-pass");
     const text = await (await gateway.request("/api/public-config")).text();
@@ -128,7 +158,11 @@ describe("static frontend", () => {
 
 describe("JSON body limit", () => {
   const post = (gateway: Awaited<ReturnType<typeof gateways.start>>, bytes: number) =>
-    gateway.request("/api/join-ticket", { method: "POST", headers: JSON_HEADERS, body: JSON.stringify({ nickname: "tester", pad: "x".repeat(bytes) }) });
+    gateway.request("/api/join-ticket", {
+      method: "POST",
+      headers: JSON_HEADERS,
+      body: JSON.stringify({ nickname: "tester", pad: "x".repeat(bytes) }),
+    });
 
   it("accepts a body just under 100 kB and rejects one over it with 413", async () => {
     const gateway = await gateways.start();
@@ -144,7 +178,7 @@ describe("JSON body limit", () => {
 });
 
 describe("error responses of the API", () => {
-  it("F13: an unknown API path answers 404 with a JSON error body", async () => {
+  it("an unknown API path answers 404 with a JSON error body", async () => {
     const gateway = await gateways.start();
     const response = await gateway.request("/api/nope");
     expect(response.status).toBe(404);
@@ -152,14 +186,14 @@ describe("error responses of the API", () => {
     expect(await response.json()).toEqual({ ok: false, code: "NOT_FOUND" });
   });
 
-  it("F13: an unknown path below /api with another method answers the same JSON 404", async () => {
+  it("an unknown path below /api with another method answers the same JSON 404", async () => {
     const gateway = await gateways.start();
     const response = await gateway.request("/api/nope/deeper", { method: "POST", headers: JSON_HEADERS, body: "{}" });
     expect(response.status).toBe(404);
     expect(await response.json()).toEqual({ ok: false, code: "NOT_FOUND" });
   });
 
-  it("F13: a malformed JSON body answers 400 with a JSON error that shows no server path", async () => {
+  it("a malformed JSON body answers 400 with a JSON error that shows no server path", async () => {
     const gateway = await gateways.start();
     const response = await gateway.request("/api/join-ticket", { method: "POST", headers: JSON_HEADERS, body: "{oops" });
     const text = await response.text();
@@ -169,9 +203,13 @@ describe("error responses of the API", () => {
     expect(text).not.toContain("node_modules");
   });
 
-  it("F13: a body over the 100 kB limit answers 413 with a JSON error", async () => {
+  it("a body over the 100 kB limit answers 413 with a JSON error", async () => {
     const gateway = await gateways.start();
-    const response = await gateway.request("/api/join-ticket", { method: "POST", headers: JSON_HEADERS, body: JSON.stringify({ pad: "x".repeat(101 * 1024) }) });
+    const response = await gateway.request("/api/join-ticket", {
+      method: "POST",
+      headers: JSON_HEADERS,
+      body: JSON.stringify({ pad: "x".repeat(101 * 1024) }),
+    });
     expect(response.status).toBe(413);
     expect(response.headers.get("content-type")).toContain("application/json");
     expect(await response.json()).toEqual({ ok: false, code: "PAYLOAD_TOO_LARGE" });

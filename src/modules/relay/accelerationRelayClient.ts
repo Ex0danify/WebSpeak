@@ -29,7 +29,6 @@ export interface AccelerationRelayClient {
   close(): void;
 }
 
-
 export async function createAccelerationRelayClient(
   options: AccelerationRelayOptions & AccelerationTarget,
 ): Promise<AccelerationRelayClient> {
@@ -64,8 +63,16 @@ export async function createAccelerationRelayClient(
     closed = true;
     if (keepAlive) clearInterval(keepAlive);
     keepAlive = null;
-    try { relaySocket.close(); } catch { /* already closed */ }
-    try { localSocket.close(); } catch { /* already closed */ }
+    try {
+      relaySocket.close();
+    } catch {
+      /* already closed */
+    }
+    try {
+      localSocket.close();
+    } catch {
+      /* already closed */
+    }
   };
 
   const onSocketError = (error: Error): void => {
@@ -94,16 +101,17 @@ export async function createAccelerationRelayClient(
       return;
     }
     if (frame.type === FrameType.DATA && peer) {
-      try { localSocket.send(frame.payload, peer.port, peer.address); } catch { /* peer is gone */ }
+      try {
+        localSocket.send(frame.payload, peer.port, peer.address);
+      } catch {
+        /* peer is gone */
+      }
       return;
     }
     if (frame.type === FrameType.CLOSE) closeSockets();
   });
 
-  await Promise.all([
-    bindSocket(relaySocket, relayFamily === "udp6" ? "::" : "0.0.0.0"),
-    bindSocket(localSocket, "127.0.0.1"),
-  ]);
+  await Promise.all([bindSocket(relaySocket, relayFamily === "udp6" ? "::" : "0.0.0.0"), bindSocket(localSocket, "127.0.0.1")]);
 
   localSocket.on("message", (payload, rinfo) => {
     if (closed) return;
@@ -130,7 +138,11 @@ export async function createAccelerationRelayClient(
     sessionId,
     close(): void {
       if (!closed && ready) {
-        try { sendFrame(FrameType.CLOSE); } catch { /* best effort */ }
+        try {
+          sendFrame(FrameType.CLOSE);
+        } catch {
+          /* best effort */
+        }
       }
       closeSockets();
     },
@@ -138,15 +150,23 @@ export async function createAccelerationRelayClient(
 }
 
 function validateRelayOptions(options: AccelerationRelayOptions & AccelerationTarget): void {
-  if (!options.relayHost || !Number.isInteger(options.relayPort) || options.relayPort < 1 || options.relayPort > 65535) throw new Error("Invalid acceleration relay endpoint");
-  if (!options.host || !Number.isInteger(options.port) || options.port < 1 || options.port > 65535) throw new Error("Invalid accelerated TeamSpeak target");
+  if (!options.relayHost || !Number.isInteger(options.relayPort) || options.relayPort < 1 || options.relayPort > 65535)
+    throw new Error("Invalid acceleration relay endpoint");
+  if (!options.host || !Number.isInteger(options.port) || options.port < 1 || options.port > 65535)
+    throw new Error("Invalid accelerated TeamSpeak target");
   if (!options.token || options.token.length < 16) throw new Error("Acceleration relay token must contain at least 16 characters");
 }
 
 function bindSocket(socket: ReturnType<typeof createSocket>, address: string): Promise<void> {
   return new Promise((resolve, reject) => {
-    const onError = (error: Error) => { socket.off("listening", onListening); reject(error); };
-    const onListening = () => { socket.off("error", onError); resolve(); };
+    const onError = (error: Error) => {
+      socket.off("listening", onListening);
+      reject(error);
+    };
+    const onListening = () => {
+      socket.off("error", onError);
+      resolve();
+    };
     socket.once("error", onError);
     socket.once("listening", onListening);
     socket.bind(0, address);

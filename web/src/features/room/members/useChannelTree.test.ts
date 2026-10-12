@@ -42,9 +42,19 @@ function member(id: number, nickname: string): ChannelMember {
 
 function makeVoiceState(overrides: Partial<VoiceState> = {}): VoiceState {
   return reactive({
-    connected: true, connecting: false, reconnecting: false, reconnectAttempt: 0, reconnectFailed: false,
-    tsClientId: 1, error: "", errorCode: "", microphoneError: "", microphoneErrorCode: "", audioNotice: "",
-    audioNoticeCode: "", channelSwitchedChannelId: "",
+    connected: true,
+    connecting: false,
+    reconnecting: false,
+    reconnectAttempt: 0,
+    reconnectFailed: false,
+    tsClientId: 1,
+    error: "",
+    errorCode: "",
+    microphoneError: "",
+    microphoneErrorCode: "",
+    audioNotice: "",
+    audioNoticeCode: "",
+    channelSwitchedChannelId: "",
     ...overrides,
   }) as VoiceState;
 }
@@ -71,12 +81,18 @@ async function mountUseChannelTree(overrides: Record<string, unknown> = {}) {
     setAway: vi.fn(),
     ...overrides,
   };
-  const wrapper = mount(defineComponent({ setup: () => useChannelTree({
-    ...options,
-    session: { state: options.voiceState, clearError: options.clearError },
-    roster: options,
-    actions: options,
-  }), template: "<div/>" }));
+  const wrapper = mount(
+    defineComponent({
+      setup: () =>
+        useChannelTree({
+          ...options,
+          session: { state: options.voiceState, clearError: options.clearError },
+          roster: options,
+          actions: options,
+        }),
+      template: "<div/>",
+    }),
+  );
   await flushPromises();
   return { wrapper, vm: wrapper.vm as unknown as Exposed, options, voiceState, channels, members };
 }
@@ -164,7 +180,10 @@ describe("toggleAway", () => {
   });
 
   it("flips away, prompts for a message and reports both to the server", async () => {
-    vi.stubGlobal("prompt", vi.fn(() => "back in 5"));
+    vi.stubGlobal(
+      "prompt",
+      vi.fn(() => "back in 5"),
+    );
     const { vm, options } = await mountUseChannelTree();
     expect(vm.away).toBe(false);
     vm.toggleAway();
@@ -173,7 +192,10 @@ describe("toggleAway", () => {
   });
 
   it("clears the message and reports available without prompting again", async () => {
-    vi.stubGlobal("prompt", vi.fn(() => "back in 5"));
+    vi.stubGlobal(
+      "prompt",
+      vi.fn(() => "back in 5"),
+    );
     const { vm, options } = await mountUseChannelTree();
     vm.toggleAway();
     vi.mocked(window.prompt).mockClear();
@@ -184,7 +206,10 @@ describe("toggleAway", () => {
   });
 
   it("treats a dismissed prompt as an empty message", async () => {
-    vi.stubGlobal("prompt", vi.fn(() => null));
+    vi.stubGlobal(
+      "prompt",
+      vi.fn(() => null),
+    );
     const { vm, options } = await mountUseChannelTree();
     vm.toggleAway();
     expect(options.setAway).toHaveBeenCalledWith(true, "");
@@ -273,7 +298,11 @@ describe("moveMemberDirect", () => {
   });
 
   it("toasts danger on failure", async () => {
-    const { vm, options } = await mountUseChannelTree({ moveClient: vi.fn(async () => { throw new Error("nope"); }) });
+    const { vm } = await mountUseChannelTree({
+      moveClient: vi.fn(async () => {
+        throw new Error("nope");
+      }),
+    });
     await vm.moveMemberDirect(member(2, "Ana"), "lobby");
     expect(useToast().toasts.value.at(-1)).toMatchObject({ variant: "danger" });
   });

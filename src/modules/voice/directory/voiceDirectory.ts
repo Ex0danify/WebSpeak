@@ -3,7 +3,6 @@ import type { MessageParams } from "../../../shared/messageCodes.js";
 import type { ServerEvent, VoiceConnection, WebClientEntry } from "../voiceTypes.js";
 import { avatarDataUrl, isChannelRecord, mapChannelTree, normalizeDirectorySnapshot } from "./voiceDirectoryView.js";
 
-/** What the directory listeners still need from the bridge. */
 export interface VoiceDirectoryDeps {
   sendInitialState(ctx: VoiceConnection): void;
   reconcileScreenShareAfterClientMove(entry: WebClientEntry, clientId: number, targetChannelId: bigint): void;
@@ -11,9 +10,8 @@ export interface VoiceDirectoryDeps {
 }
 
 /**
- * Registers the directory listeners. Call it before connect(): events emitted by
- * the welcome flow are queued by DirectorySynchronizer until its snapshot
- * establishes the baseline.
+ * Registers the directory listeners, call it before connect(). Welcome-flow events are queued by
+ * DirectorySynchronizer until its snapshot sets the baseline.
  */
 export function registerVoiceDirectory(ctx: VoiceConnection, deps: VoiceDirectoryDeps): void {
   ctx.tsClient.on("directorySnapshot", (snapshot: TSDirectorySnapshot) => {
@@ -37,8 +35,10 @@ export function registerVoiceDirectory(ctx: VoiceConnection, deps: VoiceDirector
     refreshDirectory(ctx);
     if (ctx.state.tsReady && ctx.state.initialStateSent) {
       ctx.sendJson({ type: "channelList", channels: ctx.entry.channelTree });
-      if (!wasKnown) ctx.sendJson({ type: "memberEnter", id: info.id, nickname: info.nickname, uid: info.uid, isSelf: info.id === ctx.state.selfId });
-      if (!wasKnown && info.id !== ctx.state.selfId) addServerEvent(ctx, "joined", `${info.nickname || "Unknown user"} joined the server`, { nickname: info.nickname });
+      if (!wasKnown)
+        ctx.sendJson({ type: "memberEnter", id: info.id, nickname: info.nickname, uid: info.uid, isSelf: info.id === ctx.state.selfId });
+      if (!wasKnown && info.id !== ctx.state.selfId)
+        addServerEvent(ctx, "joined", `${info.nickname || "Unknown user"} joined the server`, { nickname: info.nickname });
       scheduleMemberAvatarRefresh(ctx);
     }
   });
@@ -53,7 +53,8 @@ export function registerVoiceDirectory(ctx: VoiceConnection, deps: VoiceDirector
     if (ctx.state.tsReady && ctx.state.initialStateSent && wasKnown) {
       ctx.sendJson({ type: "memberLeave", id: info.id });
       ctx.sendJson({ type: "channelList", channels: ctx.entry.channelTree });
-      if (info.id !== ctx.state.selfId) addServerEvent(ctx, "left", `${leavingMember?.nickname || "A user"} left the server`, { nickname: leavingMember?.nickname });
+      if (info.id !== ctx.state.selfId)
+        addServerEvent(ctx, "left", `${leavingMember?.nickname || "A user"} left the server`, { nickname: leavingMember?.nickname });
     }
   });
 
@@ -66,7 +67,8 @@ export function registerVoiceDirectory(ctx: VoiceConnection, deps: VoiceDirector
     refreshDirectory(ctx);
     if (ctx.state.tsReady && ctx.state.initialStateSent) {
       ctx.sendJson({ type: "channelList", channels: ctx.entry.channelTree });
-      if (info.id !== ctx.state.selfId) addServerEvent(ctx, "moved", `${movedMember?.nickname || "A user"} moved to another channel`, { nickname: movedMember?.nickname });
+      if (info.id !== ctx.state.selfId)
+        addServerEvent(ctx, "moved", `${movedMember?.nickname || "A user"} moved to another channel`, { nickname: movedMember?.nickname });
     }
   });
 
@@ -82,10 +84,14 @@ function trackChannelEvents(ctx: VoiceConnection, previous: unknown[], next: unk
   const before = new Map(previous.filter(isChannelRecord).map((channel) => [channel.id, channel]));
   const after = new Map(next.filter(isChannelRecord).map((channel) => [channel.id, channel]));
   for (const channel of after.values()) {
-    if (!before.has(channel.id)) addServerEvent(ctx, "channelCreated", `Channel "${channel.name}" was created`, { channelName: channel.name });
-    else if (before.get(channel.id)?.name !== channel.name) addServerEvent(ctx, "channelRenamed", `Channel was renamed to "${channel.name}"`, { channelName: channel.name });
+    if (!before.has(channel.id))
+      addServerEvent(ctx, "channelCreated", `Channel "${channel.name}" was created`, { channelName: channel.name });
+    else if (before.get(channel.id)?.name !== channel.name)
+      addServerEvent(ctx, "channelRenamed", `Channel was renamed to "${channel.name}"`, { channelName: channel.name });
   }
-  for (const channel of before.values()) if (!after.has(channel.id)) addServerEvent(ctx, "channelDeleted", `Channel "${channel.name}" was deleted`, { channelName: channel.name });
+  for (const channel of before.values())
+    if (!after.has(channel.id))
+      addServerEvent(ctx, "channelDeleted", `Channel "${channel.name}" was deleted`, { channelName: channel.name });
 }
 
 function eventParams(extra: Partial<Pick<ServerEvent, "nickname" | "channelName">>): { params?: MessageParams } {
@@ -95,7 +101,12 @@ function eventParams(extra: Partial<Pick<ServerEvent, "nickname" | "channelName"
   return Object.keys(params).length ? { params } : {};
 }
 
-export function addServerEvent(ctx: VoiceConnection, kind: ServerEvent["kind"], message: string, extra: Partial<Pick<ServerEvent, "nickname" | "channelName">> = {}) {
+export function addServerEvent(
+  ctx: VoiceConnection,
+  kind: ServerEvent["kind"],
+  message: string,
+  extra: Partial<Pick<ServerEvent, "nickname" | "channelName">> = {},
+) {
   const event: ServerEvent = {
     id: `event-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`,
     kind,
@@ -116,7 +127,13 @@ export function refreshDirectory(ctx: VoiceConnection) {
   const effectiveSelfId = ctx.state.selfId || ctx.tsClient.getClientId();
   const sdkChannelId = ctx.tsClient.getChannelId();
   if (ctx.state.selfChannelId === 0n && sdkChannelId !== 0n) ctx.state.selfChannelId = sdkChannelId;
-  const normalizedSnapshot = normalizeDirectorySnapshot(snapshot, effectiveSelfId, ctx.state.selfChannelId, ctx.entry.nickname, ctx.channelName);
+  const normalizedSnapshot = normalizeDirectorySnapshot(
+    snapshot,
+    effectiveSelfId,
+    ctx.state.selfChannelId,
+    ctx.entry.nickname,
+    ctx.channelName,
+  );
   ctx.entry.channelTree = mapChannelTree(normalizedSnapshot, ctx.entry.avatarCache);
   ctx.entry.members.clear();
   for (const client of normalizedSnapshot.clients) {
@@ -138,7 +155,11 @@ export function refreshDirectory(ctx: VoiceConnection) {
   }
   if (!ctx.entry.whisperTargetIds.size) ctx.entry.whisperActive = false;
   const nextWhisperTargets = [...ctx.entry.whisperTargetIds].sort((a, b) => a - b);
-  if (ctx.state.initialStateSent && (previousWhisperTargets.length !== nextWhisperTargets.length || previousWhisperTargets.some((clientId, index) => clientId !== nextWhisperTargets[index]))) {
+  if (
+    ctx.state.initialStateSent &&
+    (previousWhisperTargets.length !== nextWhisperTargets.length ||
+      previousWhisperTargets.some((clientId, index) => clientId !== nextWhisperTargets[index]))
+  ) {
     ctx.sendJson({ type: "whisperTargets", targetIds: nextWhisperTargets, active: ctx.entry.whisperActive });
   }
 }
@@ -172,22 +193,29 @@ async function refreshMemberAvatars(ctx: VoiceConnection): Promise<void> {
           ctx.sendJson({ type: "memberAvatar", id: member.id, uid: member.uid, avatar });
         }
       } catch (error: unknown) {
-        // Avatar access is optional. A permission or file-transfer failure
-        // must never affect joining, directory updates, or voice traffic.
+        // Avatars are optional, a permission or file-transfer failure must never affect joining, updates or voice.
         ctx.entry.avatarCache.set(member.uid, null);
-        ctx.logger.debug({
-          entryId: ctx.entry.id,
-          clientId: member.id,
-          uid: member.uid,
-          err: error instanceof Error ? error.message : String(error),
-        }, "TeamSpeak client avatar unavailable");
+        ctx.logger.debug(
+          {
+            entryId: ctx.entry.id,
+            clientId: member.id,
+            uid: member.uid,
+            err: error instanceof Error ? error.message : String(error),
+          },
+          "TeamSpeak client avatar unavailable",
+        );
       } finally {
         ctx.avatarRequests.delete(member.uid);
       }
     }
   } finally {
     ctx.state.avatarRefreshRunning = false;
-    if (ctx.entry.isAlive && ctx.state.tsReady && ctx.session.state === "connected" && [...ctx.entry.members.values()].some((member) => member.uid && !ctx.entry.avatarCache.has(member.uid))) {
+    if (
+      ctx.entry.isAlive &&
+      ctx.state.tsReady &&
+      ctx.session.state === "connected" &&
+      [...ctx.entry.members.values()].some((member) => member.uid && !ctx.entry.avatarCache.has(member.uid))
+    ) {
       scheduleMemberAvatarRefresh(ctx, 250);
     }
   }

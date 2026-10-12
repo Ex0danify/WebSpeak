@@ -20,7 +20,10 @@ interface StoredTicket {
 export class JoinTicketStore {
   private readonly tickets = new Map<string, StoredTicket>();
 
-  constructor(private readonly ttlMs = 30_000, private readonly maxTickets = 256) {}
+  constructor(
+    private readonly ttlMs = 30_000,
+    private readonly maxTickets = 256,
+  ) {}
 
   create(payload: JoinTicketPayload, now = Date.now()): string {
     this.prune(now);

@@ -22,8 +22,7 @@ export async function resolveSafeOpenTarget(target: TeamSpeakTarget): Promise<Te
   if (!addresses.length || addresses.some(({ address }) => isRestrictedAddress(address))) {
     throw new UnsafeTeamSpeakTargetError();
   }
-  // Use the address that was actually validated so a second DNS lookup cannot
-  // rebind the gateway connection to a private network.
+  // Use the validated address so a second DNS lookup cannot rebind us to a private network.
   return { host: addresses[0]!.address, port: target.port };
 }
 
@@ -86,16 +85,18 @@ function isRestrictedIpv4(address: string): boolean {
   const parts = address.split(".").map(Number);
   if (parts.length !== 4 || parts.some((part) => !Number.isInteger(part) || part < 0 || part > 255)) return true;
   const [a, b] = parts as [number, number, number, number];
-  return a === 0
-    || a === 10
-    || a === 127
-    || (a === 100 && b >= 64 && b <= 127)
-    || (a === 169 && b === 254)
-    || (a === 172 && b >= 16 && b <= 31)
-    || (a === 192 && b === 0 && (parts[2] === 0 || parts[2] === 2))
-    || (a === 192 && b === 168)
-    || (a === 198 && (b === 18 || b === 19))
-    || (a === 198 && b === 51 && parts[2] === 100)
-    || (a === 203 && b === 0 && parts[2] === 113)
-    || a >= 224;
+  return (
+    a === 0 ||
+    a === 10 ||
+    a === 127 ||
+    (a === 100 && b >= 64 && b <= 127) ||
+    (a === 169 && b === 254) ||
+    (a === 172 && b >= 16 && b <= 31) ||
+    (a === 192 && b === 0 && (parts[2] === 0 || parts[2] === 2)) ||
+    (a === 192 && b === 168) ||
+    (a === 198 && (b === 18 || b === 19)) ||
+    (a === 198 && b === 51 && parts[2] === 100) ||
+    (a === 203 && b === 0 && parts[2] === 113) ||
+    a >= 224
+  );
 }

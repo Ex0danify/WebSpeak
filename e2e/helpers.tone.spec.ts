@@ -1,11 +1,15 @@
-import { decodeOpus, powerAt } from "../test/helpers/audio";
+import { decodeOpus, powerAt } from "../test/support/audio";
 import { join, poll, withAudioTone } from "./helpers";
 import { expect, test } from "./fixtures";
 
 // Launch options force a new worker, so they are set for the whole file.
 test.use(withAudioTone({ frequencyHz: 1000 }));
 
-test("the microphone plays the tone: PCM goes up, and Opus that decodes to 1000 Hz reaches TeamSpeak", async ({ page, session, gateway }) => {
+test("the microphone plays the tone: PCM goes up, and Opus that decodes to 1000 Hz reaches TeamSpeak", async ({
+  page,
+  session,
+  gateway,
+}) => {
   await join(page, "helper-tone");
   await session.waitForBinary(10, "sent");
   const packets = await poll(

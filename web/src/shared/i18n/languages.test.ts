@@ -9,8 +9,10 @@ const FR: LanguageMeta = { endonym: "Français", tag: "fr-FR", intl: "fr-FR", fl
 const realModules = (await vi.importActual<typeof import("./languages")>("./languages")).MODULE_LANGUAGES;
 const withFrench = Object.fromEntries(Object.entries(realModules).map(([dir, codes]) => [dir, [...codes, "fr"]]));
 
-const realMetas = (await vi.importActual<typeof import("./languages")>("./languages")).LANGUAGES
-  .reduce<Record<string, LanguageMeta>>((all, { code, ...meta }) => ({ ...all, [code]: meta }), {});
+const realMetas = (await vi.importActual<typeof import("./languages")>("./languages")).LANGUAGES.reduce<Record<string, LanguageMeta>>(
+  (all, { code, ...meta }) => ({ ...all, [code]: meta }),
+  {},
+);
 
 describe("buildLanguages", () => {
   it("lists the shipped languages, default first, then alphabetical", () => {

@@ -74,7 +74,9 @@ describe("DirectorySynchronizer deltas", () => {
     sync.applyClientEnter(client(2));
     sync.applyClientUpdated(client(2, { nickname: "renamed", inputMuted: true }));
     sync.applyClientMoved(2, 7n);
-    expect(sync.getSnapshot()!.clients.find((entry) => entry.id === 2)).toEqual(client(2, { nickname: "renamed", inputMuted: true, channelID: 7n }));
+    expect(sync.getSnapshot()!.clients.find((entry) => entry.id === 2)).toEqual(
+      client(2, { nickname: "renamed", inputMuted: true, channelID: 7n }),
+    );
     sync.applyClientLeave(1);
     expect(ids(sync)).toEqual([2]);
   });

@@ -31,7 +31,21 @@ export function readRecentLogs(logFile: string | undefined, limit: number): Admi
       try {
         const raw = JSON.parse(line) as Record<string, unknown>;
         const context: Record<string, string | number | boolean> = {};
-        for (const key of ["component", "entryId", "code", "reason", "attempt", "target", "nickname", "clientIp", "relayName", "relayTarget", "channel", "reconnect", "port"]) {
+        for (const key of [
+          "component",
+          "entryId",
+          "code",
+          "reason",
+          "attempt",
+          "target",
+          "nickname",
+          "clientIp",
+          "relayName",
+          "relayTarget",
+          "channel",
+          "reconnect",
+          "port",
+        ]) {
           const value = raw[key];
           if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") context[key] = value;
         }
@@ -58,21 +72,24 @@ interface StructuredLogEntry {
 
 export function readConnectionHistory(logFile: string | undefined, limit: number): AdminConnectionRecord[] {
   if (!logFile) return [];
-  const records = new Map<string, {
-    id: string;
-    nickname: string;
-    clientIp: string;
-    target: string;
-    relayName: string;
-    relayTarget: string;
-    startedAt: string | null;
-    connectedAt: string | null;
-    disconnectedAt: string | null;
-    durationSeconds: number | null;
-    status: AdminConnectionRecord["status"];
-    reason: string | null;
-    failureDetail: string | null;
-  }>();
+  const records = new Map<
+    string,
+    {
+      id: string;
+      nickname: string;
+      clientIp: string;
+      target: string;
+      relayName: string;
+      relayTarget: string;
+      startedAt: string | null;
+      connectedAt: string | null;
+      disconnectedAt: string | null;
+      durationSeconds: number | null;
+      status: AdminConnectionRecord["status"];
+      reason: string | null;
+      failureDetail: string | null;
+    }
+  >();
   for (const log of readStructuredLogs(logFile)) {
     const entryId = typeof log.raw.entryId === "string" ? log.raw.entryId : "";
     if (!entryId || !log.timestamp) continue;
@@ -115,19 +132,16 @@ export function readConnectionHistory(logFile: string | undefined, limit: number
     } else if (log.message === "Client session torn down") {
       current.startedAt ??= log.timestamp;
       current.disconnectedAt = log.timestamp;
-      current.durationSeconds = current.connectedAt && typeof log.raw.durationSeconds === "number"
-        ? Math.max(0, Math.floor(log.raw.durationSeconds))
-        : current.connectedAt
-          ? Math.max(0, Math.floor((Date.parse(log.timestamp) - Date.parse(current.connectedAt)) / 1000))
-          : null;
+      current.durationSeconds =
+        current.connectedAt && typeof log.raw.durationSeconds === "number"
+          ? Math.max(0, Math.floor(log.raw.durationSeconds))
+          : current.connectedAt
+            ? Math.max(0, Math.floor((Date.parse(log.timestamp) - Date.parse(current.connectedAt)) / 1000))
+            : null;
       current.status = current.connectedAt ? "disconnected" : "failed";
-      // `reason` is also used for ordinary lifecycle teardown (for example
-      // websocket-close when a user clicks Leave). Only preserve an explicit
-      // TeamSpeak failure code here; otherwise a normal disconnect would be
-      // rendered by the admin UI as the generic request-failed message.
-      current.reason = typeof log.raw.failureCode === "string" && log.raw.failureCode
-        ? log.raw.failureCode
-        : current.reason;
+      // reason is also set for normal teardown (websocket-close on Leave). Only keep an explicit failure
+      // code, or a normal disconnect shows up as request-failed in the admin UI.
+      current.reason = typeof log.raw.failureCode === "string" && log.raw.failureCode ? log.raw.failureCode : current.reason;
     }
     records.set(entryId, current);
   }
@@ -147,14 +161,12 @@ export function readConnectionHistory(logFile: string | undefined, limit: number
         startedAt: record.startedAt,
         connectedAt: record.connectedAt,
         disconnectedAt: record.disconnectedAt,
-        durationSeconds: record.durationSeconds ?? (record.status === "active" || record.status === "connecting"
-          ? Math.max(0, Math.floor((end - Date.parse(start)) / 1000))
-          : null),
+        durationSeconds:
+          record.durationSeconds ??
+          (record.status === "active" || record.status === "connecting" ? Math.max(0, Math.floor((end - Date.parse(start)) / 1000)) : null),
         status: record.status,
-        // Older sessions may only contain a teardown record without a
-        // structured failure code. Keep normal disconnects quiet, but make
-        // an untraceable failed connection explicitly visible as the generic
-        // request-failed message instead of implying a guessed cause.
+        // Older sessions may have a teardown record without a failure code. Normal disconnects stay quiet,
+        // an untraceable failure shows as the generic message instead of a guessed cause.
         reason: record.reason ?? (record.status === "failed" ? "CONNECTION_FAILED" : null),
         failureDetail: record.failureDetail,
       };
@@ -164,7 +176,9 @@ export function readConnectionHistory(logFile: string | undefined, limit: number
 }
 
 function readStructuredLogs(logFile: string): StructuredLogEntry[] {
-  const paths = [logFile, `${logFile}.1`, `${logFile}.2`, `${logFile}.3`].filter((value, index, all) => value && all.indexOf(value) === index);
+  const paths = [logFile, `${logFile}.1`, `${logFile}.2`, `${logFile}.3`].filter(
+    (value, index, all) => value && all.indexOf(value) === index,
+  );
   const entries: StructuredLogEntry[] = [];
   for (const path of paths) {
     if (!existsSync(path)) continue;
@@ -178,8 +192,7 @@ function readStructuredLogs(logFile: string): StructuredLogEntry[] {
             raw,
           });
         } catch {
-          // Non-JSON lines are still shown by the normal log viewer, but cannot
-          // be associated with a user session safely.
+          // Non-JSON lines show in the log viewer but cannot be tied to a session.
         }
       }
     } catch {

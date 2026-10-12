@@ -1,17 +1,10 @@
 import { readonly, ref } from "vue";
 import type { StatusVariant } from "../ui/shared/status";
 
-// Toast queue. State lives at module level so any component or service can
-// raise a toast without providing anything; one <Toaster /> mounted near the
-// app root renders it (see components/ui/toast/Toaster.vue).
-//
-//   const { toast } = useToast();
-//   toast({ title: "Connected to Raid Night", description: "Voice is live.", variant: "success" });
-//   toast("Copied");   // shorthand for { title: "Copied" }
-//
-// A toast confirms something that already happened and may offer one action
-// (Retry). Anything the user must not miss, or that stays true until fixed
-// (reconnecting, degraded audio), is a Banner, not a toast.
+// Toast queue. State lives at module level so any component or service can raise a toast without providing anything, one
+// <Toaster /> near the app root renders it. A toast confirms something that already happened and may offer one action.
+
+// Anything the user must not miss, or that stays true until fixed (reconnecting, degraded audio), is a Banner, not a toast.
 export interface ToastAction {
   label: string;
   onClick: () => void;
@@ -23,7 +16,7 @@ export interface ToastOptions {
   title: string;
   description?: string;
   variant?: StatusVariant;
-  /** Milliseconds until it closes itself; 0 keeps it until dismissed. Default 5000, 10000 with an action. */
+  /** Milliseconds until it closes itself, 0 keeps it until dismissed. Default 5000, 10000 with an action. */
   duration?: number;
   action?: ToastAction;
 }

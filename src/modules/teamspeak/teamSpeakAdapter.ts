@@ -1,9 +1,4 @@
-import {
-  Client as TeamSpeakClient,
-  generateIdentity,
-  type ClientOptions,
-  type Identity,
-} from "@echosixhiya/teamspeak-client";
+import { Client as TeamSpeakClient, generateIdentity, type ClientOptions, type Identity } from "@echosixhiya/teamspeak-client";
 import type { Logger } from "../../shared/logger.js";
 import { normalizeTeamSpeakError } from "../../shared/errors.js";
 import type { TeamSpeakProtocol } from "../../shared/teamSpeakProtocol.js";
@@ -14,7 +9,7 @@ interface CacheEntry {
   lastSuccessfulAt: number;
 }
 
-/** Process-local optimization; protocol is never persisted as user config. */
+/** Process-local cache, the protocol is never persisted as user config. */
 export class EndpointProtocolCache {
   private readonly entries = new Map<string, CacheEntry>();
 
@@ -68,9 +63,8 @@ export interface TeamSpeakAdapterOptions {
 }
 
 /**
- * The SDK performs the wire-level TS3/TS6 negotiation itself. This adapter is
- * the only application boundary that knows about that SDK and records the
- * successfully observed server generation for later connections.
+ * The SDK negotiates TS3 vs TS6 on the wire itself. This adapter is the only place that knows the SDK
+ * and it remembers the server generation we saw for later connections.
  */
 export class TeamSpeakAdapter {
   readonly client: TeamSpeakClient;
@@ -94,12 +88,7 @@ export class TeamSpeakAdapter {
         error: (msg: string) => this.logger.error(msg),
       },
     };
-    this.client = new TeamSpeakClient(
-      this.identity,
-      formatTeamSpeakTarget(options.target),
-      options.nickname,
-      clientOptions,
-    );
+    this.client = new TeamSpeakClient(this.identity, formatTeamSpeakTarget(options.target), options.nickname, clientOptions);
     this.target = options.target;
   }
 
@@ -142,7 +131,7 @@ export class TeamSpeakAdapter {
         .join(" ");
       return detectTeamSpeakProtocol(versionText);
     } catch {
-      // Version discovery is an optimization; connection success is enough to proceed.
+      // Version discovery is only an optimization, a successful connection is enough.
       return null;
     }
   }

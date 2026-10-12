@@ -1,11 +1,17 @@
-// Characterization of the audio hot path (Step V0.5), driven through the public API:
-//   uplink   - worklet frame -> VOX gate -> Int16 conversion -> 960-sample framing -> socket
-//   downlink - binary Opus frame -> per-client decoder -> scheduled playback
-// Track V3/V4 move this code verbatim; every number below is behavior to keep.
+// Characterization of the audio hot path through the public API. Uplink is worklet frame, VOX gate, Int16 conversion,
+// 960-sample framing, socket. Downlink is binary Opus frame, per-client decoder, scheduled playback. Every number below is
+// behavior to keep.
 import { flushPromises } from "@vue/test-utils";
 import { afterEach, describe, expect, it } from "vitest";
 import { createVoiceHarness, type VoiceHarness } from "@/testSupport/harness";
-import { FakeAudioContext, FakeAudioData, FakeAudioDecoder, FakeAudioWorkletNode, FakeMediaStream, FakeMediaStreamTrack } from "@/testSupport/browserStubs";
+import {
+  FakeAudioContext,
+  FakeAudioData,
+  FakeAudioDecoder,
+  FakeAudioWorkletNode,
+  FakeMediaStream,
+  FakeMediaStreamTrack,
+} from "@/testSupport/browserStubs";
 import type { FakeWebSocket } from "@/testSupport/fakeWebsocket";
 
 let harness: VoiceHarness;
@@ -179,8 +185,6 @@ describe("uplink: buffer cap", () => {
   });
 });
 
-// ---- downlink ---------------------------------------------------------------
-
 function opusFrame(clientId: number, payloadLength = 8, codec = 4): Uint8Array {
   const frame = new Uint8Array(3 + payloadLength);
   frame[0] = codec;
@@ -192,7 +196,13 @@ function opusFrame(clientId: number, payloadLength = 8, codec = 4): Uint8Array {
 
 async function downlink(): Promise<{ socket: FakeWebSocket; ctx: () => FakeAudioContext }> {
   harness = await createVoiceHarness();
-  const socket = await harness.joinAndConnect({ members: [{ id: 7, nickname: "Me" }, { id: 9, nickname: "Ana" }, { id: 10, nickname: "Ben" }] });
+  const socket = await harness.joinAndConnect({
+    members: [
+      { id: 7, nickname: "Me" },
+      { id: 9, nickname: "Ana" },
+      { id: 10, nickname: "Ben" },
+    ],
+  });
   await flushPromises();
   return { socket, ctx: () => FakeAudioContext.instances[0] };
 }

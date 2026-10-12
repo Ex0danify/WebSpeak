@@ -3,9 +3,9 @@ import { expect, test } from "./fixtures";
 import { poll } from "../helpers";
 import { GUEST_IDENTITY as GUEST } from "./identities";
 import { channelIdOf } from "./ui";
-import { TEST_ADMIN_PASSWORD, type Gateway } from "../../test/helpers/gateway";
+import { TEST_ADMIN_PASSWORD, type Gateway } from "../../test/support/gateway";
 
-// Step 5.9: the admin console against the real server. Each test has a gateway of its own
+// The admin console against the real server. Each test has a gateway of its own
 // (`ownGateway`), because it changes the settings or ends a session. The console is asked for English.
 
 test.beforeEach(async ({ page }) => {
@@ -22,14 +22,13 @@ async function openAdmin(page: Page, gateway: Gateway, path: "/server" | "/opera
   await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
 }
 
-const publicConfig = async (gateway: Gateway): Promise<{ accessMode: string; target: string }> => (await gateway.request("/api/public-config")).json();
+const publicConfig = async (gateway: Gateway): Promise<{ accessMode: string; target: string }> =>
+  (await gateway.request("/api/public-config")).json();
 
 test.describe("test connection", () => {
-  // The console's test sends the first packet of the TeamSpeak handshake to the voice port and
-  // waits for the server's answer (`teamspeak-probe.ts`); it makes no TeamSpeak client, so it is
-  // not listed in a channel and cannot check the server password. The host ping runs next to it as
-  // extra detail. The disposable server's ports are published on 127.0.0.1, so this is the product's
-  // own probe and ping (see `startGateway`) against the real server.
+  // The console's test sends the first packet of the TeamSpeak handshake to the voice port and waits for the answer
+  // (`teamspeak-probe.ts`). It makes no TeamSpeak client, so it is not listed in a channel and cannot check the server
+  // password.
   test("reports the real server's answer to the handshake, and the ping of its host", async ({ page, ownGateway, server }) => {
     const gateway = await ownGateway();
     await openAdmin(page, gateway, "/server");
@@ -47,9 +46,9 @@ test.describe("test connection", () => {
     await expect(page.getByText(/ · [\d.]+ ms · Host ping [\d.]+ ms · Packet loss 0%$/)).toBeVisible();
   });
 
-  // F38 (docs/testing/findings.md): the test used to ping the host and never look at the port, so a
-  // voice port with nothing behind it passed. The host answers ping here, the port does not answer.
-  test("F38: fails for a voice port that nothing listens on, although the host answers ping", async ({ page, ownGateway }) => {
+  // The probe checks the port, not just the host, so a voice port with nothing behind it must fail (the host answers ping, the
+  // port doesn't).
+  test("fails for a voice port that nothing listens on, although the host answers ping", async ({ page, ownGateway }) => {
     const gateway = await ownGateway();
     await openAdmin(page, gateway, "/server");
     await page.getByLabel("Voice port").fill("1");
@@ -84,12 +83,20 @@ test.describe("test connection", () => {
   });
 });
 
-test("guest access set in the console reaches the guests, and a guest still joins the real server after it is set back", async ({ page, person, ownGateway, server, query }) => {
+test("guest access set in the console reaches the guests, and a guest still joins the real server after it is set back", async ({
+  page,
+  person,
+  ownGateway,
+  server,
+  query,
+}) => {
   const gateway = await ownGateway();
   expect(await publicConfig(gateway)).toMatchObject({ accessMode: "fixed", target: `${server.host}:${server.voicePort}` });
   await openAdmin(page, gateway, "/server");
   const save = async () => {
-    const answer = page.waitForResponse((response) => response.url().endsWith("/api/admin/server") && response.request().method() === "PUT");
+    const answer = page.waitForResponse(
+      (response) => response.url().endsWith("/api/admin/server") && response.request().method() === "PUT",
+    );
     await page.getByRole("button", { name: "Save changes" }).click();
     expect((await answer).status()).toBe(200);
   };
@@ -112,14 +119,28 @@ test("Terminate in the console removes a real client from the server", async ({ 
   const gateway = await ownGateway();
   const guest = await person(GUEST, "admin-victim", { gateway });
   await guest.join();
-  await poll(() => channelIdOf(query, guest.nickname), (cid) => cid !== undefined, { message: "the server to list the guest" });
+  await poll(
+    () => channelIdOf(query, guest.nickname),
+    (cid) => cid !== undefined,
+    { message: "the server to list the guest" },
+  );
 
   await openAdmin(page, gateway, "/operations");
   page.on("dialog", (dialog) => dialog.accept());
-  await page.locator("table").first().getByRole("row").filter({ hasText: guest.nickname }).getByRole("button", { name: "Terminate" }).click();
+  await page
+    .locator("table")
+    .first()
+    .getByRole("row")
+    .filter({ hasText: guest.nickname })
+    .getByRole("button", { name: "Terminate" })
+    .click();
 
   await expect(guest.page.getByRole("button", { name: "Enter voice space" })).toBeVisible();
-  await poll(() => channelIdOf(query, guest.nickname), (cid) => cid === undefined, { message: "the server to drop the terminated guest's client" });
+  await poll(
+    () => channelIdOf(query, guest.nickname),
+    (cid) => cid === undefined,
+    { message: "the server to drop the terminated guest's client" },
+  );
   await page.getByRole("button", { name: "Refresh" }).click();
   await expect(page.getByText("There are no active sessions.")).toBeVisible();
 });

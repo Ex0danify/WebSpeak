@@ -11,9 +11,6 @@ type Exposed = {
   privateConversations: Array<{ id: number; name: string; lastMessage: number }>;
   visibleChatMessages: ChatMessage[];
   chatTabLabel: string;
-  chatPanelId: string;
-  chatTabId: (key: string) => string;
-  activeChatTabId: string;
   chatTitle: string;
   chatPlaceholder: string;
   formatTime: (timestamp: number) => string;
@@ -30,9 +27,19 @@ function member(id: number, nickname: string): ChannelMember {
 
 function makeVoiceState(overrides: Partial<VoiceState> = {}): VoiceState {
   return reactive({
-    connected: true, connecting: false, reconnecting: false, reconnectAttempt: 0, reconnectFailed: false,
-    tsClientId: 1, error: "", errorCode: "", microphoneError: "", microphoneErrorCode: "", audioNotice: "",
-    audioNoticeCode: "", channelSwitchedChannelId: "",
+    connected: true,
+    connecting: false,
+    reconnecting: false,
+    reconnectAttempt: 0,
+    reconnectFailed: false,
+    tsClientId: 1,
+    error: "",
+    errorCode: "",
+    microphoneError: "",
+    microphoneErrorCode: "",
+    audioNotice: "",
+    audioNoticeCode: "",
+    channelSwitchedChannelId: "",
     ...overrides,
   }) as VoiceState;
 }
@@ -62,12 +69,18 @@ async function mountUseChat(overrides: Record<string, unknown> = {}) {
     sendPrivateMessage: vi.fn(),
     ...overrides,
   };
-  const wrapper = mount(defineComponent({ setup: () => useChat({
-    ...options,
-    session: { state: options.voiceState },
-    roster: { members: options.members },
-    chat: options,
-  }), template: "<div/>" }));
+  const wrapper = mount(
+    defineComponent({
+      setup: () =>
+        useChat({
+          ...options,
+          session: { state: options.voiceState },
+          roster: { members: options.members },
+          chat: options,
+        }),
+      template: "<div/>",
+    }),
+  );
   await flushPromises();
   return { wrapper, vm: wrapper.vm as unknown as Exposed, options, voiceState, members, chatMessages };
 }
@@ -87,7 +100,7 @@ describe("privateConversations", () => {
     expect(vm.privateConversations).toEqual([{ id: 2, name: "Ana", lastMessage: 20 }]);
   });
 
-  it("lists a just-opened conversation with no message yet under the member's name (F25)", async () => {
+  it("lists a just-opened conversation with no message yet under the member's name", async () => {
     const { vm } = await mountUseChat();
     vm.openPrivateChat(2);
     await flushPromises();
@@ -151,21 +164,7 @@ describe("visibleChatMessages", () => {
   });
 });
 
-describe("chat tab labels and ids", () => {
-  it("derives chatPanelId, chatTabId and activeChatTabId", async () => {
-    const { vm } = await mountUseChat();
-    expect(vm.chatPanelId).toBe("chat-tabpanel");
-    expect(vm.chatTabId("server")).toBe("chat-tab-server");
-    expect(vm.activeChatTabId).toBe("chat-tab-channel");
-  });
-
-  it("switches activeChatTabId to the private conversation once one is open", async () => {
-    const { vm } = await mountUseChat();
-    vm.openPrivateChat(2);
-    await flushPromises();
-    expect(vm.activeChatTabId).toBe("chat-tab-private-2");
-  });
-
+describe("chat tab labels", () => {
   it("chatTitle falls back to the private-message label when the conversation isn't known yet", async () => {
     const { vm, options } = await mountUseChat();
     options.chatTab.value = "private";
@@ -293,8 +292,12 @@ describe("setChatListElement", () => {
 describe("eventText", () => {
   it("renders a nameless client and an unnamed channel from keys, not from the English message", async () => {
     const { vm } = await mountUseChat();
-    expect(vm.eventText({ id: "1", kind: "joined", message: "Unknown user joined the server", timestamp: 0 })).toBe("Unnamed user joined the server");
-    expect(vm.eventText({ id: "2", kind: "channelDeleted", message: "x", channelName: "", timestamp: 0 })).toBe('Channel "Unnamed channel" was deleted');
+    expect(vm.eventText({ id: "1", kind: "joined", message: "Unknown user joined the server", timestamp: 0 })).toBe(
+      "Unnamed user joined the server",
+    );
+    expect(vm.eventText({ id: "2", kind: "channelDeleted", message: "x", channelName: "", timestamp: 0 })).toBe(
+      'Channel "Unnamed channel" was deleted',
+    );
   });
 
   it("builds a translated sentence when the gateway sends a nickname", async () => {

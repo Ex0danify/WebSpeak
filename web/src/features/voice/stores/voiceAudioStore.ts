@@ -13,10 +13,9 @@ function displayMediaSupported(): boolean {
   return typeof navigator !== "undefined" && Boolean(navigator.mediaDevices?.getDisplayMedia);
 }
 
-/** Reactive audio settings and status the UI reads. `micLevel` is deliberately not here: it is written
- *  on every 20 ms capture frame (see the plan's section 7), so it stays a per-call ref. Audio nodes,
- *  buffers, timers and gain maps also stay out (V-D3). reset() re-reads storage and the browser, like
- *  the closure-local refs did on every call. */
+/** Reactive audio settings and status the UI reads. `micLevel` is deliberately not here, it is written on every 20 ms capture
+ *  frame so it stays a per-call ref. Audio nodes, buffers, timers and gain maps stay out too. reset() re-reads storage and the
+ *  browser. */
 export const useVoiceAudioStore = defineStore("voiceAudio", () => {
   const microphoneMuted = ref(false);
   const noiseSuppressionEnabled = ref(true);
@@ -65,9 +64,27 @@ export const useVoiceAudioStore = defineStore("voiceAudio", () => {
   }
 
   return {
-    microphoneMuted, noiseSuppressionEnabled, inputVolume, outputVolume, outputMuted, notificationVolume, voxThreshold,
-    inputDevices, outputDevices, selectedInputDeviceId, selectedOutputDeviceId, outputDeviceSupported, audioPermission,
-    microphoneProcessing, audioContextState, microphoneTestActive, testAudioUrl, volumes,
-    accompanimentActive, accompanimentSupported, accompanimentErrorCode, reset,
+    microphoneMuted,
+    noiseSuppressionEnabled,
+    inputVolume,
+    outputVolume,
+    outputMuted,
+    notificationVolume,
+    voxThreshold,
+    inputDevices,
+    outputDevices,
+    selectedInputDeviceId,
+    selectedOutputDeviceId,
+    outputDeviceSupported,
+    audioPermission,
+    microphoneProcessing,
+    audioContextState,
+    microphoneTestActive,
+    testAudioUrl,
+    volumes,
+    accompanimentActive,
+    accompanimentSupported,
+    accompanimentErrorCode,
+    reset,
   };
 });

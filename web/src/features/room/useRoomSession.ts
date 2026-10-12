@@ -27,14 +27,7 @@ import type {
   ScreenShareViewer,
   ScreenShareWebRtcStats,
 } from "@/features/screenShare";
-import type {
-  ChannelInfo,
-  ChannelMember,
-  ChatMessage,
-  LatencyProbeResult,
-  ServerEvent,
-  VoiceState,
-} from "@/features/session";
+import type { ChannelInfo, ChannelMember, ChatMessage, LatencyProbeResult, ServerEvent, VoiceState } from "@/features/session";
 
 export { normalizeMicrophoneFailure };
 
@@ -58,7 +51,6 @@ export type {
   VoiceState,
 };
 
-
 export function useRoomSession() {
   const session = useSessionStore();
   session.reset();
@@ -66,32 +58,84 @@ export function useRoomSession() {
   const audio = useVoiceAudioStore();
   audio.reset();
   const {
-    microphoneMuted, noiseSuppressionEnabled, inputVolume, outputVolume, outputMuted, notificationVolume, voxThreshold,
-    selectedInputDeviceId, selectedOutputDeviceId, outputDeviceSupported, audioPermission, audioContextState,
-    microphoneTestActive, testAudioUrl, accompanimentActive, accompanimentSupported, accompanimentErrorCode,
+    microphoneMuted,
+    noiseSuppressionEnabled,
+    inputVolume,
+    outputVolume,
+    outputMuted,
+    notificationVolume,
+    voxThreshold,
+    selectedInputDeviceId,
+    selectedOutputDeviceId,
+    outputDeviceSupported,
+    audioPermission,
+    audioContextState,
+    microphoneTestActive,
+    testAudioUrl,
+    accompanimentActive,
+    accompanimentSupported,
+    accompanimentErrorCode,
   } = storeToRefs(audio);
   const { inputDevices, outputDevices, microphoneProcessing, volumes } = audio;
   const screenShare = useScreenShareStore();
   screenShare.reset();
   const {
-    screenShareActive, screenShareStarting, screenShareActiveStreamId, screenShareViewing, screenShareViewingStreamId,
-    screenShareRemoteStream, screenShareError, screenShareErrorCode, screenShareRemoteVolume,
+    screenShareActive,
+    screenShareStarting,
+    screenShareActiveStreamId,
+    screenShareViewing,
+    screenShareViewingStreamId,
+    screenShareRemoteStream,
+    screenShareError,
+    screenShareErrorCode,
+    screenShareRemoteVolume,
   } = storeToRefs(screenShare);
   const { screenShareStreams, screenShareWebRtcStats } = screenShare;
   const { state, members, channels, chatMessages, serverEvents, pokeNotifications, speakingIds, whisperTargetIds } = session;
   const {
-    sendCmd, switchChannel, moveClient, measureLatency, clearLatencyProbes,
-    rejectPendingCommands, sendTextMessage, sendServerMessage, sendPrivateMessage, sendPoke, setAway, setWhisperTargets,
-    setWhisperActive, applyWhisperState, handlers: roomHandlers,
+    sendCmd,
+    switchChannel,
+    moveClient,
+    measureLatency,
+    clearLatencyProbes,
+    rejectPendingCommands,
+    sendTextMessage,
+    sendServerMessage,
+    sendPrivateMessage,
+    sendPoke,
+    setAway,
+    setWhisperTargets,
+    setWhisperActive,
+    applyWhisperState,
+    handlers: roomHandlers,
   } = useSessionActions({ protocolErrorMessage: (code, fallback) => connection.protocolErrorMessage(code, fallback) });
   const {
-    effectiveOutputVolume, applyOutputVolume, getAudioCtx, existingAudioCtx, releaseAudioCtx, attachWebRtcPlayback, setAudioNotice,
-    clearAudioNotice, syncAudioContextNotice, setAudioSink, setOutputDevice, syncWebRtcPlayback,
-    stopWebRtcPlayback, playNotification, handlers: audioOutputHandlers,
+    effectiveOutputVolume,
+    applyOutputVolume,
+    getAudioCtx,
+    existingAudioCtx,
+    releaseAudioCtx,
+    attachWebRtcPlayback,
+    setAudioNotice,
+    clearAudioNotice,
+    syncAudioContextNotice,
+    setAudioSink,
+    setOutputDevice,
+    syncWebRtcPlayback,
+    stopWebRtcPlayback,
+    playNotification,
+    handlers: audioOutputHandlers,
   } = useAudioOutput({ saveAudioPreferences: () => saveAudioPreferences(), remoteGains: () => playback.remoteGains });
   const {
-    audioPreferencesReady, saveAudioPreferences, syncKnownMemberVolumes, setVolume, setInputVolume, setOutputVolume,
-    toggleOutputMute, setVoxThreshold, setNotificationVolume,
+    audioPreferencesReady,
+    saveAudioPreferences,
+    syncKnownMemberVolumes,
+    setVolume,
+    setInputVolume,
+    setOutputVolume,
+    toggleOutputMute,
+    setVoxThreshold,
+    setNotificationVolume,
   } = useAudioPreferences({ applyMemberVolume, applyInputVolume, applyOutputVolume });
   const webrtcActive = ref(false);
   const identityMaterial = ref("");
@@ -99,14 +143,33 @@ export function useRoomSession() {
   const { remoteGains, markSpeaking, clearSpeaking, handleAudioFrame, resetDownlink, handlers: playbackHandlers } = playback;
 
   const {
-    startScreenShare, stopScreenShare, joinScreenShare, leaveScreenShare, stopScreenShareTransport, sendScreenShareMessage,
+    startScreenShare,
+    stopScreenShare,
+    joinScreenShare,
+    leaveScreenShare,
+    stopScreenShareTransport,
+    sendScreenShareMessage,
     handlers: screenShareHandlers,
   } = useScreenSharePeers();
   const micLevel = ref(0);
   const {
-    checkSupport, refreshAudioDevices, prepareInputDevices, setInputDevice, setMicrophoneError,
-    clearMicrophoneError, startMicrophone, ensureMicrophone, stopMicrophone, stopCaptureGraph, setMicrophoneMuted,
-    setNoiseSuppressionEnabled, startMicrophoneTest, stopMicrophoneTest, getMicStream, getProcessedMicStream, applyMicGain,
+    checkSupport,
+    refreshAudioDevices,
+    prepareInputDevices,
+    setInputDevice,
+    setMicrophoneError,
+    clearMicrophoneError,
+    startMicrophone,
+    ensureMicrophone,
+    stopMicrophone,
+    stopCaptureGraph,
+    setMicrophoneMuted,
+    setNoiseSuppressionEnabled,
+    startMicrophoneTest,
+    stopMicrophoneTest,
+    getMicStream,
+    getProcessedMicStream,
+    applyMicGain,
   } = useMicrophone({
     saveAudioPreferences: () => saveAudioPreferences(),
     setAudioNotice,
@@ -128,9 +191,8 @@ export function useRoomSession() {
     stopWebRtcTransport: () => transport.stopWebRtcTransport(),
     startWebRtcTransport: (sequence, socket) => transport.startWebRtcTransport(sequence, socket),
   });
-  // WebRTC carries audio when the gateway advertises it. The bounded PCM
-  // WebSocket path remains the compatibility fallback for older browsers and
-  // for deployments where the gateway's built-in UDP media range is unavailable.
+  // WebRTC carries audio when the gateway advertises it. The bounded PCM WebSocket path is the fallback for older browsers
+  // and for deployments where the gateway's built-in UDP media range is unavailable.
   const transport = useWebRtcTransport({
     getMicStream,
     getProcessedMicStream,
@@ -153,15 +215,38 @@ export function useRoomSession() {
     micLevel,
   });
   const {
-    startWebRtcTransport, stopWebRtcTransport, startAccompaniment, stopAccompaniment,
-    getWebRtcPeer, getWebRtcMixMicGain, handlers: transportHandlers,
+    startWebRtcTransport,
+    stopWebRtcTransport,
+    startAccompaniment,
+    stopAccompaniment,
+    getWebRtcPeer,
+    getWebRtcMixMicGain,
+    handlers: transportHandlers,
   } = transport;
   const connection = useConnection({
-    audioPreferencesReady, identityMaterial, handleMessage: (msg) => handleMessage(msg), handleAudioFrame, clearLatencyProbes, rejectPendingCommands,
-    stopMicrophone, clearMicrophoneError, clearAudioNotice, stopScreenShareTransport, stopWebRtcTransport, resetDownlink,
-    sendCmd, applyWhisperState, syncKnownMemberVolumes, ensureMicrophone, setMicrophoneError, startWebRtcTransport, sendScreenShareMessage,
+    audioPreferencesReady,
+    identityMaterial,
+    handleMessage: (msg) => handleMessage(msg),
+    handleAudioFrame,
+    clearLatencyProbes,
+    rejectPendingCommands,
+    stopMicrophone,
+    clearMicrophoneError,
+    clearAudioNotice,
+    stopScreenShareTransport,
+    stopWebRtcTransport,
+    resetDownlink,
+    sendCmd,
+    applyWhisperState,
+    syncKnownMemberVolumes,
+    ensureMicrophone,
+    setMicrophoneError,
+    startWebRtcTransport,
+    sendScreenShareMessage,
     isMicrophoneMuted: () => microphoneMuted.value,
-    clearMemberVolumes: () => { for (const key of Object.keys(volumes)) delete volumes[Number(key)]; },
+    clearMemberVolumes: () => {
+      for (const key of Object.keys(volumes)) delete volumes[Number(key)];
+    },
   });
   const { connect, disconnect, reconnectNow, clearError, handlers: connectionHandlers } = connection;
   const handleMessage = createMessageRouter(

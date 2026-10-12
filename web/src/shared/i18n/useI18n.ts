@@ -7,16 +7,12 @@ const STORAGE_KEY = "webspeak:language";
 
 type Messages = Record<string, Record<string, string>>;
 
-// Screens own their translation modules and register them at startup (main.ts, and the Vitest
-// setup file for tests), so this file imports no screen. A key exists in exactly one module
-// (checked by check-i18n.mjs and keyParity.test.ts), so t() tries each registered module in
-// registration order instead of merging them into a copy: a copy would stop seeing a
-// translation a test adds to one of the source objects after t() first ran. Register `common`
-// first: "shared chrome, then the view's own vocabulary".
+// Screens own their translation modules and register them at startup (main.ts, the Vitest setup file), so this file imports no
+// screen. A key lives in exactly one module, so t() tries each in registration order instead of merging into a copy that goes
+// stale when a test adds to a source object. Register `common` first.
 const registry: Messages[] = [];
 
-/** Add a translation module (one object per language) to the lookup. Registering the same
- *  object twice is a no-op. */
+/** Add a translation module (one object per language) to the lookup. Registering the same object twice is a no-op. */
 export function registerMessages(messages: Messages): void {
   if (registry.includes(messages)) return;
   registry.push(messages);
@@ -40,9 +36,10 @@ function browserLanguages(): readonly string[] {
   return navigator.language ? [navigator.language] : [];
 }
 
-/** The stored language, else the first browser language a discovered language matches (by the tag's
- *  primary subtag, so `de-AT` is `de`), else English. The join page, the admin console and the demo page
- *  all start from this one function. */
+/**
+ * The stored language, else the first browser language a discovered language matches (by primary subtag, so `de-AT` is
+ * `de`), else English.
+ */
 export function detectLanguage(): Language {
   const stored = readStorage(STORAGE_KEY);
   if (isLanguage(stored)) return stored;
@@ -54,26 +51,28 @@ export function detectLanguage(): Language {
   return DEFAULT_LANGUAGE;
 }
 
-// One language for the whole app, so every component that calls useI18n()
-// follows the same switch.
+// One language for the whole app, so every component that calls useI18n() follows the same switch.
 const language = ref<Language>(detectLanguage());
 
-/** Keep `<html lang>` on the language of the page (screen readers, hyphenation, translation offers).
- *  Synchronous, so every way of changing `language` (setLanguage, loadLanguage, the server-side
- *  preference loaded in ClientLayout) is covered, and the startup value is applied at once. */
+/** Keep `<html lang>` on the page language (screen readers, hyphenation, translation offers). Synchronous, so every way of
+ *  changing `language` is covered and the startup value applies at once. */
 function applyDocumentLanguage(value: Language) {
   if (typeof document !== "undefined") document.documentElement.lang = languageInfo(value).tag;
 }
 applyDocumentLanguage(language.value);
 watch(language, applyDocumentLanguage, { flush: "sync" });
 
-/** The admin-configured site name; empty while the default is in use. It wins over the translated
- *  app title, as it does in the join page header. */
+/**
+ * The admin-configured site name, empty while the default is in use. It wins over the translated app title, as in the join
+ * page header.
+ */
 const siteTitle = ref("");
 const DEFAULT_SITE_NAME = "WebSpeak";
 
-/** Tab title and description meta in the active language. Runs again when a module registers, because
- *  the first call happens before main.ts has registered any text. */
+/**
+ * Tab title and description meta in the active language. Runs again when a module registers, the first call is before
+ * main.ts registers any text.
+ */
 function applyDocumentText() {
   if (typeof document === "undefined" || registry.length === 0) return;
   document.title = siteTitle.value || t("appTitle");
@@ -87,8 +86,7 @@ function setSiteName(name: string) {
   siteTitle.value = trimmed && trimmed !== DEFAULT_SITE_NAME ? trimmed : "";
 }
 
-/** Re-read the stored language. Views that mount later call this because
- *  other views (admin, demo) write the same storage key on their own. */
+/** Re-read the stored language. Views that mount later call this because other views (admin, demo) write the same key. */
 function loadLanguage() {
   language.value = detectLanguage();
 }

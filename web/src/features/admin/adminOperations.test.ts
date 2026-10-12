@@ -1,5 +1,6 @@
+import { registerAdminStores } from "./adminStores";
 import { createPinia, setActivePinia } from "pinia";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from "vitest";
 import { useI18n } from "@/shared/i18n/useI18n";
 import { useAdminOperationsStore } from "./adminOperations";
 import { useAdminOverviewStore } from "./adminOverview";
@@ -21,19 +22,30 @@ function setup() {
   return { ops: useAdminOperationsStore(), admin, getJson, sendJson, loadOverview, notify };
 }
 
-beforeEach(() => setActivePinia(createPinia()));
+beforeEach(() => {
+  setActivePinia(createPinia());
+  registerAdminStores();
+});
 
-function answerAll(getJson: ReturnType<typeof vi.fn>) {
+function answerAll(getJson: Mock<(url: string) => Promise<unknown>>) {
   getJson.mockImplementation(async (url: string) => {
     if (url === "/api/admin/sessions") return { sessions: [{ id: "s1", nickname: "Ann" }] };
     if (url === "/api/admin/invites") return { invites: [{ id: "i1" }] };
-    if (url === "/api/admin/diagnostics") return { gateway: { version: "1.0", node: "v22", platform: "linux", arch: "x64" }, database: { schemaVersion: 3 }, sessions: { created: 7 } };
+    if (url === "/api/admin/diagnostics")
+      return {
+        gateway: { version: "1.0", node: "v22", platform: "linux", arch: "x64" },
+        database: { schemaVersion: 3 },
+        sessions: { created: 7 },
+      };
     if (url.startsWith("/api/admin/logs")) return { available: true, entries: [{ level: "INFO" }], sessions: [] };
     return { events: [{ event: "X", createdAt: "now" }] };
   });
 }
 
-afterEach(() => { vi.restoreAllMocks(); vi.unstubAllGlobals(); });
+afterEach(() => {
+  vi.restoreAllMocks();
+  vi.unstubAllGlobals();
+});
 
 describe("useAdminOperationsStore", () => {
   it("loadOperations fills every section and stops the loading flag", async () => {
@@ -42,7 +54,14 @@ describe("useAdminOperationsStore", () => {
     await s.ops.loadOperations();
     expect(s.ops.operations.sessions).toHaveLength(1);
     expect(s.ops.operations.invites).toHaveLength(1);
-    expect(s.ops.operations.diagnostics).toEqual({ version: "1.0", node: "v22", platform: "linux", arch: "x64", schemaVersion: 3, createdSessions: 7 });
+    expect(s.ops.operations.diagnostics).toEqual({
+      version: "1.0",
+      node: "v22",
+      platform: "linux",
+      arch: "x64",
+      schemaVersion: 3,
+      createdSessions: 7,
+    });
     expect(s.ops.operations.logs.available).toBe(true);
     expect(s.ops.operations.audit).toHaveLength(1);
     expect(s.ops.operationsLoading).toBe(false);
@@ -58,7 +77,10 @@ describe("useAdminOperationsStore", () => {
 
   it("terminateSession does nothing when the confirmation is declined", async () => {
     const s = setup();
-    vi.stubGlobal("confirm", vi.fn(() => false));
+    vi.stubGlobal(
+      "confirm",
+      vi.fn(() => false),
+    );
     await s.ops.terminateSession({ id: "s1", nickname: "Ann" } as never);
     expect(s.sendJson).not.toHaveBeenCalled();
   });
@@ -66,7 +88,10 @@ describe("useAdminOperationsStore", () => {
   it("terminateSession posts, refreshes operations and overview, then notifies", async () => {
     const s = setup();
     answerAll(s.getJson);
-    vi.stubGlobal("confirm", vi.fn(() => true));
+    vi.stubGlobal(
+      "confirm",
+      vi.fn(() => true),
+    );
     await s.ops.terminateSession({ id: "a/b", nickname: "Ann" } as never);
     expect(s.sendJson).toHaveBeenCalledWith("/api/admin/sessions/a%2Fb/terminate", "POST", {});
     expect(s.loadOverview).toHaveBeenCalled();

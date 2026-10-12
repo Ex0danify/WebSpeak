@@ -42,7 +42,9 @@ describe("loadClientAvatar", () => {
     const bad = fakeClient({ rows: [{ client_flag_avatar: "m", client_base64HashClientUID: "../etc/passwd" }] });
     expect(await loadClientAvatar(bad, "h", 7)).toBeNull();
     expect(bad.fileTransferInitDownload).not.toHaveBeenCalled();
-    expect(await loadClientAvatar(fakeClient({ rows: [{ client_flag_avatar: " ", client_base64HashClientUID: FILE_KEY }] }), "h", 7)).toBeNull();
+    expect(
+      await loadClientAvatar(fakeClient({ rows: [{ client_flag_avatar: " ", client_base64HashClientUID: FILE_KEY }] }), "h", 7),
+    ).toBeNull();
   });
 
   it("returns null for an oversized or empty transfer without downloading", async () => {

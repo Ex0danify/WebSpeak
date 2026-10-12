@@ -33,7 +33,10 @@ describe("createAdminApi", () => {
 
   it("throws an ApiError carrying the server code, and reports 401", async () => {
     const onUnauthorized = vi.fn();
-    vi.stubGlobal("fetch", vi.fn(async () => respond(401, { code: "INVALID_PASSWORD" })));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => respond(401, { code: "INVALID_PASSWORD" })),
+    );
     const api = createAdminApi({ getCsrfToken: () => "", onUnauthorized });
     await expect(api.getJson("/x")).rejects.toMatchObject({ code: "INVALID_PASSWORD", message: "INVALID_PASSWORD" });
     expect(onUnauthorized).toHaveBeenCalledTimes(1);
@@ -41,7 +44,10 @@ describe("createAdminApi", () => {
 
   it("falls back to REQUEST_FAILED for a non-JSON error body", async () => {
     const onUnauthorized = vi.fn();
-    vi.stubGlobal("fetch", vi.fn(async () => new Response("boom", { status: 500, statusText: "Server Error" })));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response("boom", { status: 500, statusText: "Server Error" })),
+    );
     const api = createAdminApi({ getCsrfToken: () => "", onUnauthorized });
     await expect(api.getJson("/x")).rejects.toMatchObject({ code: "REQUEST_FAILED", message: "Server Error" });
     expect(onUnauthorized).not.toHaveBeenCalled();

@@ -1,6 +1,6 @@
 import { collectTranslations } from "@/shared/i18n/collectTranslations";
 
-// A language is a file: no line here names one.
+// A language is a file, no line here names one.
 const files = import.meta.glob<Record<string, unknown>>(["./*.ts", "!./index.ts", "!./*.test.ts"], { eager: true });
 
 export const translations: Record<string, Record<string, string>> = collectTranslations(files);

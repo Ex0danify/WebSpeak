@@ -16,8 +16,8 @@ const switchId = computed(() => props.id ?? field?.id.value);
 
 <template>
   <SwitchRoot
-    v-model="model"
     :id="switchId"
+    v-model="model"
     :aria-describedby="field?.describedBy.value"
     :disabled="disabled"
     :class="
@@ -25,14 +25,14 @@ const switchId = computed(() => props.id ?? field?.id.value);
         'group relative box-border inline-block h-6 w-10 shrink-0 cursor-pointer rounded-full border-0 bg-line-strong p-0 transition-colors motion-reduce:transition-none',
         'max-compact:h-11 max-compact:w-[76px]',
         'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent',
-        'aria-checked:bg-accent disabled:cursor-not-allowed disabled:opacity-50',
+        'disabled:cursor-not-allowed disabled:opacity-50 aria-checked:bg-accent',
         props.class,
       )
     "
   >
     <SwitchThumb
       aria-hidden="true"
-      class="absolute left-[3px] top-[3px] size-[18px] rounded-full bg-surface-1 shadow-sm transition-transform motion-reduce:transition-none group-aria-checked:translate-x-4 group-aria-checked:bg-accent-fg max-compact:size-[38px] max-compact:group-aria-checked:translate-x-8"
+      class="absolute top-[3px] left-[3px] size-[18px] rounded-full bg-surface-1 shadow-sm transition-transform group-aria-checked:translate-x-4 group-aria-checked:bg-accent-fg motion-reduce:transition-none max-compact:size-[38px] max-compact:group-aria-checked:translate-x-8"
     />
   </SwitchRoot>
 </template>

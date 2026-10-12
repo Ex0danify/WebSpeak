@@ -1,13 +1,15 @@
-// The session half of useScreenSharePeers (Step V5.3): starting and stopping the own share, joining and
-// leaving another one, the stream list helpers and the three seams the router still uses. The
-// messages the router sends and receives are also pinned by messages.screenshare.test.ts.
+// The session half of useScreenSharePeers, covering start and stop of the own share, joining and leaving another one, the
+// stream list helpers and the seams the router uses. The messages the router sends and receives are also pinned by
+// messages.screenshare.test.ts.
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { FakeMediaStream, FakeMediaStreamTrack, type BrowserStubs } from "@/testSupport/browserStubs";
 import { installPeerEnvironment, makeStream, setupPeers } from "@/testSupport/screenSharePeers";
 
 let stubs: BrowserStubs;
 
-beforeEach(() => { stubs = installPeerEnvironment(); });
+beforeEach(() => {
+  stubs = installPeerEnvironment();
+});
 afterEach(() => {
   vi.restoreAllMocks();
   stubs.restore();
@@ -19,13 +21,17 @@ class DisplayTrack extends FakeMediaStreamTrack {
   surface: string | undefined;
   private readonly endedListeners: (() => void)[] = [];
   readonly listenerOptions: unknown[] = [];
-  override getSettings(): Record<string, unknown> { return this.surface ? { displaySurface: this.surface } : {}; }
+  override getSettings(): Record<string, unknown> {
+    return this.surface ? { displaySurface: this.surface } : {};
+  }
   override addEventListener(type?: string, listener?: () => void, options?: unknown): void {
     if (type !== "ended" || !listener) return;
     this.endedListeners.push(listener);
     this.listenerOptions.push(options);
   }
-  end(): void { for (const listener of this.endedListeners.splice(0)) listener(); }
+  end(): void {
+    for (const listener of this.endedListeners.splice(0)) listener();
+  }
 }
 
 function display(options: { video?: boolean; audio?: boolean; surface?: string } = {}) {
@@ -45,7 +51,13 @@ function picker(result: () => Promise<MediaStream>) {
 function deferredPicker() {
   let resolve: (stream: MediaStream) => void = () => {};
   let reject: (error: unknown) => void = () => {};
-  const getDisplayMedia = picker(() => new Promise<MediaStream>((ok, fail) => { resolve = ok; reject = fail; }));
+  const getDisplayMedia = picker(
+    () =>
+      new Promise<MediaStream>((ok, fail) => {
+        resolve = ok;
+        reject = fail;
+      }),
+  );
   return { getDisplayMedia, resolve: (stream: MediaStream) => resolve(stream), reject: (error: unknown) => reject(error) };
 }
 
@@ -56,7 +68,11 @@ describe("startScreenShare", () => {
     const getDisplayMedia = picker(async () => shot.stream);
     await context.module.startScreenShare(false);
     expect(getDisplayMedia).toHaveBeenCalledWith({
-      video: true, audio: false, systemAudio: "include", windowAudio: "window", selfBrowserSurface: "exclude",
+      video: true,
+      audio: false,
+      systemAudio: "include",
+      windowAudio: "window",
+      selfBrowserSurface: "exclude",
     });
     expect(context.sent).toEqual([{ type: "screenShareStart", requestId: "screen-start-1", audio: true }]);
     expect(context.store.screenShareStarting).toBe(true);
@@ -107,7 +123,7 @@ describe("startScreenShare", () => {
     expect(context.store.screenShareStarting).toBe(false);
   });
 
-  it.fails("VD4: the unsupported-browser message does not keep a stale error code next to it", async () => {
+  it("the unsupported-browser message does not keep a stale error code next to it", async () => {
     const context = setupPeers();
     (navigator.mediaDevices as unknown as { getDisplayMedia: unknown }).getDisplayMedia = undefined;
     context.store.screenShareErrorCode = "OLD";
@@ -129,11 +145,15 @@ describe("startScreenShare", () => {
 
   it("a refused permission and any other failure end the start with their own text", async () => {
     const context = setupPeers();
-    picker(async () => { throw new DOMException("no", "NotAllowedError"); });
+    picker(async () => {
+      throw new DOMException("no", "NotAllowedError");
+    });
     await context.module.startScreenShare();
     expect(context.store.screenShareError).toEqual({ key: "screenSharePermissionDenied" });
     expect(context.store.screenShareStarting).toBe(false);
-    picker(async () => { throw new Error("boom"); });
+    picker(async () => {
+      throw new Error("boom");
+    });
     await context.module.startScreenShare();
     expect(context.store.screenShareError).toEqual({ key: "screenShareStartFailed" });
     expect(context.sent).toEqual([]);
@@ -149,7 +169,7 @@ describe("startScreenShare", () => {
     expect(context.sent).toEqual([]);
   });
 
-  it.fails("VD3: a capture without a video track is stopped, so its audio does not keep capturing", async () => {
+  it("a capture without a video track is stopped, so its audio does not keep capturing", async () => {
     const context = setupPeers();
     const shot = display({ video: false, audio: true });
     picker(async () => shot.stream);
@@ -200,7 +220,7 @@ describe("startScreenShare", () => {
 });
 
 describe("ownership checks", () => {
-  it("VD5: the own share is whichever stream is active, so the owner check never rejects it", async () => {
+  it("the own share is whichever stream is active, so the owner check never rejects it", async () => {
     const context = setupPeers();
     context.store.screenShareStreams.push(makeStream({ streamId: "mine", ownerPeerId: "someone-else" }));
     context.store.screenShareActiveStreamId = "mine";

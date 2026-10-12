@@ -1,21 +1,8 @@
-// Key-usage check (i18n plan I0.4): the code side of the catalog, complementing check-i18n.mjs
-// (which only compares the language files with each other).
-//
-//   npm run check:i18n-keys
-//
-// FAIL
-//   - a statically used key that no module defines. Static uses are t('k') / text('k') calls
-//     with a string literal and keyed props such as labelKey: 'k' (label|title|message|text|
-//     description|placeholder + Key). A typo otherwise renders the key name on screen.
-//   - an err_<CODE> key whose CODE is not a code in src/shared/errors.ts (or messageCodes.ts).
-//   - dynamic t() sites that are not pinned in scripts/i18n-dynamic-keys.json, a pinned entry
-//     whose file has no dynamic site any more, a pinned key that no module defines, or a pinned
-//     key that its source file does not mention (so the enumeration cannot go stale silently).
-//   - a defined key with no literal reference anywhere (pinned dynamic keys count as used).
-//   - a gateway code without an err_<CODE> key.
-//
-// A dynamic site is a t( call whose first argument is not a plain string literal. They cannot be
-// followed statically, so each file holding one lists the keys it can produce in the registry.
+// Checks the code side of the i18n catalog, check-i18n.mjs compares the language files with each other. Fails on an undefined
+// static key, a bad err_<CODE> key, an unpinned or stale dynamic t() site, an unused key or a gateway code without an err_ key.
+
+// A dynamic site is a t( call whose first argument is not a plain string literal. It cannot be followed statically, so each
+// file holding one lists the keys it can produce in scripts/i18n-dynamic-keys.json.
 import { readdirSync, readFileSync, existsSync } from "node:fs";
 import { dirname, join, relative, sep } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -41,17 +28,19 @@ const files = walk(srcDir).map((file) => ({ file: rel(file), full: file }));
 // Defined keys: the union over every language file of every i18n module (parity is check-i18n's job).
 const defined = new Set();
 // A module folder is an i18n folder holding the default language file; every other `<code>.ts` next to it is a language.
-const moduleFolders = new Set(files.filter(({ file }) => /(^|\/)i18n\/(?:[^/]+\/)?en\.ts$/.test(file)).map(({ file }) => file.slice(0, file.lastIndexOf("/"))));
+const moduleFolders = new Set(
+  files.filter(({ file }) => /(^|\/)i18n\/(?:[^/]+\/)?en\.ts$/.test(file)).map(({ file }) => file.slice(0, file.lastIndexOf("/"))),
+);
 for (const { file, full } of files) {
   if (!moduleFolders.has(file.slice(0, file.lastIndexOf("/"))) || /(^|\/)(index|[^/]+\.test)\.ts$/.test(file)) continue;
   for (const match of readFileSync(full, "utf8").matchAll(KEY)) defined.add(match[1] ?? match[2]);
 }
 
 const isConsumer = (file) =>
-  /\.(vue|ts)$/.test(file)
-  && !/\.(test|spec)\.ts$/.test(file)
-  && !file.startsWith("testSupport/")
-  && !moduleFolders.has(file.slice(0, file.lastIndexOf("/")));
+  /\.(vue|ts)$/.test(file) &&
+  !/\.(test|spec)\.ts$/.test(file) &&
+  !file.startsWith("testSupport/") &&
+  !moduleFolders.has(file.slice(0, file.lastIndexOf("/")));
 
 const consumers = files.filter(({ file }) => isConsumer(file)).map(({ file, full }) => ({ file, text: readFileSync(full, "utf8") }));
 
@@ -61,7 +50,10 @@ const KEYED_PROP = /\b(?:label|title|message|text|description|placeholder)Key\s*
 const DYNAMIC_CALL = /(?<![\w.$])t\(\s*(?!['"`)\s])|(?<![\w.$])t\(\s*`[^`]*\$\{/g;
 
 let problems = 0;
-const fail = (message) => { console.error(`FAIL: ${message}`); problems++; };
+const fail = (message) => {
+  console.error(`FAIL: ${message}`);
+  problems++;
+};
 const warn = (message) => console.warn(`WARN: ${message}`);
 
 const used = new Set();
@@ -90,7 +82,6 @@ for (const { file, text } of consumers) {
 const literal = (text, key) => new RegExp(`(['"\`])${key.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\1`).test(text);
 const textOf = new Map(consumers.map(({ file, text }) => [file, text]));
 
-// Dynamic sites and their registry.
 const registry = JSON.parse(readFileSync(join(root, "scripts", "i18n-dynamic-keys.json"), "utf8")).sites ?? [];
 const pinned = new Map();
 for (const entry of registry) {
@@ -98,7 +89,8 @@ for (const entry of registry) {
   pinned.set(entry.file, entry);
 }
 for (const [file, lines] of dynamicByFile) {
-  if (!pinned.has(file)) fail(`${file}:${lines.join(",")}: dynamic t() call is not pinned in scripts/i18n-dynamic-keys.json (list the keys it can produce)`);
+  if (!pinned.has(file))
+    fail(`${file}:${lines.join(",")}: dynamic t() call is not pinned in scripts/i18n-dynamic-keys.json (list the keys it can produce)`);
 }
 for (const [file, entry] of pinned) {
   if (!dynamicByFile.has(file)) fail(`i18n-dynamic-keys.json: ${file} has no dynamic t() call any more, remove the entry`);
@@ -113,11 +105,11 @@ for (const [file, entry] of pinned) {
   }
 }
 
-// Unused keys: no static call, keyed prop or other quoted literal in any consumer.
-const unused = [...defined].filter((key) => !/^(err|opErr|joinErr)_/.test(key) && !used.has(key) && !consumers.some(({ text }) => literal(text, key))).sort();
+const unused = [...defined]
+  .filter((key) => !/^(err|opErr|joinErr)_/.test(key) && !used.has(key) && !consumers.some(({ text }) => literal(text, key)))
+  .sort();
 for (const key of unused) (strict ? fail : warn)(`"${key}" is defined but never referenced`);
 
-// err_<CODE> family against the gateway's code lists.
 const codeSources = ["src/shared/errors.ts", "src/shared/messageCodes.ts"].map((path) => join(root, "..", path)).filter(existsSync);
 const codes = new Set();
 // The code catalog names its codes as bare object keys; the other sources quote them.
@@ -127,15 +119,17 @@ for (const path of codeSources) {
   for (const match of source.matchAll(/^ {2}([A-Z][A-Z0-9_]+): \{\} as /gm)) codes.add(match[1]);
 }
 const errKeys = [...defined].filter((key) => key.startsWith("err_"));
-// Some codes only exist in a gateway file outside those two lists (join and close reasons) or are
-// made by the browser itself (close-code mapping), so "has a matching code" looks wider than the
-// required set above: any quoted code in the gateway sources or in the session feature's code lists.
+// Some codes only exist in a gateway file outside those two lists (join and close reasons) or come from the browser itself
+// (close-code mapping), so the check accepts any quoted code in the gateway sources or the session feature's code lists.
 const wideSources = [join(root, "..", "src"), join(root, "src", "features", "session")];
 const wideCodes = new Set(codes);
 function collectQuoted(path) {
   for (const entry of readdirSync(path, { withFileTypes: true })) {
     const full = join(path, entry.name);
-    if (entry.isDirectory()) { if (entry.name !== "node_modules") collectQuoted(full); continue; }
+    if (entry.isDirectory()) {
+      if (entry.name !== "node_modules") collectQuoted(full);
+      continue;
+    }
     if (!/\.ts$/.test(entry.name) || /\.test\.ts$/.test(entry.name)) continue;
     for (const match of readFileSync(full, "utf8").matchAll(/"([A-Z][A-Z0-9_]+)"/g)) wideCodes.add(match[1]);
   }
@@ -147,10 +141,13 @@ for (const key of errKeys) {
 const withoutKey = [...codes].filter((code) => !defined.has(`err_${code}`)).sort();
 if (withoutKey.length > 0) {
   const message = `${withoutKey.length} gateway code(s) have no err_<CODE> key yet: ${withoutKey.join(", ")}`;
-  if (errKeys.length > 0 || strict) fail(message); else warn(`${message} (enforced once the err_ family exists, I3.1)`);
+  if (errKeys.length > 0 || strict) fail(message);
+  else warn(message);
 }
 
-console.log(`${defined.size} keys defined, ${used.size} referenced, ${unused.length} unused, ${dynamicByFile.size} file(s) with dynamic t() calls, ${errKeys.length} err_ key(s), ${problems} problem(s)`);
+console.log(
+  `${defined.size} keys defined, ${used.size} referenced, ${unused.length} unused, ${dynamicByFile.size} file(s) with dynamic t() calls, ${errKeys.length} err_ key(s), ${problems} problem(s)`,
+);
 if (problems > 0) {
   console.error("FAIL");
   process.exit(1);

@@ -1,32 +1,42 @@
 import { EventEmitter } from "node:events";
 import { createHash } from "node:crypto";
-import { generateIdentity, ServerError, type ChannelInfo, type ClientInfo, type DirectoryClientInfo, type Identity } from "@echosixhiya/teamspeak-client";
+import {
+  generateIdentity,
+  ServerError,
+  type ChannelInfo,
+  type ClientInfo,
+  type DirectoryClientInfo,
+  type Identity,
+} from "@echosixhiya/teamspeak-client";
 import { normalizeTeamSpeakKickedReason } from "../../src/shared/errors.js";
 import type { TeamSpeakProtocol } from "../../src/shared/teamSpeakProtocol.js";
-import type { TSChatMessage, TSChatScope, TSClient, TSClientAvatar, TSClientOptions, TSVoiceData } from "../../src/modules/teamspeak/teamSpeakClient.js";
+import type {
+  TSChatMessage,
+  TSChatScope,
+  TSClient,
+  TSClientAvatar,
+  TSClientOptions,
+  TSVoiceData,
+} from "../../src/modules/teamspeak/teamSpeakClient.js";
 import type { VoiceBridgeOptions } from "../../src/modules/voice/voiceBridge.js";
-import { DEFAULT_FAKE_CHANNELS, FakeRemoteMember, type FakeChannel, type FakeOperation, type FakeServerOptions } from "./fakeTsClientScript.js";
+import {
+  DEFAULT_FAKE_CHANNELS,
+  FakeRemoteMember,
+  type FakeChannel,
+  type FakeOperation,
+  type FakeServerOptions,
+} from "./fakeTsClientScript.js";
 
 export { DEFAULT_FAKE_CHANNELS, FakeRemoteMember, type FakeChannel, type FakeOperation, type FakeServerOptions };
 
 /**
- * An in-memory TeamSpeak server and the clients that talk to it, for tests of
- * the voice bridge. `server.createClient` is the value for
- * `VoiceBridgeOptions.createClient`.
- *
- * The fake emits the events `TSClient` emits, in the order the real one does
- * (`clientEnter` and `directorySnapshot` while `connect()` is still pending),
- * and throws the SDK's own `ServerError` so `normalizeTeamSpeakError` sees what
- * it sees in production. Rules it models: server password, channel passwords,
- * bans and kicks, and the guest permission set (guests may switch their own
- * channel but not move others). Assumption not yet checked against a real
- * server (layer 5 does that): a sender does not receive its own text message.
+ * In-memory TS server and clients for voice bridge tests, with the real event order and the SDK's ServerError.
+ * Models passwords, bans, kicks and guest permissions. Unchecked against a real server (layer 5): senders get no copy of their own text.
  */
 
 export class FakeTeamSpeakServer {
   readonly channels = new Map<bigint, FakeChannel>();
   readonly members = new Map<number, DirectoryClientInfo>();
-  /** Connected clients by TeamSpeak client id. */
   readonly connected = new Map<number, FakeTSClient>();
   /** Every client the factory made, in order. */
   readonly created: FakeTSClient[] = [];
@@ -73,8 +83,13 @@ export class FakeTeamSpeakServer {
   /** Keep every `connect()` pending until the returned function is called. */
   holdConnects(): () => void {
     let release!: () => void;
-    this.connectGate = new Promise<void>((resolve) => { release = resolve; });
-    return () => { this.connectGate = null; release(); };
+    this.connectGate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    return () => {
+      this.connectGate = null;
+      release();
+    };
   }
 
   /** A scripted member that is not backed by a bridge session. */
@@ -142,7 +157,14 @@ export class FakeTeamSpeakServer {
     const targetMode = scope === "private" ? 1 : scope === "server" ? 3 : 2;
     if (scope === "private" && !this.members.has(Number(targetId))) throw new ServerError("512", "invalid clientID");
     // Channel notifications carry no target; the SDK reports it as 0.
-    const payload: TSChatMessage = { invokerName: from.nickname, invokerId: from.id, invokerUid: from.uid, message, targetMode, targetId: scope === "channel" ? 0n : targetId };
+    const payload: TSChatMessage = {
+      invokerName: from.nickname,
+      invokerId: from.id,
+      invokerUid: from.uid,
+      message,
+      targetMode,
+      targetId: scope === "channel" ? 0n : targetId,
+    };
     for (const [id, client] of this.connected) {
       if (id === from.id) continue;
       const member = this.members.get(id)!;
@@ -177,7 +199,14 @@ export class FakeTeamSpeakServer {
 
   /** @internal */
   clientInfo(member: DirectoryClientInfo): ClientInfo {
-    return { nickname: member.nickname, uid: member.uid, serverGroups: member.serverGroups, channelID: member.channelID, type: member.type, id: member.id };
+    return {
+      nickname: member.nickname,
+      uid: member.uid,
+      serverGroups: member.serverGroups,
+      channelID: member.channelID,
+      type: member.type,
+      id: member.id,
+    };
   }
 
   /** @internal Latency, the connect gate and injected failures, in that order. */
@@ -208,7 +237,10 @@ export class FakeTSClient extends EventEmitter {
   private isUp = false;
   private preferredChannelId = 0n;
 
-  constructor(readonly server: FakeTeamSpeakServer, readonly options: TSClientOptions) {
+  constructor(
+    readonly server: FakeTeamSpeakServer,
+    readonly options: TSClientOptions,
+  ) {
     super();
     this.identity = options.identity ?? generateIdentity(8);
     this.uid = createHash("sha1").update(this.identity.publicKeyBase64()).digest("base64");
@@ -221,7 +253,14 @@ export class FakeTSClient extends EventEmitter {
     if (server.serverPassword && options.serverPassword !== server.serverPassword) throw new ServerError("520", "invalid password");
     const channel = this.joinChannel();
     this.clientId = server.allocateClientId();
-    const member = server.register({ id: this.clientId, nickname: options.nickname, uid: this.uid, serverGroups: [], channelID: channel.id, type: 0 });
+    const member = server.register({
+      id: this.clientId,
+      nickname: options.nickname,
+      uid: this.uid,
+      serverGroups: [],
+      channelID: channel.id,
+      type: 0,
+    });
     server.connected.set(this.clientId, this);
     server.broadcast("clientEnter", server.clientInfo(member), this.clientId);
     // The welcome sequence: the SDK announces the client itself first, then the directory.
@@ -309,11 +348,21 @@ export class FakeTSClient extends EventEmitter {
     if (moved) moved.preferredChannelId = channelId;
   }
 
-  getClientId(): number { return this.clientId; }
-  getProtocol(): TeamSpeakProtocol | null { return this.isUp ? this.server.protocol : null; }
-  getIdentityString(): string { return this.identity.toString(); }
-  getChannelId(): bigint { return this.server.members.get(this.clientId)?.channelID ?? 0n; }
-  isConnected(): boolean { return this.isUp; }
+  getClientId(): number {
+    return this.clientId;
+  }
+  getProtocol(): TeamSpeakProtocol | null {
+    return this.isUp ? this.server.protocol : null;
+  }
+  getIdentityString(): string {
+    return this.identity.toString();
+  }
+  getChannelId(): bigint {
+    return this.server.members.get(this.clientId)?.channelID ?? 0n;
+  }
+  isConnected(): boolean {
+    return this.isUp;
+  }
 
   async execCommandWithResponse(command: string, _timeoutMs = 3000): Promise<Record<string, string>[]> {
     this.ready();

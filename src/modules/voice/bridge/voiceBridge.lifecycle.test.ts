@@ -2,11 +2,11 @@ import { createServer, type Server } from "node:http";
 import type { AddressInfo } from "node:net";
 import { generateIdentity } from "@echosixhiya/teamspeak-client";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { stubLogger } from "../../../../test/helpers/adminService.js";
-import { FakeTeamSpeakServer } from "../../../../test/helpers/fakeTsClient.js";
-import { type Gateway, useGateway } from "../../../../test/helpers/gateway.js";
-import { joinVoice } from "../../../../test/helpers/voice.js";
-import { WsClient } from "../../../../test/helpers/wsClient.js";
+import { stubLogger } from "../../../../test/support/adminService.js";
+import { FakeTeamSpeakServer } from "../../../../test/support/fakeTsClient.js";
+import { type Gateway, useGateway } from "../../../../test/support/gateway.js";
+import { joinVoice } from "../../../../test/support/voice.js";
+import { WsClient } from "../../../../test/support/wsClient.js";
 import { JoinTicketStore, type JoinTicketPayload } from "../../join/joinTicket.js";
 import { VoiceBridge } from "../voiceBridge.js";
 
@@ -70,17 +70,21 @@ describe("a session ends and lets go of everything it held", () => {
     expect((await joinVoice(gateway, { nickname: "second", ...identity })).client.isConnected()).toBe(true);
   });
 
-  // F37: cleanupEntry() used to release the identity lease only after the TeamSpeak client had
-  // disconnected, so for as long as that took, the console listed no session and the identity still
-  // could not be used. The fake's disconnect is held open to show it.
-  it("F37: an identity is free as soon as its session has left the admin console's list", async () => {
+  // cleanupEntry() releases the identity lease before the TS client has disconnected, or for as long as that takes
+  // the console lists nothing and the identity stays unusable. The fake's disconnect is held open to show it.
+  it("an identity is free as soon as its session has left the admin console's list", async () => {
     const gateway = await gateways.start();
     const identity = withIdentity();
     const first = await joinVoice(gateway, { nickname: "first", ...identity });
     const disconnect = first.client.disconnect.bind(first.client);
     let finishDisconnect!: () => void;
-    const held = new Promise<void>((resolve) => { finishDisconnect = resolve; });
-    first.client.disconnect = async () => { await held; await disconnect(); };
+    const held = new Promise<void>((resolve) => {
+      finishDisconnect = resolve;
+    });
+    first.client.disconnect = async () => {
+      await held;
+      await disconnect();
+    };
     try {
       first.socket.close();
       await vi.waitFor(async () => expect(await activeSessions(gateway)).toEqual([]));
@@ -102,7 +106,7 @@ async function expectSessionsGone(gateway: Gateway, clients: { isConnected(): bo
 
 describe("stopping the gateway", () => {
   // stop() is started and not awaited: what the test looks at is the socket's close.
-  it("F17: tells the browser the gateway is going away (close code 1001 with a reason)", async () => {
+  it("tells the browser the gateway is going away (close code 1001 with a reason)", async () => {
     const gateway = await gateways.start();
     const session = await joinVoice(gateway, { nickname: "alice" });
     void gateway.stop();
@@ -120,7 +124,6 @@ interface BridgeContext {
   joinTickets: JoinTicketStore;
   sockets: WsClient[];
   open(payload: Partial<JoinTicketPayload> & { nickname: string }): Promise<WsClient>;
-  /** Everything the bridge holds per session or per socket. */
   held(): { entries: number; leases: number; sockets: number; sessions: number };
 }
 
@@ -162,7 +165,12 @@ async function startBridge(): Promise<BridgeContext> {
       sockets.push(socket);
       return socket;
     },
-    held: () => ({ entries: internals.entries.size, leases: internals.identityLeases.owners.size, sockets: internals.wss.clients.size, sessions: bridge.getActiveCount() }),
+    held: () => ({
+      entries: internals.entries.size,
+      leases: internals.identityLeases.owners.size,
+      sockets: internals.wss.clients.size,
+      sessions: bridge.getActiveCount(),
+    }),
   };
 }
 
@@ -197,9 +205,9 @@ describe("many sessions in a row leave nothing behind", () => {
     expect(context.ts.created.map((client) => client.isConnected())).toEqual(Array(CYCLES).fill(false));
   });
 
-  // F12 effect 2: cleanupEntry() used to strip the socket's listeners, so `ws` never forgot a socket
-  // that the gateway closed itself, and the server kept all of them for the life of the process.
-  it("F12: no closed socket is kept after 20 joins that the gateway ends", async () => {
+  // cleanupEntry() must leave the socket's listeners alone so ws forgets a socket the gateway closed
+  // itself, otherwise the server keeps them all for the life of the process.
+  it("no closed socket is kept after 20 joins that the gateway ends", async () => {
     const context = await startBridge();
     for (let i = 0; i < CYCLES; i++) {
       const socket = await context.open({ nickname: `visitor-${i}` });

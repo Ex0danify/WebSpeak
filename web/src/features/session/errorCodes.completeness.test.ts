@@ -1,4 +1,4 @@
-// Step I3.1: every code the gateway can put in front of a user has a text in every language.
+// Every code the gateway can put in front of a user has a text in every language.
 // The gateway lists are read as text (the web project does not import the gateway), the web lists are imported.
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
@@ -17,7 +17,7 @@ import { CONNECTION_FAILURE_CODES, errorKey } from "./sessionErrors";
 import { resolveText } from "@/shared/i18n/localizedText";
 import { useI18n } from "@/shared/i18n/useI18n";
 
-// Vitest runs from the repository root (docs/testing/README.md); `npm --prefix web` runs one level down.
+// Vitest runs from the repository root, `npm --prefix web` runs one level down.
 const repoRoot = existsSync(resolve(process.cwd(), "src/shared/errors.ts")) ? process.cwd() : resolve(process.cwd(), "..");
 const repoFile = (path: string) => readFileSync(resolve(repoRoot, path), "utf8");
 const quoted = (source: string) => [...source.matchAll(/"([A-Z][A-Z0-9_]+)"/g)].map((match) => match[1]);
@@ -31,9 +31,11 @@ const arrayLiteral = (source: string, name: string) => {
 const errors = repoFile("src/shared/errors.ts");
 const catalog = repoFile("src/shared/messageCodes.ts");
 const screenShareStart = catalog.indexOf("const SCREEN_SHARE_CODES");
-// The screen share group has its own browser-side list and texts (features/screenShare, Step I3.4).
+// The screen share group has its own browser-side list and texts (features/screenShare).
 const gatewayCatalogCodes = [...catalog.slice(0, screenShareStart).matchAll(/^ {2}([A-Z][A-Z0-9_]+): \{\} as /gm)].map((match) => match[1]);
-const joinRouteCodes = [...repoFile("src/transport/http/routes/registerJoinRoutes.ts").matchAll(/code: "([A-Z_]+)"/g)].map((match) => match[1]);
+const joinRouteCodes = [...repoFile("src/transport/http/routes/registerJoinRoutes.ts").matchAll(/code: "([A-Z_]+)"/g)].map(
+  (match) => match[1],
+);
 
 function expectKey(key: string) {
   expect(translations.en[key], `en ${key}`).toBeTruthy();

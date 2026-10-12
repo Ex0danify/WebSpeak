@@ -13,8 +13,22 @@ afterEach(() => localStorage.clear());
 describe("useVoiceAudioStore", () => {
   it("starts with the defaults the composable had", () => {
     const a = useVoiceAudioStore();
-    expect([a.microphoneMuted, a.noiseSuppressionEnabled, a.inputVolume, a.outputVolume, a.outputMuted, a.notificationVolume, a.voxThreshold]).toEqual([false, true, 1, 1, false, 0.5, 0.008]);
-    expect([a.selectedInputDeviceId, a.selectedOutputDeviceId, a.audioPermission, a.audioContextState, a.testAudioUrl]).toEqual(["", "", "unknown", "unknown", ""]);
+    expect([
+      a.microphoneMuted,
+      a.noiseSuppressionEnabled,
+      a.inputVolume,
+      a.outputVolume,
+      a.outputMuted,
+      a.notificationVolume,
+      a.voxThreshold,
+    ]).toEqual([false, true, 1, 1, false, 0.5, 0.008]);
+    expect([a.selectedInputDeviceId, a.selectedOutputDeviceId, a.audioPermission, a.audioContextState, a.testAudioUrl]).toEqual([
+      "",
+      "",
+      "unknown",
+      "unknown",
+      "",
+    ]);
     expect(a.microphoneProcessing).toEqual({ echoCancellation: null, noiseSuppression: null, autoGainControl: null, rnnoise: null });
     expect(a.accompanimentErrorCode).toBe("");
   });

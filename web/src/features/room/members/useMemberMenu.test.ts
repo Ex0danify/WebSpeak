@@ -59,7 +59,7 @@ describe("useMemberMenu", () => {
     expect(vm.memberMenuStyle).toEqual({});
   });
 
-  it("focuses the opener's volume slider on close, per member id (F47)", async () => {
+  it("focuses the opener's volume slider on close, per member id", async () => {
     const { vm } = mountUseMemberMenu();
     const slider = document.createElement("div");
     slider.setAttribute("role", "slider");

@@ -31,7 +31,11 @@ describe("startGateway", () => {
     const body = JSON.stringify({ nickname: "tester" });
     const withOrigin = await gateway.request("/api/join-ticket", { method: "POST", headers: { "content-type": "application/json" }, body });
     expect(withOrigin.status).toBe(201);
-    const withoutOrigin = await fetch(`${gateway.url}/api/join-ticket`, { method: "POST", headers: { "content-type": "application/json" }, body });
+    const withoutOrigin = await fetch(`${gateway.url}/api/join-ticket`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body,
+    });
     expect(withoutOrigin.status).toBe(403);
     expect(await withoutOrigin.json()).toMatchObject({ code: "ORIGIN_REJECTED" });
   });
@@ -95,7 +99,10 @@ describe("voice sessions through the fake TeamSpeak server", () => {
     remote.speak(Buffer.from([1, 2, 3]));
     remote.speak(Buffer.from([4, 5, 6]));
     const frames = await alice.waitForBinaryCount(2);
-    expect(frames.map((frame) => [...frame])).toEqual([[4, 0, remote.id, 1, 2, 3], [4, 0, remote.id, 4, 5, 6]]);
+    expect(frames.map((frame) => [...frame])).toEqual([
+      [4, 0, remote.id, 1, 2, 3],
+      [4, 0, remote.id, 4, 5, 6],
+    ]);
   });
 });
 
@@ -105,7 +112,9 @@ describe("WsClient waiting", () => {
     const socket = await gateway.openVoice();
     await socket.waitForMessage("connected");
     const mark = socket.mark();
-    await expect(socket.waitForMessage("connected", { after: mark, timeoutMs: 50 })).rejects.toThrow(/timed out waiting for a frame: \d+ frames, last: \[.*channelList.*\], still open/);
+    await expect(socket.waitForMessage("connected", { after: mark, timeoutMs: 50 })).rejects.toThrow(
+      /timed out waiting for a frame: \d+ frames, last: \[.*channelList.*\], still open/,
+    );
     expect((await socket.waitForMessage("connected")).type).toBe("connected");
   });
 
@@ -121,10 +130,10 @@ describe("WsClient waiting", () => {
 });
 
 describe("stopping the gateway", () => {
-  // F12: cleanupEntry() used to call ws.removeAllListeners(), which also removed the listener with which
-  // the WebSocketServer forgets a closed client, so wss.close() never called back while a client was
+  // cleanupEntry() must not call ws.removeAllListeners(): that also removes the listener with which
+  // the WebSocketServer forgets a closed client, and wss.close() then never calls back while a client is
   // still tracked. The 1 s deadline is only the failure signal; it is not a wait for the result.
-  it("F12: stopping the gateway with a live session finishes", async () => {
+  it("stopping the gateway with a live session finishes", async () => {
     const gateway = await gateways.start();
     const socket = await gateway.openVoice();
     await socket.waitForMessage("connected");
@@ -135,7 +144,7 @@ describe("stopping the gateway", () => {
     expect(outcome).toBe("stopped");
   });
 
-  it("F12: stopping the gateway after it ended a session itself finishes", async () => {
+  it("stopping the gateway after it ended a session itself finishes", async () => {
     const gateway = await gateways.start();
     const socket = await gateway.openVoice();
     await socket.waitForMessage("connected");

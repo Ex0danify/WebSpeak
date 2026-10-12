@@ -1,5 +1,10 @@
 import { onMounted, ref, watch, type Ref } from "vue";
-import { isLocalPersistenceAvailable, loadStoredIdentity, removeStoredIdentity, saveStoredIdentity } from "@/shared/services/localPersistence.js";
+import {
+  isLocalPersistenceAvailable,
+  loadStoredIdentity,
+  removeStoredIdentity,
+  saveStoredIdentity,
+} from "@/shared/services/localPersistence.js";
 import { readStorage, writeStorage } from "@/shared/services/safeStorage";
 
 export interface UseJoinIdentityOptions {
@@ -25,14 +30,16 @@ export function useJoinIdentity({ identityMaterial, rememberIdentity }: UseJoinI
   });
 
   onMounted(() => {
-    void loadStoredIdentity().then((stored) => {
-      if (stored && readStorage("webspeak:remember-identity") !== "0") {
-        identityMaterial.value = stored.privateMaterial;
-        rememberIdentity.value = true;
-      }
-    }).finally(() => {
-      identityReady.value = true;
-    });
+    void loadStoredIdentity()
+      .then((stored) => {
+        if (stored && readStorage("webspeak:remember-identity") !== "0") {
+          identityMaterial.value = stored.privateMaterial;
+          rememberIdentity.value = true;
+        }
+      })
+      .finally(() => {
+        identityReady.value = true;
+      });
   });
 
   return { identityReady };

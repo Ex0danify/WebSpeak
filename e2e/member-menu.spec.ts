@@ -1,11 +1,10 @@
 import type { Locator, Page } from "@playwright/test";
 import { expect, test } from "./fixtures";
 import { join, memberRow, openMemberMenu, poll } from "./helpers";
-import type { Gateway } from "../test/helpers/gateway";
+import type { Gateway } from "../test/support/gateway";
 
-// The menu of another member: a popup opened by a right click on desktop, a bottom sheet on a phone
-// (opened by the row's "..." button, or by the `contextmenu` event a long press raises). Real gateway,
-// fake TeamSpeak server. A member that is not a browser comes from `script`.
+// The menu of another member, a popup on a right click on desktop and a bottom sheet on a phone (the row's "..." button or the
+// `contextmenu` event a long press raises). Real gateway, fake TeamSpeak server, and a non-browser member comes from `script`.
 
 /** An entry of the menu: an item of the popup, a button of the sheet. */
 function action(menu: Locator, name: string): Locator {
@@ -13,8 +12,8 @@ function action(menu: Locator, name: string): Locator {
 }
 
 /**
- * A channel in the "Move to" list. The popup's submenu is a second menu outside the first, so it is
- * looked for on the page; the sheet expands in place, inside its own dialog.
+ * A channel in the "Move to" list. The popup's submenu is a second menu outside the first, so it is looked for on the page,
+ * the sheet expands in place inside its own dialog.
  */
 function channelItem(page: Page, menu: Locator, name: RegExp): Locator {
   return page.getByRole("menuitem", { name }).or(menu.getByRole("button", { name }));
@@ -37,7 +36,8 @@ test.describe("menu", () => {
     await join(page, "menu-self");
     const menu = await openMemberMenu(page, "menu-other");
 
-    for (const name of ["Private message", "Poke", "Set as whisper target", "Copy nickname", "Move to"]) await expect(action(menu, name)).toBeVisible();
+    for (const name of ["Private message", "Poke", "Set as whisper target", "Copy nickname", "Move to"])
+      await expect(action(menu, name)).toBeVisible();
     await expect(menu.getByText("Member volume")).toBeVisible();
     // The heading of the popup, and the name of the sheet, is the member.
     await expect(menu).toContainText("menu-other");
@@ -164,14 +164,24 @@ test.describe("poke and copy", () => {
     const target = script.member("poke-target");
     await join(page, "poke-self");
     expect(await poke(page, "poke-target", "wake up")).toBe("prompt: Poke message (optional)");
-    expect(await poll(() => pokesBy(gateway, "poke-self"), (pokes) => pokes.length > 0)).toEqual([{ clientId: target.id, message: "wake up" }]);
+    expect(
+      await poll(
+        () => pokesBy(gateway, "poke-self"),
+        (pokes) => pokes.length > 0,
+      ),
+    ).toEqual([{ clientId: target.id, message: "wake up" }]);
   });
 
   test("cancelling the message prompt still pokes, without a message", async ({ page, gateway, script }) => {
     const target = script.member("poke-cancel-target");
     await join(page, "poke-cancel-self");
     await poke(page, "poke-cancel-target", null);
-    expect(await poll(() => pokesBy(gateway, "poke-cancel-self"), (pokes) => pokes.length > 0)).toEqual([{ clientId: target.id, message: "" }]);
+    expect(
+      await poll(
+        () => pokesBy(gateway, "poke-cancel-self"),
+        (pokes) => pokes.length > 0,
+      ),
+    ).toEqual([{ clientId: target.id, message: "" }]);
   });
 
   test("Copy nickname puts the nickname on the clipboard and says so", async ({ page, context, script }) => {
@@ -186,7 +196,9 @@ test.describe("poke and copy", () => {
   test("a clipboard that refuses is reported, not swallowed", async ({ page, script }) => {
     script.member("copy-refused-target");
     await join(page, "copy-refused-self");
-    await page.evaluate(() => Object.defineProperty(navigator.clipboard, "writeText", { value: () => Promise.reject(new Error("denied")) }));
+    await page.evaluate(() =>
+      Object.defineProperty(navigator.clipboard, "writeText", { value: () => Promise.reject(new Error("denied")) }),
+    );
     await action(await openMemberMenu(page, "copy-refused-target"), "Copy nickname").click();
     await expect(page.getByText("Copy failed. Copy the browser address manually", { exact: true })).toBeVisible();
     await expect(page.getByText("Nickname copied", { exact: true })).toBeHidden();

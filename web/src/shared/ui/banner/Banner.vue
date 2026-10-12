@@ -5,20 +5,12 @@ import { Icon, type IconName } from "../icon";
 import { bannerVariants, type BannerVariants } from "./banner";
 import { statusIconName, statusTextClass } from "../shared/status";
 
-// A message that stays in the layout until the situation changes: reconnecting,
-// degraded audio, a poke. For something that happened and can be forgotten
-// use a Toast. It is a block, not floating; put it where the content it
-// concerns starts and it takes the width of its container.
-//
-//   <Banner variant="warning" title="Reconnecting">Trying again in 3 s.
-//     <template #actions><Button size="sm" variant="outline">Retry now</Button></template>
-//   </Banner>
-//
-// `danger` is announced immediately (role="alert"), the others politely
-// (role="status"). Every variant carries an icon; `icon` swaps the glyph (a
-// bell for a poke) and the variant still sets its color. With `dismissible` the X
-// button emits `dismiss`; the banner does not hide itself, so the owner of
-// the state decides. Pass `dismissLabel` translated, the default is English.
+// A message that stays in the layout until the situation changes (reconnecting, degraded audio, a poke). Something that
+// happened and can be forgotten is a Toast. It is a block, not floating, and takes the width of its container.
+
+// `danger` is announced immediately (role="alert"), the others politely (role="status"). `icon` swaps the glyph, the variant
+// still sets the color. `dismissible` shows an X that emits `dismiss`, the banner doesn't hide itself so the owner of the state
+// decides.
 const props = withDefaults(
   defineProps<{
     variant?: NonNullable<BannerVariants["variant"]>;

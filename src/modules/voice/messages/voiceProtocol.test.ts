@@ -40,7 +40,7 @@ describe("parseClientCommand envelope", () => {
       requestId: "r1",
       payload: { away: true },
     });
-    expect("requestId" in (parse({ type: "setAway", payload: { away: true } }))).toBe(false);
+    expect("requestId" in parse({ type: "setAway", payload: { away: true } })).toBe(false);
   });
 
   it("rejects text that is not JSON", () => {
@@ -142,13 +142,16 @@ describe("parseClientCommand payload rules", () => {
       ["setMemberVolume", { clientId: 1, volume: 4 }],
       ["latencyProbe", { sequence: "s".repeat(64) }],
     ];
-    for (const [type, payload] of ok) expect(errorCode({ type, payload }), `${type} ${JSON.stringify(payload).slice(0, 40)}`).toBeUndefined();
+    for (const [type, payload] of ok)
+      expect(errorCode({ type, payload }), `${type} ${JSON.stringify(payload).slice(0, 40)}`).toBeUndefined();
   });
 
   it("rejects volume that JSON cannot carry as a finite number", () => {
     // JSON.stringify turns NaN and Infinity into null, which is not a number.
     expect(errorCode({ type: "setMemberVolume", payload: { clientId: 7, volume: Number.NaN } })).toBe("INVALID_MEMBER_VOLUME");
-    expect(errorCode({ type: "setMemberVolume", payload: { clientId: 7, volume: Number.POSITIVE_INFINITY } })).toBe("INVALID_MEMBER_VOLUME");
+    expect(errorCode({ type: "setMemberVolume", payload: { clientId: 7, volume: Number.POSITIVE_INFINITY } })).toBe(
+      "INVALID_MEMBER_VOLUME",
+    );
   });
 
   it("does not validate fields of other command types (setAway ignores clientId)", () => {

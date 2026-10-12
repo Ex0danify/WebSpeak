@@ -24,7 +24,7 @@ describe("publicFailureDetail", () => {
 });
 
 describe("classifyOperationError", () => {
-  const classify = (error: unknown) => classifyOperationError(error, "FALLBACK", "fallback message");
+  const classify = (error: unknown) => classifyOperationError(error, "FALLBACK" as never, "fallback message");
 
   it.each([
     ["permission denied", "PERMISSION_DENIED"],
@@ -40,7 +40,10 @@ describe("classifyOperationError", () => {
   });
 
   it("keeps the text of the matched rule", () => {
-    expect(classify(new Error("permission denied"))).toEqual({ code: "PERMISSION_DENIED", message: "You do not have permission to do this" });
+    expect(classify(new Error("permission denied"))).toEqual({
+      code: "PERMISSION_DENIED",
+      message: "You do not have permission to do this",
+    });
   });
 
   it("consults a server error id before the keyword rules", () => {
@@ -58,7 +61,10 @@ describe("sendProtocolError", () => {
   it("sends a non-recoverable error frame", () => {
     const sendJson = vi.fn();
     sendProtocolError(sendJson, "SESSION_NOT_READY", "msg");
-    expect(sendJson).toHaveBeenCalledExactlyOnceWith({ type: "error", error: { code: "SESSION_NOT_READY", message: "msg", recoverable: false } });
+    expect(sendJson).toHaveBeenCalledExactlyOnceWith({
+      type: "error",
+      error: { code: "SESSION_NOT_READY", message: "msg", recoverable: false },
+    });
   });
 });
 
@@ -69,7 +75,10 @@ describe("sendProtocolError params", () => {
     sendProtocolError((message) => sent.push(message), "SCREEN_SHARE_JOIN_FAILED", "join failed", { detail: "boom" });
     expect(sent).toEqual([
       { type: "error", error: { code: "SESSION_NOT_READY", message: "not ready", recoverable: false } },
-      { type: "error", error: { code: "SCREEN_SHARE_JOIN_FAILED", message: "join failed", params: { detail: "boom" }, recoverable: false } },
+      {
+        type: "error",
+        error: { code: "SCREEN_SHARE_JOIN_FAILED", message: "join failed", params: { detail: "boom" }, recoverable: false },
+      },
     ]);
   });
 });

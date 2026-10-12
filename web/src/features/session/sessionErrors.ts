@@ -21,7 +21,7 @@ export function safeClientErrorCode(value: unknown): string {
   return normalized.slice(0, MAX_VISIBLE_ERROR_CODE_LENGTH);
 }
 
-/** The code shown next to a connection error; never empty. */
+/** The code shown next to a connection error, never empty. */
 export function visibleErrorCode(value: unknown): string {
   return safeClientErrorCode(value) || "CONNECTION_FAILED";
 }
@@ -32,36 +32,65 @@ export function normalizedClientErrorCode(value: unknown, fallback = "CONNECTION
 }
 
 export function safeClientErrorDetail(value: unknown): string {
-  return String(value ?? "")
-    .replace(/[\u0000-\u001f\u007f]/g, " ")
-    .replace(/\s+/g, " ")
-    .trim()
-    .slice(0, 160);
+  return (
+    String(value ?? "")
+      // eslint-disable-next-line no-control-regex -- control characters are exactly what is stripped
+      .replace(/[\u0000-\u001f\u007f]/g, " ")
+      .replace(/\s+/g, " ")
+      .trim()
+      .slice(0, 160)
+  );
 }
 
 /**
- * TeamSpeak has no dedicated error for a nickname it refuses: a nickname outside
- * its length rules is answered with "invalid parameter size" and server error id
- * 1541. That signature is the only machine-readable hint the gateway can forward,
- * so keep the matcher next to the message builder that explains it to the user.
+ * TeamSpeak has no dedicated error for a refused nickname, one outside its length rules gets "invalid parameter size" and
+ * server error id 1541. That signature is the only machine-readable hint the gateway can forward, so the matcher sits next to
+ * the message builder.
  */
 export const NICKNAME_LENGTH_SIGNATURE = /invalid[\s_-]*parameter[\s_-]*size|\bid[\s=:]*1541\b|nickname.{0,30}(?:length|size)/i;
 
 /**
- * Every code this client can explain for a failed connection; each has an `err_<CODE>` key. A code is
- * regarded as "explainable" only when it appears here, which is also what keeps the gateway close
- * codes from being replaced by an unknown close reason.
+ * Every code this client can explain for a failed connection, each with an `err_<CODE>` key. Only codes listed here count as
+ * explainable, which also keeps gateway close codes from being replaced by an unknown close reason.
  */
 export const CONNECTION_FAILURE_CODES: ReadonlySet<string> = new Set([
-  "ORIGIN_REJECTED", "NOT_INITIALIZED", "RATE_LIMITED", "INVALID_TARGET", "INVALID_NICKNAME", "HOST_NOT_FOUND", "UNREACHABLE",
-  "CONNECTION_REFUSED", "CONNECTION_RESET", "TIMEOUT", "SERVER_PASSWORD_REQUIRED", "INVALID_SERVER_PASSWORD",
-  "PROTOCOL_NEGOTIATION_FAILED", "SERVER_REJECTED", "CHANNEL_PASSWORD_REQUIRED", "NICKNAME_IN_USE",
-  "IDENTITY_SECURITY_LEVEL_TOO_LOW", "IDENTITY_LIMIT_REACHED", "CLIENT_VERSION_OUTDATED", "FLOOD_PROTECTION", "BANNED", "KICKED",
-  "SERVER_SHUTTING_DOWN", "CONNECTION_INITIALISATION_FAILED", "SERVER_FULL", "INVALID_PARAMETER", "IDENTITY_IN_USE", "CONNECTION_FAILED",
-  // Gateway close codes: these replace the generic "connection failed" when the gateway drops the
-  // socket itself (see GATEWAY_CLOSE_CODE_CODES).
-  "JOIN_TICKET_REQUIRED", "IDENTITY_INVALID", "IDENTITY_REJECTED", "ACCELERATION_UNAVAILABLE", "GATEWAY_NETWORK_LOST",
-  "GATEWAY_SESSION_ENDED", "GATEWAY_RESTARTING", "ADMIN_TERMINATED", "TEAM_SPEAK_CLIENT_UNAVAILABLE",
+  "ORIGIN_REJECTED",
+  "NOT_INITIALIZED",
+  "RATE_LIMITED",
+  "INVALID_TARGET",
+  "INVALID_NICKNAME",
+  "HOST_NOT_FOUND",
+  "UNREACHABLE",
+  "CONNECTION_REFUSED",
+  "CONNECTION_RESET",
+  "TIMEOUT",
+  "SERVER_PASSWORD_REQUIRED",
+  "INVALID_SERVER_PASSWORD",
+  "PROTOCOL_NEGOTIATION_FAILED",
+  "SERVER_REJECTED",
+  "CHANNEL_PASSWORD_REQUIRED",
+  "NICKNAME_IN_USE",
+  "IDENTITY_SECURITY_LEVEL_TOO_LOW",
+  "IDENTITY_LIMIT_REACHED",
+  "CLIENT_VERSION_OUTDATED",
+  "FLOOD_PROTECTION",
+  "BANNED",
+  "KICKED",
+  "SERVER_SHUTTING_DOWN",
+  "CONNECTION_INITIALISATION_FAILED",
+  "SERVER_FULL",
+  "IDENTITY_IN_USE",
+  "CONNECTION_FAILED",
+  // Gateway close codes, these replace the generic "connection failed" when the gateway drops the socket itself.
+  "JOIN_TICKET_REQUIRED",
+  "IDENTITY_INVALID",
+  "IDENTITY_REJECTED",
+  "ACCELERATION_UNAVAILABLE",
+  "GATEWAY_NETWORK_LOST",
+  "GATEWAY_SESSION_ENDED",
+  "GATEWAY_RESTARTING",
+  "ADMIN_TERMINATED",
+  "TEAM_SPEAK_CLIENT_UNAVAILABLE",
 ]);
 
 /** `err_<CODE>` key of a wire code. The key set is pinned by the code-completeness test. */

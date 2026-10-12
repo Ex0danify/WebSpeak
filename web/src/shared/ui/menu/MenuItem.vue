@@ -5,13 +5,9 @@ import { cn } from "../../lib/cn";
 import { menuContextKey } from "./menuContext";
 import { menuItemVariants, menuSheetItemClass, type MenuItemVariants } from "./menu";
 
-// One action in a Menu. Put an <Icon> first in the default slot, then the
-// label; `shortcut` is right-aligned text (the key, for example "M"), shown
-// on desktop only.
-// `select` fires on click, Enter and Space, and the menu closes afterwards
-// (call event.preventDefault() in the handler to keep it open).
-// `tone="danger"` is for destructive actions and colors the icon as well, so
-// give those a label that says what happens: the color is not the only cue.
+// One action in a Menu, with an <Icon> first in the default slot. `shortcut` is right-aligned text on desktop only. `select`
+// fires on click, Enter and Space and the menu closes after, unless the handler calls event.preventDefault(). `tone="danger"`
+// needs a label that says what happens, color is no cue.
 const props = withDefaults(
   defineProps<{
     tone?: MenuItemVariants["tone"];
@@ -36,10 +32,23 @@ function onSheetClick() {
 </script>
 
 <template>
-  <button v-if="menu?.sheet.value" type="button" :aria-current="current ? 'true' : undefined" :disabled="disabled" :class="cn(menuItemVariants({ tone, current }), menuSheetItemClass, props.class)" @click="onSheetClick">
+  <button
+    v-if="menu?.sheet.value"
+    type="button"
+    :aria-current="current ? 'true' : undefined"
+    :disabled="disabled"
+    :class="cn(menuItemVariants({ tone, current }), menuSheetItemClass, props.class)"
+    @click="onSheetClick"
+  >
     <slot />
   </button>
-  <DropdownMenuItem v-else :aria-current="current ? 'true' : undefined" :disabled="disabled" :class="cn(menuItemVariants({ tone, current }), props.class)" @select="emit('select', $event)">
+  <DropdownMenuItem
+    v-else
+    :aria-current="current ? 'true' : undefined"
+    :disabled="disabled"
+    :class="cn(menuItemVariants({ tone, current }), props.class)"
+    @select="emit('select', $event)"
+  >
     <slot />
     <span v-if="$slots.shortcut" class="ml-auto pl-3 font-mono text-caption text-fg-muted"><slot name="shortcut" /></span>
   </DropdownMenuItem>

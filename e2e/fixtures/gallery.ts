@@ -8,17 +8,15 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 const webDir = fileURLToPath(new URL("../../web", import.meta.url));
 
 export interface GalleryServer {
-  /** Origin of the dev server; the gallery is at `/__ui`. */
+  /** Origin of the dev server, the gallery is at `/__ui`. */
   url: string;
   close(): Promise<void>;
 }
 
 /**
- * Starts Vite's dev server on the web app's own config. The component gallery (`/__ui`) is only
- * registered when `import.meta.env.DEV` is true, so the production build the gateway serves does
- * not have it, and no product code is changed to get around that. HMR is off (nothing edits the
- * files while a test runs) and the dependency cache is a temporary directory, so workers that start
- * a server at the same time never write to the same cache.
+ * Starts Vite's dev server on the web app's own config. The component gallery (`/__ui`) is only registered when
+ * `import.meta.env.DEV` is true, so the production build the gateway serves lacks it. HMR is off and the dependency cache is a
+ * temp directory, so workers starting servers together don't share a cache.
  */
 export async function startGalleryServer(): Promise<GalleryServer> {
   // The web app's own Vite (the root has another one, from Vitest).

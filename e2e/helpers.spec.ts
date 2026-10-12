@@ -60,8 +60,19 @@ test("focusInfo names what has focus and overflowScan finds planted overflow", a
 
 test("poll returns the first accepted value and names what it waited for", async () => {
   let reads = 0;
-  expect(await poll(() => ++reads, (value) => value === 3)).toBe(3);
-  await expect(poll(() => 1, (value) => value === 2, { timeoutMs: 60, message: "two" })).rejects.toThrow(/waiting for two; last value: 1/);
+  expect(
+    await poll(
+      () => ++reads,
+      (value) => value === 3,
+    ),
+  ).toBe(3);
+  await expect(
+    poll(
+      () => 1,
+      (value) => value === 2,
+      { timeoutMs: 60, message: "two" },
+    ),
+  ).rejects.toThrow(/waiting for two; last value: 1/);
 });
 
 test("toneWav is a mono 48 kHz PCM WAV of the asked length", () => {

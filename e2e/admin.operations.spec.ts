@@ -1,7 +1,7 @@
 import type { Page } from "@playwright/test";
 import { expect, test } from "./fixtures";
 import { overflowScan } from "./helpers";
-import { TEST_ADMIN_PASSWORD, type Gateway } from "../test/helpers/gateway";
+import { TEST_ADMIN_PASSWORD, type Gateway } from "../test/support/gateway";
 
 // The admin console's Operations page: the live sessions, the invite links, and the pages at a
 // phone's width. Each test has a gateway of its own (`ownGateway`), the console is asked for English.
@@ -120,9 +120,12 @@ test.describe("invites", () => {
   });
 });
 
-// Every successful action of the console says so in a toast (bug F30: terminating and revoking said nothing).
+// Every successful action of the console says so in a toast.
 test.describe("confirmations", () => {
-  test("terminating a session and revoking an invite each say so, and a refused action shows no confirmation (F30)", async ({ page, ownGateway }) => {
+  test("terminating a session and revoking an invite each say so, and a refused action shows no confirmation", async ({
+    page,
+    ownGateway,
+  }) => {
     const gateway = await ownGateway();
     const guest = await guestJoins(page, gateway, "ops-notice");
     await expect(guest.getByRole("textbox", { name: "Search members" })).toBeVisible();
@@ -142,7 +145,7 @@ test.describe("confirmations", () => {
     await expect(page.getByText("There are no active sessions.")).toBeVisible();
   });
 
-  test("declining the confirmation dialog changes nothing and shows no toast (F30)", async ({ page, ownGateway }) => {
+  test("declining the confirmation dialog changes nothing and shows no toast", async ({ page, ownGateway }) => {
     const gateway = await ownGateway();
     await openAdmin(page, gateway, "/operations");
     await page.getByRole("button", { name: "Create invite link" }).click();
@@ -175,9 +178,8 @@ test.describe("at a phone's width", () => {
     });
   }
 
-  // The table used to have a 600px min-width and full age/member columns, so it scrolled inside
-  // its own box and hid the Terminate button off screen (bug F31). At this size the two columns
-  // are dropped and the table can shrink to fit.
+  // The table must not scroll inside its own box and hide the Terminate button off screen. At this
+  // size the age and member columns are dropped and the table shrinks to fit.
   async function operationsWithASession(page: Page, gateway: Gateway) {
     const guest = await guestJoins(page, gateway, "ops-narrow");
     await expect(guest.getByRole("textbox", { name: "Search members" })).toBeVisible();
@@ -185,7 +187,7 @@ test.describe("at a phone's width", () => {
     await expect(sessionsTable(page)).toBeVisible();
   }
 
-  test("everything in the sessions table is on screen at 390 px (F31)", async ({ page, ownGateway }) => {
+  test("everything in the sessions table is on screen at 390 px", async ({ page, ownGateway }) => {
     await operationsWithASession(page, await ownGateway());
     expect(await overflowScan(page)).toEqual({ clipped: [], pageScrolls: false });
   });

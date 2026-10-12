@@ -30,24 +30,50 @@ export interface ConnectionDeps {
   clearMemberVolumes: () => void;
 }
 
-/** Connection lifecycle: join ticket, socket open/close, reconnect, error-code mapping and disconnect.
- *  `disconnect` reaches every other module's teardown through `deps` (late-bound, V-D2), in the
- *  order the old function called them. Reads the session store directly; audio state comes in through `deps`. */
+/** Join ticket, socket open and close, reconnect, error-code mapping and disconnect. `disconnect` reaches the other modules'
+ *  teardown through `deps` (late-bound). Reads the session store directly, audio state comes in through `deps`. */
 export function useConnection(deps: ConnectionDeps) {
   const session = useSessionStore();
   const { ws, whisperActive } = storeToRefs(session);
   const { state, members, channels, chatMessages, serverEvents, whisperTargetIds } = session;
   let connectionSequence = 0;
-  // Set once connectionFailed has already put a message and a code in front of the person for this
-  // attempt (F23): the gateway closes the socket right after such a failure, and onclose must not
-  // raise the same failure again from the close code once they have dismissed it (a cancelled
-  // password dialog must not come back). Reset for every new attempt.
+  // Set once connectionFailed has shown the person a message and code for this attempt. The gateway closes the socket right
+  // after such a failure and onclose must not raise it again from the close code (a cancelled password dialog would come back).
+  // Reset per attempt.
   let failureAlreadyReported = false;
-  let lastConnection: { target: string; channel: string; nickname: string; serverPassword: string; identity?: string; rememberIdentity: boolean; accelerated: boolean; accelerationRelayId: string } | null = null;
+  let lastConnection: {
+    target: string;
+    channel: string;
+    nickname: string;
+    serverPassword: string;
+    identity?: string;
+    rememberIdentity: boolean;
+    accelerated: boolean;
+    accelerationRelayId: string;
+  } | null = null;
 
-  function connect(target: string, channel: string, nickname: string, serverPassword = "", identity = "", rememberIdentity = false, inviteToken = "", accelerated = false, accelerationRelayId = ""): void {
+  function connect(
+    target: string,
+    channel: string,
+    nickname: string,
+    serverPassword = "",
+    identity = "",
+    rememberIdentity = false,
+    inviteToken = "",
+    accelerated = false,
+    accelerationRelayId = "",
+  ): void {
     disconnect(true);
-    lastConnection = { target, channel, nickname, serverPassword, ...(identity ? { identity } : {}), rememberIdentity, accelerated, accelerationRelayId };
+    lastConnection = {
+      target,
+      channel,
+      nickname,
+      serverPassword,
+      ...(identity ? { identity } : {}),
+      rememberIdentity,
+      accelerated,
+      accelerationRelayId,
+    };
     deps.identityMaterial.value = identity;
     const sequence = ++connectionSequence;
     failureAlreadyReported = false;
@@ -66,14 +92,36 @@ export function useConnection(deps: ConnectionDeps) {
     });
   }
 
-  async function openTicketedConnection(sequence: number, target: string, channel: string, nickname: string, serverPassword: string, inviteToken: string, accelerated: boolean): Promise<void> {
+  async function openTicketedConnection(
+    sequence: number,
+    target: string,
+    channel: string,
+    nickname: string,
+    serverPassword: string,
+    inviteToken: string,
+    accelerated: boolean,
+  ): Promise<void> {
     try {
       const response = await fetch("/api/join-ticket", {
         method: "POST",
         headers: { "content-type": "application/json", accept: "application/json" },
-        body: JSON.stringify({ target, nickname, channel, serverPassword, ...(inviteToken ? { invite: inviteToken } : {}), ...(accelerated ? { accelerated: true, ...(lastConnection?.accelerationRelayId ? { accelerationRelayId: lastConnection.accelerationRelayId } : {}) } : {}), ...(lastConnection?.rememberIdentity && lastConnection.identity ? { identity: lastConnection.identity } : {}), ...(lastConnection?.rememberIdentity ? { rememberIdentity: true } : {}) }),
+        body: JSON.stringify({
+          target,
+          nickname,
+          channel,
+          serverPassword,
+          ...(inviteToken ? { invite: inviteToken } : {}),
+          ...(accelerated
+            ? {
+                accelerated: true,
+                ...(lastConnection?.accelerationRelayId ? { accelerationRelayId: lastConnection.accelerationRelayId } : {}),
+              }
+            : {}),
+          ...(lastConnection?.rememberIdentity && lastConnection.identity ? { identity: lastConnection.identity } : {}),
+          ...(lastConnection?.rememberIdentity ? { rememberIdentity: true } : {}),
+        }),
       });
-      const result = await response.json().catch(() => ({})) as { ticket?: unknown; code?: unknown; detail?: unknown };
+      const result = (await response.json().catch(() => ({}))) as { ticket?: unknown; code?: unknown; detail?: unknown };
       if (!response.ok || typeof result.ticket !== "string") {
         const failureCode = normalizedClientErrorCode(result.code);
         const reason = joinTicketReason(failureCode, result.detail);
@@ -86,7 +134,8 @@ export function useConnection(deps: ConnectionDeps) {
       state.connecting = false;
       const code = error instanceof LocalizedError ? error.code : undefined;
       state.errorCode = normalizedClientErrorCode(code, "REQUEST_FAILED");
-      state.error = error instanceof LocalizedError ? error.text : error instanceof Error ? error.message : connectionFailureMessage(state.errorCode);
+      state.error =
+        error instanceof LocalizedError ? error.text : error instanceof Error ? error.message : connectionFailureMessage(state.errorCode);
     }
   }
 
@@ -119,17 +168,15 @@ export function useConnection(deps: ConnectionDeps) {
       state.connected = false;
       state.connecting = false;
       state.reconnecting = false;
-      // Prefer the close code over the generic WebSocket error event. The
-      // gateway uses a dedicated code when a remembered identity is already
-      // active in another browser page. Code 1000 is otherwise a plain leave
-      // the person asked for and stays silent, except when the reason says an
-      // administrator ended the session instead (F21): that is not something
-      // the person did, so it gets the same notice every other refusal shows.
-      // A connectionFailed message already reported this attempt's failure
-      // (F23): the close that follows it must not raise the same failure
-      // again once the person has dismissed it, or a cancelled password
-      // dialog would reopen on its own.
-      if ((event.code !== 1000 || event.reason === "admin-terminated") && !state.reconnectFailed && !state.errorCode && !failureAlreadyReported) {
+      // Prefer the close code over the generic WebSocket error event. The gateway uses a dedicated code when a remembered
+      // identity is active in another page. Code 1000 is a plain leave and stays silent, unless the reason says an admin ended
+      // the session.
+      if (
+        (event.code !== 1000 || event.reason === "admin-terminated") &&
+        !state.reconnectFailed &&
+        !state.errorCode &&
+        !failureAlreadyReported
+      ) {
         state.errorCode = closeErrorCode(event.code, event.reason);
         state.error = closeReason(event.code, event.reason);
       }
@@ -141,11 +188,9 @@ export function useConnection(deps: ConnectionDeps) {
       whisperActive.value = false;
     };
     socket.onerror = () => {
-      // The following close event contains the actionable close code. Do not
-      // overwrite it with a generic browser WebSocket error first.
+      // The close event that follows has the actionable code, so don't overwrite it with the generic browser error.
     };
   }
-
 
   function disconnect(preserveConnection = false): void {
     connectionSequence++;
@@ -181,7 +226,17 @@ export function useConnection(deps: ConnectionDeps) {
 
   function reconnectNow(): void {
     if (!lastConnection || state.connecting) return;
-    connect(lastConnection.target, lastConnection.channel, lastConnection.nickname, lastConnection.serverPassword, lastConnection.rememberIdentity ? deps.identityMaterial.value || lastConnection.identity : "", lastConnection.rememberIdentity, "", lastConnection.accelerated, lastConnection.accelerationRelayId);
+    connect(
+      lastConnection.target,
+      lastConnection.channel,
+      lastConnection.nickname,
+      lastConnection.serverPassword,
+      lastConnection.rememberIdentity ? deps.identityMaterial.value || lastConnection.identity : "",
+      lastConnection.rememberIdentity,
+      "",
+      lastConnection.accelerated,
+      lastConnection.accelerationRelayId,
+    );
   }
 
   function clearError(): void {
@@ -201,10 +256,8 @@ export function useConnection(deps: ConnectionDeps) {
       state.errorCode = "";
       state.channelSwitchedChannelId = "";
       state.tsClientId = Number(msg.tsClientId) || 0;
-      // The mute preference is local to the browser, while TeamSpeak shows
-      // the gateway's own client_input_muted flag to other clients. Send it
-      // as soon as the session is ready so a muted reconnect is visible to
-      // native TeamSpeak users even before WebRTC negotiation completes.
+      // The mute preference is local to the browser, TeamSpeak shows the gateway's client_input_muted flag to others.
+      // Send it as soon as the session is ready so a muted reconnect shows for native users before WebRTC negotiates.
       deps.sendCmd("setMicrophoneMuted", { muted: deps.isMicrophoneMuted() });
       setScreenShareIceServers(msg.screenShareIceServers);
       deps.applyWhisperState(msg.whisperTargetIds, msg.whisperActive);
@@ -222,16 +275,25 @@ export function useConnection(deps: ConnectionDeps) {
         if (lastConnection) lastConnection.identity = msg.identity;
       }
       if (wasReconnecting) {
-        const start = msg.webrtcAvailable === true && typeof RTCPeerConnection !== "undefined"
-          ? (ws.value ? deps.startWebRtcTransport(connectionSequence, ws.value) : Promise.resolve())
-          : deps.ensureMicrophone();
-        // A failed microphone must not look like a failed connection: record it
-        // as an audio diagnostic so the room stays visible with a clear reason.
-        start.catch((error: unknown) => { deps.setMicrophoneError(error); });
+        const start =
+          msg.webrtcAvailable === true && typeof RTCPeerConnection !== "undefined"
+            ? ws.value
+              ? deps.startWebRtcTransport(connectionSequence, ws.value)
+              : Promise.resolve()
+            : deps.ensureMicrophone();
+        // A failed microphone must not look like a failed connection, so it becomes an audio diagnostic and the room stays
+        // visible.
+        start.catch((error: unknown) => {
+          deps.setMicrophoneError(error);
+        });
       } else if (msg.webrtcAvailable === true && typeof RTCPeerConnection !== "undefined" && ws.value) {
-        void deps.startWebRtcTransport(connectionSequence, ws.value).catch((error: unknown) => { deps.setMicrophoneError(error); });
+        void deps.startWebRtcTransport(connectionSequence, ws.value).catch((error: unknown) => {
+          deps.setMicrophoneError(error);
+        });
       } else {
-        void deps.ensureMicrophone().catch((error: unknown) => { deps.setMicrophoneError(error); });
+        void deps.ensureMicrophone().catch((error: unknown) => {
+          deps.setMicrophoneError(error);
+        });
       }
       deps.sendScreenShareMessage({ type: "screenShareList" });
     },
@@ -259,7 +321,7 @@ export function useConnection(deps: ConnectionDeps) {
       whisperTargetIds.clear();
       whisperActive.value = false;
     },
-    reconnected: (msg) => {
+    reconnected: () => {
       state.reconnecting = false;
       state.reconnectFailed = false;
     },
@@ -278,8 +340,7 @@ export function useConnection(deps: ConnectionDeps) {
       state.connected = false;
       state.connecting = false;
       state.reconnecting = false;
-      // This is the first connection attempt, not a failed reconnect. Keep
-      // the user on the welcome form instead of showing an empty voice room.
+      // First connection attempt, not a failed reconnect, so stay on the welcome form instead of an empty voice room.
       state.reconnectFailed = false;
       failureAlreadyReported = true;
       state.errorCode = normalizedClientErrorCode(msg.code);

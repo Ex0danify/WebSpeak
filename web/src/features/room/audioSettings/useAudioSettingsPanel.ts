@@ -11,22 +11,42 @@ export interface UseAudioSettingsPanelOptions {
   session: Pick<RoomSession["session"], "state">;
   audio: Pick<
     RoomSession["audio"],
-    | "microphoneMuted" | "microphoneTestActive" | "accompanimentActive" | "accompanimentErrorCode"
-    | "audioContextState" | "micLevel" | "setInputDevice" | "setOutputDevice" | "startMicrophoneTest"
-    | "stopMicrophoneTest" | "setMicrophoneMuted" | "prepareInputDevices" | "startAccompaniment" | "stopAccompaniment"
+    | "microphoneMuted"
+    | "microphoneTestActive"
+    | "accompanimentActive"
+    | "accompanimentErrorCode"
+    | "audioContextState"
+    | "micLevel"
+    | "setInputDevice"
+    | "setOutputDevice"
+    | "startMicrophoneTest"
+    | "stopMicrophoneTest"
+    | "setMicrophoneMuted"
+    | "prepareInputDevices"
+    | "startAccompaniment"
+    | "stopAccompaniment"
   >;
 }
 
-/** The Audio Configuration dialog's own open state plus the panel UI layer over
- *  useRoomSession()'s already-reactive audio state: device pickers, the mic test meter,
- *  the audio-ready status chip, and the header mic/accompaniment toggles. Does not
- *  reimplement any audio state useRoomSession() already owns. */
+/** The Audio Configuration dialog's open state plus the panel UI over useRoomSession()'s audio state, covering device pickers,
+ *  the mic test meter, the audio-ready status chip and the header mic/accompaniment toggles. */
 export function useAudioSettingsPanel(options: UseAudioSettingsPanelOptions) {
   const { state: voiceState } = options.session;
   const {
-    microphoneMuted, microphoneTestActive, accompanimentActive, accompanimentErrorCode,
-    audioContextState, micLevel, setInputDevice, setOutputDevice, startMicrophoneTest, stopMicrophoneTest,
-    setMicrophoneMuted, prepareInputDevices, startAccompaniment, stopAccompaniment,
+    microphoneMuted,
+    microphoneTestActive,
+    accompanimentActive,
+    accompanimentErrorCode,
+    audioContextState,
+    micLevel,
+    setInputDevice,
+    setOutputDevice,
+    startMicrophoneTest,
+    stopMicrophoneTest,
+    setMicrophoneMuted,
+    prepareInputDevices,
+    startAccompaniment,
+    stopAccompaniment,
   } = options.audio;
   const { t } = useI18n();
 
@@ -77,7 +97,10 @@ export function useAudioSettingsPanel(options: UseAudioSettingsPanelOptions) {
   }
 
   const audioStatus = computed<{ variant: "success" | "warning" | "danger" | "neutral"; label: string }>(() => {
-    if (audioContextState.value === "running") return voiceState.microphoneError ? { variant: "danger", label: t("audioUnavailable") } : { variant: "success", label: t("audioReady") };
+    if (audioContextState.value === "running")
+      return voiceState.microphoneError
+        ? { variant: "danger", label: t("audioUnavailable") }
+        : { variant: "success", label: t("audioReady") };
     if (audioContextState.value === "suspended") return { variant: "warning", label: t("audioSuspended") };
     return { variant: "neutral", label: t("audioUnknown") };
   });
@@ -113,13 +136,14 @@ export function useAudioSettingsPanel(options: UseAudioSettingsPanelOptions) {
       await startAccompaniment();
       if (accompanimentActive.value) showToast(t("accompanimentStarted"));
     } catch {
-      const messageKey: MessageKey = accompanimentErrorCode.value === "needsWebRtc"
-        ? "accompanimentNeedsWebRtc"
-        : accompanimentErrorCode.value === "noAudio"
-          ? "accompanimentNoAudio"
-          : accompanimentErrorCode.value === "unsupported"
-            ? "accompanimentUnsupported"
-            : "accompanimentPermissionDenied";
+      const messageKey: MessageKey =
+        accompanimentErrorCode.value === "needsWebRtc"
+          ? "accompanimentNeedsWebRtc"
+          : accompanimentErrorCode.value === "noAudio"
+            ? "accompanimentNoAudio"
+            : accompanimentErrorCode.value === "unsupported"
+              ? "accompanimentUnsupported"
+              : "accompanimentPermissionDenied";
       showToast(t(messageKey));
     }
   }

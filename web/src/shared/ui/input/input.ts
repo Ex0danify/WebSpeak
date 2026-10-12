@@ -1,6 +1,6 @@
 import { cva, type VariantProps } from "class-variance-authority";
 
-/** Shared look of text-like controls (Input now, Select in step 4.3). */
+/** Shared look of text-like controls (Input and Select). */
 export const controlVariants = cva(
   "box-border block h-10 w-full min-w-0 rounded-md border bg-surface-1 px-3 font-sans text-sm text-fg " +
     "max-compact:h-11 " +

@@ -4,9 +4,9 @@ import { memberRow, poll } from "../helpers";
 import { JOIN_PACE_MS, expect, test } from "./fixtures";
 import { connectAs } from "./provision";
 
-// The rules every real-server test stands on (step 5.3): paced joins, a unique nickname and channel
-// per test, and a server and gateway that are clean again after each test. The two tests run in
-// file order (one worker, `fullyParallel: false`), the second checks what the first left behind.
+// The rules every real-server test stands on: paced joins, a unique nickname and channel per test, and a server and gateway
+// that are clean again after each test. The two tests run in file order (one worker, `fullyParallel: false`) and the second
+// checks what the first left behind.
 
 // Playwright starts a new worker after a failed test, so what test 1 made is handed over in a file
 // (in the run directory of the server), not in a variable.

@@ -5,10 +5,10 @@
     :title="reconnectFailed ? t('reconnectFailed') : t('connectionInterrupted')"
     class="mx-auto mt-3.5 w-[min(950px,calc(100%-64px))] max-compact:w-[calc(100%-30px)]"
   >
-    {{ reconnecting ? t('reconnectingAttempt', { attempt: reconnectAttempt }) : resolveText(error) }}
+    {{ reconnecting ? t("reconnectingAttempt", { attempt: reconnectAttempt }) : resolveText(error) }}
     <template #actions>
-      <Button v-if="reconnectFailed" size="sm" variant="outline" @click="$emit('reconnect-now')">{{ t('reconnectNow') }}</Button>
-      <Button size="sm" variant="ghost" @click="$emit('disconnect')">{{ t('back') }}</Button>
+      <Button v-if="reconnectFailed" size="sm" variant="outline" @click="$emit('reconnect-now')">{{ t("reconnectNow") }}</Button>
+      <Button size="sm" variant="ghost" @click="$emit('disconnect')">{{ t("back") }}</Button>
     </template>
   </Banner>
 </template>

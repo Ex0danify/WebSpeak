@@ -39,7 +39,12 @@ defineExpose({ focus: () => root.value?.$el.focus(), el: computed(() => root.val
       v-bind="$attrs"
       ref="root"
       :model-value="state"
-      :class="cn(checkBoxClass, 'rounded-xs data-[state=checked]:bg-accent data-[state=checked]:shadow-ring-accent data-[state=indeterminate]:bg-accent data-[state=indeterminate]:shadow-ring-accent')"
+      :class="
+        cn(
+          checkBoxClass,
+          'rounded-xs data-[state=checked]:bg-accent data-[state=checked]:shadow-ring-accent data-[state=indeterminate]:bg-accent data-[state=indeterminate]:shadow-ring-accent',
+        )
+      "
       @update:model-value="update"
     >
       <CheckboxIndicator class="grid place-content-center">

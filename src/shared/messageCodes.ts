@@ -1,10 +1,6 @@
 /**
- * Catalog of the codes the gateway puts on the wire for user-visible conditions
- * (docs/design/i18n-plan.md, Track I2). The gateway never translates: a frame
- * carries a stable `code`, optional `params`, and an English `message` that only
- * serves logs and old cached tabs. The browser renders `err_<CODE>` itself.
- *
- * Each code lists the param names it may carry. Values are strings or numbers.
+ * Codes the gateway sends for user-visible conditions. It never translates, a frame has a stable code, optional
+ * params (strings or numbers, listed per code) and an English message for logs. The browser renders err_<CODE>.
  */
 
 export type MessageParamValue = string | number;
@@ -55,7 +51,7 @@ const OPERATION_CODES = {
   CONNECTION_INITIALISATION_FAILED: {} as NoParams,
 };
 
-/** Screen share errors: validation (`error` frames) and `screenShareError` frames. */
+/** Screen share errors, both validation (error frames) and screenShareError frames. */
 const SCREEN_SHARE_CODES = {
   INVALID_SCREEN_SHARE_REQUEST: {} as NoParams,
   INVALID_SCREEN_SHARE_NAME: {} as NoParams,

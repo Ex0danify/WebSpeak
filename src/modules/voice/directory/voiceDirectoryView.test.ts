@@ -34,18 +34,55 @@ describe("avatarDataUrl", () => {
 
 describe("mapChannelTree", () => {
   const snap = snapshot(
-    [{ id: 1n, parentID: 0n, order: 0n, name: "", description: "" }, { id: 2n, parentID: 1n, order: 1n, name: "Two", description: "d" }],
     [
-      { id: 7, nickname: "", uid: "u7", channelID: 1n, away: false, awayMessage: "", inputMuted: false, outputMuted: false, channelCommander: false },
-      { id: 8, nickname: "Bob", uid: "", channelID: 2n, away: true, awayMessage: "brb", inputMuted: true, outputMuted: true, channelCommander: true },
+      { id: 1n, parentID: 0n, order: 0n, name: "", description: "" },
+      { id: 2n, parentID: 1n, order: 1n, name: "Two", description: "d" },
+    ],
+    [
+      {
+        id: 7,
+        nickname: "",
+        uid: "u7",
+        channelID: 1n,
+        away: false,
+        awayMessage: "",
+        inputMuted: false,
+        outputMuted: false,
+        channelCommander: false,
+      },
+      {
+        id: 8,
+        nickname: "Bob",
+        uid: "",
+        channelID: 2n,
+        away: true,
+        awayMessage: "brb",
+        inputMuted: true,
+        outputMuted: true,
+        channelCommander: true,
+      },
     ],
   );
 
   it("stringifies ids, groups members and applies fallbacks", () => {
     const tree = mapChannelTree(snap, new Map([["u7", "data:x"]])) as Array<Record<string, unknown>>;
-    expect(tree.map((c) => [c.id, c.parentID, c.order, c.name])).toEqual([["1", "0", "0", ""], ["2", "1", "1", "Two"]]);
+    expect(tree.map((c) => [c.id, c.parentID, c.order, c.name])).toEqual([
+      ["1", "0", "0", ""],
+      ["2", "1", "1", "Two"],
+    ]);
     expect(tree[0]!.members).toEqual([
-      { id: 7, nickname: "", unnamed: true, uid: "u7", avatar: "data:x", away: false, awayMessage: "", inputMuted: false, outputMuted: false, channelCommander: false },
+      {
+        id: 7,
+        nickname: "",
+        unnamed: true,
+        uid: "u7",
+        avatar: "data:x",
+        away: false,
+        awayMessage: "",
+        inputMuted: false,
+        outputMuted: false,
+        channelCommander: false,
+      },
     ]);
     expect((tree[1]!.members as Array<Record<string, unknown>>)[0]).not.toHaveProperty("avatar");
   });
@@ -57,7 +94,10 @@ describe("mapChannelTree", () => {
 });
 
 describe("normalizeDirectorySnapshot", () => {
-  const channels = [{ id: 1n, name: "Lobby" }, { id: 2n, name: "Game" }];
+  const channels = [
+    { id: 1n, name: "Lobby" },
+    { id: 2n, name: "Game" },
+  ];
 
   it("returns the snapshot untouched while selfId is unknown", () => {
     const snap = snapshot(channels, []);

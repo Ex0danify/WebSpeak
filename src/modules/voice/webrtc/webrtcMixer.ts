@@ -10,12 +10,11 @@ const MAX_MIXER_QUEUE_FRAMES = 4;
 export const MAX_MIXER_PACER_LAG_MS = AUDIO_CLOCK_INTERVAL_MS * 2;
 const MAX_MIXER_FRAME_AGE_MS = MAX_MIXER_QUEUE_FRAMES * AUDIO_CLOCK_INTERVAL_MS;
 const MIXER_UNDERRUN_WINDOW_MS = 200;
-// This threshold is used only for the speaking indicator. It must never decide
-// whether a media packet is forwarded or queued: quiet/comfort-noise Opus
-// packets are still valid media and dropping them can break decoder continuity.
+// Only drives the speaking indicator and must never gate forwarding. Quiet and comfort-noise
+// Opus packets are valid media, dropping them breaks decoder continuity.
 const SPEAKER_ACTIVITY_RMS = 160;
 
-/** The counters the mixer updates; the session owns the object and exposes it. */
+/** Counters the mixer updates, owned and exposed by the session. */
 export interface WebRtcMixerStats {
   webrtcQueuePeakFrames: number;
   webrtcQueueDroppedFrames: number;
@@ -28,7 +27,7 @@ export interface WebRtcMixerStats {
 interface PendingAudioFrame {
   pcm: Buffer;
   receivedAt: number;
-  /** Preserve a native 20 ms Opus frame when no mix is required. */
+  /** Native 20 ms Opus frame, reused when no mix is needed. */
   opus?: Buffer;
 }
 
@@ -38,10 +37,9 @@ interface SelectedAudioFrame extends PendingAudioFrame {
 }
 
 /**
- * TeamSpeak provides one Opus payload per speaker; the WebRTC track carries one.
- * The mixer decodes each speaker into a very small bounded queue and, once per
- * 20 ms tick, mixes one frame from each active speaker back into one Opus packet.
- * The session owns the pacing clock and the RTP send.
+ * TeamSpeak sends one Opus payload per speaker but the WebRTC track carries one. The mixer decodes each
+ * speaker into a tiny bounded queue and mixes one frame per active speaker every 20 ms tick.
+ * The session owns the clock and the RTP send.
  */
 export class WebRtcMixer {
   private readonly decoderByClient = new Map<number, { decode(data: Buffer): Buffer }>();
@@ -64,8 +62,7 @@ export class WebRtcMixer {
     let decoder = this.decoderByClient.get(data.clientId);
     if (!decoder) {
       try {
-        // @discordjs/opus exposes decoding on OpusEncoder instances too;
-        // there is no separate OpusDecoder constructor in that package.
+        // @discordjs/opus has no separate decoder class, decoding lives on OpusEncoder.
         decoder = new OpusEncoder(AUDIO_SAMPLE_RATE, 1);
         this.decoderByClient.set(data.clientId, decoder);
       } catch (error: unknown) {
@@ -80,16 +77,13 @@ export class WebRtcMixer {
         this.stats.webrtcDownlinkShortFrames++;
         return;
       }
-      // TeamSpeak may deliver 10/20/40/60 ms Opus frames. Keep a partial
-      // decoded frame per speaker and split every decoded buffer into the
-      // fixed 20 ms cadence used by the WebRTC mixer instead of discarding
-      // anything after the first 20 ms.
+      // TS may send 10/20/40/60 ms frames. Keep the partial frame per speaker and split into
+      // 20 ms pieces instead of dropping everything after the first.
       const pendingPcm = this.partialPcmByClient.get(data.clientId);
       const combined = pendingPcm ? Buffer.concat([pendingPcm, pcm]) : pcm;
       const rms = calculateRms(pcm);
-      // RMS is used only for the UI speaking indicator. Every decoded frame,
-      // including quiet/comfort-noise frames, continues into the queue so the
-      // receiver keeps an uninterrupted codec timeline.
+      // RMS only feeds the speaking indicator, every frame (even comfort noise) still goes into the
+      // queue so the receiver keeps an unbroken codec timeline.
       if (rms >= SPEAKER_ACTIVITY_RMS) this.activeSpeakerIds.add(data.clientId);
       const canForwardOpus = !pendingPcm && pcm.length === AUDIO_FRAME_BYTES;
       let offset = 0;
@@ -120,8 +114,7 @@ export class WebRtcMixer {
       }
     } catch {
       this.stats.webrtcDownlinkDecodeErrors++;
-      // A malformed or codec-transition packet is discarded without touching
-      // the peer connection. The next valid Opus frame can recover the stream.
+      // Malformed or codec-transition packets are dropped, the next valid frame recovers the stream.
     }
   }
 
@@ -152,18 +145,15 @@ export class WebRtcMixer {
 
     const pcm = Buffer.allocUnsafe(AUDIO_FRAME_BYTES);
     for (let index = 0; index < AUDIO_FRAME_SAMPLES; index++) {
-      // Keep a fixed gain for the mixed path. Per-sample soft limiting changes
-      // the waveform's apparent loudness as the source level changes, which
-      // is especially noticeable on music. Only clip actual overflow caused
-      // by simultaneous speakers; never normalize by the active speaker count.
+      // Fixed gain on the mix. Soft limiting changes the apparent loudness with the source level,
+      // bad for music. Only clip real overflow and never normalize by speaker count.
       const sample = Math.max(-32_768, Math.min(32_767, mixed[index]!));
       pcm.writeInt16LE(sample, index * 2);
     }
     try {
       return this.encoder.encode(pcm);
     } catch {
-      // A peer closing concurrently may reject a packet; teardown owns the
-      // session lifecycle and no per-frame error needs to reach the logs.
+      // A peer closing at the same time may reject a packet, teardown owns the lifecycle so nothing is logged per frame.
       return null;
     }
   }

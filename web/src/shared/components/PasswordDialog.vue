@@ -6,11 +6,9 @@ import { Field } from "../ui/field";
 import { Icon } from "../ui/icon";
 import { Input } from "../ui/input";
 
-// Asks for a password: the TeamSpeak server password on a retry, or the
-// password of a protected channel. The owner keeps the state; this only renders
-// it. `cancel` fires for the Cancel button, the X, Esc and a backdrop click, so
-// the owner clears its state in one place. Closing after a submit is the
-// owner's job too: set `open` to false.
+// Asks for a password, the TeamSpeak server password on a retry or the password of a protected channel. The owner keeps the
+// state and this only renders it. `cancel` fires for the Cancel button, the X, Esc and a backdrop click, and closing after a
+// submit is the owner's job too (set `open` false).
 defineProps<{
   open: boolean;
   title: string;
@@ -34,10 +32,28 @@ const formId = `password-form-${useId()}`;
 </script>
 
 <template>
-  <Dialog :model-value="open" size="sm" :title="title" :description="lead" :close-label="closeLabel" @update:model-value="(value) => { if (!value) emit('cancel'); }">
+  <Dialog
+    :model-value="open"
+    size="sm"
+    :title="title"
+    :description="lead"
+    :close-label="closeLabel"
+    @update:model-value="
+      (value) => {
+        if (!value) emit('cancel');
+      }
+    "
+  >
     <form :id="formId" @submit.prevent="emit('submit')">
       <Field :label="label" :error="error">
-        <Input v-model="password" type="password" autocomplete="current-password" :placeholder="placeholder" :disabled="submitting" autofocus>
+        <Input
+          v-model="password"
+          type="password"
+          autocomplete="current-password"
+          :placeholder="placeholder"
+          :disabled="submitting"
+          autofocus
+        >
           <template #leading><Icon name="lock" /></template>
         </Input>
       </Field>

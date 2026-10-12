@@ -11,7 +11,13 @@ import { admitConnection, type AdmissionDeps, type ConnectionHooks } from "./voi
 import type { WebRtcAudioOptions } from "../../config/webrtcConfig.js";
 import { cleanupEntry, getSessionSummaries, terminateSession, type SessionCleanupDeps } from "./session/voiceSessionAdmin.js";
 import type { ConfiguredAccelerationRelay } from "../relay/index.js";
-import { ScreenShareHub, discoverExistingTeamSpeakStreams, handleScreenShareMessage, normalizeScreenShareIceServers, type ScreenShareIceServer } from "../screenShare/index.js";
+import {
+  ScreenShareHub,
+  discoverExistingTeamSpeakStreams,
+  handleScreenShareMessage,
+  normalizeScreenShareIceServers,
+  type ScreenShareIceServer,
+} from "../screenShare/index.js";
 
 const HEARTBEAT_INTERVAL_MS = 30_000;
 
@@ -62,8 +68,10 @@ export class VoiceBridge {
     };
     this.directoryDeps = {
       sendInitialState: (ctx) => sendInitialState(ctx, this.hooks),
-      reconcileScreenShareAfterClientMove: (entry, clientId, targetChannelId) => this.screenHub.reconcileScreenShareAfterClientMove(entry, clientId, targetChannelId),
-      reconcileNativeScreenShareAfterClientLeave: (entry, clientId) => this.screenHub.reconcileNativeScreenShareAfterClientLeave(entry, clientId),
+      reconcileScreenShareAfterClientMove: (entry, clientId, targetChannelId) =>
+        this.screenHub.reconcileScreenShareAfterClientMove(entry, clientId, targetChannelId),
+      reconcileNativeScreenShareAfterClientLeave: (entry, clientId) =>
+        this.screenHub.reconcileNativeScreenShareAfterClientLeave(entry, clientId),
     };
     this.cleanupDeps = {
       entries: this.entries,
@@ -92,8 +100,7 @@ export class VoiceBridge {
   }
 
   attach(server: Server): void {
-    // Avatar data is delivered as a data URL in a memberAvatar message. Keep
-    // the frame limit above the encoded avatar ceiling with room for JSON.
+    // Avatars travel as a data URL in memberAvatar, keep the frame limit above the encoded ceiling plus JSON.
     this.wss = new WebSocketServer({ server, path: "/ws/voice", maxPayload: 512 * 1024 });
     this.startHeartbeat();
 
@@ -117,7 +124,11 @@ export class VoiceBridge {
     this.wss = null;
     if (!wss) return;
     await new Promise<void>((resolve) => {
-      try { wss.close(() => resolve()); } catch { resolve(); }
+      try {
+        wss.close(() => resolve());
+      } catch {
+        resolve();
+      }
     });
   }
 

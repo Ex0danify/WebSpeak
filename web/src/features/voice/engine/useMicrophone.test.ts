@@ -1,14 +1,15 @@
-// useMicrophone (Steps V4.1, V4.2): support check, constraints, capture graph and mute, with stores and
-// browser stubs and no composable around it. The device lists live in useAudioInputDevices.test.ts, the
-// microphone test in useMicrophoneTest.test.ts; the uplink numbers (VOX, framing, the buffer cap) stay
-// pinned by hotpath.test.ts through the public API.
+// useMicrophone: support check, constraints, capture graph and mute, with stores and browser stubs and no composable around it.
+// Device lists are tested in useAudioInputDevices.test.ts, the mic test in useMicrophoneTest.test.ts, and the uplink numbers
+// (VOX, framing, buffer cap) in hotpath.test.ts.
 import { ref } from "vue";
 import { describe, expect, it, vi } from "vitest";
 
 // The RNNoise wasm is not loadable under happy-dom: it always falls back to the browser's own suppression.
 vi.mock("@sapphi-red/web-noise-suppressor", () => ({
   RnnoiseWorkletNode: class {},
-  loadRnnoise: async () => { throw new Error("no wasm in tests"); },
+  loadRnnoise: async () => {
+    throw new Error("no wasm in tests");
+  },
 }));
 
 import { FakeAudioWorkletNode, FakeMediaStream, FakeMediaStreamTrack } from "@/testSupport/browserStubs";
@@ -125,7 +126,12 @@ describe("startMicrophone", () => {
     const { audio, deps, mic } = setup();
     await mic.startMicrophone();
     expect(fx.ctx.state).toBe("running");
-    expect(audio.microphoneProcessing).toMatchObject({ echoCancellation: true, noiseSuppression: false, autoGainControl: null, rnnoise: false });
+    expect(audio.microphoneProcessing).toMatchObject({
+      echoCancellation: true,
+      noiseSuppression: false,
+      autoGainControl: null,
+      rnnoise: false,
+    });
     const worklet = FakeAudioWorkletNode.instances.at(-1);
     expect(worklet?.name).toBe("webspeak-mic-capture");
     expect(worklet?.options).toEqual({ numberOfInputs: 1, numberOfOutputs: 1, outputChannelCount: [1] });
@@ -147,7 +153,9 @@ describe("startMicrophone", () => {
   });
 
   it("falls back to a ScriptProcessor when the worklet cannot be created", async () => {
-    fx.ctx.audioWorklet.addModule = async () => { throw new Error("blocked"); };
+    fx.ctx.audioWorklet.addModule = async () => {
+      throw new Error("blocked");
+    };
     const { mic } = setup();
     const scriptProcessor = vi.spyOn(fx.ctx, "createScriptProcessor");
     await mic.startMicrophone();
@@ -212,9 +220,15 @@ describe("stopMicrophone", () => {
   it("tears down in the recorded order and closes the context by default", async () => {
     const order: string[] = [];
     const { mic } = await openMic({
-      releaseAccompanimentStream: vi.fn(() => { order.push("accompaniment"); }),
-      stopWebRtcMix: vi.fn(() => { order.push("mix"); }),
-      releaseAudioCtx: vi.fn(() => { order.push("context"); }),
+      releaseAccompanimentStream: vi.fn(() => {
+        order.push("accompaniment");
+      }),
+      stopWebRtcMix: vi.fn(() => {
+        order.push("mix");
+      }),
+      releaseAudioCtx: vi.fn(() => {
+        order.push("context");
+      }),
     });
     const stream = mic.getMicStream()!;
     const worklet = FakeAudioWorkletNode.instances.at(-1)!;
@@ -328,8 +342,12 @@ describe("setNoiseSuppressionEnabled", () => {
     const order: string[] = [];
     const { session, deps, mic } = await openMic({
       webrtcActive: ref(true),
-      stopWebRtcTransport: vi.fn(() => { order.push("stop"); }),
-      startWebRtcTransport: vi.fn(async () => { order.push("start"); }),
+      stopWebRtcTransport: vi.fn(() => {
+        order.push("stop");
+      }),
+      startWebRtcTransport: vi.fn(async () => {
+        order.push("start");
+      }),
     });
     const socket = {} as WebSocket;
     session.ws = socket;
@@ -346,4 +364,3 @@ describe("setNoiseSuppressionEnabled", () => {
     expect(session.state.microphoneErrorCode).not.toBe("");
   });
 });
-

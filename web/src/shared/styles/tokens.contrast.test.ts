@@ -2,10 +2,9 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
-// The colour tokens of tokens.css, in both themes, against WCAG 2.x contrast. No browser: the
-// values are read from the stylesheet (hex colours and the `color-mix(in srgb, ...)` tints) and the
-// ratios are computed here. Axe checks the rendered pages (e2e/a11y/axe.spec.ts); this one checks
-// the pairs no page shows today, and fails when a value drifts.
+// The color tokens of tokens.css in both themes against WCAG 2.x contrast, with no browser. Values are read from the stylesheet
+// and ratios computed here. Axe checks the rendered pages (e2e/a11y/axe.spec.ts), this one checks the pairs no page shows today
+// and fails when a value drifts.
 
 const css = readFileSync(join(import.meta.dirname, "tokens.css"), "utf8");
 
@@ -21,7 +20,8 @@ function declarations(selector: string): Record<string, string> {
     if (css[end] === "}" && --depth === 0) break;
   }
   const found: Record<string, string> = {};
-  for (const match of css.slice(open + 1, end).matchAll(/--(ws-[\w-]+):\s*([^;]+);/g)) found[match[1]!] = match[2]!.replace(/\s+/g, " ").trim();
+  for (const match of css.slice(open + 1, end).matchAll(/--(ws-[\w-]+):\s*([^;]+);/g))
+    found[match[1]!] = match[2]!.replace(/\s+/g, " ").trim();
   return found;
 }
 
@@ -69,8 +69,7 @@ const themes = {
 
 const token = (theme: Record<string, string>, name: string) => resolve(`var(--ws-${name})`, theme);
 
-// [foreground, background, minimum ratio]: 4.5 for text (WCAG 1.4.3), 3 for what marks a control or
-// a state (1.4.11).
+// [foreground, background, minimum ratio]: 4.5 for text (WCAG 1.4.3), 3 for what marks a control or a state (1.4.11).
 const pairs: [string, string, number][] = [
   ["fg", "surface-0", 4.5],
   ["fg", "surface-1", 4.5],
@@ -94,7 +93,8 @@ const pairs: [string, string, number][] = [
   ["accent", "surface-2", 3],
 ];
 
-const ratioOf = (theme: Record<string, string>, foreground: string, background: string) => contrast(token(theme, foreground), token(theme, background));
+const ratioOf = (theme: Record<string, string>, foreground: string, background: string) =>
+  contrast(token(theme, foreground), token(theme, background));
 
 for (const [themeName, theme] of Object.entries(themes)) {
   describe(`${themeName} theme`, () => {

@@ -42,7 +42,15 @@ export function useAdminService() {
     /** Opens the database and builds a service on it. `secret` defaults to the fixed test secret. */
     create(secret: Buffer = MASTER_SECRET): AdminService {
       const db = database.open();
-      return new AdminService(db, secret, context.logger, context.legacyConfigPath(), context.probe as never, "9.9.9", context.ping as never);
+      return new AdminService(
+        db,
+        secret,
+        context.logger,
+        context.legacyConfigPath(),
+        context.probe as never,
+        "9.9.9",
+        context.ping as never,
+      );
     },
   };
   return context;

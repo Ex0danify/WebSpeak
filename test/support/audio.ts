@@ -42,7 +42,9 @@ export function powerAt(samples: Int16Array, frequencyHz: number): number {
     beforePrevious = previous;
     previous = current;
   }
-  return (previous * previous + beforePrevious * beforePrevious - coefficient * previous * beforePrevious) / (samples.length * samples.length);
+  return (
+    (previous * previous + beforePrevious * beforePrevious - coefficient * previous * beforePrevious) / (samples.length * samples.length)
+  );
 }
 
 export const rms = (samples: Int16Array): number => Math.sqrt(samples.reduce((sum, sample) => sum + sample * sample, 0) / samples.length);

@@ -7,13 +7,16 @@ import { isWebRtcStopMessage, parseWebRtcOffer } from "./voiceParse.js";
 import { sendProtocolError } from "../session/voiceFailures.js";
 import { parseClientCommand } from "./voiceProtocol.js";
 
-/** What the router still needs from the bridge. */
 export interface VoiceMessageRouterDeps {
   getWebRtcOptions(): WebRtcAudioOptions | undefined;
-  handleScreenShareMessage(entry: WebClientEntry, message: ScreenShareClientMessage, sendJson: (message: Record<string, unknown>) => void): void;
+  handleScreenShareMessage(
+    entry: WebClientEntry,
+    message: ScreenShareClientMessage,
+    sendJson: (message: Record<string, unknown>) => void,
+  ): void;
 }
 
-/** Routes one text frame: WebRTC offer, WebRTC stop, screen share, then client command. */
+/** Routes one text frame in order: WebRTC offer, stop, screen share, client command. */
 export function routeTextFrame(ctx: VoiceConnection, data: Buffer | string, deps: VoiceMessageRouterDeps): void {
   const rawMessage = typeof data === "string" ? data : data.toString("utf-8");
   const webRtcOffer = parseWebRtcOffer(rawMessage);

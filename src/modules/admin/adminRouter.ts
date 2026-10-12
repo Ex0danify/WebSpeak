@@ -22,7 +22,7 @@ export function createAdminRouter(options: AdminRouterOptions): Router {
 
   registerAuthRoutes(router, options, limiter, logger);
 
-  // Everything registered below needs a session; keep this guard between the public and the admin routes.
+  // Everything below needs a session, keep this guard between the public and the admin routes.
   router.use(requireAdmin(options.sessions, options.service));
 
   registerSessionRoutes(router, options);

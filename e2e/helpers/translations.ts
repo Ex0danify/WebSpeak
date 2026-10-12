@@ -39,5 +39,7 @@ export function discoveredLanguages(): string[] {
       .filter((file) => file.endsWith(".ts") && file !== "index.ts" && !file.endsWith(".test.ts"))
       .map((file) => file.slice(0, -3)),
   );
-  return sets[0]!.filter((code) => sets.every((codes) => codes.includes(code))).sort((a, b) => (a === "en" ? -1 : b === "en" ? 1 : a.localeCompare(b)));
+  return sets[0]!
+    .filter((code) => sets.every((codes) => codes.includes(code)))
+    .sort((a, b) => (a === "en" ? -1 : b === "en" ? 1 : a.localeCompare(b)));
 }

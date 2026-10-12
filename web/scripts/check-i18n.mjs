@@ -1,27 +1,9 @@
-// Key-parity check for every i18n module under src/.
-//
-//   npm run check:i18n
-//
-// Discovers modules by glob: any i18n folder under src/ that holds an index.ts is a module (a language
-// is a `<code>.ts` file in it, none is named here; a language missing from one folder fails), wherever it lives (src/i18n/<name>/ today, later
-// src/features/<x>/i18n/ and src/shared/i18n/common/). A module is named after its folder,
-// or after the parent folder when the folder is itself called i18n.
-// Walks every module folder (common, join, room, admin, demo — one t() lookup shares all
-// five since step 8.4/8.5 wired admin and demo onto it too, per useI18n.ts), reads each
-// language file as text and collects the keys it declares itself (top-level `key:` entries).
-// `join`, `room` and `admin` spread `...en` (per module), so their de/ru/ja always hold every
-// en key that module declares at runtime; `common` and `demo` do not spread and are fully
-// standalone in all five languages. The text scan is what shows which keys a language file
-// actually translates itself, regardless of which shape a module uses.
-//
-// Step 8.6 resolved every key name that used to collide across modules (folded the
-// identical-value ones into `common`, renamed the rest), so a key must now be declared in
-// exactly one module: this fails on a duplicate the same way it fails on a language missing
-// a key another language in the same module has.
-// Nothing is fixed automatically.
-//
-// There is no allowance: a key missing from any language fails (translate it). The value rules
-// (placeholders, CJK, English repeats) are checked by keyParity.test.ts.
+// Key-parity check for every i18n module. A module is any i18n folder with an index.ts (src/i18n/<name>/, features/<x>/i18n/ or
+// shared/i18n/common/), named after its folder or the parent when the folder is called i18n. A language is a `<code>.ts` file
+// in it.
+
+// Reads each language file as text and collects the keys it declares itself, since `join`, `room` and `admin` spread `...en`.
+// A key lives in one module only and a key missing from any language fails. Value rules are in keyParity.test.ts.
 import { readdirSync, readFileSync } from "node:fs";
 import { basename, dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -30,12 +12,12 @@ const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const DEFAULT_LANGUAGE = "en";
 const KEY = /^ {2}(?:([A-Za-z_$][\w$]*)|"([^"]+)"):/gm;
 
-// A module folder is an i18n folder (or one directly inside it, like shared/i18n/common) with an index.ts. A language is
-// a `<code>.ts` file in a module folder: nothing here names one.
 const NOT_LANGUAGES = new Set(["index"]);
 function findModuleDirs(dir) {
   const entries = readdirSync(dir, { withFileTypes: true });
-  const files = entries.filter((entry) => entry.isFile() && entry.name.endsWith(".ts") && !entry.name.endsWith(".test.ts")).map((entry) => entry.name.slice(0, -3));
+  const files = entries
+    .filter((entry) => entry.isFile() && entry.name.endsWith(".ts") && !entry.name.endsWith(".test.ts"))
+    .map((entry) => entry.name.slice(0, -3));
   const inI18n = basename(dir) === "i18n" || basename(dirname(dir)) === "i18n";
   const found = files.includes("index") && inI18n ? [dir] : [];
   for (const entry of entries) {
@@ -54,8 +36,14 @@ for (const dir of findModuleDirs(join(root, "src"))) {
   moduleDirs.set(name, dir);
 }
 
-const codesIn = (dir) => readdirSync(dir).filter((file) => file.endsWith(".ts") && !file.endsWith(".test.ts")).map((file) => file.slice(0, -3)).filter((code) => !NOT_LANGUAGES.has(code));
-const languages = [...new Set([...moduleDirs.values()].flatMap(codesIn))].sort((a, b) => (a === DEFAULT_LANGUAGE ? -1 : b === DEFAULT_LANGUAGE ? 1 : a.localeCompare(b)));
+const codesIn = (dir) =>
+  readdirSync(dir)
+    .filter((file) => file.endsWith(".ts") && !file.endsWith(".test.ts"))
+    .map((file) => file.slice(0, -3))
+    .filter((code) => !NOT_LANGUAGES.has(code));
+const languages = [...new Set([...moduleDirs.values()].flatMap(codesIn))].sort((a, b) =>
+  a === DEFAULT_LANGUAGE ? -1 : b === DEFAULT_LANGUAGE ? 1 : a.localeCompare(b),
+);
 let incomplete = 0;
 for (const [name, dir] of moduleDirs) {
   for (const language of languages) {
@@ -71,20 +59,22 @@ if (!languages.includes(DEFAULT_LANGUAGE)) {
 }
 const modules = [...moduleDirs.keys()].sort();
 
-// module -> language -> declared keys
-const declared = Object.fromEntries(modules.map((module) => [
-  module,
-  Object.fromEntries(languages.map((language) => {
-    const source = readFileSync(join(moduleDirs.get(module), `${language}.ts`), "utf8");
-    return [language, new Set([...source.matchAll(KEY)].map((match) => match[1] ?? match[2]))];
-  })),
-]));
+const declared = Object.fromEntries(
+  modules.map((module) => [
+    module,
+    Object.fromEntries(
+      languages.map((language) => {
+        const source = readFileSync(join(moduleDirs.get(module), `${language}.ts`), "utf8");
+        return [language, new Set([...source.matchAll(KEY)].map((match) => match[1] ?? match[2]))];
+      }),
+    ),
+  ]),
+);
 
 let problems = incomplete;
 
-// A key declared by more than one module, for the same language, is a real bug: whichever
-// module a merge (useI18n.ts's lookup()) checks first would silently win, hiding the other's
-// value. Checked across all five modules together, not per pair.
+// A key declared by more than one module for the same language is a bug, whichever module useI18n.ts's lookup() checks first
+// silently wins and hides the other's value. Checked across all modules together, not per pair.
 for (const language of languages) {
   const seenIn = new Map();
   for (const module of modules) {

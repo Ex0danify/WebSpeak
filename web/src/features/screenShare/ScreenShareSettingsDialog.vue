@@ -1,13 +1,23 @@
 <template>
   <Dialog v-model="open" size="sm" :title="t('screenShareSettings')" :description="t('screenShareSettingsHint')" :close-label="t('close')">
     <div class="grid gap-3.5">
-      <Field :label="t('screenShareResolution')"><Select v-model="resolutionPreset"><option v-for="option in resolutionOptions" :key="option.value" :value="option.value">{{ t(option.label) }}</option></Select></Field>
-      <Field :label="t('screenShareFrameRate')"><Select v-model="frameRate"><option v-for="fps in frameRateOptions" :key="fps" :value="fps">{{ format.unit(fps, "frame-per-second", { fallback: "FPS" }) }}</option></Select></Field>
+      <Field :label="t('screenShareResolution')"
+        ><Select v-model="resolutionPreset"
+          ><option v-for="option in resolutionOptions" :key="option.value" :value="option.value">{{ t(option.label) }}</option></Select
+        ></Field
+      >
+      <Field :label="t('screenShareFrameRate')"
+        ><Select v-model="frameRate"
+          ><option v-for="fps in frameRateOptions" :key="fps" :value="fps">
+            {{ format.unit(fps, "frame-per-second", { fallback: "FPS" }) }}
+          </option></Select
+        ></Field
+      >
     </div>
-    <p class="mb-1 mt-4 text-xs leading-4 text-fg-muted">{{ t('screenShareSettingsNote') }}</p>
+    <p class="mt-4 mb-1 text-xs leading-4 text-fg-muted">{{ t("screenShareSettingsNote") }}</p>
     <template #footer>
-      <Button variant="ghost" @click="open = false">{{ t('cancel') }}</Button>
-      <Button @click="$emit('start')"><Icon name="monitor" size="sm" />{{ t('startScreenShare') }}</Button>
+      <Button variant="ghost" @click="open = false">{{ t("cancel") }}</Button>
+      <Button @click="$emit('start')"><Icon name="monitor" size="sm" />{{ t("startScreenShare") }}</Button>
     </template>
   </Dialog>
 </template>

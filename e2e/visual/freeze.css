@@ -1,5 +1,7 @@
 /* Applied while a screenshot is taken: no animation, no transition, no caret. */
-*, *::before, *::after {
+*,
+*::before,
+*::after {
   caret-color: transparent !important;
   animation: none !important;
   transition: none !important;

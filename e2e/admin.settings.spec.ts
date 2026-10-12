@@ -1,6 +1,6 @@
 import type { Locator, Page } from "@playwright/test";
 import { expect, test } from "./fixtures";
-import { TEST_ADMIN_PASSWORD, type Gateway } from "../test/helpers/gateway";
+import { TEST_ADMIN_PASSWORD, type Gateway } from "../test/support/gateway";
 import { TeamSpeakProbeError } from "../src/modules/teamspeak/teamSpeakProbe";
 
 // The admin console's Server page: what the administrator edits, what a save keeps, and what the
@@ -36,7 +36,11 @@ test.describe("save", () => {
   test("keeps what was edited across a reload, and saving the old values restores them", async ({ page, ownGateway }) => {
     const gateway = await ownGateway();
     await openServerPage(page, gateway);
-    const original = { address: await page.getByLabel("TeamSpeak server address").inputValue(), port: await page.getByLabel("Voice port").inputValue(), site: await siteName(page).inputValue() };
+    const original = {
+      address: await page.getByLabel("TeamSpeak server address").inputValue(),
+      port: await page.getByLabel("Voice port").inputValue(),
+      site: await siteName(page).inputValue(),
+    };
 
     await page.getByLabel("TeamSpeak server address").fill("ts.example.test");
     await page.getByLabel("Voice port").fill("9988");
@@ -89,8 +93,8 @@ test.describe("save", () => {
     await expect(page.getByLabel("TeamSpeak server address")).not.toHaveValue("");
   });
 
-  // Every successful action of the console says so in a toast (bug F29: a save that worked said nothing).
-  test("a successful save says so in a toast, and a refused one shows the alert and no toast (F29)", async ({ page, ownGateway }) => {
+  // Every successful action of the console says so in a toast.
+  test("a successful save says so in a toast, and a refused one shows the alert and no toast", async ({ page, ownGateway }) => {
     const gateway = await ownGateway();
     await openServerPage(page, gateway);
     const saved = page.locator("li").filter({ hasText: "Settings saved." });
@@ -159,7 +163,15 @@ test.describe("connection test", () => {
 
   test("a host that ignores ping does not fail a port that answers", async ({ page, ownGateway }) => {
     const gateway = await ownGateway();
-    gateway.ping.mockResolvedValue({ ok: false, latencyMs: null, packetLossPercent: 100, attempts: 4, successfulAttempts: 0, samples: [], errorCode: "TIMEOUT" });
+    gateway.ping.mockResolvedValue({
+      ok: false,
+      latencyMs: null,
+      packetLossPercent: 100,
+      attempts: 4,
+      successfulAttempts: 0,
+      samples: [],
+      errorCode: "TIMEOUT",
+    });
     await openServerPage(page, gateway);
     await page.getByRole("button", { name: "Test connection" }).click();
     await expect(page.getByText("TeamSpeak server answered")).toBeVisible();

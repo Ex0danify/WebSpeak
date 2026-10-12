@@ -1,12 +1,6 @@
 export { DirectorySynchronizer } from "./directorySync.js";
 export { IdentityLeaseStore } from "./identityLease.js";
-export {
-  RECONNECT_DELAYS_MS,
-  RECONNECT_WINDOW_MS,
-  isRecoverable,
-  reconnectDelayMs,
-  reconnectWindowOpen,
-} from "./reconnectPolicy.js";
+export { RECONNECT_DELAYS_MS, RECONNECT_WINDOW_MS, isRecoverable, reconnectDelayMs, reconnectWindowOpen } from "./reconnectPolicy.js";
 export {
   EndpointProtocolCache,
   TeamSpeakAdapter,

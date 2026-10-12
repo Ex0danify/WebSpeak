@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { type Gateway, useGateway } from "../../../../test/helpers/gateway.js";
-import { ask, joinVoice, type VoiceSession } from "../../../../test/helpers/voice.js";
-import type { JsonMessage } from "../../../../test/helpers/wsClient.js";
+import { type Gateway, useGateway } from "../../../../test/support/gateway.js";
+import { ask, joinVoice, type VoiceSession } from "../../../../test/support/voice.js";
+import type { JsonMessage } from "../../../../test/support/wsClient.js";
 
 const gateways = useGateway();
 
@@ -56,7 +56,18 @@ describe("a stream that a TeamSpeak user starts", () => {
     expect(started).toEqual({
       type: "screenShareStarted",
       owner: false,
-      stream: { streamId: STREAM_ID, source: "teamspeak", ownerPeerId: `ts-${source.id}`, ownerClientId: source.id, ownerNickname: "Raid night", name: "Raid night", audio: true, createdAt: expect.any(Number), viewerCount: 0, viewers: [] },
+      stream: {
+        streamId: STREAM_ID,
+        source: "teamspeak",
+        ownerPeerId: `ts-${source.id}`,
+        ownerClientId: source.id,
+        ownerNickname: "Raid night",
+        name: "Raid night",
+        audio: true,
+        createdAt: expect.any(Number),
+        viewerCount: 0,
+        viewers: [],
+      },
     });
     for (const session of [viewer, other]) {
       expect((await received(session, 0)).filter((message) => message.type === "screenShareStarted")).toHaveLength(1);
@@ -66,7 +77,12 @@ describe("a stream that a TeamSpeak user starts", () => {
   it("gets a default name and no audio when TeamSpeak gives none, and an update changes the card without announcing it again", async () => {
     const gateway = await gateways.start();
     const { source, viewer, sessions, stream } = await nativeShare(gateway, { name: "", audio: "0" });
-    expect(stream).toMatchObject({ name: "TeamSpeak screen share", nameKind: "teamspeakNative", ownerNickname: `TeamSpeak user ${source.id}`, audio: false });
+    expect(stream).toMatchObject({
+      name: "TeamSpeak screen share",
+      nameKind: "teamspeakNative",
+      ownerNickname: `TeamSpeak user ${source.id}`,
+      audio: false,
+    });
     const mark = await markOf(viewer);
     notify(sessions, "notifystreaminfo", { id: STREAM_ID, clid: String(source.id), name: "Renamed", audio: "1" });
     const list = async () => {
@@ -100,7 +116,9 @@ describe("a stream that a TeamSpeak user starts", () => {
       await join(context.viewer);
       const mark = await markOf(context.viewer);
       end(context);
-      expect(await received(context.viewer, mark)).toEqual(expect.arrayContaining([{ type: "screenShareStopped", streamId: STREAM_ID, reason }]));
+      expect(await received(context.viewer, mark)).toEqual(
+        expect.arrayContaining([{ type: "screenShareStopped", streamId: STREAM_ID, reason }]),
+      );
       expect(await share(context.other, "screenShareJoin", { streamId: STREAM_ID })).toMatchObject({ code: "SCREEN_SHARE_NOT_FOUND" });
     }
   });
@@ -110,20 +128,35 @@ describe("watching a stream that a TeamSpeak user shares", () => {
   it("asks the source for the stream with joinstreamrequest, and tells the viewer the mode and the source's peer id", async () => {
     const gateway = await gateways.start();
     const { source, viewer } = await nativeShare(gateway);
-    expect(await join(viewer)).toMatchObject({ type: "screenShareJoined", mode: "teamspeak", ownerPeerId: `ts-${source.id}`, stream: { streamId: STREAM_ID, viewerCount: 1, viewers: [{ nickname: "viewer" }] } });
-    expect(viewer.client.protocolCommands).toContain(`joinstreamrequest id=${STREAM_ID} clid=${source.id} msg= is_remove=0 muted=0 volume=0 hidden=0`);
+    expect(await join(viewer)).toMatchObject({
+      type: "screenShareJoined",
+      mode: "teamspeak",
+      ownerPeerId: `ts-${source.id}`,
+      stream: { streamId: STREAM_ID, viewerCount: 1, viewers: [{ nickname: "viewer" }] },
+    });
+    expect(viewer.client.protocolCommands).toContain(
+      `joinstreamrequest id=${STREAM_ID} clid=${source.id} msg= is_remove=0 muted=0 volume=0 hidden=0`,
+    );
   });
 
   it("gives the viewer up again when the request fails, and says why", async () => {
     const gateway = await gateways.start();
     const { viewer } = await nativeShare(gateway);
-    gateway.ts.onProtocolCommand = (command) => { if (command.startsWith("joinstreamrequest")) throw new Error("stream is full"); };
+    gateway.ts.onProtocolCommand = (command) => {
+      if (command.startsWith("joinstreamrequest")) throw new Error("stream is full");
+    };
     const mark = await markOf(viewer);
     viewer.socket.send({ type: "screenShareJoin", requestId: "j1", streamId: STREAM_ID } as never);
-    expect(await viewer.socket.waitForMessage("screenShareError", { after: mark })).toMatchObject({ requestId: "j1", code: "SCREEN_SHARE_JOIN_FAILED", message: "stream is full" });
+    expect(await viewer.socket.waitForMessage("screenShareError", { after: mark })).toMatchObject({
+      requestId: "j1",
+      code: "SCREEN_SHARE_JOIN_FAILED",
+      message: "stream is full",
+    });
     expect((await received(viewer, mark)).map((message) => message.type)).toContain("screenShareLeft");
     viewer.socket.send({ type: "screenShareList" });
-    expect((await viewer.socket.waitForMessage("screenShareList", { after: mark })).streams).toMatchObject([{ viewerCount: 0, viewers: [] }]);
+    expect((await viewer.socket.waitForMessage("screenShareList", { after: mark })).streams).toMatchObject([
+      { viewerCount: 0, viewers: [] },
+    ]);
   });
 
   it("sends the viewer's answer and ICE candidates to the source as streamsignaling", async () => {
@@ -147,11 +180,14 @@ describe("watching a stream that a TeamSpeak user shares", () => {
     const { source, viewer, other } = await nativeShare(gateway);
     await join(viewer);
     const peer = `ts-${source.id}`;
-    const errorAfter = async (session: VoiceSession, after: number) => (await session.socket.waitForMessage("screenShareError", { after })).code;
+    const errorAfter = async (session: VoiceSession, after: number) =>
+      (await session.socket.waitForMessage("screenShareError", { after })).code;
     expect(await errorAfter(viewer, signalTo(viewer, peer, { kind: "offer", sdp: "v=0" }))).toBe("SCREEN_SHARE_INVALID_SIGNAL");
     expect(await errorAfter(viewer, signalTo(viewer, "w-somebody", { kind: "answer", sdp: "v=0" }))).toBe("SCREEN_SHARE_SIGNAL_FORBIDDEN");
     expect(await errorAfter(other, signalTo(other, peer, { kind: "answer", sdp: "v=0" }))).toBe("SCREEN_SHARE_SIGNAL_FORBIDDEN");
-    expect([viewer, other].flatMap((session) => session.client.protocolCommands).filter((command) => command.startsWith("streamsignaling"))).toEqual([]);
+    expect(
+      [viewer, other].flatMap((session) => session.client.protocolCommands).filter((command) => command.startsWith("streamsignaling")),
+    ).toEqual([]);
   });
 
   it("removes the viewer from the stream with removeclientfromstream when it leaves or closes the signal", async () => {
@@ -175,11 +211,17 @@ describe("watching a stream that a TeamSpeak user shares", () => {
     const otherMark = await markOf(other);
     const cases: [string, Record<string, string>][] = [
       ["notifyrespondjoinstreamrequest", { id: STREAM_ID, offer: "v=0 first" }],
-      ["notifystreamsignaling", { id: STREAM_ID, json: JSON.stringify({ cmd: "joinResponse", args: { decision: 1, offer: "v=0 joined" } }) }],
+      [
+        "notifystreamsignaling",
+        { id: STREAM_ID, json: JSON.stringify({ cmd: "joinResponse", args: { decision: 1, offer: "v=0 joined" } }) },
+      ],
       ["notifystreamsignaling", { id: STREAM_ID, json: JSON.stringify({ cmd: "joinResponse", args: { decision: "0" } }) }],
       ["notifystreamsignaling", { id: STREAM_ID, json: JSON.stringify({ cmd: "reconnectOffer", args: { sdp: "v=0 again" } }) }],
       ["notifystreamsignaling", { id: STREAM_ID, json: JSON.stringify({ cmd: "answer", args: { answer: "v=0 answer" } }) }],
-      ["notifystreamsignaling", { id: STREAM_ID, json: JSON.stringify({ cmd: "iceCandidate", args: { sdp: "candidate:9", mid: "1", mLine: 1 } }) }],
+      [
+        "notifystreamsignaling",
+        { id: STREAM_ID, json: JSON.stringify({ cmd: "iceCandidate", args: { sdp: "candidate:9", mid: "1", mLine: 1 } }) },
+      ],
       ["notifystreamsignaling", { id: STREAM_ID, json: JSON.stringify({ cmd: "iceCandidate", args: { candidate: "candidate:10" } }) }],
       // None of these reaches the browser.
       ["notifystreamsignaling", { id: STREAM_ID, json: "{oops" }],
@@ -199,7 +241,11 @@ describe("watching a stream that a TeamSpeak user shares", () => {
       { kind: "iceCandidate", candidate: "candidate:9", sdpMid: "1", sdpMLineIndex: 1 },
       { kind: "iceCandidate", candidate: "candidate:10" },
     ]);
-    expect(signals.every((message) => message.streamId === STREAM_ID && typeof message.fromPeerId === "string" && message.fromPeerId.startsWith("ts-"))).toBe(true);
+    expect(
+      signals.every(
+        (message) => message.streamId === STREAM_ID && typeof message.fromPeerId === "string" && message.fromPeerId.startsWith("ts-"),
+      ),
+    ).toBe(true);
     // Only a session that joined gets the source's signals.
     expect((await received(other, otherMark)).filter((message) => message.type === "screenShareSignal")).toEqual([]);
   });

@@ -14,9 +14,7 @@ export async function handleCommand(
     const now = Date.now();
     if (now - entry.lastLatencyProbeAt < 150) return;
     entry.lastLatencyProbeAt = now;
-    const result = await pingTeamSpeakSession(
-      (request, timeoutMs) => entry.tsClient.execCommandWithResponse(request, timeoutMs),
-    );
+    const result = await pingTeamSpeakSession((request, timeoutMs) => entry.tsClient.execCommandWithResponse(request, timeoutMs));
     sendJson({
       type: "latencyPong",
       sequence,
@@ -32,7 +30,11 @@ export async function handleCommand(
     const channelPassword = typeof command.payload.password === "string" ? command.payload.password : "";
     // A channel that is not in the tree is gone (or was never visible): say so, do not ask for a password.
     if (!entry.channelTree.some((channel) => isRecord(channel) && channel.id === rawId)) {
-      sendJson({ type: "error", requestId: command.requestId, error: { code: "CHANNEL_NOT_FOUND", message: "Target channel is unavailable", recoverable: false } });
+      sendJson({
+        type: "error",
+        requestId: command.requestId,
+        error: { code: "CHANNEL_NOT_FOUND", message: "Target channel is unavailable", recoverable: false },
+      });
       return;
     }
     try {
@@ -44,7 +46,11 @@ export async function handleCommand(
         return;
       }
       const operation = classifyOperationError(error, "CHANNEL_SWITCH_FAILED", "Channel switch failed");
-      sendJson({ type: "error", requestId: command.requestId, error: { code: operation.code, message: operation.message, recoverable: false } });
+      sendJson({
+        type: "error",
+        requestId: command.requestId,
+        error: { code: operation.code, message: operation.message, recoverable: false },
+      });
       return;
     }
     sendJson({ type: "channelSwitched", requestId: command.requestId, channelId: rawId });
@@ -57,24 +63,32 @@ export async function handleCommand(
       const clientId = command.payload.clientId as number;
       const channelId = command.payload.channelId as string;
       if (clientId === entry.tsClient.getClientId()) {
-        sendJson({ type: "error", requestId: command.requestId, error: { code: "CANNOT_MOVE_SELF", message: "You cannot move your own client", recoverable: false } });
+        sendJson({
+          type: "error",
+          requestId: command.requestId,
+          error: { code: "CANNOT_MOVE_SELF", message: "You cannot move your own client", recoverable: false },
+        });
         return;
       }
       if (!entry.members.has(clientId)) {
-        sendJson({ type: "error", requestId: command.requestId, error: { code: "CLIENT_NOT_FOUND", message: "Client is offline or not visible", recoverable: false } });
+        sendJson({
+          type: "error",
+          requestId: command.requestId,
+          error: { code: "CLIENT_NOT_FOUND", message: "Client is offline or not visible", recoverable: false },
+        });
         return;
       }
       const targetExists = entry.channelTree.some((channel) => isRecord(channel) && channel.id === channelId);
       if (!targetExists) {
-        sendJson({ type: "error", requestId: command.requestId, error: { code: "CHANNEL_NOT_FOUND", message: "Target channel is unavailable", recoverable: false } });
+        sendJson({
+          type: "error",
+          requestId: command.requestId,
+          error: { code: "CHANNEL_NOT_FOUND", message: "Target channel is unavailable", recoverable: false },
+        });
         return;
       }
-      // TeamSpeak evaluates i_client_move_power against the target's
-      // i_client_needed_move_power inside clientmove. Do not duplicate that
-      // policy in the gateway; forwarding the authoritative command keeps TS3
-      // and TS6 permission behavior aligned.
-      // Moving another visible client is an administrator operation. It must
-      // not prompt for or depend on the target channel's join password.
+      // TS checks i_client_move_power against the target's needed power inside clientmove, so forward the
+      // command and don't duplicate that policy. Moving another client is an admin op, no channel password.
       await entry.tsClient.moveClient(clientId, BigInt(channelId));
     } else if (command.type === "sendTextMessage") {
       const message = (command.payload.message as string).trim();
@@ -85,7 +99,11 @@ export async function handleCommand(
     } else if (command.type === "sendPrivateMessage") {
       const clientId = command.payload.clientId as number;
       if (!entry.members.has(clientId)) {
-        sendJson({ type: "error", requestId: command.requestId, error: { code: "CLIENT_NOT_FOUND", message: "Client is offline or not visible", recoverable: false } });
+        sendJson({
+          type: "error",
+          requestId: command.requestId,
+          error: { code: "CLIENT_NOT_FOUND", message: "Client is offline or not visible", recoverable: false },
+        });
         return;
       }
       const message = (command.payload.message as string).trim();
@@ -93,17 +111,28 @@ export async function handleCommand(
     } else if (command.type === "poke") {
       const clientId = command.payload.clientId as number;
       if (!entry.members.has(clientId)) {
-        sendJson({ type: "error", requestId: command.requestId, error: { code: "CLIENT_NOT_FOUND", message: "Client is offline or not visible", recoverable: false } });
+        sendJson({
+          type: "error",
+          requestId: command.requestId,
+          error: { code: "CLIENT_NOT_FOUND", message: "Client is offline or not visible", recoverable: false },
+        });
         return;
       }
       await entry.tsClient.poke(clientId, (command.payload.message as string).trim());
     } else if (command.type === "setAway") {
-      await entry.tsClient.setAway(command.payload.away as boolean, typeof command.payload.message === "string" ? command.payload.message.trim() : "");
+      await entry.tsClient.setAway(
+        command.payload.away as boolean,
+        typeof command.payload.message === "string" ? command.payload.message.trim() : "",
+      );
     } else if (command.type === "setWhisperTargets") {
       const targetIds = command.payload.targetIds as number[];
       const selfId = entry.tsClient.getClientId();
       if (targetIds.some((clientId) => clientId === selfId || !entry.members.has(clientId))) {
-        sendJson({ type: "error", requestId: command.requestId, error: { code: "CLIENT_NOT_FOUND", message: "Client is offline or not visible", recoverable: false } });
+        sendJson({
+          type: "error",
+          requestId: command.requestId,
+          error: { code: "CLIENT_NOT_FOUND", message: "Client is offline or not visible", recoverable: false },
+        });
         return;
       }
       entry.whisperTargetIds = new Set(targetIds);
@@ -112,7 +141,11 @@ export async function handleCommand(
     } else if (command.type === "setWhisperActive") {
       const active = command.payload.active as boolean;
       if (active && !entry.whisperTargetIds.size) {
-        sendJson({ type: "error", requestId: command.requestId, error: { code: "NO_WHISPER_TARGETS", message: "Select whisper targets first", recoverable: false } });
+        sendJson({
+          type: "error",
+          requestId: command.requestId,
+          error: { code: "NO_WHISPER_TARGETS", message: "Select whisper targets first", recoverable: false },
+        });
         return;
       }
       entry.whisperActive = active;
@@ -130,6 +163,10 @@ export async function handleCommand(
     if (command.requestId) sendJson({ type: "commandCompleted", requestId: command.requestId });
   } catch (error: unknown) {
     const operation = classifyOperationError(error, "OPERATION_FAILED", "Operation failed");
-    sendJson({ type: "error", requestId: command.requestId, error: { code: operation.code, message: operation.message, recoverable: false } });
+    sendJson({
+      type: "error",
+      requestId: command.requestId,
+      error: { code: operation.code, message: operation.message, recoverable: false },
+    });
   }
 }

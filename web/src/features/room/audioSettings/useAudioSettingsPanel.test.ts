@@ -5,7 +5,9 @@ import type { VoiceState } from "@/features/session";
 import { LocalizedError, text } from "@/shared/i18n/localizedText";
 
 // The voice barrel loads the audio engine, whose noise suppressor extends AudioWorkletNode (happy-dom has none).
-vi.hoisted(() => { vi.stubGlobal("AudioWorkletNode", class {}); });
+vi.hoisted(() => {
+  vi.stubGlobal("AudioWorkletNode", class {});
+});
 
 type Exposed = {
   settingsOpen: boolean;
@@ -24,9 +26,19 @@ type Exposed = {
 
 function makeVoiceState(overrides: Partial<VoiceState> = {}): VoiceState {
   return reactive({
-    connected: false, connecting: false, reconnecting: false, reconnectAttempt: 0, reconnectFailed: false,
-    tsClientId: 0, error: "", errorCode: "", microphoneError: "", microphoneErrorCode: "", audioNotice: "",
-    audioNoticeCode: "", channelSwitchedChannelId: "",
+    connected: false,
+    connecting: false,
+    reconnecting: false,
+    reconnectAttempt: 0,
+    reconnectFailed: false,
+    tsClientId: 0,
+    error: "",
+    errorCode: "",
+    microphoneError: "",
+    microphoneErrorCode: "",
+    audioNotice: "",
+    audioNoticeCode: "",
+    channelSwitchedChannelId: "",
     ...overrides,
   }) as VoiceState;
 }
@@ -51,10 +63,16 @@ async function mountUseAudioSettingsPanel(overrides: Record<string, unknown> = {
     stopAccompaniment: vi.fn(async () => undefined),
     ...overrides,
   };
-  const wrapper = mount(defineComponent({ setup: () => useAudioSettingsPanel({
-    session: { state: options.voiceState },
-    audio: options,
-  }), template: "<div/>" }));
+  const wrapper = mount(
+    defineComponent({
+      setup: () =>
+        useAudioSettingsPanel({
+          session: { state: options.voiceState },
+          audio: options,
+        }),
+      template: "<div/>",
+    }),
+  );
   await flushPromises();
   return { wrapper, vm: wrapper.vm as unknown as Exposed, options };
 }
@@ -74,7 +92,11 @@ describe("settingsOpen watch", () => {
   });
 
   it("surfaces a localized error when preparing input devices fails", async () => {
-    const { vm } = await mountUseAudioSettingsPanel({ prepareInputDevices: vi.fn(async () => { throw new Error("no mic"); }) });
+    const { vm } = await mountUseAudioSettingsPanel({
+      prepareInputDevices: vi.fn(async () => {
+        throw new Error("no mic");
+      }),
+    });
     vm.settingsOpen = true;
     await flushPromises();
     expect(vm.audioSettingsError).not.toBe("");
@@ -106,7 +128,11 @@ describe("onInputDeviceChange", () => {
   });
 
   it("reports a mic-switch error on failure", async () => {
-    const { vm } = await mountUseAudioSettingsPanel({ setInputDevice: vi.fn(async () => { throw new Error("denied"); }) });
+    const { vm } = await mountUseAudioSettingsPanel({
+      setInputDevice: vi.fn(async () => {
+        throw new Error("denied");
+      }),
+    });
     await vm.onInputDeviceChange("device-2");
     expect(vm.audioSettingsError).toEqual({ key: "micSwitchFailed" });
   });
@@ -122,19 +148,31 @@ describe("onOutputDeviceChange", () => {
   });
 
   it("keeps the LocalizedText of a LocalizedError, so the message follows the language", async () => {
-    const { vm } = await mountUseAudioSettingsPanel({ setOutputDevice: vi.fn(async () => { throw new LocalizedError(text("speakerUnavailable")); }) });
+    const { vm } = await mountUseAudioSettingsPanel({
+      setOutputDevice: vi.fn(async () => {
+        throw new LocalizedError(text("speakerUnavailable"));
+      }),
+    });
     await vm.onOutputDeviceChange("device-3");
     expect(vm.audioSettingsError).toEqual({ key: "speakerUnavailable" });
   });
 
   it("shows another Error's message as is", async () => {
-    const { vm } = await mountUseAudioSettingsPanel({ setOutputDevice: vi.fn(async () => { throw new Error("boom"); }) });
+    const { vm } = await mountUseAudioSettingsPanel({
+      setOutputDevice: vi.fn(async () => {
+        throw new Error("boom");
+      }),
+    });
     await vm.onOutputDeviceChange("device-3");
     expect(vm.audioSettingsError).toBe("boom");
   });
 
   it("falls back to a generic message for a non-Error throw", async () => {
-    const { vm } = await mountUseAudioSettingsPanel({ setOutputDevice: vi.fn(async () => { throw "nope"; }) });
+    const { vm } = await mountUseAudioSettingsPanel({
+      setOutputDevice: vi.fn(async () => {
+        throw "nope";
+      }),
+    });
     await vm.onOutputDeviceChange("device-3");
     expect(vm.audioSettingsError).toEqual({ key: "speakerSwitchFailed" });
   });
@@ -156,7 +194,12 @@ describe("toggleMicTest", () => {
   });
 
   it("reports an error when starting the test fails", async () => {
-    const { vm } = await mountUseAudioSettingsPanel({ microphoneTestActive: ref(false), startMicrophoneTest: vi.fn(async () => { throw new Error("boom"); }) });
+    const { vm } = await mountUseAudioSettingsPanel({
+      microphoneTestActive: ref(false),
+      startMicrophoneTest: vi.fn(async () => {
+        throw new Error("boom");
+      }),
+    });
     await vm.toggleMicTest();
     expect(vm.audioSettingsError).not.toBe("");
   });
@@ -259,7 +302,9 @@ describe("toggleAccompaniment", () => {
   it("swallows a start failure without throwing", async () => {
     const { vm } = await mountUseAudioSettingsPanel({
       accompanimentActive: ref(false),
-      startAccompaniment: vi.fn(async () => { throw new Error("boom"); }),
+      startAccompaniment: vi.fn(async () => {
+        throw new Error("boom");
+      }),
       accompanimentErrorCode: ref<"" | "unsupported" | "needsWebRtc" | "noAudio" | "permission">("needsWebRtc"),
     });
     await expect(vm.toggleAccompaniment()).resolves.toBeUndefined();

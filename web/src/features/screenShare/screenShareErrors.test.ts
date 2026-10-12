@@ -1,4 +1,4 @@
-// Step I3.4: every code the gateway can send in a screenShareError frame has a text.
+// Every code the gateway can send in a screenShareError frame has a text.
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -26,7 +26,10 @@ describe("screen share error texts", () => {
 
   it("uses the detail variant only when the gateway sent a detail", () => {
     expect(screenShareErrorMessage("SCREEN_SHARE_JOIN_FAILED")).toEqual({ key: "err_SCREEN_SHARE_JOIN_FAILED" });
-    expect(screenShareErrorMessage("SCREEN_SHARE_JOIN_FAILED", { detail: "no\nway" })).toEqual({ key: "screenShareJoinFailedDetail", params: { detail: "no way" } });
+    expect(screenShareErrorMessage("SCREEN_SHARE_JOIN_FAILED", { detail: "no\nway" })).toEqual({
+      key: "screenShareJoinFailedDetail",
+      params: { detail: "no way" },
+    });
     expect(screenShareErrorMessage("SCREEN_SHARE_NOT_FOUND", { detail: "ignored" })).toEqual({ key: "err_SCREEN_SHARE_NOT_FOUND" });
   });
 
@@ -35,7 +38,8 @@ describe("screen share error texts", () => {
     const { setLanguage } = useI18n();
     for (const language of ["en", "de"]) {
       setLanguage(language);
-      for (const code of gatewayCodes) expect(resolveText(screenShareErrorMessage(code, { detail: "x" })), `${language} ${code}`).not.toMatch(/\{\{|^err_/);
+      for (const code of gatewayCodes)
+        expect(resolveText(screenShareErrorMessage(code, { detail: "x" })), `${language} ${code}`).not.toMatch(/\{\{|^err_/);
     }
     setLanguage("en");
   });

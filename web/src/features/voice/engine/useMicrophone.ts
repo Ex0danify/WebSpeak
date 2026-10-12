@@ -3,11 +3,7 @@ import { storeToRefs } from "pinia";
 import type { RnnoiseWorkletNode } from "@sapphi-red/web-noise-suppressor";
 import { useVoiceAudioStore } from "../stores/voiceAudioStore";
 import { useSessionStore } from "@/features/session";
-import {
-  AUDIO_FRAME_SAMPLES,
-  MAX_AUDIO_BUFFERED_BYTES,
-  micCaptureWorkletUrl,
-} from "../audioConstants";
+import { AUDIO_FRAME_SAMPLES, MAX_AUDIO_BUFFERED_BYTES, micCaptureWorkletUrl } from "../audioConstants";
 import { text, type LocalizedText, type TextParams } from "@/shared/i18n/localizedText";
 import { normalizeMicrophoneFailure } from "../voiceErrors";
 import type { SinkAudioContext } from "../voiceTypes";
@@ -15,7 +11,7 @@ import { useAudioInputDevices } from "./useAudioInputDevices";
 import { createMicrophoneProcessing } from "./microphoneProcessing";
 import { useMicrophoneTest } from "./useMicrophoneTest";
 
-/** Late-bound pieces owned by other modules or still in the assembler (V-D2): resolved at call time. */
+/** Late-bound pieces owned by other modules, resolved at call time. */
 export interface MicrophoneDeps {
   saveAudioPreferences(): Promise<void>;
   setAudioNotice(code: string, params?: TextParams): void;
@@ -28,9 +24,9 @@ export interface MicrophoneDeps {
   markSpeaking(clientId: number): void;
   clearSpeaking(clientId: number): void;
   sendCmd(type: string, payload?: Record<string, unknown>): void;
-  /** The transport's flag: PCM is not sent over the WebSocket while WebRTC carries the microphone. */
+  /** The transport's flag, PCM is not sent over the WebSocket while WebRTC carries the microphone. */
   webrtcActive: Ref<boolean>;
-  /** The last microphone level of the capture chunk or the WebRTC mic monitor; the assembler owns the ref (it is public). */
+  /** The last microphone level of the capture chunk or the WebRTC mic monitor, the assembler owns the ref (it is public). */
   micLevel: Ref<number>;
   webrtcMixMicGain(): GainNode | null;
   releaseAccompanimentStream(): void;
@@ -40,18 +36,16 @@ export interface MicrophoneDeps {
   startWebRtcTransport(sequence: number, socket: WebSocket): Promise<void>;
 }
 
-/** The microphone: support check, constraints, the capture graph and the PCM frame assembler, mute
- *  and noise suppression. The stream, the audio nodes and the frame buffers are non-reactive closure
- *  state, never stored in Pinia. Device lists, RNNoise/VOX and the microphone test live in sibling
- *  factories that get the stream through late-bound callbacks. */
+/** The microphone: support check, constraints, the capture graph, the PCM frame assembler, mute and noise suppression. Stream,
+ *  audio nodes and frame buffers are non-reactive closure state, never in Pinia. Device lists, RNNoise/VOX and the mic test
+ *  live in siblings. */
 export function useMicrophone(deps: MicrophoneDeps) {
   const session = useSessionStore();
   const { ws } = storeToRefs(session);
   const { state } = session;
   const audio = useVoiceAudioStore();
-  const {
-    microphoneMuted, noiseSuppressionEnabled, inputVolume, selectedInputDeviceId, audioPermission, microphoneTestActive,
-  } = storeToRefs(audio);
+  const { microphoneMuted, noiseSuppressionEnabled, inputVolume, selectedInputDeviceId, audioPermission, microphoneTestActive } =
+    storeToRefs(audio);
   const { microphoneProcessing } = audio;
   const { webrtcActive, micLevel } = deps;
 
@@ -89,8 +83,7 @@ export function useMicrophone(deps: MicrophoneDeps) {
       channelCount: { ideal: 1 },
       echoCancellation: true,
       noiseSuppression: noiseSuppressionEnabled.value,
-      // Keep the microphone's natural dynamics. Browser AGC can make speech
-      // pump in volume, especially while background noise changes.
+      // Keep the microphone's natural dynamics, browser AGC makes speech pump in volume while background noise changes.
       autoGainControl: false,
     };
     if (selectedInputDeviceId.value) constraints.deviceId = { exact: selectedInputDeviceId.value };
@@ -98,8 +91,8 @@ export function useMicrophone(deps: MicrophoneDeps) {
   }
 
   /**
-   * Microphone failures are a degraded state, not a connection failure: the room
-   * stays joined, so they get their own slot instead of taking over `error`.
+   * Microphone failures are a degraded state, not a connection failure. The room stays joined, so they get their own slot
+   * instead of taking over `error`.
    */
   function setMicrophoneError(error: unknown): LocalizedText {
     const failure = normalizeMicrophoneFailure(error);
@@ -116,10 +109,13 @@ export function useMicrophone(deps: MicrophoneDeps) {
   async function startMicrophone(): Promise<void> {
     const ctx = deps.getAudioCtx();
     if (ctx.state === "suspended") {
-      try { await ctx.resume(); } catch { /* the audio context notice explains the silence */ }
+      try {
+        await ctx.resume();
+      } catch {
+        /* the audio context notice explains the silence */
+      }
     }
-    // Acquire the replacement stream before tearing down the current graph so
-    // changing devices does not interrupt an active microphone on failure.
+    // Acquire the replacement stream before tearing down the current graph, so a failed device change keeps the mic running.
     let nextStream: MediaStream;
     try {
       nextStream = await navigator.mediaDevices.getUserMedia({ audio: microphoneConstraints() });
@@ -127,8 +123,7 @@ export function useMicrophone(deps: MicrophoneDeps) {
       clearMicrophoneError();
     } catch (error) {
       if (error instanceof DOMException && ["NotAllowedError", "SecurityError"].includes(error.name)) audioPermission.value = "denied";
-      // Never let the raw DOMException (usually an English message) reach the UI:
-      // record a readable failure first, then let the caller decide how to show it.
+      // Never let the raw DOMException (usually an English message) reach the UI, record a readable failure first.
       setMicrophoneError(error);
       throw error;
     }
@@ -158,11 +153,12 @@ export function useMicrophone(deps: MicrophoneDeps) {
       if (!input.length) return;
       micLevel.value = Math.min(1, (rms ?? Math.sqrt(input.reduce((sum, sample) => sum + sample * sample, 0) / input.length)) * 6);
       const socket = ws.value;
-      const shouldSend = !microphoneMuted.value
-        && !microphoneTestActive.value
-        && !webrtcActive.value
-        && socket?.readyState === WebSocket.OPEN
-        && processing.voxGate(input);
+      const shouldSend =
+        !microphoneMuted.value &&
+        !microphoneTestActive.value &&
+        !webrtcActive.value &&
+        socket?.readyState === WebSocket.OPEN &&
+        processing.voxGate(input);
       if (!shouldSend) {
         accumLen = 0;
         if (microphoneMuted.value) processing.resetVox();
@@ -190,7 +186,11 @@ export function useMicrophone(deps: MicrophoneDeps) {
       accumLen = need;
 
       let offset = 0;
-      while (offset + AUDIO_FRAME_SAMPLES <= accumLen && socket.readyState === WebSocket.OPEN && socket.bufferedAmount <= MAX_AUDIO_BUFFERED_BYTES) {
+      while (
+        offset + AUDIO_FRAME_SAMPLES <= accumLen &&
+        socket.readyState === WebSocket.OPEN &&
+        socket.bufferedAmount <= MAX_AUDIO_BUFFERED_BYTES
+      ) {
         socket.send(accumBuf.slice(offset, offset + AUDIO_FRAME_SAMPLES).buffer);
         offset += AUDIO_FRAME_SAMPLES;
       }
@@ -237,7 +237,7 @@ export function useMicrophone(deps: MicrophoneDeps) {
     deps.syncAudioContextNotice();
   }
 
-  // Exported to RoomView: await this before enabling the microphone so a failed capture is never reported as success
+  // Exported to RoomView, await this before enabling the microphone so a failed capture is never reported as success
   async function ensureMicrophone(): Promise<void> {
     if (micStream) return;
     if (!microphoneStartPromise) {
@@ -293,7 +293,10 @@ export function useMicrophone(deps: MicrophoneDeps) {
     microphoneMuted.value = muted;
     processing.resetVox();
     accumLen = 0;
-    if (webrtcActive.value) micStream?.getAudioTracks().forEach((track) => { track.enabled = !muted; });
+    if (webrtcActive.value)
+      micStream?.getAudioTracks().forEach((track) => {
+        track.enabled = !muted;
+      });
     const mixMicGain = deps.webrtcMixMicGain();
     if (mixMicGain) mixMicGain.gain.value = muted ? 0 : inputVolume.value;
     deps.sendCmd("setMicrophoneMuted", { muted });
@@ -334,8 +337,24 @@ export function useMicrophone(deps: MicrophoneDeps) {
   const test = useMicrophoneTest({ prepareInputDevices, getMicStream, stopMicrophone });
 
   return {
-    checkSupport, microphoneConstraints, refreshAudioDevices, refreshInputDevices, prepareInputDevices, setInputDevice,
-    setMicrophoneError, clearMicrophoneError, startMicrophone, ensureMicrophone, stopMicrophone, stopCaptureGraph, setMicrophoneMuted,
-    setNoiseSuppressionEnabled, startMicrophoneTest: test.startMicrophoneTest, stopMicrophoneTest: test.stopMicrophoneTest, getMicStream, getProcessedMicStream, applyMicGain,
+    checkSupport,
+    microphoneConstraints,
+    refreshAudioDevices,
+    refreshInputDevices,
+    prepareInputDevices,
+    setInputDevice,
+    setMicrophoneError,
+    clearMicrophoneError,
+    startMicrophone,
+    ensureMicrophone,
+    stopMicrophone,
+    stopCaptureGraph,
+    setMicrophoneMuted,
+    setNoiseSuppressionEnabled,
+    startMicrophoneTest: test.startMicrophoneTest,
+    stopMicrophoneTest: test.stopMicrophoneTest,
+    getMicStream,
+    getProcessedMicStream,
+    applyMicGain,
   };
 }

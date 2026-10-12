@@ -35,8 +35,16 @@ export function installPeerEnvironment(): BrowserStubs {
 
 export function makeStream(overrides: Partial<ScreenShareStream> = {}): ScreenShareStream {
   return {
-    streamId: "s1", source: "browser", ownerPeerId: "owner-1", ownerNickname: "Owner", name: "Screen", audio: false,
-    createdAt: 1, viewerCount: 0, viewers: [], ...overrides,
+    streamId: "s1",
+    source: "browser",
+    ownerPeerId: "owner-1",
+    ownerNickname: "Owner",
+    name: "Screen",
+    audio: false,
+    createdAt: 1,
+    viewerCount: 0,
+    viewers: [],
+    ...overrides,
   };
 }
 
@@ -51,7 +59,12 @@ export function displayStream(video: Record<string, unknown> = {}) {
 /** The module on an open socket whose frames are parsed into `sent`. */
 export function setupPeers() {
   const sent: Record<string, unknown>[] = [];
-  const socket = { readyState: 1, send: (frame: string) => { sent.push(JSON.parse(frame) as Record<string, unknown>); } };
+  const socket = {
+    readyState: 1,
+    send: (frame: string) => {
+      sent.push(JSON.parse(frame) as Record<string, unknown>);
+    },
+  };
   useSessionStore().ws = socket as unknown as WebSocket;
   const module = useScreenSharePeers();
   const store = useScreenShareStore();

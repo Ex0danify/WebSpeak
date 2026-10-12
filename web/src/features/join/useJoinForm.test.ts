@@ -33,9 +33,19 @@ type Exposed = {
 
 function makeVoiceState(): VoiceState {
   return reactive({
-    connected: false, connecting: false, reconnecting: false, reconnectAttempt: 0, reconnectFailed: false,
-    tsClientId: 0, error: "", errorCode: "", microphoneError: "", microphoneErrorCode: "", audioNotice: "",
-    audioNoticeCode: "", channelSwitchedChannelId: "",
+    connected: false,
+    connecting: false,
+    reconnecting: false,
+    reconnectAttempt: 0,
+    reconnectFailed: false,
+    tsClientId: 0,
+    error: "",
+    errorCode: "",
+    microphoneError: "",
+    microphoneErrorCode: "",
+    audioNotice: "",
+    audioNoticeCode: "",
+    channelSwitchedChannelId: "",
   }) as VoiceState;
 }
 
@@ -61,12 +71,14 @@ async function mountUseJoinForm(overrides: Partial<Parameters<typeof import("./u
 
 beforeEach(() => {
   setActivePinia(createPinia());
-  // A fresh IDBFactory per test, not just per file: `afterEach`'s `unstubAllGlobals()` would
-  // otherwise drop the stub after the first test, and every later favorite/recent-server write
-  // would silently no-op against `isLocalPersistenceAvailable() === false`.
+  // A fresh IDBFactory per test, not just per file, because afterEach's unstubAllGlobals() would drop the stub after the first
+  // test and every later favorite/recent-server write would silently no-op against isLocalPersistenceAvailable() === false.
   vi.stubGlobal("indexedDB", new IDBFactory());
   localStorage.clear();
-  vi.stubGlobal("fetch", vi.fn(async () => new Response("{}", { status: 200, headers: { "content-type": "application/json" } })));
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async () => new Response("{}", { status: 200, headers: { "content-type": "application/json" } })),
+  );
   vi.resetModules();
 });
 
@@ -84,7 +96,10 @@ describe("canJoin", () => {
   });
 
   it("is true once initialized with a nickname in fixed mode", async () => {
-    vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({ initialized: true }), { status: 200 })));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response(JSON.stringify({ initialized: true }), { status: 200 })),
+    );
     const { vm } = await mountUseJoinForm();
     vm.nickname = "Lucas";
     await flushPromises();
@@ -92,7 +107,10 @@ describe("canJoin", () => {
   });
 
   it("requires a valid port in open mode", async () => {
-    vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({ initialized: true, accessMode: "open" }), { status: 200 })));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response(JSON.stringify({ initialized: true, accessMode: "open" }), { status: 200 })),
+    );
     const { vm } = await mountUseJoinForm();
     vm.nickname = "Lucas";
     vm.serverHost = "example.com";
@@ -113,7 +131,10 @@ describe("doConnect", () => {
   });
 
   it("trims fields and calls connect with the target", async () => {
-    vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({ initialized: true }), { status: 200 })));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response(JSON.stringify({ initialized: true }), { status: 200 })),
+    );
     const { vm, options } = await mountUseJoinForm();
     vm.nickname = "  Lucas  ";
     vm.channel = " lobby ";
@@ -125,7 +146,10 @@ describe("doConnect", () => {
   });
 
   it("does nothing while already connecting", async () => {
-    vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({ initialized: true }), { status: 200 })));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response(JSON.stringify({ initialized: true }), { status: 200 })),
+    );
     const { vm, options, voiceState } = await mountUseJoinForm();
     vm.nickname = "Lucas";
     voiceState.connecting = true;
@@ -145,7 +169,10 @@ describe("doDisconnect", () => {
 
 describe("server password dialog", () => {
   it("submitting sets the password and reconnects", async () => {
-    vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({ initialized: true }), { status: 200 })));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response(JSON.stringify({ initialized: true }), { status: 200 })),
+    );
     const { vm, options } = await mountUseJoinForm();
     vm.nickname = "Lucas";
     vm.serverPasswordDialog.open = true;
@@ -215,7 +242,10 @@ describe("favorites", () => {
 
 describe("clearBrowserData", () => {
   it("resets identity, remembered flag, favorites and theme after confirming", async () => {
-    vi.stubGlobal("confirm", vi.fn(() => true));
+    vi.stubGlobal(
+      "confirm",
+      vi.fn(() => true),
+    );
     const { vm, options } = await mountUseJoinForm();
     options.identityMaterial.value = "material";
     vm.rememberIdentity = true;
@@ -231,7 +261,10 @@ describe("clearBrowserData", () => {
   });
 
   it("does nothing without confirmation", async () => {
-    vi.stubGlobal("confirm", vi.fn(() => false));
+    vi.stubGlobal(
+      "confirm",
+      vi.fn(() => false),
+    );
     const { vm, options } = await mountUseJoinForm();
     options.identityMaterial.value = "material";
     await flushPromises();
@@ -244,16 +277,59 @@ describe("clearBrowserData", () => {
 });
 
 describe("loadPublicConfig (run on mount)", () => {
+  it("keeps the form when the config cannot be fetched after the gateway had answered once", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response(JSON.stringify({ initialized: true }), { status: 200 })),
+    );
+    const first = await mountUseJoinForm();
+    expect(first.vm.initialized).toBe(true);
+    first.wrapper.unmount();
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => {
+        throw new TypeError("Failed to fetch");
+      }),
+    );
+    const { useJoinForm } = await import("./useJoinForm");
+    const wrapper = mount(
+      defineComponent({
+        setup: () =>
+          useJoinForm({
+            voiceState: makeVoiceState(),
+            identityMaterial: ref(""),
+            connect: vi.fn(),
+            disconnect: vi.fn(),
+            clearError: vi.fn(),
+            checkSupport: vi.fn(() => null),
+            setThemeMode: vi.fn(),
+          }),
+        template: "<div/>",
+      }),
+    );
+    await flushPromises();
+    expect((wrapper.vm as unknown as Exposed).initialized).toBe(true);
+  });
+
   it("applies the gateway's public config", async () => {
-    vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({
-      initialized: true,
-      siteName: "Raid Night",
-      version: "1.2.3",
-      visitorNumber: 42,
-      visitorTotal: 100,
-      accessMode: "open",
-      accelerationRelays: [{ id: "r1", name: "Tokyo" }],
-    }), { status: 200 })));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(
+        async () =>
+          new Response(
+            JSON.stringify({
+              initialized: true,
+              siteName: "Raid Night",
+              version: "1.2.3",
+              visitorNumber: 42,
+              visitorTotal: 100,
+              accessMode: "open",
+              accelerationRelays: [{ id: "r1", name: "Tokyo" }],
+            }),
+            { status: 200 },
+          ),
+      ),
+    );
     const { vm } = await mountUseJoinForm();
     expect(vm.initialized).toBe(true);
     expect(vm.serverConfigLoading).toBe(false);

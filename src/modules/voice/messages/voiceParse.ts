@@ -3,7 +3,11 @@ import type { WebRtcSessionDescription } from "../webrtc/webrtcAudioSession.js";
 
 export function parseWebRtcOffer(raw: string): WebRtcSessionDescription | null {
   let value: unknown;
-  try { value = JSON.parse(raw); } catch { return null; }
+  try {
+    value = JSON.parse(raw);
+  } catch {
+    return null;
+  }
   if (!isRecord(value) || value.type !== "webrtcOffer" || !isRecord(value.payload) || !isRecord(value.payload.sdp)) return null;
   const description = value.payload.sdp;
   if (description.type !== "offer" || typeof description.sdp !== "string" || description.sdp.length > 256 * 1024) return null;

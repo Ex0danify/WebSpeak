@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { stubLogger } from "../../../test/helpers/adminService.js";
+import { stubLogger } from "../../../test/support/adminService.js";
 import { createAdminRouter } from "./adminRouter.js";
 import type { AdminService } from "./adminService.js";
 import type { AdminSessionStore } from "./adminSession.js";
@@ -18,9 +18,8 @@ function layers(): string[] {
     startedAt: 0,
   });
   return (router as unknown as { stack: RouterLayer[] }).stack.map((layer) =>
-    layer.route
-      ? `${Object.keys(layer.route.methods).join(",").toUpperCase()} ${layer.route.path}`
-      : "use");
+    layer.route ? `${Object.keys(layer.route.methods).join(",").toUpperCase()} ${layer.route.path}` : "use",
+  );
 }
 
 describe("admin router layer order", () => {
@@ -33,13 +32,7 @@ describe("admin router layer order", () => {
   });
 
   it("serves the public routes in order, before the administrator guard", () => {
-    expect(stack.slice(1, guard)).toEqual([
-      "GET /status",
-      "GET /session",
-      "POST /login",
-      "POST /change-password",
-      "POST /logout",
-    ]);
+    expect(stack.slice(1, guard)).toEqual(["GET /status", "GET /session", "POST /login", "POST /change-password", "POST /logout"]);
   });
 
   it("puts every administrator route behind the guard", () => {

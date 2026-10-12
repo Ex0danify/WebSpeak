@@ -6,21 +6,12 @@ import { Button } from "../button";
 import { Icon } from "../icon";
 import { dialogOverlayClass, dialogPanelVariants, dialogSheetOverlayClass, dialogSheetPanelClass, type DialogVariants } from "./dialog";
 
-// Modal dialog on reka-ui Dialog: focus trap, Esc, outside press, scroll lock,
-// aria-hidden on everything behind it, and focus returning to whatever opened
-// it. On top of that this adds v-model and the frame. Content is rendered
-// only while open, so a form inside starts fresh each time.
-//
-//   <Dialog v-model="open" title="Server password" size="sm">
-//     ...body...
-//     <template #footer><Button @click="open = false">Cancel</Button></template>
-//   </Dialog>
-//
-// Focus lands on the first focusable element in the body (or the one marked
-// `autofocus`), and on the close button when there is none.
-// Name the dialog with `title` (or the `title` slot). Without a visible
-// title, pass `label`. `closeLabel` is the accessible name of the X button:
-// pass it translated, the default is English.
+// Modal dialog on reka-ui, which brings the focus trap, Esc, outside press, scroll lock, aria-hidden behind it and focus
+// return. Content renders only while open, so a form inside starts fresh each time.
+
+// Focus lands on the first focusable element in the body (or the one marked `autofocus`), else on the close button. Name it
+// with `title` or the `title` slot, or pass `label` without a visible title. Pass `closeLabel` translated, the default is
+// English.
 const props = withDefaults(
   defineProps<{
     title?: string;
@@ -32,7 +23,7 @@ const props = withDefaults(
     /** `bottom` is a full-width sheet pinned to the bottom edge, for mobile. It has no header. */
     placement?: "center" | "bottom";
     closeLabel?: string;
-    /** When false, Esc, the backdrop and the X button do nothing; the footer must close it. */
+    /** When false, Esc, the backdrop and the X button do nothing, so the footer must close it. */
     dismissible?: boolean;
     class?: string;
   }>(),
@@ -62,9 +53,8 @@ function onOpenAutoFocus(event: Event) {
   target.focus({ preventScroll: true });
 }
 
-// A locked dialog ignores Esc and outside presses. Reka only starts a press
-// outside when it begins there, so selecting text or dragging a slider from
-// the panel onto the backdrop does not close it.
+// A locked dialog ignores Esc and outside presses. Reka only starts an outside press when it begins there, so selecting
+// text or dragging a slider onto the backdrop does not close it.
 function keepOpen(event: Event) {
   if (!props.dismissible) event.preventDefault();
 }
@@ -84,17 +74,17 @@ function keepOpen(event: Event) {
         >
           <header v-if="hasHeader" class="flex shrink-0 items-start gap-3 px-6 pt-5 pb-3 max-compact:px-4">
             <div class="min-w-0 flex-1">
-              <DialogTitle v-if="hasTitle" class="m-0 break-words text-lg font-semibold leading-snug text-fg">
+              <DialogTitle v-if="hasTitle" class="m-0 text-lg leading-snug font-semibold break-words text-fg">
                 <slot name="title">{{ title }}</slot>
               </DialogTitle>
-              <DialogDescription v-if="description" class="m-0 mt-1 break-words text-sm text-fg-muted">{{ description }}</DialogDescription>
+              <DialogDescription v-if="description" class="m-0 mt-1 text-sm break-words text-fg-muted">{{ description }}</DialogDescription>
             </div>
             <Button
               v-if="dismissible && !sheet"
               data-dialog-close
               variant="ghost"
               icon-only
-              class="-mr-2 -mt-1 shrink-0 max-compact:size-11"
+              class="-mt-1 -mr-2 shrink-0 max-compact:size-11"
               :aria-label="closeLabel"
               @click="open = false"
             >
@@ -106,7 +96,10 @@ function keepOpen(event: Event) {
           <div data-dialog-body class="min-h-0 flex-1 overflow-y-auto px-6 py-3 max-compact:px-4">
             <slot />
           </div>
-          <footer v-if="slots.footer" class="flex shrink-0 flex-wrap items-center justify-end gap-2 border-t border-line px-6 py-4 max-compact:px-4">
+          <footer
+            v-if="slots.footer"
+            class="flex shrink-0 flex-wrap items-center justify-end gap-2 border-t border-line px-6 py-4 max-compact:px-4"
+          >
             <slot name="footer" />
           </footer>
         </DialogContent>

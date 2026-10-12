@@ -2,10 +2,7 @@ import WebSocket, { type RawData } from "ws";
 
 export type JsonMessage = { type: string } & Record<string, unknown>;
 
-export type WsFrame =
-  | { kind: "json"; message: JsonMessage }
-  | { kind: "text"; text: string }
-  | { kind: "binary"; data: Buffer };
+export type WsFrame = { kind: "json"; message: JsonMessage } | { kind: "text"; text: string } | { kind: "binary"; data: Buffer };
 
 export interface WaitOptions {
   /** Only look at frames recorded after `mark()` returned this index. Default: all frames. */
@@ -37,7 +34,9 @@ export class WsClient {
       this.closeInfo = { code, reason: reason.toString() };
       for (const listener of this.closeListeners) listener();
     });
-    socket.on("error", () => { /* the close event carries the outcome */ });
+    socket.on("error", () => {
+      /* the close event carries the outcome */
+    });
   }
 
   /** Resolves once the socket is open. Rejects when the upgrade is refused. */
@@ -46,7 +45,9 @@ export class WsClient {
       const socket = new WebSocket(url, { headers });
       const client = new WsClient(socket);
       socket.once("open", () => resolve(client));
-      socket.once("unexpected-response", (_request, response) => reject(new Error(`WebSocket upgrade refused with HTTP ${response.statusCode}`)));
+      socket.once("unexpected-response", (_request, response) =>
+        reject(new Error(`WebSocket upgrade refused with HTTP ${response.statusCode}`)),
+      );
       socket.once("error", (error: Error) => reject(error));
     });
   }
@@ -81,13 +82,31 @@ export class WsClient {
     const recorded = this.frames.slice(after).find(predicate);
     if (recorded) return Promise.resolve(recorded);
     return new Promise((resolve, reject) => {
-      const waiter: Waiter = { after, predicate, resolve: (frame) => { done(); resolve(frame); } };
-      const onClose = () => { done(); reject(new Error(`socket closed while waiting: ${this.describe()}`)); };
-      const timer = setTimeout(() => { done(); reject(new Error(`timed out waiting for a frame: ${this.describe()}`)); }, options.timeoutMs ?? DEFAULT_TIMEOUT_MS);
-      const done = () => { clearTimeout(timer); this.waiters.delete(waiter); this.closeListeners.delete(onClose); };
+      const waiter: Waiter = {
+        after,
+        predicate,
+        resolve: (frame) => {
+          done();
+          resolve(frame);
+        },
+      };
+      const onClose = () => {
+        done();
+        reject(new Error(`socket closed while waiting: ${this.describe()}`));
+      };
+      const timer = setTimeout(() => {
+        done();
+        reject(new Error(`timed out waiting for a frame: ${this.describe()}`));
+      }, options.timeoutMs ?? DEFAULT_TIMEOUT_MS);
+      const done = () => {
+        clearTimeout(timer);
+        this.waiters.delete(waiter);
+        this.closeListeners.delete(onClose);
+      };
       this.waiters.add(waiter);
       // A close that already happened is reported by describe(), so only wait for a later one.
-      if (this.closeInfo) onClose(); else this.closeListeners.add(onClose);
+      if (this.closeInfo) onClose();
+      else this.closeListeners.add(onClose);
     });
   }
 
@@ -109,8 +128,14 @@ export class WsClient {
   waitForClose(timeoutMs = DEFAULT_TIMEOUT_MS): Promise<{ code: number; reason: string }> {
     if (this.closeInfo) return Promise.resolve(this.closeInfo);
     return new Promise((resolve, reject) => {
-      const timer = setTimeout(() => { this.closeListeners.delete(onClose); reject(new Error(`timed out waiting for close: ${this.describe()}`)); }, timeoutMs);
-      const onClose = () => { clearTimeout(timer); resolve(this.closeInfo!); };
+      const timer = setTimeout(() => {
+        this.closeListeners.delete(onClose);
+        reject(new Error(`timed out waiting for close: ${this.describe()}`));
+      }, timeoutMs);
+      const onClose = () => {
+        clearTimeout(timer);
+        resolve(this.closeInfo!);
+      };
       this.closeListeners.add(onClose);
     });
   }
@@ -141,8 +166,11 @@ export class WsClient {
       frame = { kind: "text", text };
       try {
         const parsed: unknown = JSON.parse(text);
-        if (parsed && typeof parsed === "object" && typeof (parsed as { type?: unknown }).type === "string") frame = { kind: "json", message: parsed as JsonMessage };
-      } catch { /* stays a text frame */ }
+        if (parsed && typeof parsed === "object" && typeof (parsed as { type?: unknown }).type === "string")
+          frame = { kind: "json", message: parsed as JsonMessage };
+      } catch {
+        /* stays a text frame */
+      }
     }
     this.frames.push(frame);
     for (const waiter of [...this.waiters]) {

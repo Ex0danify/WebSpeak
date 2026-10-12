@@ -1,13 +1,18 @@
-// Shared fixture of the useMicrophone tests: the browser stubs, a fake audio context, the store and dep
-// mocks, and `setup()`/`openMic()` building the composable against them. Call `installMicrophoneFixture()`
-// at the top of a test file (the `vi.mock` of the RNNoise package has to stay in the file itself: vi.mock is hoisted).
+// Shared fixture of the useMicrophone tests: browser stubs, a fake audio context, store and dep mocks, and
+// `setup()`/`openMic()` building the composable. Call `installMicrophoneFixture()` at the top of a test file (the RNNoise
+// `vi.mock` stays in the file itself since vi.mock is hoisted).
 import { createPinia, setActivePinia } from "pinia";
 import { ref } from "vue";
 import { afterEach, beforeEach, vi, type Mock } from "vitest";
 import { useVoiceAudioStore } from "@/features/voice/stores/voiceAudioStore";
 import { useSessionStore } from "@/features/session";
 import {
-  FakeAudioContext, FakeAudioWorkletNode, FakeMediaStream, FakeMediaStreamTrack, installBrowserStubs, type BrowserStubs,
+  FakeAudioContext,
+  FakeAudioWorkletNode,
+  FakeMediaStream,
+  FakeMediaStreamTrack,
+  installBrowserStubs,
+  type BrowserStubs,
 } from "@/testSupport/browserStubs";
 import type { SinkAudioContext } from "@/features/voice/voiceTypes";
 import { useMicrophone, type MicrophoneDeps } from "@/features/voice/engine/useMicrophone";

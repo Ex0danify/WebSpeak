@@ -21,8 +21,8 @@ export interface GatewayOptions {
   /** The fake TeamSpeak server the gateway's sessions talk to. A fresh one by default. */
   ts?: FakeTeamSpeakServer;
   /**
-   * Sessions use the bridge's own `TSClient` instead of the fake server, for layer 5. `ts` stays
-   * an unused fake. The target is whatever the admin settings say (`adminService.updateSettings`).
+   * Sessions use the bridge's own TSClient instead of the fake (layer 5), ts stays an unused fake.
+   * The target comes from the admin settings (adminService.updateSettings).
    */
   realTeamSpeak?: boolean;
   /** Skip creating the administrator account, as on a database that was never set up. Default true. */
@@ -30,9 +30,8 @@ export interface GatewayOptions {
   /** Written as the old `config.json` before the first start, to be imported once. */
   legacyConfig?: Record<string, unknown>;
   /**
-   * What the admin "test connection" does instead of sending the handshake packet. Succeeds by
-   * default, except with `realTeamSpeak`: then the admin service gets the product's own probe (the
-   * UDP handshake) and host ping, and `gateway.probe` and `gateway.ping` are not called.
+   * What admin test connection does instead of the handshake. Succeeds by default, except with realTeamSpeak,
+   * which gets the real probe and ping (gateway.probe and gateway.ping are not called).
    */
   probe?: (...args: Parameters<ProbeFn>) => Promise<TeamSpeakProbeResult>;
   /** The host ping next to the probe. Succeeds by default (no ICMP from the tests). */
@@ -84,13 +83,8 @@ export interface Gateway {
 }
 
 /**
- * Starts the real `createWebServer` on a free port with a temporary data
- * directory, a real `AdminService`, and sessions that talk to a fake
- * TeamSpeak server. `useGateway` closes it after the test.
- *
- * `createWebServer.start()` does not report the port it bound, so the port
- * is picked first; nothing else on the machine is expected to take it in
- * between.
+ * Starts the real createWebServer on a free port with a temp data dir, a real AdminService and a fake TS server.
+ * start() does not report the bound port, so it is picked first and nothing else is expected to grab it.
  */
 export async function startGateway(options: GatewayOptions = {}): Promise<Gateway> {
   const dataDir = mkdtempSync(join(tmpdir(), "webspeak-gateway-"));
@@ -98,11 +92,22 @@ export async function startGateway(options: GatewayOptions = {}): Promise<Gatewa
   const ts = options.ts ?? new FakeTeamSpeakServer();
   const database = new WebSpeakDatabase(join(dataDir, "webspeak.db"));
   const probe = vi.fn(options.probe ?? (async () => ({ ok: true as const, latencyMs: 12 })));
-  const ping = vi.fn(options.ping ?? (async () => ({ ok: true, latencyMs: 3, packetLossPercent: 0, attempts: 4, successfulAttempts: 4, samples: [3, 3, 3, 3] })));
+  const ping = vi.fn(
+    options.ping ??
+      (async () => ({ ok: true, latencyMs: 3, packetLossPercent: 0, attempts: 4, successfulAttempts: 4, samples: [3, 3, 3, 3] })),
+  );
   if (options.legacyConfig) writeFileSync(join(dataDir, "config.json"), JSON.stringify(options.legacyConfig));
   const adminProbe = options.realTeamSpeak && !options.probe ? probeTeamSpeak : probe;
   const adminPing = options.realTeamSpeak && !options.ping ? undefined : ping;
-  const adminService = new AdminService(database, MASTER_SECRET, logger, join(dataDir, "config.json"), adminProbe as unknown as ProbeFn, "9.9.9", adminPing);
+  const adminService = new AdminService(
+    database,
+    MASTER_SECRET,
+    logger,
+    join(dataDir, "config.json"),
+    adminProbe as unknown as ProbeFn,
+    "9.9.9",
+    adminPing,
+  );
   if (options.initialize !== false) {
     await adminService.initialize();
     if (!options.forcePasswordChange) await adminService.changePassword(TEST_ADMIN_PASSWORD);
@@ -149,7 +154,8 @@ export async function startGateway(options: GatewayOptions = {}): Promise<Gatewa
     logFile,
     dataDir,
     request,
-    ticket: (payload = {}) => joinTickets.create({ target: { host: "ts.test", port: 9987 }, serverPassword: "", nickname: "tester", ...payload }),
+    ticket: (payload = {}) =>
+      joinTickets.create({ target: { host: "ts.test", port: 9987 }, serverPassword: "", nickname: "tester", ...payload }),
     async openVoice(ticket = gateway.ticket()) {
       const socket = await WsClient.open(`${gateway.wsUrl}?ticket=${encodeURIComponent(ticket)}`);
       sockets.add(socket);
@@ -159,11 +165,17 @@ export async function startGateway(options: GatewayOptions = {}): Promise<Gatewa
       const response = await request("/api/admin/login", jsonInit("POST", { username: "admin", password }));
       if (!response.ok) throw new Error(`admin login failed with HTTP ${response.status}`);
       const cookie = (response.headers.get("set-cookie") ?? "").split(";")[0]!;
-      const body = await response.json() as { csrfToken: string; mustChangePassword: boolean };
-      const call = (method: string, path: string, payload?: unknown) => request(path.startsWith("/") ? path : `/api/admin/${path}`, {
-        ...jsonInit(method, payload),
-        headers: { origin: url, cookie, "x-csrf-token": body.csrfToken, ...(payload === undefined ? {} : { "content-type": "application/json" }) },
-      });
+      const body = (await response.json()) as { csrfToken: string; mustChangePassword: boolean };
+      const call = (method: string, path: string, payload?: unknown) =>
+        request(path.startsWith("/") ? path : `/api/admin/${path}`, {
+          ...jsonInit(method, payload),
+          headers: {
+            origin: url,
+            cookie,
+            "x-csrf-token": body.csrfToken,
+            ...(payload === undefined ? {} : { "content-type": "application/json" }),
+          },
+        });
       return {
         csrfToken: body.csrfToken,
         cookie,

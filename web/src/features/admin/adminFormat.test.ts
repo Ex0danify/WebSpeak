@@ -6,7 +6,8 @@ import { createAdminFormat } from "./adminFormat";
 
 function setup(initial: Language = "en") {
   const language = ref<Language>(initial);
-  const t = (key: string, params: Record<string, string | number> = {}) => `${key}${Object.keys(params).length ? JSON.stringify(params) : ""}`;
+  const t = (key: string, params: Record<string, string | number> = {}) =>
+    `${key}${Object.keys(params).length ? JSON.stringify(params) : ""}`;
   return { language, format: createAdminFormat(language, t) };
 }
 

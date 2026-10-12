@@ -3,7 +3,7 @@ import { ADMIN_IDENTITIES, GUEST_IDENTITY, identities } from "./identities";
 import { databaseIdOf, probeRights, serverAdminGroup } from "./provision";
 import { WebQuery, realServerFromEnv } from "./server";
 
-// What global setup provisioned (step 5.2b): rights follow the seeded identity's UID.
+// What global setup provisioned, meaning rights follow the seeded identity's UID.
 const server = realServerFromEnv();
 const query = WebQuery.for(server);
 

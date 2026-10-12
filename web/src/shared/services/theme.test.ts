@@ -120,15 +120,15 @@ describe("saveTheme", () => {
     expect(document.documentElement.dataset.theme).toBe("dark");
   });
 
-  // F11: a refused write (a full quota) must not stop the click from changing the theme.
-  it("F11: applies the theme even when the browser refuses to store it", async () => {
+  // A refused write (a full quota) must not stop the click from changing the theme.
+  it("applies the theme even when the browser refuses to store it", async () => {
     const { saveTheme } = await load("light");
     refuseWrites();
     expect(() => saveTheme("dark")).not.toThrow();
     expect(document.documentElement.dataset.theme).toBe("dark");
   });
 
-  it("F11: the app starts on the system theme when reading the storage throws", async () => {
+  it("the app starts on the system theme when reading the storage throws", async () => {
     vi.spyOn(window, "localStorage", "get").mockImplementation(() => {
       throw new DOMException("blocked", "SecurityError");
     });
@@ -183,7 +183,7 @@ describe("nextTheme", () => {
   });
 });
 
-describe("isDarkTheme and nextTheme with the system setting given (F26)", () => {
+describe("isDarkTheme and nextTheme with the system setting given", () => {
   it("use the given value for system instead of reading matchMedia", async () => {
     const { isDarkTheme, nextTheme } = await load();
     const os = osPrefersDark(false);
@@ -200,7 +200,7 @@ describe("isDarkTheme and nextTheme with the system setting given (F26)", () => 
   });
 });
 
-describe("watchSystemDark (F26)", () => {
+describe("watchSystemDark", () => {
   /** A media query list that records its listeners and can fire a change. */
   function fakeQuery(initial: boolean) {
     const listeners = new Set<(event: MediaQueryListEvent) => void>();

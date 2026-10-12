@@ -4,9 +4,8 @@ export const checkRowClass =
   "has-[:disabled]:cursor-not-allowed has-[:disabled]:opacity-50";
 
 /**
- * The 18 px box. Checkbox adds its corner radius, Radio makes it round. The
- * outline is an inset ring, not a border: the legacy `button { border: 0 }` in
- * the view styles is unlayered and would beat the border utilities until step 6.
+ * The 18 px box. Checkbox adds its corner radius, Radio makes it round. The outline is an inset ring, not a border, because the
+ * unlayered `button { border: 0 }` in the view styles would beat the border utilities.
  */
 export const checkBoxClass =
   "m-0 mt-[3px] grid size-[18px] shrink-0 cursor-[inherit] place-content-center border-0 bg-surface-1 p-0 shadow-ring-line text-accent-fg " +

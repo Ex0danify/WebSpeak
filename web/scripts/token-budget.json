@@ -27,6 +27,9 @@
     "src/features/demo/DemoVoiceSection.vue": {
       "arbitrary": 1
     },
+    "src/features/join/HeaderLinkButton.vue": {
+      "arbitrary": 2
+    },
     "src/features/join/JoinFooter.vue": {
       "arbitrary": 2
     },
@@ -34,7 +37,7 @@
       "arbitrary": 1
     },
     "src/features/join/JoinHeader.vue": {
-      "arbitrary": 3
+      "arbitrary": 1
     },
     "src/features/join/JoinHero.vue": {
       "arbitrary": 3
@@ -120,8 +123,11 @@
     "src/views/JoinView.vue": {
       "arbitrary": 11
     },
-    "src/views/UiGallery.vue": {
-      "arbitrary": 2
+    "src/views/gallery/GalleryChip.vue": {
+      "arbitrary": 1
+    },
+    "src/views/gallery/GalleryIcon.vue": {
+      "arbitrary": 1
     }
   }
 }

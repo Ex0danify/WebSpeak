@@ -29,7 +29,7 @@ const rows = [
   <section aria-labelledby="gallery-tokens" class="rounded-lg border border-line bg-surface-1 p-6">
     <div class="mb-4 flex items-baseline justify-between gap-3">
       <h2 id="gallery-tokens" class="text-base font-semibold">{{ title }}</h2>
-      <span class="font-mono text-caption uppercase tracking-widest text-fg-muted">{{ caption }}</span>
+      <span class="font-mono text-caption tracking-widest text-fg-muted uppercase">{{ caption }}</span>
     </div>
     <div class="flex flex-col gap-4">
       <div v-for="row in rows" :key="row.id" class="flex flex-col gap-2">

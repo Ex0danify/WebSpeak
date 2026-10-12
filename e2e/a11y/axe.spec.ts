@@ -115,17 +115,22 @@ for (const theme of ["light", "dark"] as const) {
         await useCannedApi(page, { lang: "en", theme, admin: adminScreens.some((screen) => screen.id === state.id) });
         await state.prepare(page);
         const { violations, passes } = await new AxeBuilder({ page }).analyze();
-        // Step 6.6: the contrast rule has to have looked at text, or "no violation" says nothing.
-        expect(passes.map((rule) => rule.id).concat(violations.map((rule) => rule.id)), "the contrast rule did not run").toContain("color-contrast");
+        // The contrast rule has to have looked at text, or "no violation" says nothing.
+        expect(passes.map((rule) => rule.id).concat(violations.map((rule) => rule.id)), "the contrast rule did not run").toContain(
+          "color-contrast",
+        );
 
         const known = knownFor(state.id, project.name);
         const unexpected = violations
           .filter((violation) => !known.has(violation.id))
-          .map((violation) => `${violation.id} (${violation.impact}): ${violation.help} at ${violation.nodes.map((node) => node.target.join(" ")).join(", ")}`);
+          .map(
+            (violation) =>
+              `${violation.id} (${violation.impact}): ${violation.help} at ${violation.nodes.map((node) => node.target.join(" ")).join(", ")}`,
+          );
         expect(unexpected, "violations that are not in known-violations.ts").toEqual([]);
 
         const seen = new Set(violations.map((violation) => violation.id));
-        const gone = [...known.values()].filter((row) => !seen.has(row.rule)).map((row) => `${row.rule} (${row.finding})`);
+        const gone = [...known.values()].filter((row) => !seen.has(row.rule)).map((row) => `${row.rule} (${row.source})`);
         expect(gone, "rows of known-violations.ts that no longer happen: delete them").toEqual([]);
       });
     }

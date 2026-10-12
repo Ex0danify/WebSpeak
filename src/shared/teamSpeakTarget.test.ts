@@ -7,7 +7,7 @@ import {
   parseTeamSpeakTargetParts,
   teamSpeakTargetKey,
 } from "./teamSpeakTarget.js";
-import { ACCEPTED_TARGETS } from "../../test/helpers/teamSpeakTargetCases.js";
+import { ACCEPTED_TARGETS } from "../../test/support/teamSpeakTargetCases.js";
 
 describe("parseTeamSpeakTarget", () => {
   it.each(ACCEPTED_TARGETS)("accepts %s", (input, expected) => {
@@ -72,7 +72,7 @@ describe("parseTeamSpeakTargetParts", () => {
     [["::1", 9988], { host: "::1", port: 9988 }],
     [["[::1]:9988"], { host: "::1", port: 9988 }],
   ] as const)("accepts %j", (args, expected) => {
-    expect(parseTeamSpeakTargetParts(...(args as [string, (string | number)?]))).toEqual(expected);
+    expect(parseTeamSpeakTargetParts(...(args as unknown as [string, (string | number)?]))).toEqual(expected);
   });
 
   it("rejects a port in both the host and the port field", () => {
@@ -111,9 +111,7 @@ describe("teamSpeakTargetKey", () => {
   });
 
   it("is the same for every spelling of one target", () => {
-    const keys = ["Example.com", "example.com:9987", "EXAMPLE.COM#9987"].map((input) =>
-      teamSpeakTargetKey(parseTeamSpeakTarget(input)),
-    );
+    const keys = ["Example.com", "example.com:9987", "EXAMPLE.COM#9987"].map((input) => teamSpeakTargetKey(parseTeamSpeakTarget(input)));
     expect(new Set(keys).size).toBe(1);
   });
 

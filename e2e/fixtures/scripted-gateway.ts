@@ -1,11 +1,8 @@
-// Scripted /ws/voice gateway. It answers the join ticket request and speaks just enough of the
-// gateway protocol (see handleMessage() in web/src/features/room/useRoomSession.ts) for the
-// connected view to render without a TeamSpeak server. Voice audio is never sent.
-//
-// It serves the states a fake TeamSpeak client cannot produce cheaply: the reconnect banner, a
-// failed reconnect, an audio encoder error, stacked pokes and the password-required codes.
-//
-// Two users: the Playwright specs of layer 4 and the screenshot tests of layer 6 (e2e/visual).
+// Scripted /ws/voice gateway. It answers the join ticket request and speaks just enough of the gateway protocol
+// for the connected view to render without a TeamSpeak server, and never sends audio.
+
+// It serves states a fake TeamSpeak client cannot produce cheaply (reconnect banner, failed reconnect, encoder error,
+// stacked pokes, password-required codes). Used by the layer 4 specs and the screenshot tests.
 import type { BrowserContext, WebSocketRoute } from "@playwright/test";
 import type { ClientCommand } from "../../src/modules/voice/messages/voiceProtocol";
 
@@ -17,8 +14,8 @@ export type JoinTicketRequest = Record<string, unknown>;
 
 export interface ScriptedGatewayOptions {
   /**
-   * Refuse the first socket like a gateway whose server wants a password: `connectionFailed`
-   * with this code, then a close with 4003. The next socket connects normally.
+   * Refuse the first socket like a gateway whose server wants a password, `connectionFailed` with this code and a close with
+   * 4003. The next socket connects normally.
    */
   firstConnectionFails?: string;
   /** Channel id to password. A `switchChannel` without it or with another one is refused. */
@@ -63,8 +60,20 @@ const channels = [
 
 const chat = [
   { invokerId: 2, invokerName: "Alex Rivera", senderUid: "uid-alex", message: "Pull starts in five minutes, grab your flasks.", offset: 0 },
-  { invokerId: 3, invokerName: "Mira Tanaka", senderUid: "uid-mira", message: "On my way. Mic is broken, I will type in chat.", offset: 60_000 },
-  { invokerId: 2, invokerName: "Alex Rivera", senderUid: "uid-alex", message: "https://example.com/strategy/a-very-long-link-that-must-wrap-instead-of-overflowing-the-message-bubble", offset: 120_000 },
+  {
+    invokerId: 3,
+    invokerName: "Mira Tanaka",
+    senderUid: "uid-mira",
+    message: "On my way. Mic is broken, I will type in chat.",
+    offset: 60_000,
+  },
+  {
+    invokerId: 2,
+    invokerName: "Alex Rivera",
+    senderUid: "uid-alex",
+    message: "https://example.com/strategy/a-very-long-link-that-must-wrap-instead-of-overflowing-the-message-bubble",
+    offset: 120_000,
+  },
 ];
 
 /** The scenarios the snapshot harness takes a shot of. */
@@ -74,8 +83,8 @@ export const connectedScenarios = ["connected", "poke", "reconnecting", "reconne
 export type ScriptedScenario = (typeof connectedScenarios)[number] | "pokes" | "reconnected";
 
 /**
- * Install the fixture on a browser context, before the first navigation. Returns a handle used to
- * drive a scenario once the page has submitted the join form.
+ * Install the fixture on a browser context before the first navigation. Returns a handle to drive a scenario once the page
+ * has submitted the join form.
  */
 export async function installVoiceFixture(context: BrowserContext, options: ScriptedGatewayOptions = {}): Promise<ScriptedGateway> {
   let socket: WebSocketRoute | null = null;
@@ -100,7 +109,11 @@ export async function installVoiceFixture(context: BrowserContext, options: Scri
     ws.onMessage((raw) => {
       if (typeof raw !== "string") return;
       let message: ClientCommand;
-      try { message = JSON.parse(raw); } catch { return; }
+      try {
+        message = JSON.parse(raw);
+      } catch {
+        return;
+      }
       commands.push(message);
       const channelPassword = message.type === "switchChannel" ? options.channelPasswords?.[String(message.payload?.channelId)] : undefined;
       if (channelPassword !== undefined && message.payload?.password !== channelPassword) {
@@ -113,7 +126,7 @@ export async function installVoiceFixture(context: BrowserContext, options: Scri
     });
     if (options.firstConnectionFails && connections === 1) {
       reply({ type: "connectionFailed", code: options.firstConnectionFails });
-      ws.close({ code: 4003, reason: options.firstConnectionFails });
+      void ws.close({ code: 4003, reason: options.firstConnectionFails });
       return;
     }
     reply({
@@ -126,7 +139,16 @@ export async function installVoiceFixture(context: BrowserContext, options: Scri
     });
     reply({ type: "channelList", channels });
     for (const entry of chat) {
-      reply({ type: "chatMessage", scope: "channel", targetId: "2", invokerId: entry.invokerId, invokerName: entry.invokerName, senderUid: entry.senderUid, message: entry.message, timestamp: CHAT_TIME + entry.offset });
+      reply({
+        type: "chatMessage",
+        scope: "channel",
+        targetId: "2",
+        invokerId: entry.invokerId,
+        invokerName: entry.invokerName,
+        senderUid: entry.senderUid,
+        message: entry.message,
+        timestamp: CHAT_TIME + entry.offset,
+      });
     }
   });
 
@@ -136,28 +158,58 @@ export async function installVoiceFixture(context: BrowserContext, options: Scri
   };
 
   const startSpeaking = (clientIds: number[]) => {
-    speakingTimer = setInterval(() => { try { send({ type: "voiceActivity", clientIds }); } catch { /* closed */ } }, 100);
+    speakingTimer = setInterval(() => {
+      try {
+        send({ type: "voiceActivity", clientIds });
+      } catch {
+        /* closed */
+      }
+    }, 100);
     send({ type: "voiceActivity", clientIds });
   };
 
   return {
     tickets,
     commands,
-    get connections() { return connections; },
+    get connections() {
+      return connections;
+    },
     send,
     startSpeaking,
     apply(scenario) {
       if (scenario === "connected") startSpeaking([2]);
       else if (scenario === "poke") {
         startSpeaking([2]);
-        send({ type: "pokeReceived", invokerId: 2, invokerUid: "uid-alex", invokerName: "Alex Rivera", message: "Raid is starting", timestamp: CHAT_TIME + 180_000 });
+        send({
+          type: "pokeReceived",
+          invokerId: 2,
+          invokerUid: "uid-alex",
+          invokerName: "Alex Rivera",
+          message: "Raid is starting",
+          timestamp: CHAT_TIME + 180_000,
+        });
       } else if (scenario === "pokes") {
-        send({ type: "pokeReceived", invokerId: 2, invokerUid: "uid-alex", invokerName: "Alex Rivera", message: "Raid is starting", timestamp: CHAT_TIME + 180_000 });
-        send({ type: "pokeReceived", invokerId: 3, invokerUid: "uid-mira", invokerName: "Mira Tanaka", message: "Wipe recovery", timestamp: CHAT_TIME + 181_000 });
+        send({
+          type: "pokeReceived",
+          invokerId: 2,
+          invokerUid: "uid-alex",
+          invokerName: "Alex Rivera",
+          message: "Raid is starting",
+          timestamp: CHAT_TIME + 180_000,
+        });
+        send({
+          type: "pokeReceived",
+          invokerId: 3,
+          invokerUid: "uid-mira",
+          invokerName: "Mira Tanaka",
+          message: "Wipe recovery",
+          timestamp: CHAT_TIME + 181_000,
+        });
       } else if (scenario === "reconnecting") send({ type: "reconnecting", attempt: 2 });
       else if (scenario === "reconnected") send({ type: "reconnected" });
       else if (scenario === "reconnect-failed") send({ type: "reconnectFailed", code: "CONNECTION_FAILED" });
-      else if (scenario === "audio-notice") send({ type: "audioError", code: "AUDIO_ENCODER_UNAVAILABLE", detail: "opus encoder unavailable" });
+      else if (scenario === "audio-notice")
+        send({ type: "audioError", code: "AUDIO_ENCODER_UNAVAILABLE", detail: "opus encoder unavailable" });
       else throw new Error(`unknown scenario ${scenario}`);
     },
     stop() {

@@ -5,15 +5,12 @@ import { provisionServer } from "./provision";
 import { type RealServer, WebQuery, startContainer, stopContainer, waitForQuery } from "./server";
 import { channelIdOf } from "./ui";
 
-// The TeamSpeak server stops under a live session (step 5.7c). The container is stopped and started
-// again, and because its data directory is a tmpfs it comes back empty, so the test provisions it
-// again like the global setup does (`provisionServer`) before the next test may rely on it.
-//
-// The gateway keeps trying for five minutes (`RECONNECT_WINDOW_MS`) unless the server refuses with
-// an error that a retry cannot fix. The test makes it do that: the server comes back with a ban on
-// the person's nickname, so the failed banner appears after about a minute and not after five. (A
-// server password is the other refusal a retry cannot fix, but it opens the password dialog, not
-// the banner.)
+// The TeamSpeak server stops under a live session. Its data directory is a tmpfs, so it comes back empty and the test
+// provisions it again like global setup does before the next test relies on it.
+
+// The gateway retries for five minutes (`RECONNECT_WINDOW_MS`) unless the server refuses with an error a retry cannot fix, so
+// the server comes back with a ban on the person's nickname and the failed banner shows after about a minute. (A server
+// password would open the password dialog instead.)
 
 const reconnecting = (page: Page) => page.getByRole("status").filter({ hasText: "Connection interrupted" });
 const failed = (page: Page) => page.getByRole("alert").filter({ hasText: "Could not restore the connection" });
@@ -27,11 +24,19 @@ async function restoreServer(server: RealServer, query: WebQuery): Promise<void>
   await query.call("bandelall");
 }
 
-test("a server that stops shows the reconnect banner, refusing it back ends in the failed banner, and Reconnect now gets the person back in", async ({ person, server, query }) => {
+test("a server that stops shows the reconnect banner, refusing it back ends in the failed banner, and Reconnect now gets the person back in", async ({
+  person,
+  server,
+  query,
+}) => {
   test.setTimeout(180_000);
   const alice = await person(0, "srv-down");
   await alice.join();
-  await poll(() => channelIdOf(query, alice.nickname), (cid) => cid !== undefined, { message: "the server to list Alice" });
+  await poll(
+    () => channelIdOf(query, alice.nickname),
+    (cid) => cid !== undefined,
+    { message: "the server to list Alice" },
+  );
 
   try {
     stopContainer(server);
@@ -52,10 +57,16 @@ test("a server that stops shows the reconnect banner, refusing it back ends in t
     await alice.page.getByRole("button", { name: "Reconnect now" }).click();
     await expectInRoom(alice.page, alice.nickname);
     await expect(failed(alice.page)).toBeHidden();
-    await poll(() => channelIdOf(query, alice.nickname), (cid) => cid !== undefined, { message: "the restarted server to list Alice" });
+    await poll(
+      () => channelIdOf(query, alice.nickname),
+      (cid) => cid !== undefined,
+      { message: "the restarted server to list Alice" },
+    );
   } finally {
     // After a failure the server may still be stopped or banned. Its own error must not replace the
     // test's, and a server that stays broken fails the specs after this one loudly.
-    await restoreServer(server, query).catch((error: Error) => process.stderr.write(`note: restoring the server failed: ${error.message}\n`));
+    await restoreServer(server, query).catch((error: Error) =>
+      process.stderr.write(`note: restoring the server failed: ${error.message}\n`),
+    );
   }
 });

@@ -1,12 +1,6 @@
-// Naming check for web/src (structure plan S0.5).
-//
-//   npm run check:names
-//
-// Rules: `.vue` files are PascalCase; every other file and every folder is camelCase; the
-// basenames utils, helpers, common and misc are banned (except shared/i18n/common/). A file's
-// basename is the part before its first dot, so `useThing.surface.test.ts` is checked as
-// `useThing`. A test may also be PascalCase when it tests a component, and `vite-env.d.ts`
-// is exempt (fixed name). Any offender fails the run (part of `npm run build`).
+// Naming check for web/src. `.vue` files are PascalCase, every other file and folder is camelCase, and the basenames utils,
+// helpers, common and misc are banned (except shared/i18n/common/). A file's basename is the part before its first dot. A test
+// may also be PascalCase when it tests a component, and `vite-env.d.ts` is exempt.
 import { readdirSync } from "node:fs";
 import { dirname, join, relative, sep } from "node:path";
 import { fileURLToPath } from "node:url";

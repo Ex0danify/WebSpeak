@@ -1,9 +1,9 @@
 import { createHash } from "node:crypto";
 import { generateIdentity, ServerError } from "@echosixhiya/teamspeak-client";
 import { describe, expect, it, vi } from "vitest";
-import { FakeTeamSpeakServer } from "../../../../test/helpers/fakeTsClient.js";
-import { type Gateway, useGateway } from "../../../../test/helpers/gateway.js";
-import { joinVoice } from "../../../../test/helpers/voice.js";
+import { FakeTeamSpeakServer } from "../../../../test/support/fakeTsClient.js";
+import { type Gateway, useGateway } from "../../../../test/support/gateway.js";
+import { joinVoice } from "../../../../test/support/voice.js";
 import { MAX_ACTIVE_SESSIONS } from "../../../shared/constants.js";
 import type { JoinTicketPayload } from "../../join/joinTicket.js";
 
@@ -52,8 +52,16 @@ describe("a join that TeamSpeak refuses", () => {
   it.each([
     { what: "a nickname that is taken", error: new ServerError("513", "nickname is already in use"), code: "NICKNAME_IN_USE" },
     { what: "a full server", error: new ServerError("1796", "server is full"), code: "SERVER_FULL" },
-    { what: "a host that does not resolve", error: Object.assign(new Error("getaddrinfo ENOTFOUND ts.test"), { code: "ENOTFOUND" }), code: "HOST_NOT_FOUND" },
-    { what: "a refused connection", error: Object.assign(new Error("connect ECONNREFUSED 127.0.0.1:9987"), { code: "ECONNREFUSED" }), code: "CONNECTION_REFUSED" },
+    {
+      what: "a host that does not resolve",
+      error: Object.assign(new Error("getaddrinfo ENOTFOUND ts.test"), { code: "ENOTFOUND" }),
+      code: "HOST_NOT_FOUND",
+    },
+    {
+      what: "a refused connection",
+      error: Object.assign(new Error("connect ECONNREFUSED 127.0.0.1:9987"), { code: "ECONNREFUSED" }),
+      code: "CONNECTION_REFUSED",
+    },
     { what: "a timeout", error: new Error("connection timed out"), code: "TIMEOUT" },
     { what: "something unrecognized", error: new Error("the wire caught fire"), code: "CONNECTION_FAILED" },
   ])("maps $what to $code on its way to the browser", async ({ error, code }) => {
@@ -84,7 +92,9 @@ describe("a join the gateway refuses before TeamSpeak", () => {
 
   it("closes with 4003 and TEAM_SPEAK_CLIENT_UNAVAILABLE when the client cannot even be created", async () => {
     class BrokenServer extends FakeTeamSpeakServer {
-      override readonly createClient = () => { throw new Error("no native library"); };
+      override readonly createClient = () => {
+        throw new Error("no native library");
+      };
     }
     const gateway = await gateways.start({ ts: new BrokenServer() });
     const { messages, closed } = await failedJoin(gateway);
@@ -94,20 +104,22 @@ describe("a join the gateway refuses before TeamSpeak", () => {
 
   describe("when the client cannot be created", () => {
     class BrokenServer extends FakeTeamSpeakServer {
-      override readonly createClient = () => { throw new Error("no native library"); };
+      override readonly createClient = () => {
+        throw new Error("no native library");
+      };
     }
     const activeSessions = async (gateway: Gateway) => {
       const admin = await gateway.adminLogin();
       return (await (await admin.get("overview")).json()).sessions.active as number;
     };
 
-    it("RV1: keeps no session behind", async () => {
+    it("keeps no session behind", async () => {
       const gateway = await gateways.start({ ts: new BrokenServer() });
       await failedJoin(gateway);
       expect(await activeSessions(gateway)).toBe(0);
     });
 
-    it("RV1: still admits a join after MAX_ACTIVE_SESSIONS such failures", async () => {
+    it("still admits a join after MAX_ACTIVE_SESSIONS such failures", async () => {
       const gateway = await gateways.start({ ts: new BrokenServer() });
       for (let i = 0; i < MAX_ACTIVE_SESSIONS; i++) await failedJoin(gateway, { nickname: `n${i}` });
       const { closed } = await failedJoin(gateway, { nickname: "last" });
@@ -140,16 +152,19 @@ describe("a session that TeamSpeak ends", () => {
   it.each([
     { what: "kick", ban: false, code: "KICKED", detail: "server error id=4" },
     { what: "ban", ban: true, code: "BANNED", detail: "server error id=5" },
-  ])("replays the reason of a $what as `connectionFailed` $code, then closes with 1000 and does not reconnect", async ({ ban, code, detail }) => {
-    const gateway = await gateways.start();
-    const { socket, client } = await joinVoice(gateway, { nickname: "alice" });
-    gateway.ts.kick(client, "Slow down!", ban);
-    const failed = await socket.waitForMessage("connectionFailed");
-    expect(failed).toMatchObject({ code, detail: expect.stringContaining("Slow down!") });
-    expect(failed.detail).toContain(detail);
-    expect(await socket.waitForClose()).toEqual({ code: 1000, reason: "teamSpeak-kicked" });
-    expect(socket.messagesOfType("reconnecting")).toEqual([]);
-  });
+  ])(
+    "replays the reason of a $what as `connectionFailed` $code, then closes with 1000 and does not reconnect",
+    async ({ ban, code, detail }) => {
+      const gateway = await gateways.start();
+      const { socket, client } = await joinVoice(gateway, { nickname: "alice" });
+      gateway.ts.kick(client, "Slow down!", ban);
+      const failed = await socket.waitForMessage("connectionFailed");
+      expect(failed).toMatchObject({ code, detail: expect.stringContaining("Slow down!") });
+      expect(failed.detail).toContain(detail);
+      expect(await socket.waitForClose()).toEqual({ code: 1000, reason: "teamSpeak-kicked" });
+      expect(socket.messagesOfType("reconnecting")).toEqual([]);
+    },
+  );
 
   it("tells the browser the connection dropped and that it will try again, after the first delay of about a second", async () => {
     const gateway = await gateways.start();
@@ -173,6 +188,10 @@ describe("a session that TeamSpeak ends", () => {
     expect(connected.tsClientId).not.toBe(id);
     await socket.waitForMessage("reconnected", { after });
     const list = socket.messagesOfType("channelList").at(-1)!;
-    expect((list.channels as { name: string; members: { nickname: string }[] }[]).find((c) => c.name === "Room B")!.members.map((m) => m.nickname)).toEqual(["alice"]);
+    expect(
+      (list.channels as { name: string; members: { nickname: string }[] }[])
+        .find((c) => c.name === "Room B")!
+        .members.map((m) => m.nickname),
+    ).toEqual(["alice"]);
   });
 });

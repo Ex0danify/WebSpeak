@@ -70,17 +70,15 @@ export function registerJoinRoutes(app: express.Express, options: WebServerOptio
         if (policy.accessMode === "open" && typeof body.target === "string" && body.target.trim()) {
           target = parseTeamSpeakTarget(body.target);
           const isDefault = teamSpeakTargetKey(target) === teamSpeakTargetKey(policy.defaultTarget);
-          // Open mode must protect the gateway even when a user submits the
-          // same address configured as the administrator's default target.
-          // The default target only controls which server is prefilled; it is
-          // not a trust boundary and must not bypass SSRF protection.
+          // Open mode must protect the gateway even when the user submits the admin's default target. That
+          // target only prefills the form, it is no trust boundary and must not bypass SSRF protection.
           target = await resolveSafeOpenTarget(target);
           if (!isDefault) serverPassword = typeof body.serverPassword === "string" ? body.serverPassword.slice(0, 512) : "";
-          else if (typeof body.serverPassword === "string" && body.serverPassword.trim()) serverPassword = body.serverPassword.slice(0, 512);
+          else if (typeof body.serverPassword === "string" && body.serverPassword.trim())
+            serverPassword = body.serverPassword.slice(0, 512);
         } else if (policy.accessMode === "fixed" && typeof body.serverPassword === "string" && body.serverPassword.trim()) {
-          // The fixed target remains administrator-controlled, but a user may
-          // retry its server password after the gateway reports that one is
-          // required. The target itself is never taken from this request.
+          // The fixed target stays admin-controlled, but a user may retry its server password when the
+          // gateway asks for one. The target itself never comes from this request.
           serverPassword = body.serverPassword.slice(0, 512);
         }
       } catch {

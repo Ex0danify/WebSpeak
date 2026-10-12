@@ -28,7 +28,7 @@ export interface PersistedSettings {
 
 export interface SettingsUpdate {
   siteName: string;
-  /** Replaces the stored welcome texts; empty values are not stored. */
+  /** Replaces the stored welcome texts, empty values are not stored. */
   welcomeTexts?: Record<string, string>;
   accessMode: AccessMode;
   tsHost: string;

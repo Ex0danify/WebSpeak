@@ -6,7 +6,8 @@ export const en = {
   err_NOT_INITIALIZED: "WebSpeak has not been configured yet. Contact the administrator",
   err_RATE_LIMITED: "Too many requests. Try again shortly",
   err_INVALID_TARGET: "The TeamSpeak server address is invalid",
-  err_INVALID_NICKNAME: "The nickname length does not meet the TeamSpeak server requirements (at least 3 characters). Change it and try again",
+  err_INVALID_NICKNAME:
+    "The nickname length does not meet the TeamSpeak server requirements (at least 3 characters). Change it and try again",
   err_HOST_NOT_FOUND: "The TeamSpeak server hostname could not be resolved. Check the address",
   err_UNREACHABLE: "The TeamSpeak server is unreachable. Check the network or address",
   err_CONNECTION_REFUSED: "The TeamSpeak server refused the connection. Check the port and server status",
@@ -25,20 +26,25 @@ export const en = {
   err_BANNED: "You are banned from this server, so the connection is refused",
   err_KICKED: "You were removed from the server",
   err_SERVER_SHUTTING_DOWN: "The TeamSpeak server is shutting down and is unreachable right now",
-  err_CONNECTION_INITIALISATION_FAILED: "The TeamSpeak server could not finish initialising the connection. Check the address and port, or try again shortly",
+  err_CONNECTION_INITIALISATION_FAILED:
+    "The TeamSpeak server could not finish initialising the connection. Check the address and port, or try again shortly",
   err_SERVER_FULL: "The server is full. Try again shortly",
-  err_INVALID_PARAMETER: "The TeamSpeak server rejected the parameters, usually because the nickname length or format is invalid",
-  err_IDENTITY_IN_USE: "This TeamSpeak identity is already used by another browser page. Close that connection or clear ‘Remember identity’ and try again",
+  err_IDENTITY_IN_USE:
+    "This TeamSpeak identity is already used by another browser page. Close that connection or clear ‘Remember identity’ and try again",
   err_CONNECTION_FAILED: "TeamSpeak connection failed. Check the address, network, or server status",
   err_JOIN_TICKET_REQUIRED: "The voice session token is missing or expired. Return to the list and enter the voice space again",
-  err_IDENTITY_INVALID: "The voice gateway rejected the connection because the identity is invalid. Clear ‘Remember identity’ and try again",
-  err_IDENTITY_REJECTED: "The voice gateway rejected the connection because the identity is invalid or unavailable on this page. Clear ‘Remember identity’ and try again",
+  err_IDENTITY_INVALID:
+    "The voice gateway rejected the connection because the identity is invalid. Clear ‘Remember identity’ and try again",
+  err_IDENTITY_REJECTED:
+    "The voice gateway rejected the connection because the identity is invalid or unavailable on this page. Clear ‘Remember identity’ and try again",
   err_ACCELERATION_UNAVAILABLE: "The selected relay is unavailable. Turn off relay mode and try again, or contact the administrator",
-  err_GATEWAY_NETWORK_LOST: "The voice gateway connection was interrupted (offline or proxy disconnected); the TeamSpeak server did not reject it. Check your network and enter again",
+  err_GATEWAY_NETWORK_LOST:
+    "The voice gateway connection was interrupted (offline or proxy disconnected); the TeamSpeak server did not reject it. Check your network and enter again",
   err_GATEWAY_SESSION_ENDED: "The voice gateway session ended unexpectedly. Enter the voice space again",
   err_GATEWAY_RESTARTING: "The voice gateway is restarting or under maintenance. Wait a moment and enter again",
   err_ADMIN_TERMINATED: "An administrator ended your voice session. Enter again if you want to continue",
-  err_TEAM_SPEAK_CLIENT_UNAVAILABLE: "The voice gateway could not create a TeamSpeak client. The server may be offline or unreachable; check the address and try again",
+  err_TEAM_SPEAK_CLIENT_UNAVAILABLE:
+    "The voice gateway could not create a TeamSpeak client. The server may be offline or unreachable; check the address and try again",
   joinErr_ACCELERATION_UNAVAILABLE: "The selected relay is unavailable. Turn off relay mode or contact the administrator",
   joinErr_INVALID_NICKNAME: "Enter a valid nickname",
   joinErr_INVITE_INVALID: "The invite link is invalid, expired, or revoked",
@@ -80,7 +86,8 @@ export const en = {
   err_WEBRTC_DISABLED: "WebRTC audio transport is not enabled",
   err_ALREADY_IN_CHANNEL: "You are already in this channel",
   connectionFailedUnknown: "TeamSpeak connection failed (error code: {{code}}). Check your input, network, and server status",
-  connectionFailedUnknownDetail: "TeamSpeak connection failed (error code: {{code}}): {{detail}}. Check your input, network, and server status",
+  connectionFailedUnknownDetail:
+    "TeamSpeak connection failed (error code: {{code}}): {{detail}}. Check your input, network, and server status",
   operationFailedUnknown: "Operation failed (error code: {{code}}). Check your input, network, and server status",
   operationFailedUnknownDetail: "Operation failed (error code: {{code}}): {{detail}}. Check your input, network, and server status",
   closeServerFullOrRejected: "The server is full or rejected the connection. Try again shortly",

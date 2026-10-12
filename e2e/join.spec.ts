@@ -102,9 +102,8 @@ test.describe("join form", () => {
     await expect(memberRow(page, "join-refused")).toBeVisible();
   });
 
-  // F2: the smoke run saw the form stay put with no visible reason. The reason is on screen for both
-  // failures it was suspected of; what the smoke run measured was the lease race of F37.
-  test("a ban is shown with its reason and code, and the form stays usable (F2)", async ({ page, gateway }) => {
+  // The form must not stay put without a visible reason, and for both suspected failures the reason is on screen.
+  test("a ban is shown with its reason and code, and the form stays usable", async ({ page, gateway }) => {
     gateway.ts.failNext("connect", new ServerError("3329", "you are banned"));
     await submitJoin(page, "join-banned");
     await expect(page.getByText("You are banned from this server, so the connection is refused")).toBeVisible();
@@ -112,7 +111,7 @@ test.describe("join form", () => {
     await expect(joinButton(page)).toBeEnabled();
   });
 
-  test("an identity that another page is using is refused with its reason and code (F2)", async ({ browser, gateway }) => {
+  test("an identity that another page is using is refused with its reason and code", async ({ browser, gateway }) => {
     const options = { baseURL: gateway.url, storageState: storageStateFor(2, gateway.url) as never };
     const first = await browser.newContext(options);
     const second = await browser.newContext(options);

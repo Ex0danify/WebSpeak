@@ -8,23 +8,22 @@ import { audioNoticeText } from "../voiceErrors";
 import type { SinkAudioContext, SinkAudioElement } from "../voiceTypes";
 import type { MessageHandlers } from "@/features/session";
 
-/** Late-bound pieces owned by other modules (V-D2): the assembler passes them in, this module never imports them. */
+/** Late-bound pieces owned by other modules: the assembler passes them in, this module never imports them. */
 export interface AudioOutputDeps {
   saveAudioPreferences(): Promise<void>;
-  /** The per-client playback gain nodes; they live with the downlink playback and are resolved at call time. */
+  /** The per-client playback gain nodes, they live with the downlink playback and are resolved at call time. */
   remoteGains(): Map<number, GainNode>;
 }
 
-/** The output side of the audio graph: the shared AudioContext, the speaker sink, output volume,
- *  the audio notice slot, notification sounds and the native WebRTC playback element. The
- *  AudioContext and the playback element are non-reactive closure state, never stored in Pinia. */
+/** The output side of the audio graph, covering the shared AudioContext, speaker sink, output volume, the audio notice slot,
+ *  notification sounds and the native WebRTC playback element. The context and the element are non-reactive closure state,
+ *  never in Pinia. */
 export function useAudioOutput(deps: AudioOutputDeps) {
   const session = useSessionStore();
   const { state } = session;
   const audio = useVoiceAudioStore();
-  const {
-    outputVolume, outputMuted, notificationVolume, selectedOutputDeviceId, outputDeviceSupported, audioContextState,
-  } = storeToRefs(audio);
+  const { outputVolume, outputMuted, notificationVolume, selectedOutputDeviceId, outputDeviceSupported, audioContextState } =
+    storeToRefs(audio);
   const { outputDevices, volumes } = audio;
 
   let audioCtx: SinkAudioContext | null = null;
@@ -49,8 +48,8 @@ export function useAudioOutput(deps: AudioOutputDeps) {
       audioCtx.addEventListener("statechange", () => {
         if (audioCtx) audioContextState.value = audioCtx.state;
       });
-      outputDeviceSupported.value = typeof audioCtx.setSinkId === "function"
-        || typeof (HTMLMediaElement.prototype as SinkAudioElement).setSinkId === "function";
+      outputDeviceSupported.value =
+        typeof audioCtx.setSinkId === "function" || typeof (HTMLMediaElement.prototype as SinkAudioElement).setSinkId === "function";
       if (selectedOutputDeviceId.value && outputDeviceSupported.value) {
         void setAudioSink(audioCtx, selectedOutputDeviceId.value).catch(() => undefined);
       }
@@ -63,9 +62,9 @@ export function useAudioOutput(deps: AudioOutputDeps) {
     return audioCtx;
   }
 
-  /** Close and forget the context (microphone teardown, until the capture graph moves). */
+  /** Close and forget the context. */
   function releaseAudioCtx(): void {
-    audioCtx?.close();
+    void audioCtx?.close();
     audioCtx = null;
   }
 
@@ -88,7 +87,7 @@ export function useAudioOutput(deps: AudioOutputDeps) {
     state.audioNoticeCode = "";
   }
 
-  /** A suspended AudioContext silently swallows capture: say so instead of pretending. */
+  /** A suspended AudioContext silently swallows capture, so say so instead of pretending. */
   function syncAudioContextNotice(): void {
     if (audioCtx && audioCtx.state === "suspended") {
       setAudioNotice("AUDIO_CONTEXT_SUSPENDED");
@@ -128,7 +127,9 @@ export function useAudioOutput(deps: AudioOutputDeps) {
 
   function installWebRtcPlaybackRetry(): void {
     if (webrtcPlaybackRetryCleanup) return;
-    const retry = () => { void syncWebRtcPlayback(); };
+    const retry = () => {
+      void syncWebRtcPlayback();
+    };
     const events: (keyof WindowEventMap)[] = ["pointerdown", "touchstart", "keydown"];
     for (const event of events) window.addEventListener(event, retry, { passive: true });
     document.addEventListener("visibilitychange", retry, { passive: true });
@@ -142,13 +143,15 @@ export function useAudioOutput(deps: AudioOutputDeps) {
   async function syncWebRtcPlayback(): Promise<void> {
     const output = webrtcOutputElement;
     if (!output || !webrtcPlaybackStream) return;
-    // Keep WebRTC on the browser's native MediaStream playback path. The
-    // capture AudioContext is intentionally not used as a second output
-    // route: a running-but-silent graph could leave the UI reporting a live
-    // speaker while the actual remote audio element remained muted.
+    // Keep WebRTC on the browser's native MediaStream playback path. Routing it through the capture AudioContext could leave
+    // the UI reporting a live speaker while the remote audio element stayed muted.
     output.muted = false;
     if (audioCtx && audioCtx.state === "suspended") {
-      try { await audioCtx.resume(); } catch { /* a user gesture is still required */ }
+      try {
+        await audioCtx.resume();
+      } catch {
+        /* a user gesture is still required */
+      }
     }
     try {
       await output.play();
@@ -156,9 +159,8 @@ export function useAudioOutput(deps: AudioOutputDeps) {
       clearAudioNotice("PLAYBACK_BLOCKED");
       syncAudioContextNotice();
     } catch {
-      // Mobile and privacy-focused browsers can require a gesture even for a
-      // MediaStream. Keep retrying after the next real interaction, but tell the
-      // user why the remote audio is missing instead of staying silent.
+      // Mobile and privacy-focused browsers can demand a gesture even for a MediaStream. Retry after the next real interaction
+      // and tell the user why the remote audio is missing instead of staying silent.
       setAudioNotice("PLAYBACK_BLOCKED");
       installWebRtcPlaybackRetry();
     }
@@ -206,8 +208,8 @@ export function useAudioOutput(deps: AudioOutputDeps) {
 
   const handlers: MessageHandlers = {
     audioError: (msg) => {
-      // The gateway could not encode our microphone audio (for example its Opus
-      // encoder is unavailable): say it instead of dropping frames silently.
+      // The gateway could not encode our microphone audio (its Opus encoder is unavailable), so say it instead of dropping
+      // frames silently.
       const audioCode = safeClientErrorCode(msg.code) || "AUDIO_ERROR";
       const detail = safeClientErrorDetail(msg.detail);
       setAudioNotice(audioCode, detail ? { detail } : undefined);

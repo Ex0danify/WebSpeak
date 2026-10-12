@@ -5,16 +5,13 @@ import { createAdminApi, type ApiError } from "./adminApi.js";
 import { createAdminFormat } from "./adminFormat.js";
 import { toast } from "@/shared/composables/useToast";
 import { useI18n } from "@/shared/i18n/useI18n.js";
-import { useAdminOperationsStore } from "./adminOperations.js";
-import { useAdminOverviewStore } from "./adminOverview.js";
-import { useAdminServerSettingsStore } from "./adminServerSettings.js";
+import { adminSiblings } from "./adminSiblings.js";
 
 export type AdminScreen = "login" | "change-password" | "admin";
 
-/** Sign-in state of the admin console: which screen is showing, the login/change-password forms
- *  and the CSRF token. Also owns the state every admin page shares (the error banner, the
- *  in-flight write flag, success toasts) and the fetch helpers (`getJson`/`sendJson`), since they
- *  need the token and react to a 401 by dropping back to the login screen. */
+/** Sign-in state of the admin console, covering the screen showing, the login and change-password forms and the CSRF token.
+ *  Also owns what every admin page shares (error banner, in-flight write flag, success toasts) and the fetch helpers, which
+ *  need the token and drop back to login on a 401. */
 export const useAdminSessionStore = defineStore("adminSession", () => {
   const route = useRoute();
   const router = useRouter();
@@ -33,8 +30,10 @@ export const useAdminSessionStore = defineStore("adminSession", () => {
   /** One login/save/invite write in flight at a time. */
   const submitting = ref(false);
 
-  /** Every successful action of the console says so in a toast; a failure stays a banner (errorMessage). */
-  function notify(message: string) { toast({ title: message, variant: "success" }); }
+  /** Every successful action of the console says so in a toast, a failure stays a banner (errorMessage). */
+  function notify(message: string) {
+    toast({ title: message, variant: "success" });
+  }
 
   const { getJson, sendJson } = createAdminApi({
     getCsrfToken: () => csrfToken.value,
@@ -48,10 +47,13 @@ export const useAdminSessionStore = defineStore("adminSession", () => {
 
   /** What the console shows once signed in. The operations page loads itself when it is entered. */
   async function loadAdminData() {
-    await Promise.all([useAdminOverviewStore().loadOverview(), useAdminServerSettingsStore().loadServerSettings()]);
+    const siblings = adminSiblings();
+    await Promise.all([siblings.loadOverview(), siblings.loadServerSettings()]);
   }
 
-  const passwordStrength = computed(() => Math.min(100, Math.max(8, newPassword.value.length * 5 + (/[\s\W]/.test(newPassword.value) ? 15 : 0))));
+  const passwordStrength = computed(() =>
+    Math.min(100, Math.max(8, newPassword.value.length * 5 + (/[\s\W]/.test(newPassword.value) ? 15 : 0))),
+  );
 
   async function loadAdminView() {
     loading.value = true;
@@ -81,7 +83,12 @@ export const useAdminSessionStore = defineStore("adminSession", () => {
     submitting.value = true;
     errorMessage.value = "";
     try {
-      const result = await sendJson("/api/admin/login", "POST", { username: loginUsername.value.trim(), password: loginPassword.value }, false);
+      const result = await sendJson(
+        "/api/admin/login",
+        "POST",
+        { username: loginUsername.value.trim(), password: loginPassword.value },
+        false,
+      );
       csrfToken.value = String(result.csrfToken || "");
       loginPassword.value = "";
       if (result.mustChangePassword) {
@@ -101,8 +108,14 @@ export const useAdminSessionStore = defineStore("adminSession", () => {
 
   async function changePassword() {
     errorMessage.value = "";
-    if (newPassword.value.length < 12) { errorMessage.value = t("setupPasswordShort"); return; }
-    if (newPassword.value !== confirmNewPassword.value) { errorMessage.value = t("setupPasswordsMismatch"); return; }
+    if (newPassword.value.length < 12) {
+      errorMessage.value = t("setupPasswordShort");
+      return;
+    }
+    if (newPassword.value !== confirmNewPassword.value) {
+      errorMessage.value = t("setupPasswordsMismatch");
+      return;
+    }
     submitting.value = true;
     try {
       await sendJson("/api/admin/change-password", "POST", { newPassword: newPassword.value });
@@ -125,12 +138,29 @@ export const useAdminSessionStore = defineStore("adminSession", () => {
       csrfToken.value = "";
       screen.value = "login";
       // Nothing of the signed-out console stays in memory. Setup stores have no `$reset`.
-      useAdminOverviewStore().reset();
-      useAdminOperationsStore().reset();
-      useAdminServerSettingsStore().reset();
+      adminSiblings().resetAll();
       await router.replace("/admin/login");
     }
   }
 
-  return { loading, screen, csrfToken, loginUsername, loginPassword, newPassword, confirmNewPassword, errorMessage, submitting, passwordStrength, getJson, sendJson, errorText, notify, loadAdminView, login, changePassword, logout };
+  return {
+    loading,
+    screen,
+    csrfToken,
+    loginUsername,
+    loginPassword,
+    newPassword,
+    confirmNewPassword,
+    errorMessage,
+    submitting,
+    passwordStrength,
+    getJson,
+    sendJson,
+    errorText,
+    notify,
+    loadAdminView,
+    login,
+    changePassword,
+    logout,
+  };
 });

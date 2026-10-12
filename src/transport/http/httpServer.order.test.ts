@@ -2,7 +2,7 @@ import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { stubLogger } from "../../../test/helpers/adminService.js";
+import { stubLogger } from "../../../test/support/adminService.js";
 import { JoinTicketStore } from "../../modules/join/index.js";
 import type { AdminService } from "../../modules/admin/index.js";
 

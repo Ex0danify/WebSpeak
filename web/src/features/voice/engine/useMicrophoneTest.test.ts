@@ -1,11 +1,13 @@
-// useMicrophoneTest (Step H4.2): the five-second record-and-play-back test, driven through useMicrophone.
+// useMicrophoneTest: the five-second record-and-play-back test, driven through useMicrophone.
 import { createPinia, setActivePinia } from "pinia";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 // The RNNoise wasm is not loadable under happy-dom: it always falls back to the browser's own suppression.
 vi.mock("@sapphi-red/web-noise-suppressor", () => ({
   RnnoiseWorkletNode: class {},
-  loadRnnoise: async () => { throw new Error("no wasm in tests"); },
+  loadRnnoise: async () => {
+    throw new Error("no wasm in tests");
+  },
 }));
 
 import { FakeAudioWorkletNode } from "@/testSupport/browserStubs";
@@ -20,9 +22,16 @@ describe("microphone test", () => {
     mimeType = "";
     ondataavailable: ((event: { data: { size: number } }) => void) | null = null;
     onstop: (() => void) | null = null;
-    constructor(readonly stream: unknown) { FakeMediaRecorder.instances.push(this); }
-    start(): void { this.state = "recording"; }
-    stop(): void { this.state = "inactive"; this.onstop?.(); }
+    constructor(readonly stream: unknown) {
+      FakeMediaRecorder.instances.push(this);
+    }
+    start(): void {
+      this.state = "recording";
+    }
+    stop(): void {
+      this.state = "inactive";
+      this.onstop?.();
+    }
   }
   let created: Blob[];
   let revoked: string[];
@@ -33,8 +42,13 @@ describe("microphone test", () => {
     created = [];
     revoked = [];
     (globalThis as Record<string, unknown>).MediaRecorder = FakeMediaRecorder;
-    URL.createObjectURL = vi.fn((blob: Blob) => { created.push(blob); return `blob:test-${created.length}`; }) as typeof URL.createObjectURL;
-    URL.revokeObjectURL = vi.fn((url: string) => { revoked.push(url); });
+    URL.createObjectURL = vi.fn((blob: Blob) => {
+      created.push(blob);
+      return `blob:test-${created.length}`;
+    }) as typeof URL.createObjectURL;
+    URL.revokeObjectURL = vi.fn((url: string) => {
+      revoked.push(url);
+    });
   });
   afterEach(() => {
     vi.useRealTimers();

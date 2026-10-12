@@ -1,4 +1,4 @@
-import { flushPromises, mount, type VueWrapper } from "@vue/test-utils";
+import { flushPromises, type VueWrapper } from "@vue/test-utils";
 import { IDBFactory } from "fake-indexeddb";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type * as Persistence from "@/shared/services/localPersistence";
@@ -7,17 +7,20 @@ import { installBrowserStubs, type BrowserStubs } from "@/testSupport/browserStu
 import { mountClient } from "@/testSupport/mountClient";
 import { FakeWebSocket } from "@/testSupport/fakeWebsocket";
 
-// Step R0.2: characterization of the lifecycle behaviors ClientLayout owns now (sounds on
-// connection changes, the server visit, the server-password dialog, disconnect on unmount, the
-// performance monitor, pokes, private chat sound). They are pinned on the real component against
-// the fake gateway so the room-split page swap can be shown not to change them. A behavior that
-// looks wrong is recorded as it is, with a comment, not fixed here.
+// Pins the lifecycle behaviors ClientLayout owns (sounds on connection changes, the server visit, the server-password dialog,
+// disconnect on unmount, the performance monitor, pokes, private chat sound) on the real component against the fake gateway.
+// A behavior that looks wrong is recorded as it is, with a comment, not fixed here.
 
 const showToast = vi.fn();
 
 vi.mock("@/shared/composables/useToast", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/shared/composables/useToast")>();
-  return { ...actual, showToast: (...args: unknown[]) => { showToast(...args); } };
+  return {
+    ...actual,
+    showToast: (...args: unknown[]) => {
+      showToast(...args);
+    },
+  };
 });
 
 type View = {
@@ -56,7 +59,7 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
-/** The connected shell moved into RoomWorkspace (Step R2.4); its setup state is reached there. */
+/** The connected shell lives in RoomWorkspace, so its setup state is reached there. */
 function roomWorkspace() {
   return wrapper!.findComponent(RoomWorkspace).vm as unknown as { togglePerformancePanel: () => void; performanceRunning: boolean };
 }
@@ -136,10 +139,14 @@ describe("connection sounds", () => {
 describe("server visit", () => {
   // The visit is an upsert keyed by target, so "recorded" is read from the store: lastConnectedAt
   // carries the (faked) time of the connected flip that wrote it.
-  const recentAddresses = async () => (await store.listRecentServers()).map((server) => ({ address: server.address, at: server.lastConnectedAt }));
-  const waitForRecent = (expected: { address: string; at: number }[]) => vi.waitFor(async () => expect(await recentAddresses()).toEqual(expected));
+  const recentAddresses = async () =>
+    (await store.listRecentServers()).map((server) => ({ address: server.address, at: server.lastConnectedAt }));
+  const waitForRecent = (expected: { address: string; at: number }[]) =>
+    vi.waitFor(async () => expect(await recentAddresses()).toEqual(expected));
 
-  beforeEach(() => { vi.useFakeTimers({ toFake: ["Date"], now: 1_000 }); });
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ["Date"], now: 1_000 });
+  });
 
   it("is recorded when connected, with the target, and not before", async () => {
     const view = await mountView();
@@ -153,8 +160,8 @@ describe("server visit", () => {
     await waitForRecent([{ address: "ts.example.test:9987", at: 2_000 }]);
   });
 
-  // Current behavior, pinned for the split: the visit is recorded on every connected flip,
-  // including the one after a reconnect (an upsert of the same id, so only lastConnectedAt moves).
+  // The visit is recorded on every connected flip, including the one after a reconnect (an upsert of the same id, so only
+  // lastConnectedAt moves).
   it("is recorded again after a reconnect", async () => {
     const view = await mountView();
     view.serverHost = "ts.example.test";
@@ -241,7 +248,9 @@ describe("pokes", () => {
   class FakeNotification {
     static permission = "granted";
     static created: { title: string; options?: NotificationOptions }[] = [];
-    constructor(title: string, options?: NotificationOptions) { FakeNotification.created.push({ title, options }); }
+    constructor(title: string, options?: NotificationOptions) {
+      FakeNotification.created.push({ title, options });
+    }
   }
 
   beforeEach(() => {

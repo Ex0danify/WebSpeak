@@ -74,7 +74,11 @@ describe("avatarStyle", () => {
 
   it("layers an avatar image over the fallback background when given one", () => {
     const style = avatarStyle("Lucas", false, "https://example.com/a.png");
-    expect(style).toMatchObject({ backgroundImage: 'url("https://example.com/a.png")', backgroundPosition: "center", backgroundSize: "cover" });
+    expect(style).toMatchObject({
+      backgroundImage: 'url("https://example.com/a.png")',
+      backgroundPosition: "center",
+      backgroundSize: "cover",
+    });
   });
 
   it("does not set a background image without an avatar", () => {

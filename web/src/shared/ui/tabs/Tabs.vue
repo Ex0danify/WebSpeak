@@ -3,12 +3,12 @@ import { TabsRoot } from "reka-ui";
 import { cn } from "../../lib/cn";
 import { provideTabs, type TabValue } from "./tabsContext";
 
-// Root of a tabbed area, on reka-ui Tabs. Children: <TabList> holding
-// <Tab value>, then <TabPanel value> for each tab. `variant` picks underline
-// tabs, a segmented pill list or separate `pills` (icon and label chips). The
-// model must match a Tab value, otherwise no tab is reachable with the
-// keyboard. `variant` is read once. For a plain single choice use Segmented.
-const props = withDefaults(defineProps<{ variant?: "underline" | "segmented" | "pills" | "bar"; class?: string }>(), { variant: "underline" });
+// Root of a tabbed area, on reka-ui Tabs, with <TabList> holding <Tab value> and then a <TabPanel value> per tab. `variant`
+// picks underline tabs, a segmented pill list or separate `pills`, and is read once. The model must match a Tab value or no tab
+// is reachable by keyboard. For a plain single choice use Segmented.
+const props = withDefaults(defineProps<{ variant?: "underline" | "segmented" | "pills" | "bar"; class?: string }>(), {
+  variant: "underline",
+});
 
 const model = defineModel<TabValue>();
 provideTabs({ variant: props.variant });

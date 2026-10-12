@@ -83,8 +83,7 @@ export interface ServerEvent {
   id: string;
   kind: "joined" | "left" | "moved" | "poke" | "connection" | "channelCreated" | "channelRenamed" | "channelDeleted";
   message: string;
-  // `message` is English and only a fallback; the browser renders `event_<kind>` from these
-  // (F24, docs/design/i18n-plan.md I2.5). `params` repeats the values for that sentence.
+  // message is English and only a fallback, the browser renders event_<kind> and params repeat the values for it.
   nickname?: string;
   channelName?: string;
   params?: MessageParams;
@@ -122,7 +121,6 @@ export interface WebClientEntry {
   screenPeerId: string;
 }
 
-/** Mutable per-connection flags and timers that `attach()` used to close over. */
 export interface VoiceConnectionState {
   tsReady: boolean;
   selfId: number;
@@ -131,9 +129,8 @@ export interface VoiceConnectionState {
   audioReady: boolean;
   realtimeReady: boolean;
   hasConnectedOnce: boolean;
-  // Set when the server kicks or bans this client. The kick and the transport
-  // drop can arrive in either order, so the reason is parked here and consumed
-  // by whichever handler runs second.
+  // Set when the server kicks or bans this client. Kick and transport drop can arrive in either
+  // order, so the reason waits here for whichever handler runs second.
   pendingKickReason: WebSpeakError | null;
   reconnectStartedAt: number;
   reconnectAttempt: number;
@@ -142,7 +139,7 @@ export interface VoiceConnectionState {
   avatarRefreshRunning: boolean;
 }
 
-/** Everything one browser connection's handlers share. Created once the TS client exists. */
+/** Everything one connection's handlers share, created once the TS client exists. */
 export interface VoiceConnection {
   entry: WebClientEntry;
   session: ManagedSession;

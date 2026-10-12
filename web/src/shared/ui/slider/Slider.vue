@@ -4,11 +4,9 @@ import { SliderRange, SliderRoot, SliderThumb, SliderTrack } from "reka-ui";
 import { cn } from "../../lib/cn";
 import { sliderRangeClass, sliderRootClass, sliderThumbClass, sliderTrackClass } from "./slider";
 
-// Slider for volume, thresholds and similar, on reka-ui. Emits while dragging.
-// Name it with aria-label or aria-labelledby, or give it an `id` and a
-// <label for> and the label is linked when the slider mounts. Pass
-// `valueText` for a spoken value such as "70%". Attributes go to the thumb
-// (the element with role="slider"); `class` styles the root.
+// Slider for volume, thresholds and similar, on reka-ui. Emits while dragging. Name it with aria-label or aria-labelledby, or
+// give it an `id` and a <label for> and the label is linked on mount. `valueText` is for a spoken value such as "70%".
+// Attributes go to the thumb (role="slider"), `class` styles the root.
 defineOptions({ inheritAttrs: false });
 
 const props = withDefaults(

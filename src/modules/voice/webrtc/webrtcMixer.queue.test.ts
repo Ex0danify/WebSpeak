@@ -1,6 +1,6 @@
 import { createRequire } from "node:module";
 import { describe, expect, it } from "vitest";
-import { decodeOpus, sineFrames } from "../../../../test/helpers/audio.js";
+import { decodeOpus, sineFrames } from "../../../../test/support/audio.js";
 import { WebRtcMixer, type WebRtcMixerStats } from "./webrtcMixer.js";
 
 const require = createRequire(import.meta.url);

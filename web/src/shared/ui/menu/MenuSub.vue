@@ -32,7 +32,10 @@ const expanded = ref(false);
     <div v-if="expanded" class="ml-5 flex flex-col gap-0.5 border-l border-line pl-2"><slot /></div>
   </template>
   <DropdownMenuSub v-else>
-    <DropdownMenuSubTrigger :disabled="disabled" :class="cn(menuItemVariants({ tone: 'default' }), 'data-[state=open]:bg-surface-2', props.class)">
+    <DropdownMenuSubTrigger
+      :disabled="disabled"
+      :class="cn(menuItemVariants({ tone: 'default' }), 'data-[state=open]:bg-surface-2', props.class)"
+    >
       <slot name="icon" />
       <span class="min-w-0 flex-1 truncate"><slot name="label" /></span>
       <Icon name="chevron-right" :size="15" class="shrink-0" />

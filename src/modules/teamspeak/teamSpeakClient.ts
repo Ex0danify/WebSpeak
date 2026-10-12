@@ -9,14 +9,16 @@ import {
   generateIdentity,
   type Identity,
   type VoiceData,
-  type DirectoryClientInfo, type DirectorySnapshot,
+  type DirectoryClientInfo,
+  type DirectorySnapshot,
   type RawNotification,
   type TextMessage,
 } from "@echosixhiya/teamspeak-client";
 import type { Logger } from "../../shared/logger.js";
 import { describeTeamSpeakError, normalizeTeamSpeakError, normalizeTeamSpeakKickedReason } from "../../shared/errors.js";
 import { TeamSpeakAdapter } from "./teamSpeakAdapter.js";
-import { loadClientAvatar, type TSClientAvatar } from "./teamSpeakAvatar.js";
+import { createCommandPacer } from "./commandPacer.js";
+import { loadClientAvatar, type TeamSpeakAvatarClient, type TSClientAvatar } from "./teamSpeakAvatar.js";
 import type { TeamSpeakProtocol } from "../../shared/teamSpeakProtocol.js";
 import type { TeamSpeakTarget } from "../../shared/teamSpeakTarget.js";
 import { createAccelerationRelayClient, type AccelerationRelayClient, type AccelerationRelayOptions } from "../relay/index.js";
@@ -54,9 +56,8 @@ export interface TSChatMessage {
 }
 
 /**
- * Keep the TeamSpeak target id when adapting SDK events for the gateway.
- * Private-message events include a bigint targetID; dropping it makes the
- * bridge dereference undefined while echoing the message to the browser.
+ * Keep the target id of private messages, dropping it made the bridge dereference
+ * undefined while echoing the message to the browser.
  */
 export function toTSChatMessage(msg: TextMessage): TSChatMessage {
   return {
@@ -76,14 +77,17 @@ export class TSClient extends EventEmitter {
   private readonly identity: Identity;
   private clientId = 0;
   private connected = false;
+  private readonly pacer = createCommandPacer();
   private preferredChannelId = 0n;
   private accelerationClient: AccelerationRelayClient | null = null;
-  // Reason id of the most recent self leave, kept so the SDK `kicked` event can
-  // tell a plain kick (4) from a kick with ban (5). The SDK only forwards the
-  // reason message to its `kicked` handler, not the reason id.
+  // Reason id of the last self leave. The SDK hands only the reason message to kicked and drops
+  // the id, so this is how we tell a kick (4) from a ban (5).
   private selfLeaveReasonId: number | null = null;
 
-  constructor(private options: TSClientOptions, logger: Logger) {
+  constructor(
+    private options: TSClientOptions,
+    logger: Logger,
+  ) {
     super();
     this.logger = logger.child({ nickname: options.nickname });
     this.identity = options.identity ?? generateIdentity(8);
@@ -101,14 +105,17 @@ export class TSClient extends EventEmitter {
         });
         transportTarget = { host: this.accelerationClient.localHost, port: this.accelerationClient.localPort };
       }
-      this.adapter = new TeamSpeakAdapter({
-        target: transportTarget,
-        nickname: this.options.nickname,
-        identity: this.identity,
-        serverPassword: this.options.serverPassword,
-        defaultChannel: this.options.defaultChannel,
-        channelPassword: this.options.channelPassword,
-      }, this.logger);
+      this.adapter = new TeamSpeakAdapter(
+        {
+          target: transportTarget,
+          nickname: this.options.nickname,
+          identity: this.identity,
+          serverPassword: this.options.serverPassword,
+          defaultChannel: this.options.defaultChannel,
+          channelPassword: this.options.channelPassword,
+        },
+        this.logger,
+      );
       this.client = this.adapter.client;
       this.attachClientListeners(this.client);
     }
@@ -119,38 +126,36 @@ export class TSClient extends EventEmitter {
 
     this.clientId = client.clientID();
     try {
-      // A native TeamSpeak client subscribes to the complete channel tree
-      // after the welcome sequence. Without this command the server only
-      // exposes members in the current channel, so users disappear as soon as
-      // they move elsewhere even though both clients are on the same server.
-      await client.execCommand("channelsubscribeall", 5000);
+      // Native clients subscribe to the whole channel tree after welcome. Without it members
+      // vanish from the list as soon as they leave our channel.
+      await this.pacer.run(() => client.execCommand("channelsubscribeall", 5000));
     } catch (error: unknown) {
-      this.logger.warn({
-        err: error instanceof Error ? error.message : String(error),
-      }, "Could not subscribe to all TeamSpeak channels");
+      this.logger.warn(
+        {
+          err: error instanceof Error ? error.message : String(error),
+        },
+        "Could not subscribe to all TeamSpeak channels",
+      );
     }
-    // Directory snapshots are dispatched through two setImmediate layers in
-    // the SDK. Let both flush before reconciling with a direct client-protocol
-    // snapshot so the gateway's first connected state contains every member.
+    // The SDK pushes directory snapshots through two nested setImmediate calls for no good reason,
+    // so let both flush before reconciling.
     await new Promise<void>((resolve) => setImmediate(resolve));
     await new Promise<void>((resolve) => setImmediate(resolve));
 
-    // TS6 can finish the welcome event stream before it has exposed every
-    // existing client to a newly connected session. Pull one authoritative
-    // snapshot through this same client protocol session so users who joined
-    // earlier are visible immediately as well. Realtime events continue to
-    // keep the snapshot current after this reconciliation.
+    // TS6 sometimes ends the welcome stream before it told us about everyone already there, so pull
+    // one snapshot over this session to make earlier joiners show up.
     try {
-      const [channels, clients] = await Promise.all([
-        tsListChannels(client),
-        tsListClients(client),
-      ]);
+      const channels = await this.pacer.run(() => tsListChannels(client));
+      const clients = await this.pacer.run(() => tsListClients(client));
       this.emit("directorySnapshot", { channels, clients });
     } catch (error: unknown) {
-      this.logger.warn({
-        failureCode: "DIRECTORY_SNAPSHOT_UNAVAILABLE",
-        failureDetail: error instanceof Error ? error.message : String(error),
-      }, "TeamSpeak directory snapshot unavailable");
+      this.logger.warn(
+        {
+          failureCode: "DIRECTORY_SNAPSHOT_UNAVAILABLE",
+          failureDetail: error instanceof Error ? error.message : String(error),
+        },
+        "TeamSpeak directory snapshot unavailable",
+      );
     }
 
     const connectedChannelId = client.channelID();
@@ -160,13 +165,14 @@ export class TSClient extends EventEmitter {
       try {
         await tsClientMove(client, this.clientId, this.preferredChannelId);
       } catch (error: unknown) {
-        // The old channel may have been deleted or become inaccessible. The
-        // SDK has already left us in the server/default channel, which is the
-        // safe fallback required by the reconnect contract.
-        this.logger.info({
-          channelId: this.preferredChannelId.toString(),
-          err: error instanceof Error ? error.message : String(error),
-        }, "Previous TeamSpeak channel could not be restored");
+        // The old channel may be gone or off limits, the SDK already put us in the default channel.
+        this.logger.info(
+          {
+            channelId: this.preferredChannelId.toString(),
+            err: error instanceof Error ? error.message : String(error),
+          },
+          "Previous TeamSpeak channel could not be restored",
+        );
         this.preferredChannelId = client.channelID();
       }
     }
@@ -176,10 +182,16 @@ export class TSClient extends EventEmitter {
     this.emit("connected", this.clientId);
   }
 
-  /** Load a visible client's TeamSpeak avatar; see `loadClientAvatar`. */
   async getClientAvatar(clientId: number, expectedUid = ""): Promise<TSClientAvatar | null> {
     if (!this.client || !this.connected) throw new Error("TeamSpeak session is not ready");
-    return loadClientAvatar(this.client, this.options.target.host, clientId, expectedUid);
+    const client = this.client;
+    const paced: TeamSpeakAvatarClient = {
+      execCommandWithResponse: (command: string, timeoutMs?: number) =>
+        this.pacer.run(() => client.execCommandWithResponse(command, timeoutMs)),
+      fileTransferInitDownload: client.fileTransferInitDownload.bind(client),
+      downloadFileData: client.downloadFileData.bind(client),
+    };
+    return loadClientAvatar(paced, this.options.target.host, clientId, expectedUid);
   }
 
   private attachClientListeners(client: TS3FullClient): void {
@@ -191,9 +203,7 @@ export class TSClient extends EventEmitter {
       } as TSVoiceData);
     });
 
-    // The SDK exposes the directory that TeamSpeak sends during the normal
-    // client welcome sequence. The connect path also reconciles this event
-    // stream with a complete client-protocol snapshot.
+    // Directory the server sends during welcome, connect() also reconciles it with a full snapshot.
     client.on("directorySnapshot", (snapshot) => {
       this.emit("directorySnapshot", {
         channels: snapshot.channels.slice(),
@@ -219,10 +229,13 @@ export class TSClient extends EventEmitter {
     client.on("disconnected", (err) => {
       if (err) {
         const normalized = normalizeTeamSpeakError(err);
-        this.logger.warn({
-          failureCode: normalized.code.toUpperCase(),
-          failureDetail: describeTeamSpeakError(normalized),
-        }, "TeamSpeak transport disconnected unexpectedly");
+        this.logger.warn(
+          {
+            failureCode: normalized.code.toUpperCase(),
+            failureDetail: describeTeamSpeakError(normalized),
+          },
+          "TeamSpeak transport disconnected unexpectedly",
+        );
       } else {
         this.logger.info("TeamSpeak transport disconnected");
       }
@@ -240,10 +253,8 @@ export class TSClient extends EventEmitter {
       this.emit("clientLeave", info);
     });
 
-    // The SDK emits `kicked` only for a self leave with reason 4 (kick) or 5
-    // (kick with ban) and hands over the admin written reason message. Without
-    // this listener the reason was dropped, so the browser degraded to a generic
-    // "connection failed" right after the transport went away.
+    // The SDK emits kicked only for a self leave with reason 4 or 5 and passes just the admin's
+    // message. Without this the browser only saw a generic connection failure.
     client.on("kicked", (reasonMsg) => {
       const reasonId = this.selfLeaveReasonId;
       this.selfLeaveReasonId = null;
@@ -267,7 +278,9 @@ export class TSClient extends EventEmitter {
 
   sendWhisper(data: Buffer, clientIds: number[], codec: number = 4): void {
     if (!this.client || !this.connected) return;
-    const targets = [...new Set(clientIds)].filter((clientId) => Number.isInteger(clientId) && clientId > 0 && clientId <= 65535 && clientId !== this.getClientId());
+    const targets = [...new Set(clientIds)].filter(
+      (clientId) => Number.isInteger(clientId) && clientId > 0 && clientId <= 65535 && clientId !== this.getClientId(),
+    );
     if (!targets.length) throw new Error("Whisper requires at least one valid target");
     this.client.sendWhisper(data, targets, codec);
   }
@@ -286,21 +299,23 @@ export class TSClient extends EventEmitter {
   async setAway(away: boolean, message = ""): Promise<void> {
     if (!this.client || !this.connected) throw new Error("TeamSpeak session is not ready");
     const escaped = escapeTeamSpeakValue(message);
-    await this.client.execCommand(`clientupdate client_away=${away ? 1 : 0} client_away_message=${escaped}`);
+    const client = this.client;
+    await this.pacer.run(() => client.execCommand(`clientupdate client_away=${away ? 1 : 0} client_away_message=${escaped}`));
   }
 
   async setInputMuted(muted: boolean): Promise<void> {
     if (!this.client || !this.connected) throw new Error("TeamSpeak session is not ready");
-    await this.client.execCommand(`clientupdate client_input_muted=${muted ? 1 : 0}`);
+    const client = this.client;
+    await this.pacer.run(() => client.execCommand(`clientupdate client_input_muted=${muted ? 1 : 0}`));
   }
 
   async switchChannel(channelId: bigint, password?: string): Promise<void> {
-    if (!this.client || !this.connected) return;
+    if (!this.client || !this.connected) throw new Error("TeamSpeak session is not ready");
     await tsClientMove(this.client, this.clientId, channelId, password);
     this.preferredChannelId = channelId;
   }
 
-  /** Move another visible TeamSpeak client; the server enforces both move powers. */
+  /** The server checks both move powers. */
   async moveClient(clientId: number, channelId: bigint, password?: string): Promise<void> {
     if (!this.client || !this.connected) throw new Error("TeamSpeak session is not ready");
     if (!Number.isInteger(clientId) || clientId <= 0 || clientId > 65535) throw new Error("Invalid TeamSpeak client id");
@@ -308,9 +323,8 @@ export class TSClient extends EventEmitter {
   }
 
   getClientId(): number {
-    // The SDK learns the real client id during the welcome sequence, before
-    // TSClient.connect() resumes. Reading it from the SDK prevents the first
-    // directory snapshot from being built without the web client itself.
+    // The SDK learns the real client id during welcome, before connect() resumes. Reading it
+    // here keeps the first directory snapshot from missing the web client.
     return this.client?.clientID() ?? this.clientId;
   }
 
@@ -324,9 +338,8 @@ export class TSClient extends EventEmitter {
   }
 
   /**
-   * Send a TeamSpeak protocol command whose response is delivered later as a
-   * notification (for example setupstream/streamsignaling). The command is
-   * assembled by the trusted server-side stream adapter, never by the browser.
+   * Send a protocol command whose answer arrives later as a notification (setupstream etc).
+   * Only the trusted stream adapter builds these, never the browser.
    */
   async sendProtocolCommand(command: string): Promise<void> {
     if (!this.client || !this.connected) throw new Error("TeamSpeak session is not ready");

@@ -1,4 +1,4 @@
-// useSessionActions on its own (Step V2.2): a FakeWebSocket in the session store, no composable around it.
+// useSessionActions on its own: a FakeWebSocket in the session store, no composable around it.
 import { createPinia, setActivePinia } from "pinia";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useSessionStore } from "./sessionStore";
@@ -13,7 +13,12 @@ function setup(open = true) {
   socket = new FakeWebSocket("ws://test");
   if (open) socket.open();
   session.ws = socket as unknown as WebSocket;
-  return { session, actions: useSessionActions({ protocolErrorMessage: (code, fallback) => text("operationFailedUnknownDetail", { code, detail: fallback }) }) };
+  return {
+    session,
+    actions: useSessionActions({
+      protocolErrorMessage: (code, fallback) => text("operationFailedUnknownDetail", { code, detail: fallback }),
+    }),
+  };
 }
 
 beforeEach(() => {
@@ -31,7 +36,10 @@ describe("sendCmd", () => {
     const { actions } = setup();
     actions.sendCmd("a", { x: 1 });
     actions.sendCmd("b", {}, "req-1");
-    expect(socket.sentJson).toEqual([{ type: "a", payload: { x: 1 } }, { type: "b", payload: {}, requestId: "req-1" }]);
+    expect(socket.sentJson).toEqual([
+      { type: "a", payload: { x: 1 } },
+      { type: "b", payload: {}, requestId: "req-1" },
+    ]);
   });
 
   it("does nothing while the socket is not open", () => {
@@ -62,7 +70,10 @@ describe("sendCommandAndWait", () => {
     vi.useFakeTimers();
     const { actions } = setup();
     const done = actions.sendCommandAndWait("moveClient", {}, 500);
-    const caught = done.then(() => new Error("resolved"), (error: Error) => error);
+    const caught = done.then(
+      () => new Error("resolved"),
+      (error: Error) => error,
+    );
     await vi.advanceTimersByTimeAsync(500);
     expect((await caught).message).toBe("The operation timed out. Try again shortly");
     expect(actions.pendingCommands.size).toBe(0);
@@ -79,8 +90,14 @@ describe("sendCommandAndWait", () => {
   it("rejectPendingCommands settles every waiter with the error and clears the timers", async () => {
     vi.useFakeTimers();
     const { actions } = setup();
-    const first = actions.sendCommandAndWait("a", {}).then(() => new Error("resolved"), (error: Error) => error);
-    const second = actions.sendCommandAndWait("b", {}).then(() => new Error("resolved"), (error: Error) => error);
+    const first = actions.sendCommandAndWait("a", {}).then(
+      () => new Error("resolved"),
+      (error: Error) => error,
+    );
+    const second = actions.sendCommandAndWait("b", {}).then(
+      () => new Error("resolved"),
+      (error: Error) => error,
+    );
     actions.rejectPendingCommands(new Error("closed"));
     expect((await first).message).toBe("closed");
     expect((await second).message).toBe("closed");
@@ -130,7 +147,14 @@ describe("chat", () => {
     actions.sendTextMessage("  hi  ", "chan-1");
     expect(socket.sentJson).toEqual([{ type: "sendTextMessage", payload: { message: "hi" } }]);
     expect(session.chatMessages).toHaveLength(1);
-    expect(session.chatMessages[0]).toMatchObject({ scope: "channel", targetId: "chan-1", senderId: 7, invokerName: "Me", message: "hi", isSelf: true });
+    expect(session.chatMessages[0]).toMatchObject({
+      scope: "channel",
+      targetId: "chan-1",
+      senderId: 7,
+      invokerName: "Me",
+      message: "hi",
+      isSelf: true,
+    });
     expect(session.chatMessages[0].id).toMatch(/^self-/);
   });
 

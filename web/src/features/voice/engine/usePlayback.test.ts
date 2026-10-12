@@ -1,4 +1,4 @@
-// usePlayback on its own (Step V3.2): speaking state, per-client teardown and the frame filter.
+// usePlayback on its own: speaking state, per-client teardown and the frame filter.
 // The scheduling decisions (play-ahead cap, decode queue reset) are pinned through the public API in hotpath.test.ts.
 import { createPinia, setActivePinia } from "pinia";
 import { ref, type Ref } from "vue";
@@ -123,6 +123,18 @@ describe("handleAudioFrame", () => {
     expect(FakeAudioDecoder.instances).toHaveLength(0);
     playback.handleAudioFrame(frame(9, 3));
     expect(FakeAudioDecoder.instances[0].chunks).toHaveLength(1);
+  });
+
+  it("keeps the speaker's gain node when the decoder is rebuilt, so no orphan stays connected", () => {
+    const { playback } = setup();
+    playback.handleAudioFrame(frame(9));
+    const gain = playback.remoteGains.get(9)!;
+    FakeAudioDecoder.instances[0].decodeQueueSize = 1_000_000;
+    outputVolume = 0.25;
+    playback.handleAudioFrame(frame(9));
+    expect(FakeAudioDecoder.instances).toHaveLength(2);
+    expect(playback.remoteGains.get(9)).toBe(gain);
+    expect(gain.gain.value).toBe(0.25);
   });
 
   it("gives a new client's gain node the output volume (member volume defaults to 1)", () => {

@@ -1,7 +1,7 @@
 import { reactive } from "vue";
 import { defineStore } from "pinia";
 import type { ApiError } from "./adminApi.js";
-import { useAdminOperationsStore } from "./adminOperations.js";
+import { adminSiblings } from "./adminSiblings.js";
 import { useAdminSessionStore } from "./adminSession.js";
 
 function initialOverview() {
@@ -42,13 +42,13 @@ export const useAdminOverviewStore = defineStore("adminOverview", () => {
       anchor.click();
       URL.revokeObjectURL(url);
       // The backup counts as an operation, so the operations page is refreshed after it.
-      await useAdminOperationsStore().loadOperations();
+      await adminSiblings().loadOperations();
     } catch (error) {
       session.errorMessage = session.errorText((error as ApiError).code);
     }
   }
 
-  /** Back to the empty state, for logout: setup stores have no `$reset`. */
+  /** Back to the empty state for logout, setup stores have no `$reset`. */
   function reset() {
     Object.assign(overview, initialOverview());
   }

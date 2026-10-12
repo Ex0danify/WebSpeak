@@ -1,7 +1,7 @@
 import { existsSync, readdirSync } from "node:fs";
 import { DatabaseSync } from "node:sqlite";
 import { describe, expect, it } from "vitest";
-import { mkdirSyncFor, useDatabaseFixture } from "../../../test/helpers/database.js";
+import { mkdirSyncFor, useDatabaseFixture } from "../../../test/support/database.js";
 import { DATABASE_SCHEMA_VERSION, WebSpeakDatabase } from "./database.js";
 
 const fx = useDatabaseFixture();
@@ -42,9 +42,11 @@ function createLegacyDatabase(file: string, version: 1 | 5, relay?: { name: stri
       PRAGMA user_version = 5;
     `);
     if (relay) {
-      raw.prepare(
-        "UPDATE settings SET relay_configured = 1, relay_enabled = 1, relay_name = ?, relay_host = ?, relay_port = ?, relay_token_encrypted = ? WHERE id = 1",
-      ).run(relay.name, relay.host, relay.port, relay.token);
+      raw
+        .prepare(
+          "UPDATE settings SET relay_configured = 1, relay_enabled = 1, relay_name = ?, relay_host = ?, relay_port = ?, relay_token_encrypted = ? WHERE id = 1",
+        )
+        .run(relay.name, relay.host, relay.port, relay.token);
     }
   }
   raw.close();
@@ -127,7 +129,14 @@ describe("migrations", () => {
     createLegacyDatabase(fx.path, 5, { name: "Frankfurt", host: "relay.example.org", port: 39100, token: "enc:relay" });
     const nodes = fx.open().listRelayNodes();
     expect(nodes).toHaveLength(1);
-    expect(nodes[0]).toMatchObject({ id: "relay-default", name: "Frankfurt", enabled: true, host: "relay.example.org", port: 39100, tokenEncrypted: "enc:relay" });
+    expect(nodes[0]).toMatchObject({
+      id: "relay-default",
+      name: "Frankfurt",
+      enabled: true,
+      host: "relay.example.org",
+      port: 39100,
+      tokenEncrypted: "enc:relay",
+    });
   });
 
   it("names a schema 5 relay that had no name with the English default", () => {

@@ -42,7 +42,14 @@ export function decodeFrame(packet: Buffer): Frame | null {
   if (packet.length < HEADER_SIZE || !packet.subarray(0, 4).equals(MAGIC) || packet[4] !== VERSION) return null;
   const payloadLength = packet.readUInt16BE(16);
   if (packet.length !== HEADER_SIZE + payloadLength || payloadLength > MAX_PAYLOAD_SIZE) return null;
-  return { type: packet[5] as FrameType, sessionId: packet.readUInt32BE(8), sequence: packet.readUInt32BE(12), payload: packet.subarray(HEADER_SIZE), auth: packet.subarray(18, HEADER_SIZE), raw: packet };
+  return {
+    type: packet[5] as FrameType,
+    sessionId: packet.readUInt32BE(8),
+    sequence: packet.readUInt32BE(12),
+    payload: packet.subarray(HEADER_SIZE),
+    auth: packet.subarray(18, HEADER_SIZE),
+    raw: packet,
+  };
 }
 
 export function verifyFrame(frame: Frame, token: string): boolean {
@@ -54,13 +61,19 @@ function signFrame(frame: Buffer, payload: Buffer, token: string): Buffer {
   return createHmac("sha256", Buffer.from(token, "utf8")).update(frame.subarray(0, 18)).update(payload).digest().subarray(0, 16);
 }
 
-export function jsonPayload(value: unknown): Buffer { return Buffer.from(JSON.stringify(value), "utf8"); }
+export function jsonPayload(value: unknown): Buffer {
+  return Buffer.from(JSON.stringify(value), "utf8");
+}
 
 export function parseJson(payload: Buffer): Record<string, unknown> | null {
   try {
     const value: unknown = JSON.parse(payload.toString("utf8"));
-    return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : null;
-  } catch { return null; }
+    return value && typeof value === "object" && !Array.isArray(value) ? (value as Record<string, unknown>) : null;
+  } catch {
+    return null;
+  }
 }
 
-export function asError(error: unknown): Error { return error instanceof Error ? error : new Error(String(error)); }
+export function asError(error: unknown): Error {
+  return error instanceof Error ? error : new Error(String(error));
+}

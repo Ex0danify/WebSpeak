@@ -1,4 +1,4 @@
-// useAudioInputDevices (Step H4.2): the device lists, the selected devices and the restart after a change,
+// useAudioInputDevices: the device lists, the selected devices and the restart after a change,
 // driven through useMicrophone, which wires the factory to the open stream.
 import { ref } from "vue";
 import { describe, expect, it, vi } from "vitest";
@@ -6,7 +6,9 @@ import { describe, expect, it, vi } from "vitest";
 // The RNNoise wasm is not loadable under happy-dom: it always falls back to the browser's own suppression.
 vi.mock("@sapphi-red/web-noise-suppressor", () => ({
   RnnoiseWorkletNode: class {},
-  loadRnnoise: async () => { throw new Error("no wasm in tests"); },
+  loadRnnoise: async () => {
+    throw new Error("no wasm in tests");
+  },
 }));
 
 import { FakeMediaStream, FakeMediaStreamTrack } from "@/testSupport/browserStubs";
@@ -49,7 +51,9 @@ describe("refreshAudioDevices", () => {
   it("does the same when enumerateDevices rejects", async () => {
     const { audio, deps, mic } = setup();
     await mic.refreshAudioDevices();
-    setEnumerateDevices(async () => { throw new Error("blocked"); });
+    setEnumerateDevices(async () => {
+      throw new Error("blocked");
+    });
     await mic.refreshAudioDevices();
     expect(audio.inputDevices).toHaveLength(0);
     expect(deps.setAudioNotice).toHaveBeenCalledWith("DEVICE_LIST_UNAVAILABLE");
@@ -165,10 +169,17 @@ describe("setInputDevice", () => {
     const order: string[] = [];
     const { session, deps, mic } = await openMic({
       webrtcActive: ref(true),
-      stopWebRtcTransport: vi.fn(() => { order.push("stop"); }),
-      startWebRtcTransport: vi.fn(async () => { order.push("start"); }),
+      stopWebRtcTransport: vi.fn(() => {
+        order.push("stop");
+      }),
+      startWebRtcTransport: vi.fn(async () => {
+        order.push("start");
+      }),
     });
-    fx.userMedia.mockImplementationOnce(async () => { order.push("mic"); return new FakeMediaStream([new FakeMediaStreamTrack("audio")]); });
+    fx.userMedia.mockImplementationOnce(async () => {
+      order.push("mic");
+      return new FakeMediaStream([new FakeMediaStreamTrack("audio")]);
+    });
     const socket = {} as WebSocket;
     session.ws = socket;
     await mic.setInputDevice("mic-b");
@@ -193,4 +204,3 @@ describe("setInputDevice", () => {
     expect(window.localStorage.getItem("webspeak:input-device")).toBe("mic-a");
   });
 });
-

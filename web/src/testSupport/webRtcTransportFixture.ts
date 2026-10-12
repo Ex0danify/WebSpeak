@@ -5,7 +5,12 @@ import { afterEach, beforeEach, vi } from "vitest";
 import { useVoiceAudioStore } from "@/features/voice/stores/voiceAudioStore";
 import { useSessionStore } from "@/features/session";
 import {
-  FakeAudioContext, FakeMediaStream, FakeMediaStreamTrack, FakeRTCPeerConnection, installBrowserStubs, type BrowserStubs,
+  FakeAudioContext,
+  FakeMediaStream,
+  FakeMediaStreamTrack,
+  FakeRTCPeerConnection,
+  installBrowserStubs,
+  type BrowserStubs,
 } from "@/testSupport/browserStubs";
 import type { SinkAudioContext } from "@/features/voice/voiceTypes";
 import { useWebRtcTransport, type WebRtcTransportDeps } from "@/features/voice/engine/useWebRtcTransport";
@@ -28,7 +33,10 @@ export function recordSources(): unknown[] {
   const sources: unknown[] = [];
   const target = rtc.ctx as unknown as { createMediaStreamSource: (stream?: unknown) => unknown };
   const create = target.createMediaStreamSource.bind(rtc.ctx);
-  target.createMediaStreamSource = (stream?: unknown) => { sources.push(stream); return create(stream); };
+  target.createMediaStreamSource = (stream?: unknown) => {
+    sources.push(stream);
+    return create(stream);
+  };
   return sources;
 }
 
@@ -37,8 +45,12 @@ export class FakeDisplayTrack extends FakeMediaStreamTrack {
   contentHint = "";
   applyConstraints = vi.fn(async (_constraints?: unknown) => undefined);
   private readonly endedListeners: (() => void)[] = [];
-  override addEventListener(type?: string, listener?: () => void): void { if (type === "ended" && listener) this.endedListeners.push(listener); }
-  end(): void { for (const listener of this.endedListeners.splice(0)) listener(); }
+  override addEventListener(type?: string, listener?: () => void): void {
+    if (type === "ended" && listener) this.endedListeners.push(listener);
+  }
+  end(): void {
+    for (const listener of this.endedListeners.splice(0)) listener();
+  }
 }
 
 /** Puts a display-audio share on the peer's audio sender, as the accompaniment button does. */
@@ -47,7 +59,8 @@ export async function shareAccompaniment(peer: FakeRTCPeerConnection, transport:
   const video = new FakeMediaStreamTrack("video");
   const replaceTrack = vi.fn(async (_track?: unknown) => undefined);
   vi.spyOn(peer, "getSenders").mockReturnValue([{ track: { kind: "audio" }, replaceTrack }] as unknown as RTCRtpSender[]);
-  (navigator.mediaDevices as unknown as { getDisplayMedia: () => Promise<FakeMediaStream> }).getDisplayMedia = async () => new FakeMediaStream([audio, video]);
+  (navigator.mediaDevices as unknown as { getDisplayMedia: () => Promise<FakeMediaStream> }).getDisplayMedia = async () =>
+    new FakeMediaStream([audio, video]);
   await transport.startAccompaniment();
   return { audio, video, replaceTrack };
 }
@@ -69,11 +82,15 @@ export function setup(overrides: Partial<WebRtcTransportDeps> = {}) {
     getProcessedMicStream: vi.fn(() => (rtc.processedStream ?? rtc.micStream) as unknown as MediaStream | null),
     ensureMicrophone: vi.fn(async () => undefined),
     startMicrophone: vi.fn(async () => undefined),
-    stopCaptureGraph: vi.fn(() => { rtc.order.push("captureGraph"); }),
+    stopCaptureGraph: vi.fn(() => {
+      rtc.order.push("captureGraph");
+    }),
     setMicrophoneError: vi.fn(() => ({ key: "micFailedGeneric" as const })),
     getAudioCtx: vi.fn(() => rtc.ctx as unknown as SinkAudioContext),
     effectiveOutputVolume: vi.fn(() => 0.5),
-    stopWebRtcPlayback: vi.fn(() => { rtc.order.push("playback"); }),
+    stopWebRtcPlayback: vi.fn(() => {
+      rtc.order.push("playback");
+    }),
     attachWebRtcPlayback: vi.fn(),
     syncWebRtcPlayback: vi.fn(async () => undefined),
     setAudioNotice: vi.fn(),

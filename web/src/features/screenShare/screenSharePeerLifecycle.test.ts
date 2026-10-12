@@ -25,7 +25,6 @@ function register(context: ReturnType<typeof setupPeers>, overrides: Parameters<
   return stream;
 }
 
-
 describe("peer events", () => {
   async function viewer() {
     const context = setupPeers();
@@ -39,10 +38,14 @@ describe("peer events", () => {
     (peer.onicecandidate as (event: unknown) => void)({ candidate: null });
     expect(context.sent).toEqual([]);
     (peer.onicecandidate as (event: unknown) => void)({ candidate: { candidate: "cand", sdpMid: "0", sdpMLineIndex: 0 } });
-    expect(context.sent).toEqual([{
-      type: "screenShareSignal", streamId: "s1", targetPeerId: "owner-1",
-      signal: { kind: "iceCandidate", candidate: "cand", sdpMid: "0", sdpMLineIndex: 0 },
-    }]);
+    expect(context.sent).toEqual([
+      {
+        type: "screenShareSignal",
+        streamId: "s1",
+        targetPeerId: "owner-1",
+        signal: { kind: "iceCandidate", candidate: "cand", sdpMid: "0", sdpMLineIndex: 0 },
+      },
+    ]);
   });
 
   it("a remote track publishes the stream, marks viewing and stops the timer", async () => {
@@ -105,9 +108,14 @@ describe("peer events", () => {
 describe("owner peers", () => {
   async function ownerPeer(video: Record<string, unknown>, outputSettings?: Record<string, number>) {
     const local = displayStream(video);
-    const senders: { track: MediaStreamTrack; setParameters: ReturnType<typeof vi.fn>; getParameters: () => Record<string, unknown> }[] = [];
+    const senders: { track: MediaStreamTrack; setParameters: ReturnType<typeof vi.fn>; getParameters: () => Record<string, unknown> }[] =
+      [];
     vi.spyOn(FakeRTCPeerConnection.prototype, "addTrack").mockImplementation(((track: MediaStreamTrack) => {
-      const sender = { track, setParameters: vi.fn(async () => undefined), getParameters: () => ({ encodings: [{ rid: "r" }, { rid: "second" }] }) };
+      const sender = {
+        track,
+        setParameters: vi.fn(async () => undefined),
+        getParameters: () => ({ encodings: [{ rid: "r" }, { rid: "second" }] }),
+      };
       senders.push(sender);
       return sender;
     }) as never);
@@ -130,12 +138,16 @@ describe("owner peers", () => {
   it("keeps the source size and rate when nothing is requested", async () => {
     const { senders } = await ownerPeer({ width: 1920, height: 1080, frameRate: 60 });
     expect(senders[0].setParameters.mock.calls[0][0]).toEqual({
-      encodings: [{ rid: "r", maxFramerate: 60 }, { rid: "second" }], degradationPreference: "maintain-framerate",
+      encodings: [{ rid: "r", maxFramerate: 60 }, { rid: "second" }],
+      degradationPreference: "maintain-framerate",
     });
   });
 
   it("scales down to the requested limits and caps the rate at the source rate", async () => {
-    const { senders } = await ownerPeer({ width: 3840, height: 2160, frameRate: 30 }, { maxWidth: 1920, maxHeight: 1080, maxFrameRate: 60 });
+    const { senders } = await ownerPeer(
+      { width: 3840, height: 2160, frameRate: 30 },
+      { maxWidth: 1920, maxHeight: 1080, maxFrameRate: 60 },
+    );
     expect(senders[0].setParameters.mock.calls[0][0].encodings[0]).toEqual({ rid: "r", scaleResolutionDownBy: 2, maxFramerate: 30 });
   });
 
@@ -145,7 +157,12 @@ describe("owner peers", () => {
   });
 
   it("survives a browser that rejects the sender parameters", async () => {
-    vi.spyOn(FakeRTCPeerConnection.prototype, "addTrack").mockImplementation((() => ({ setParameters: async () => { throw new Error("no"); }, getParameters: () => ({}) })) as never);
+    vi.spyOn(FakeRTCPeerConnection.prototype, "addTrack").mockImplementation((() => ({
+      setParameters: async () => {
+        throw new Error("no");
+      },
+      getParameters: () => ({}),
+    })) as never);
     const context = setupPeers();
     await context.capture(displayStream().stream);
     register(context, { streamId: "mine", ownerPeerId: "me" });
@@ -161,7 +178,9 @@ describe("codec preference", () => {
     const setCodecPreferences = vi.fn();
     const codecs = [{ mimeType: "video/H264" }, { mimeType: "video/VP8" }, { mimeType: "video/VP9" }];
     vi.stubGlobal("RTCRtpReceiver", { getCapabilities: () => ({ codecs }) });
-    vi.spyOn(StatsPeer.prototype, "getTransceivers").mockReturnValue([{ sender: { track: null }, receiver: { track: { kind: "video" } }, setCodecPreferences }]);
+    vi.spyOn(StatsPeer.prototype, "getTransceivers").mockReturnValue([
+      { sender: { track: null }, receiver: { track: { kind: "video" } }, setCodecPreferences },
+    ]);
     const context = setupPeers();
     await context.module.startScreenShareViewer(register(context));
     expect(setCodecPreferences).toHaveBeenCalledWith([codecs[1], codecs[0], codecs[2]]);
@@ -169,8 +188,12 @@ describe("codec preference", () => {
   });
 
   it("does nothing without VP8 in the capabilities, and swallows a rejecting browser", async () => {
-    const setCodecPreferences = vi.fn(() => { throw new Error("no"); });
-    vi.spyOn(StatsPeer.prototype, "getTransceivers").mockReturnValue([{ sender: { track: null }, receiver: { track: { kind: "video" } }, setCodecPreferences }]);
+    const setCodecPreferences = vi.fn(() => {
+      throw new Error("no");
+    });
+    vi.spyOn(StatsPeer.prototype, "getTransceivers").mockReturnValue([
+      { sender: { track: null }, receiver: { track: { kind: "video" } }, setCodecPreferences },
+    ]);
     vi.stubGlobal("RTCRtpReceiver", { getCapabilities: () => ({ codecs: [{ mimeType: "video/VP9" }] }) });
     const first = setupPeers();
     await first.module.startScreenShareViewer(register(first));
@@ -221,7 +244,9 @@ describe("closing", () => {
   it("a peer that throws on close is still forgotten", async () => {
     const context = setupPeers();
     await context.module.startScreenShareViewer(register(context));
-    vi.spyOn(context.peers[0], "close").mockImplementation(() => { throw new Error("already closed"); });
+    vi.spyOn(context.peers[0], "close").mockImplementation(() => {
+      throw new Error("already closed");
+    });
     expect(() => context.module.closeScreenSharePeer("owner-1")).not.toThrow();
     await context.module.startScreenShareViewer(register(context, { streamId: "s2" }));
     expect(context.peers).toHaveLength(2);

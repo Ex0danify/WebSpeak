@@ -1,9 +1,11 @@
 import { nextTick } from "vue";
+import { registerAdminStores } from "./adminStores";
 import { createPinia, setActivePinia } from "pinia";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useI18n } from "@/shared/i18n/useI18n";
 import { createAdminFormat } from "./adminFormat";
-import { createRelayNode, DEFAULT_WELCOME_TEXTS, mapRelayNodes, useAdminServerSettingsStore, welcomeLanguageOptions } from "./adminServerSettings";
+import { createRelayNode, DEFAULT_WELCOME_TEXTS, mapRelayNodes, welcomeLanguageOptions } from "./adminServerForm";
+import { useAdminServerSettingsStore } from "./adminServerSettings";
 import { LANGUAGES } from "@/shared/i18n/languages";
 import { useAdminOverviewStore } from "./adminOverview";
 import { useAdminSessionStore } from "./adminSession";
@@ -25,7 +27,10 @@ function setup(adminScreen = true) {
   return { st: useAdminServerSettingsStore(), admin, getJson, sendJson, loadOverview, notify };
 }
 
-beforeEach(() => setActivePinia(createPinia()));
+beforeEach(() => {
+  setActivePinia(createPinia());
+  registerAdminStores();
+});
 
 describe("mapRelayNodes / createRelayNode", () => {
   it("keeps only well-formed nodes and never carries a token over", () => {
@@ -44,10 +49,23 @@ describe("mapRelayNodes / createRelayNode", () => {
 describe("useAdminServerSettingsStore", () => {
   it("loadServerSettings splits the target and fills defaults", async () => {
     const s = setup();
-    s.getJson.mockResolvedValue({ target: "ts.example.com:9988", accessMode: "open", welcomeTexts: { de: "Hallo" }, webRtcUdpStart: 0, relayNodes: [{ id: "r", name: "R", target: "t" }] });
+    s.getJson.mockResolvedValue({
+      target: "ts.example.com:9988",
+      accessMode: "open",
+      welcomeTexts: { de: "Hallo" },
+      webRtcUdpStart: 0,
+      relayNodes: [{ id: "r", name: "R", target: "t" }],
+    });
     await s.st.loadServerSettings();
     expect(s.getJson).toHaveBeenCalledWith("/api/admin/server");
-    expect(s.st.serverForm).toMatchObject({ address: "ts.example.com", port: "9988", accessMode: "open", welcomeTexts: { de: "Hallo" }, webRtcUdpStart: 40000, passwordAction: "keep" });
+    expect(s.st.serverForm).toMatchObject({
+      address: "ts.example.com",
+      port: "9988",
+      accessMode: "open",
+      welcomeTexts: { de: "Hallo" },
+      webRtcUdpStart: 40000,
+      passwordAction: "keep",
+    });
     expect(s.st.serverForm.relayNodes).toHaveLength(1);
     expect(s.st.serverForm.welcomeDefaults.en).toBe(DEFAULT_WELCOME_TEXTS.en);
   });
@@ -94,12 +112,19 @@ describe("useAdminServerSettingsStore", () => {
     s.st.serverForm.port = "1";
     s.st.serverForm.passwordAction = "replace";
     s.st.serverForm.serverPassword = "pw";
-    s.st.serverForm.relayNodes = [{ id: "n", name: "N", enabled: true, target: "t", token: "tok", tokenAction: "replace", hasToken: false }];
+    s.st.serverForm.relayNodes = [
+      { id: "n", name: "N", enabled: true, target: "t", token: "tok", tokenAction: "replace", hasToken: false },
+    ];
     s.sendJson.mockResolvedValue({ settings: { target: "h2:2", siteName: "Saved" } });
     await s.st.saveServerSettings();
     const [url, method, body] = s.sendJson.mock.calls[0];
     expect([url, method]).toEqual(["/api/admin/server", "PUT"]);
-    expect(body).toMatchObject({ target: expect.stringContaining("h"), serverPassword: "pw", passwordAction: "replace", relayNodes: [{ id: "n", tokenAction: "replace", token: "tok" }] });
+    expect(body).toMatchObject({
+      target: expect.stringContaining("h"),
+      serverPassword: "pw",
+      passwordAction: "replace",
+      relayNodes: [{ id: "n", tokenAction: "replace", token: "tok" }],
+    });
     expect(s.st.serverForm).toMatchObject({ address: "h2", port: "2", siteName: "Saved", serverPassword: "", passwordAction: "keep" });
     expect(s.loadOverview).toHaveBeenCalled();
     expect(s.notify).toHaveBeenCalledWith(t("settingsSaved"));

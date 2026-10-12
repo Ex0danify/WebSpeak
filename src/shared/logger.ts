@@ -26,16 +26,10 @@ export function createLogger(logDir?: string): Logger {
       censor: "[Redacted]",
     },
   };
-  const baseLogger = logDir
-    ? createFileLogger(loggerOptions, `${logDir}/webspeak.log`)
-    : pino(loggerOptions, pino.destination(1));
+  const baseLogger = logDir ? createFileLogger(loggerOptions, `${logDir}/webspeak.log`) : pino(loggerOptions, pino.destination(1));
 
   function wrap(l: pino.Logger): Logger {
-    function doLog(
-      level: "debug" | "info" | "warn" | "error",
-      objOrMsg: Record<string, unknown> | string,
-      msg?: string,
-    ): void {
+    function doLog(level: "debug" | "info" | "warn" | "error", objOrMsg: Record<string, unknown> | string, msg?: string): void {
       if (typeof objOrMsg === "string") {
         l[level](objOrMsg);
       } else {
@@ -44,14 +38,10 @@ export function createLogger(logDir?: string): Logger {
     }
 
     return {
-      debug: (objOrMsg: Record<string, unknown> | string, msg?: string) =>
-        doLog("debug", objOrMsg, msg),
-      info: (objOrMsg: Record<string, unknown> | string, msg?: string) =>
-        doLog("info", objOrMsg, msg),
-      warn: (objOrMsg: Record<string, unknown> | string, msg?: string) =>
-        doLog("warn", objOrMsg, msg),
-      error: (objOrMsg: Record<string, unknown> | string, msg?: string) =>
-        doLog("error", objOrMsg, msg),
+      debug: (objOrMsg: Record<string, unknown> | string, msg?: string) => doLog("debug", objOrMsg, msg),
+      info: (objOrMsg: Record<string, unknown> | string, msg?: string) => doLog("info", objOrMsg, msg),
+      warn: (objOrMsg: Record<string, unknown> | string, msg?: string) => doLog("warn", objOrMsg, msg),
+      error: (objOrMsg: Record<string, unknown> | string, msg?: string) => doLog("error", objOrMsg, msg),
       child: (bindings: Record<string, unknown>) => wrap(l.child(bindings)),
     };
   }
@@ -61,10 +51,13 @@ export function createLogger(logDir?: string): Logger {
 
 function createFileLogger(options: { level: string; timestamp: typeof pino.stdTimeFunctions.isoTime }, logPath: string): pino.Logger {
   mkdirSync(logPath.replace(/[\\/][^\\/]+$/, ""), { recursive: true });
-  return pino(options, pino.multistream([
-    { level: "info", stream: process.stdout },
-    { level: "debug", stream: new RotatingFileStream(logPath) },
-  ]));
+  return pino(
+    options,
+    pino.multistream([
+      { level: "info", stream: process.stdout },
+      { level: "debug", stream: new RotatingFileStream(logPath) },
+    ]),
+  );
 }
 
 class RotatingFileStream extends Writable {

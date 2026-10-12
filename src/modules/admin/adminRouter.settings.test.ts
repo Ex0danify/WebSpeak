@@ -1,12 +1,12 @@
 import { describe, expect, it, vi } from "vitest";
-import { settingsInput } from "../../../test/helpers/adminService.js";
-import { type AdminApi, type Gateway, useGateway } from "../../../test/helpers/gateway.js";
+import { settingsInput } from "../../../test/support/adminService.js";
+import { type AdminApi, type Gateway, useGateway } from "../../../test/support/gateway.js";
 import { TeamSpeakProbeError } from "../teamspeak/teamSpeakProbe.js";
 
 const gateways = useGateway();
 
 async function json(response: Response): Promise<Record<string, any>> {
-  return await response.json() as Record<string, any>;
+  return (await response.json()) as Record<string, any>;
 }
 
 async function start(options?: Parameters<typeof gateways.start>[0]): Promise<{ gateway: Gateway; admin: AdminApi }> {
@@ -21,21 +21,55 @@ describe("GET /server", () => {
     const { admin } = await start();
     const settings = await json(await admin.get("server"));
     expect(Object.keys(settings).sort()).toEqual([
-      "accessMode", "hasPassword", "hasRelayToken", "internalPort", "lastTestAt", "lastTestError", "lastTestLatencyMs",
-      "relayConfigured", "relayEnabled", "relayName", "relayNodes", "relayTarget", "siteName", "target", "updatedAt",
-      "webRtcEnabled", "webRtcUdpEnd", "webRtcUdpStart", "welcomeDefaults", "welcomeTexts",
+      "accessMode",
+      "hasPassword",
+      "hasRelayToken",
+      "internalPort",
+      "lastTestAt",
+      "lastTestError",
+      "lastTestLatencyMs",
+      "relayConfigured",
+      "relayEnabled",
+      "relayName",
+      "relayNodes",
+      "relayTarget",
+      "siteName",
+      "target",
+      "updatedAt",
+      "webRtcEnabled",
+      "webRtcUdpEnd",
+      "webRtcUdpStart",
+      "welcomeDefaults",
+      "welcomeTexts",
     ]);
-    expect(settings).toMatchObject({ hasPassword: false, hasRelayToken: false, webRtcEnabled: false, siteName: "WebSpeak", internalPort: 3040 });
+    expect(settings).toMatchObject({
+      hasPassword: false,
+      hasRelayToken: false,
+      webRtcEnabled: false,
+      siteName: "WebSpeak",
+      internalPort: 3040,
+    });
   });
 });
 
 describe("PUT /server", () => {
   it("saves, answers with the saved settings, and audits it", async () => {
     const { gateway, admin } = await start();
-    const response = await admin.put("server", settingsInput({ siteName: "Renamed", welcomeTexts: { en: "hello", de: "hallo de", fr: "salut" } }));
+    const response = await admin.put(
+      "server",
+      settingsInput({ siteName: "Renamed", welcomeTexts: { en: "hello", de: "hallo de", fr: "salut" } }),
+    );
     const saved = await json(response);
     expect(response.status).toBe(200);
-    expect(saved).toMatchObject({ ok: true, settings: { siteName: "Renamed", target: "ts.example.org:9988", accessMode: "open", welcomeTexts: { en: "hello", de: "hallo de", fr: "salut" } } });
+    expect(saved).toMatchObject({
+      ok: true,
+      settings: {
+        siteName: "Renamed",
+        target: "ts.example.org:9988",
+        accessMode: "open",
+        welcomeTexts: { en: "hello", de: "hallo de", fr: "salut" },
+      },
+    });
     expect(await json(await admin.get("server"))).toEqual(saved.settings);
     expect(audit(gateway)[0]).toBe("SETTINGS_CHANGED");
   });
@@ -45,8 +79,13 @@ describe("PUT /server", () => {
     await admin.put("server", settingsInput({ passwordAction: "replace", serverPassword: "keep-me" }));
     const before = await json(await admin.get("server"));
     const body = {
-      target: before.target, accessMode: before.accessMode, siteName: before.siteName, welcomeTexts: before.welcomeTexts,
-      webRtcEnabled: before.webRtcEnabled, webRtcUdpStart: before.webRtcUdpStart, webRtcUdpEnd: before.webRtcUdpEnd,
+      target: before.target,
+      accessMode: before.accessMode,
+      siteName: before.siteName,
+      welcomeTexts: before.welcomeTexts,
+      webRtcEnabled: before.webRtcEnabled,
+      webRtcUdpStart: before.webRtcUdpStart,
+      webRtcUdpEnd: before.webRtcUdpEnd,
     };
     expect((await admin.put("server", body)).status).toBe(200);
     const after = await json(await admin.get("server"));
@@ -56,10 +95,19 @@ describe("PUT /server", () => {
 
   it("never returns the server password or the relay token, in the answer or later", async () => {
     const { admin } = await start();
-    const saved = await admin.put("server", settingsInput({
-      passwordAction: "replace", serverPassword: "s3cret-server-pass",
-      relaySettingsAction: "replace", relayEnabled: true, relayName: "Relay", relayTarget: "relay.example.org:39087", relayTokenAction: "replace", relayToken: "s3cret-relay-token",
-    }));
+    const saved = await admin.put(
+      "server",
+      settingsInput({
+        passwordAction: "replace",
+        serverPassword: "s3cret-server-pass",
+        relaySettingsAction: "replace",
+        relayEnabled: true,
+        relayName: "Relay",
+        relayTarget: "relay.example.org:39087",
+        relayTokenAction: "replace",
+        relayToken: "s3cret-relay-token",
+      }),
+    );
     const texts = [await saved.text(), await (await admin.get("server")).text()];
     for (const text of texts) {
       expect(text).not.toContain("s3cret");
@@ -96,9 +144,27 @@ describe("PUT /server", () => {
       ["UDP port as text", { webRtcUdpEnd: "40000" }, "INVALID_REQUEST"],
       ["UDP port below 1024", { webRtcUdpStart: 500 }, "INVALID_WEBRTC_PORT_RANGE"],
       ["UDP range backwards", { webRtcUdpStart: 50000, webRtcUdpEnd: 40000 }, "INVALID_WEBRTC_PORT_RANGE"],
-      ["enabled relay without a name", { relaySettingsAction: "replace", relayEnabled: true, relayTarget: "relay.example.org:39087", relayTokenAction: "replace", relayToken: "t" }, "INVALID_RELAY_NAME"],
-      ["enabled relay without a target", { relaySettingsAction: "replace", relayEnabled: true, relayName: "R", relayTokenAction: "replace", relayToken: "t" }, "INVALID_RELAY_TARGET"],
-      ["enabled relay without a token", { relaySettingsAction: "replace", relayEnabled: true, relayName: "R", relayTarget: "relay.example.org:39087" }, "INVALID_RELAY_TOKEN"],
+      [
+        "enabled relay without a name",
+        {
+          relaySettingsAction: "replace",
+          relayEnabled: true,
+          relayTarget: "relay.example.org:39087",
+          relayTokenAction: "replace",
+          relayToken: "t",
+        },
+        "INVALID_RELAY_NAME",
+      ],
+      [
+        "enabled relay without a target",
+        { relaySettingsAction: "replace", relayEnabled: true, relayName: "R", relayTokenAction: "replace", relayToken: "t" },
+        "INVALID_RELAY_TARGET",
+      ],
+      [
+        "enabled relay without a token",
+        { relaySettingsAction: "replace", relayEnabled: true, relayName: "R", relayTarget: "relay.example.org:39087" },
+        "INVALID_RELAY_TOKEN",
+      ],
     ];
     for (const [label, override, code] of cases) {
       const response = await admin.put("server", { ...settingsInput(), ...override });
@@ -110,7 +176,13 @@ describe("PUT /server", () => {
 
   it("cuts a welcome text to 500 characters instead of refusing it, and reads a non-boolean webRtcEnabled as off", async () => {
     const { admin } = await start();
-    const saved = await json(await admin.put("server", { ...settingsInput(), welcomeTexts: { en: "e".repeat(501), de: "d".repeat(600), "not a language": "x", fr: 5 }, webRtcEnabled: "yes" }));
+    const saved = await json(
+      await admin.put("server", {
+        ...settingsInput(),
+        welcomeTexts: { en: "e".repeat(501), de: "d".repeat(600), "not a language": "x", fr: 5 },
+        webRtcEnabled: "yes",
+      }),
+    );
     expect(saved.settings.welcomeTexts.en).toHaveLength(500);
     expect(saved.settings.welcomeTexts.de).toHaveLength(500);
     expect(Object.keys(saved.settings.welcomeTexts).sort()).toEqual(["de", "en"]);
@@ -119,10 +191,14 @@ describe("PUT /server", () => {
 
   it("locks the UDP port range while WebRTC is on", async () => {
     const { admin } = await start();
-    expect((await admin.put("server", settingsInput({ webRtcEnabled: true, webRtcUdpStart: 40000, webRtcUdpEnd: 40100 }))).status).toBe(200);
+    expect((await admin.put("server", settingsInput({ webRtcEnabled: true, webRtcUdpStart: 40000, webRtcUdpEnd: 40100 }))).status).toBe(
+      200,
+    );
     const moved = await admin.put("server", settingsInput({ webRtcEnabled: true, webRtcUdpStart: 41000, webRtcUdpEnd: 41100 }));
     expect([moved.status, (await json(moved)).code]).toEqual([400, "WEBRTC_PORT_LOCKED"]);
-    expect((await admin.put("server", settingsInput({ webRtcEnabled: true, webRtcUdpStart: 40000, webRtcUdpEnd: 40100 }))).status).toBe(200);
+    expect((await admin.put("server", settingsInput({ webRtcEnabled: true, webRtcUdpStart: 40000, webRtcUdpEnd: 40100 }))).status).toBe(
+      200,
+    );
   });
 });
 
@@ -149,13 +225,28 @@ describe("POST /server/test", () => {
   it("answers a silent port with ok false and its code, and still reports the host ping (a live host, a dead server)", async () => {
     const { gateway, admin } = await start();
     gateway.probe.mockRejectedValueOnce(new TeamSpeakProbeError("NO_ANSWER", "silent"));
-    expect(await post(admin).then(async (r) => [r.status, await json(r)])).toEqual([200, { ok: false, latencyMs: null, errorCode: "NO_ANSWER", hostPing }]);
+    expect(await post(admin).then(async (r) => [r.status, await json(r)])).toEqual([
+      200,
+      { ok: false, latencyMs: null, errorCode: "NO_ANSWER", hostPing },
+    ]);
   });
 
   it("passes when the port answers although the host does not answer ping (ICMP blocked)", async () => {
     const { gateway, admin } = await start();
-    gateway.ping.mockResolvedValueOnce({ ok: false, latencyMs: null, packetLossPercent: 100, attempts: 4, successfulAttempts: 0, samples: [], errorCode: "TIMEOUT" });
-    expect(await json(await post(admin))).toMatchObject({ ok: true, latencyMs: 12, hostPing: { ok: false, packetLossPercent: 100, errorCode: "TIMEOUT" } });
+    gateway.ping.mockResolvedValueOnce({
+      ok: false,
+      latencyMs: null,
+      packetLossPercent: 100,
+      attempts: 4,
+      successfulAttempts: 0,
+      samples: [],
+      errorCode: "TIMEOUT",
+    });
+    expect(await json(await post(admin))).toMatchObject({
+      ok: true,
+      latencyMs: 12,
+      hostPing: { ok: false, packetLossPercent: 100, errorCode: "TIMEOUT" },
+    });
   });
 
   it("answers any other error as 400 INTERNAL_ERROR", async () => {
@@ -167,7 +258,10 @@ describe("POST /server/test", () => {
   it("refuses a missing or invalid target without probing", async () => {
     const { gateway, admin } = await start();
     expect(await post(admin, {}).then(async (r) => [r.status, (await json(r)).code])).toEqual([400, "INVALID_REQUEST"]);
-    expect(await post(admin, { target: "not a target:::" }).then(async (r) => [r.status, (await json(r)).code])).toEqual([400, "INVALID_TARGET"]);
+    expect(await post(admin, { target: "not a target:::" }).then(async (r) => [r.status, (await json(r)).code])).toEqual([
+      400,
+      "INVALID_TARGET",
+    ]);
     expect(gateway.probe).not.toHaveBeenCalled();
     expect(gateway.ping).not.toHaveBeenCalled();
   });
@@ -182,7 +276,12 @@ describe("POST /server/test", () => {
     expect((await json(await admin.get("overview"))).teamSpeak).toMatchObject({ status: "unreachable", lastError: "NO_ANSWER" });
     expect(audit(gateway).slice(0, 2)).toEqual(["CONNECTION_TEST_FAILED", "CONNECTION_TEST_SUCCEEDED"]);
     await admin.put("server", settingsInput({ target: "other.example.org:9987" }));
-    expect((await json(await admin.get("overview"))).teamSpeak).toMatchObject({ target: "other.example.org:9987", status: "unknown", lastTestAt: null, lastError: null });
+    expect((await json(await admin.get("overview"))).teamSpeak).toMatchObject({
+      target: "other.example.org:9987",
+      status: "unknown",
+      lastTestAt: null,
+      lastError: null,
+    });
   });
 });
 
@@ -210,7 +309,9 @@ describe("GET /overview", () => {
   });
 
   it("shows the legacy import notice until the administrator dismisses it", async () => {
-    const { gateway, admin } = await start({ legacyConfig: { tsHost: "legacy.example.org", tsPort: 9000, tsServerPassword: "legacy-secret" } });
+    const { gateway, admin } = await start({
+      legacyConfig: { tsHost: "legacy.example.org", tsPort: 9000, tsServerPassword: "legacy-secret" },
+    });
     expect((await json(await admin.get("overview"))).legacyConfigImported).toBe(true);
     expect(await json(await admin.get("server"))).toMatchObject({ target: "legacy.example.org:9000", hasPassword: true });
     expect(gateway.adminService.getConnectionPolicy().serverPassword).toBe("legacy-secret");

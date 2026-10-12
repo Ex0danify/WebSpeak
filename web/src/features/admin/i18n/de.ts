@@ -2,7 +2,8 @@ export const de: Record<string, string> = {
   loading: "Administrationskonsole wird geladen…",
   adminConsoleTitle: "Administrationskonsole",
   changePasswordTitle: "Standardpasswort ändern",
-  changePasswordLead: "Das Standardpasswort ist nur für die erste Anmeldung gedacht. Lege ein neues Passwort mit mindestens 12 Zeichen fest.",
+  changePasswordLead:
+    "Das Standardpasswort ist nur für die erste Anmeldung gedacht. Lege ein neues Passwort mit mindestens 12 Zeichen fest.",
   savePassword: "Neues Passwort speichern",
   defaultCredentialNotice: "Standardkonto: admin. Standardpasswort: admin. Das alte Passwort wird nach dem Speichern sofort ungültig.",
   adminUsername: "Administratorname",
@@ -33,7 +34,8 @@ export const de: Record<string, string> = {
   connectionFailed: "Verbindung fehlgeschlagen",
   packetLossRate: "Paketverlust",
   serverAnswered: "TeamSpeak-Server hat geantwortet",
-  serverAnsweredHint: "Der Server hat den Verbindungs-Handshake auf diesem Port beantwortet. Es wurde kein Client erstellt, daher wurde das Serverpasswort nicht geprüft.",
+  serverAnsweredHint:
+    "Der Server hat den Verbindungs-Handshake auf diesem Port beantwortet. Es wurde kein Client erstellt, daher wurde das Serverpasswort nicht geprüft.",
   noAnswerError: "Keine Antwort vom TeamSpeak-Server",
   noAnswerHint: "Auf diesem Sprachport hat nichts geantwortet. Prüfe den Port, ob der Server läuft und ob UDP nicht blockiert wird.",
   hostPing: "Host-Ping",
@@ -60,9 +62,11 @@ export const de: Record<string, string> = {
   webrtcPortRangeLead: "Den gesamten Bereich in der Firewall des Hosts und in der Sicherheitsgruppe freigeben.",
   webrtcPortStart: "Startport",
   webrtcPortEnd: "Endport",
-  webrtcApplyHint: "Der Bereich lässt sich nur bei ausgeschaltetem WebRTC ändern. Solange WebRTC aktiv ist, bleibt er gesperrt und gilt nach dem Speichern für neue Verbindungen.",
+  webrtcApplyHint:
+    "Der Bereich lässt sich nur bei ausgeschaltetem WebRTC ändern. Solange WebRTC aktiv ist, bleibt er gesperrt und gilt nach dem Speichern für neue Verbindungen.",
   webrtcPortNoticeTitle: "WebRTC-Ports zuerst freigeben",
-  webrtcPortNotice: "Diese Ports müssen geöffnet sein: {{range}} (UDP). Gib den Bereich zuerst in der Firewall des Hosts, in der Sicherheitsgruppe und in der Docker-Portzuordnung frei.",
+  webrtcPortNotice:
+    "Diese Ports müssen geöffnet sein: {{range}} (UDP). Gib den Bereich zuerst in der Firewall des Hosts, in der Sicherheitsgruppe und in der Docker-Portzuordnung frei.",
   relaySettings: "Relay-Server",
   relaySettingsLead: "Konfiguriere den Relay-Knoten für beschleunigte Verbindungen; sein Name wird auf der Startseite angezeigt.",
   relayName: "Anzeigename des Relays",
@@ -75,7 +79,8 @@ export const de: Record<string, string> = {
   relayAdd: "Relay-Knoten hinzufügen",
   relayNodeEmpty: "Keine Relay-Knoten konfiguriert.",
   relayUnnamed: "Unbenannter Relay",
-  relayManagedHint: "Der Relay wird über die Konsole verwaltet. Das Token wird verschlüsselt gespeichert und nie an den Browser zurückgegeben.",
+  relayManagedHint:
+    "Der Relay wird über die Konsole verwaltet. Das Token wird verschlüsselt gespeichert und nie an den Browser zurückgegeben.",
   accessMode: "Gastzugriff",
   fixedMode: "Nur dieser TeamSpeak-Server",
   fixedModeLead: "Gäste geben nur einen Namen ein; WebSpeak verwaltet Ziel und Passwort.",
@@ -91,7 +96,8 @@ export const de: Record<string, string> = {
   latency: "Latenz",
   internalPort: "Interner Port",
   unknown: "Unbekannt",
-  legacyImported: "Die alte config.json wurde importiert. WebSpeak wird jetzt hier verwaltet, die alte Datei ist keine aktive Konfigurationsquelle mehr.",
+  legacyImported:
+    "Die alte config.json wurde importiert. WebSpeak wird jetzt hier verwaltet, die alte Datei ist keine aktive Konfigurationsquelle mehr.",
   gotIt: "Verstanden",
   settingsSaved: "Einstellungen gespeichert.",
   systemStatus: "SYSTEMSTATUS",
@@ -180,7 +186,8 @@ export const de: Record<string, string> = {
   logsUnavailable: "Protokolldatei nicht verfügbar",
   noLogs: "Keine Protokolle verfügbar.",
   operationFailed: "Vorgang fehlgeschlagen. Bitte später erneut versuchen.",
-  updateNotice: "Laufende Version: {{version}}. Exportiere vor einem Upgrade eine Sicherung und ersetze die Anwendung dann gemäß der Bereitstellungsanleitung.",
+  updateNotice:
+    "Laufende Version: {{version}}. Exportiere vor einem Upgrade eine Sicherung und ersetze die Anwendung dann gemäß der Bereitstellungsanleitung.",
   version: "Version",
   audit: "Prüfprotokoll",
   auditLead: "Aktionen von Administratoren und System; Chatinhalte und Geheimnisse sind ausgenommen.",
@@ -198,7 +205,8 @@ export const de: Record<string, string> = {
   adminLoginFailedEvent: "Administrator-Anmeldung fehlgeschlagen",
   connectionTestSucceededEvent: "Verbindungstest erfolgreich",
   connectionTestFailedEvent: "Verbindungstest fehlgeschlagen",
-  adminErr_INVALID_WEBRTC_PORT_RANGE: "Der WebRTC-UDP-Portbereich ist ungültig. Verwende 1024–65535; der Startport darf nicht größer als der Endport sein.",
+  adminErr_INVALID_WEBRTC_PORT_RANGE:
+    "Der WebRTC-UDP-Portbereich ist ungültig. Verwende 1024–65535; der Startport darf nicht größer als der Endport sein.",
   adminErr_WEBRTC_PORT_LOCKED: "WebRTC ist aktiviert. Deaktiviere es und speichere zuerst, bevor du den Portbereich änderst.",
   adminErr_INVALID_RELAY_NAME: "Der Relay-Name ist ungültig oder leer.",
   adminErr_INVALID_RELAY_TARGET: "Die Relay-Serveradresse ist ungültig.",

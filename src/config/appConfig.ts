@@ -1,10 +1,7 @@
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { dirname } from "node:path";
 import { isRecord } from "../shared/typeGuards.js";
-import {
-  DEFAULT_TEAM_SPEAK_PORT,
-  parseTeamSpeakTargetParts,
-} from "../shared/teamSpeakTarget.js";
+import { DEFAULT_TEAM_SPEAK_PORT, parseTeamSpeakTargetParts } from "../shared/teamSpeakTarget.js";
 
 /** The only TeamSpeak state still read from the legacy JSON config. */
 export interface AppConfig {
@@ -21,18 +18,12 @@ export function getDefaultConfig(): AppConfig {
   };
 }
 
-/**
- * Convert both the old JSON shape and the M000 shape into the normalized
- * normalized legacy model. Deprecated fields are intentionally ignored and disappear
- * when the migrated model is written back.
- */
+/** Converts the old JSON shape into the normalized legacy model. Deprecated fields are dropped and vanish on write-back. */
 export function migrateConfig(input: unknown): AppConfig {
   const defaults = getDefaultConfig();
   if (!isRecord(input)) return defaults;
 
-  const rawHost = typeof input.tsHost === "string" && input.tsHost.trim()
-    ? input.tsHost.trim()
-    : defaults.tsHost;
+  const rawHost = typeof input.tsHost === "string" && input.tsHost.trim() ? input.tsHost.trim() : defaults.tsHost;
   const rawPort = input.tsPort === undefined ? undefined : input.tsPort;
   let target;
   try {
@@ -56,7 +47,7 @@ export function loadConfig(path: string): AppConfig {
   }
 }
 
-/** Write only the normalized legacy shape; this is the one-time legacy cleanup. */
+/** Write only the normalized legacy shape, this is the one-time legacy cleanup. */
 export function saveConfig(path: string, config: AppConfig): void {
   try {
     mkdirSync(dirname(path), { recursive: true });

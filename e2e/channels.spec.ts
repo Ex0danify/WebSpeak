@@ -1,12 +1,12 @@
 import type { Locator, Page } from "@playwright/test";
 import { expect, type Script, test } from "./fixtures";
 import { channelGroup, channelHeading, join, memberRow } from "./helpers";
-import type { FakeRemoteMember } from "../test/helpers/fakeTsClient";
-import type { Gateway } from "../test/helpers/gateway";
+import type { FakeRemoteMember } from "../test/support/fakeTsClient";
+import type { Gateway } from "../test/support/gateway";
 
-// The channel tree and the voice cards of the connected view. Real gateway, fake TeamSpeak server.
-// The gateway of a worker is shared by its tests, so every test builds its own channels (removed
-// afterwards) and counts only the people it put there.
+// The channel tree and the voice cards of the connected view, on the real gateway and fake TeamSpeak server. The gateway is
+// shared by a worker's tests, so every test builds its own channels (removed afterwards) and counts only the people it put
+// there.
 
 // Opus's own 20 ms silence frame. Its content does not matter to the tree; it has to be a valid packet
 // so the browser's decoder has nothing to complain about.
@@ -81,9 +81,8 @@ test.describe("channel tree", () => {
     await expect.poll(() => headingColor(page, "Lobby")).not.toBe(current);
   });
 
-  // Someone else (an administrator dragging you) moves you: the list shows you in the new channel,
-  // and the view now follows (F22): the highlight, the voice cards and the channel chat tab move
-  // with it.
+  // Someone else (an administrator dragging you) moves you, and the view follows. The list, the highlight, the voice cards
+  // and the channel chat tab all move with it.
   async function beMovedByAnother(page: Page, gateway: Gateway, script: Script, nickname: string) {
     const other = script.channel(`${nickname}-other`);
     script.member(`${nickname}-lobby-mate`);
@@ -96,13 +95,13 @@ test.describe("channel tree", () => {
     return { before, otherName: `${nickname}-other` };
   }
 
-  test("F22: the highlight follows a move someone else made", async ({ page, gateway, script }) => {
+  test("the highlight follows a move someone else made", async ({ page, gateway, script }) => {
     const { before, otherName } = await beMovedByAnother(page, gateway, script, "tree-moved-marker");
     await expect.poll(() => headingColor(page, otherName), { timeout: 2000 }).toBe(before);
     await expect.poll(() => headingColor(page, "Lobby"), { timeout: 2000 }).not.toBe(before);
   });
 
-  test("F22: the channel chat tab and the voice card count follow a move someone else made", async ({ page, gateway, script, isMobile }) => {
+  test("the channel chat tab and the voice card count follow a move someone else made", async ({ page, gateway, script, isMobile }) => {
     const { otherName } = await beMovedByAnother(page, gateway, script, "tree-moved-chat");
     // The chat tab strip's channel tab is named after the current channel.
     if (!isMobile) {
@@ -117,7 +116,7 @@ test.describe("channel tree", () => {
 });
 
 test.describe("speaking", () => {
-  /** Sends frames until the browser shows the member as speaking: the first ones may arrive before the page listens. */
+  /** Sends frames until the browser shows the member as speaking, the first ones may arrive before the page listens. */
   async function speakUntilShown(remote: FakeRemoteMember, shown: Locator): Promise<void> {
     await expect(async () => {
       remote.speak(OPUS_SILENCE);
@@ -137,7 +136,11 @@ test.describe("speaking", () => {
     await expect(row.getByText("Speaking…")).toBeHidden();
   });
 
-  test("the voice section has a card for each person in your channel, and the speaker's card says so", async ({ page, script, isMobile }) => {
+  test("the voice section has a card for each person in your channel, and the speaker's card says so", async ({
+    page,
+    script,
+    isMobile,
+  }) => {
     const talker = script.member("speak-card-talker");
     script.member("speak-card-away", script.channel("speak-card-other"));
     await join(page, "speak-card-self");
@@ -158,7 +161,10 @@ test.describe("speaking", () => {
 });
 
 test.describe("member search", () => {
-  test("keeps the channels whose name or members match, ignoring case and spaces around, and says so when none does", async ({ page, script }) => {
+  test("keeps the channels whose name or members match, ignoring case and spaces around, and says so when none does", async ({
+    page,
+    script,
+  }) => {
     const alpha = script.channel("search-chan-alpha");
     const beta = script.channel("search-chan-beta");
     script.member("zq-alpha", alpha);

@@ -1,14 +1,17 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { stubLogger } from "../../../test/helpers/adminService.js";
-import { type Gateway, TEST_ADMIN_PASSWORD, useGateway } from "../../../test/helpers/gateway.js";
+import { stubLogger } from "../../../test/support/adminService.js";
+import { type Gateway, TEST_ADMIN_PASSWORD, useGateway } from "../../../test/support/gateway.js";
 import { createAdminRouter } from "./adminRouter.js";
 import { AdminSessionStore } from "./adminSession.js";
 
 // The real limiter runs, only its wait (250 ms up to 2 s after each failure) is skipped and recorded.
 const waits = vi.hoisted(() => [] as number[]);
 vi.mock("./loginRateLimit.js", async (importOriginal) => ({
-  ...await importOriginal<typeof import("./loginRateLimit.js")>(),
-  waitFor: (ms: number) => { waits.push(ms); return Promise.resolve(); },
+  ...(await importOriginal<typeof import("./loginRateLimit.js")>()),
+  waitFor: (ms: number) => {
+    waits.push(ms);
+    return Promise.resolve();
+  },
 }));
 
 const gateways = useGateway();
@@ -23,7 +26,7 @@ afterEach(() => {
 
 async function login(gateway: Gateway, body: unknown) {
   const response = await gateway.request("/api/admin/login", { method: "POST", headers: JSON_HEADERS, body: JSON.stringify(body) });
-  return { response, body: await response.json() as Record<string, unknown> };
+  return { response, body: (await response.json()) as Record<string, unknown> };
 }
 
 const audit = (gateway: Gateway) => gateway.database.recentAudit(50).map((row) => row.event);
@@ -40,12 +43,16 @@ describe("status and session", () => {
 
   it("describes an anonymous visitor and a logged-in administrator", async () => {
     const gateway = await gateways.start();
-    expect(await (await gateway.request("/api/admin/session")).json()).toEqual({ initialized: true, authenticated: false, mustChangePassword: false });
+    expect(await (await gateway.request("/api/admin/session")).json()).toEqual({
+      initialized: true,
+      authenticated: false,
+      mustChangePassword: false,
+    });
     const admin = await gateway.adminLogin();
-    const session = await (await admin.get("session")).json() as Record<string, unknown>;
+    const session = (await (await admin.get("session")).json()) as Record<string, unknown>;
     expect(session).toMatchObject({ initialized: true, authenticated: true, mustChangePassword: false, csrfToken: admin.csrfToken });
-    expect(session.expiresAt as number - Date.now()).toBeGreaterThan(12 * HOUR_MS - 60_000);
-    expect(session.expiresAt as number - Date.now()).toBeLessThanOrEqual(12 * HOUR_MS);
+    expect((session.expiresAt as number) - Date.now()).toBeGreaterThan(12 * HOUR_MS - 60_000);
+    expect((session.expiresAt as number) - Date.now()).toBeLessThanOrEqual(12 * HOUR_MS);
   });
 
   it("ends a session after 12 hours", async () => {
@@ -71,7 +78,11 @@ describe("login", () => {
 
   it("refuses a wrong password or user name with 401 INVALID_PASSWORD, no cookie, and audits it", async () => {
     const gateway = await gateways.start();
-    for (const credentials of [{ username: "admin", password: "wrong" }, { username: "root", password: TEST_ADMIN_PASSWORD }, { username: "admin" }]) {
+    for (const credentials of [
+      { username: "admin", password: "wrong" },
+      { username: "root", password: TEST_ADMIN_PASSWORD },
+      { username: "admin" },
+    ]) {
       const { response, body } = await login(gateway, credentials);
       expect(response.status, JSON.stringify(credentials)).toBe(401);
       expect(body).toEqual({ ok: false, code: "INVALID_PASSWORD" });
@@ -83,14 +94,24 @@ describe("login", () => {
   it("refuses a malformed body with 400 INVALID_REQUEST, a non-JSON one with 415, another origin with 403, and an unset-up gateway with 409", async () => {
     const gateway = await gateways.start();
     for (const body of [{}, { username: 5, password: "x" }, [1]]) {
-      expect(await login(gateway, body), JSON.stringify(body)).toMatchObject({ response: { status: 400 }, body: { ok: false, code: "INVALID_REQUEST" } });
+      expect(await login(gateway, body), JSON.stringify(body)).toMatchObject({
+        response: { status: 400 },
+        body: { ok: false, code: "INVALID_REQUEST" },
+      });
     }
     const text = await gateway.request("/api/admin/login", { method: "POST", headers: { "content-type": "text/plain" }, body: "{}" });
-    expect([text.status, (await text.json() as { code: string }).code]).toEqual([415, "JSON_REQUIRED"]);
-    const foreign = await gateway.request("/api/admin/login", { method: "POST", headers: { ...JSON_HEADERS, origin: "https://evil.example" }, body: "{}" });
-    expect([foreign.status, (await foreign.json() as { code: string }).code]).toEqual([403, "ORIGIN_REJECTED"]);
+    expect([text.status, ((await text.json()) as { code: string }).code]).toEqual([415, "JSON_REQUIRED"]);
+    const foreign = await gateway.request("/api/admin/login", {
+      method: "POST",
+      headers: { ...JSON_HEADERS, origin: "https://evil.example" },
+      body: "{}",
+    });
+    expect([foreign.status, ((await foreign.json()) as { code: string }).code]).toEqual([403, "ORIGIN_REJECTED"]);
     const empty = await gateways.start({ initialize: false });
-    expect(await login(empty, { username: "admin", password: "admin" })).toMatchObject({ response: { status: 409 }, body: { code: "NOT_INITIALIZED" } });
+    expect(await login(empty, { username: "admin", password: "admin" })).toMatchObject({
+      response: { status: 409 },
+      body: { code: "NOT_INITIALIZED" },
+    });
   });
 
   it("waits longer after each failure (250, 500, 1000, 2000, 2000 ms)", async () => {
@@ -101,7 +122,9 @@ describe("login", () => {
 });
 
 describe("login lockout", () => {
-  const fail = async (gateway: Gateway, times: number) => { for (let i = 0; i < times; i++) await login(gateway, { username: "admin", password: "wrong" }); };
+  const fail = async (gateway: Gateway, times: number) => {
+    for (let i = 0; i < times; i++) await login(gateway, { username: "admin", password: "wrong" });
+  };
 
   it("locks the peer out after 5 failures, even for the right password, and says for how long", async () => {
     const gateway = await gateways.start();
@@ -139,19 +162,22 @@ describe("first-run password change", () => {
     expect(await (await admin.get("session")).json()).toMatchObject({ authenticated: true, mustChangePassword: true });
     for (const path of ["overview", "server", "sessions", "invites", "audit", "logs", "diagnostics", "diagnostics/report", "backup"]) {
       const response = await admin.get(path);
-      expect([response.status, (await response.json() as { code: string }).code], path).toEqual([403, "PASSWORD_CHANGE_REQUIRED"]);
+      expect([response.status, ((await response.json()) as { code: string }).code], path).toEqual([403, "PASSWORD_CHANGE_REQUIRED"]);
     }
     expect((await admin.put("server", {})).status).toBe(403);
 
     const weak = await admin.post("change-password", { newPassword: "short" });
-    expect([weak.status, (await weak.json() as { code: string }).code]).toEqual([400, "INVALID_ADMIN_PASSWORD"]);
+    expect([weak.status, ((await weak.json()) as { code: string }).code]).toEqual([400, "INVALID_ADMIN_PASSWORD"]);
     expect((await admin.get("overview")).status).toBe(403);
 
     const changed = await admin.post("change-password", { newPassword: "a brand new password 1" });
     expect(await changed.json()).toEqual({ ok: true, mustChangePassword: false });
     expect((await admin.get("overview")).status).toBe(200);
     expect(await login(gateway, { username: "admin", password: "admin" })).toMatchObject({ response: { status: 401 } });
-    expect(await login(gateway, { username: "admin", password: "a brand new password 1" })).toMatchObject({ response: { status: 200 }, body: { mustChangePassword: false } });
+    expect(await login(gateway, { username: "admin", password: "a brand new password 1" })).toMatchObject({
+      response: { status: 200 },
+      body: { mustChangePassword: false },
+    });
   });
 });
 
@@ -182,9 +208,19 @@ describe("every mutating admin route needs the same origin, JSON and the CSRF to
 
   it("has a row in this table for every POST and PUT route of the router, and for none that does not exist", async () => {
     const gateway = await gateways.start();
-    const router = createAdminRouter({ service: gateway.adminService, sessions: new AdminSessionStore(), logger: stubLogger(), getActiveSessions: () => 0, getPeakSessions: () => 0, startedAt: Date.now() });
+    const router = createAdminRouter({
+      service: gateway.adminService,
+      sessions: new AdminSessionStore(),
+      logger: stubLogger(),
+      getActiveSessions: () => 0,
+      getPeakSessions: () => 0,
+      startedAt: Date.now(),
+    });
     const layers = (router as unknown as { stack: { route?: { path: string; methods: Record<string, boolean> } }[] }).stack;
-    const found = layers.flatMap((layer) => layer.route ? Object.keys(layer.route.methods).map((method) => `${method.toUpperCase()} ${layer.route!.path}`) : [])
+    const found = layers
+      .flatMap((layer) =>
+        layer.route ? Object.keys(layer.route.methods).map((method) => `${method.toUpperCase()} ${layer.route!.path}`) : [],
+      )
       .filter((route) => /^(POST|PUT|PATCH|DELETE) /.test(route) && route !== "POST /login");
     expect(found.sort()).toEqual(ROUTES.map((route) => `${route.method} ${route.path}`).sort());
   });
@@ -197,16 +233,27 @@ describe("every mutating admin route needs the same origin, JSON and the CSRF to
       const init = { method: route.method, body: "{}", headers: { "content-type": "application/json", ...headers } };
       return useOrigin ? gateway.request(path, init) : fetch(gateway.url + path, init);
     };
-    const codeOf = async (response: Response) => [response.status, (await response.json() as { code: string }).code];
+    const codeOf = async (response: Response) => [response.status, ((await response.json()) as { code: string }).code];
     for (const route of ROUTES) {
       const label = `${route.method} ${route.path}`;
-      expect(await codeOf(await send(route, {})), `${label} without a session`).toEqual(route.guard === "admin" ? [401, "AUTH_REQUIRED"] : [403, "CSRF_REJECTED"]);
+      expect(await codeOf(await send(route, {})), `${label} without a session`).toEqual(
+        route.guard === "admin" ? [401, "AUTH_REQUIRED"] : [403, "CSRF_REJECTED"],
+      );
       expect(await codeOf(await send(route, { cookie: admin.cookie })), `${label} without the token`).toEqual([403, "CSRF_REJECTED"]);
-      expect(await codeOf(await send(route, { cookie: admin.cookie, "x-csrf-token": "wrong" })), `${label} with a wrong token`).toEqual([403, "CSRF_REJECTED"]);
+      expect(await codeOf(await send(route, { cookie: admin.cookie, "x-csrf-token": "wrong" })), `${label} with a wrong token`).toEqual([
+        403,
+        "CSRF_REJECTED",
+      ]);
       const good = { cookie: admin.cookie, "x-csrf-token": admin.csrfToken };
-      expect(await codeOf(await send(route, { ...good, origin: "https://evil.example" })), `${label} from another origin`).toEqual([403, "ORIGIN_REJECTED"]);
+      expect(await codeOf(await send(route, { ...good, origin: "https://evil.example" })), `${label} from another origin`).toEqual([
+        403,
+        "ORIGIN_REJECTED",
+      ]);
       expect(await codeOf(await send(route, good, false)), `${label} without an origin`).toEqual([403, "ORIGIN_REJECTED"]);
-      expect(await codeOf(await send(route, { ...good, "content-type": "text/plain" })), `${label} without JSON`).toEqual([415, "JSON_REQUIRED"]);
+      expect(await codeOf(await send(route, { ...good, "content-type": "text/plain" })), `${label} without JSON`).toEqual([
+        415,
+        "JSON_REQUIRED",
+      ]);
     }
     expect((await admin.get("overview")).status, "none of the rejected requests changed the session").toBe(200);
   });

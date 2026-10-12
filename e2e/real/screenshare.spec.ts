@@ -2,12 +2,9 @@ import type { Locator, Page } from "@playwright/test";
 import { launchOptions, poll } from "../helpers";
 import { expect, test, type Person } from "./fixtures";
 
-// Screen share through the real TeamSpeak server (step 5.6). The share itself is WebRTC between the
-// two browsers (the gateway relays the signalling and announces the share to TeamSpeak), so what a
-// test can see is what a person sees: the card of the sharer, the viewer with a playing video, and
-// both sides clearing when the share stops. Chromium's fake-device flags make `getDisplayMedia`
-// answer with a generated picture and no picker; the rest of the flags are the ones the G-SMOKE
-// scripts needed to capture without asking (`e2e/legacy/screenshare2.mjs`).
+// Screen share through the real TeamSpeak server. The share is WebRTC between the two browsers (the gateway relays the
+// signalling and announces it to TeamSpeak), so a test sees what a person sees. Chromium's fake-device flags make
+// `getDisplayMedia` answer with a generated picture and no picker.
 test.use({
   launchOptions: launchOptions([
     "--auto-accept-this-tab-capture",
@@ -36,11 +33,16 @@ interface VideoState {
 const videoState = (page: Page): Promise<VideoState | null> =>
   page.evaluate(() => {
     const video = document.querySelector("video");
-    return video ? { width: video.videoWidth, ready: video.readyState, paused: video.paused, volume: video.volume, time: video.currentTime } : null;
+    return video
+      ? { width: video.videoWidth, ready: video.readyState, paused: video.paused, volume: video.volume, time: video.currentTime }
+      : null;
   });
 
 /** Two people in one channel of their own, Alice first. */
-async function twoInARoom(person: (index: number, label: string) => Promise<Person>, channel: string): Promise<{ alice: Person; bob: Person }> {
+async function twoInARoom(
+  person: (index: number, label: string) => Promise<Person>,
+  channel: string,
+): Promise<{ alice: Person; bob: Person }> {
   const alice = await person(0, "share-alice");
   const bob = await person(1, "share-bob");
   await alice.join(channel);
@@ -48,17 +50,24 @@ async function twoInARoom(person: (index: number, label: string) => Promise<Pers
   return { alice, bob };
 }
 
-/** Alice shares through the settings dialog and Bob starts watching; returns once Bob has live video. */
+/** Alice shares through the settings dialog and Bob starts watching, returns once Bob has live video. */
 async function shareAndWatch(alice: Person, bob: Person): Promise<void> {
   await shareSettings(alice.page).click();
   await settingsDialog(alice.page).getByRole("button", { name: "Share screen" }).click();
   await expect(stopButton(alice.page)).toBeVisible();
   await watchButton(bob.page).click();
   await expect(player(bob.page)).toBeVisible();
-  await poll(() => videoState(bob.page), (state) => state !== null && state.width > 0 && state.ready >= 2, { message: "Bob's video to have a picture" });
+  await poll(
+    () => videoState(bob.page),
+    (state) => state !== null && state.width > 0 && state.ready >= 2,
+    { message: "Bob's video to have a picture" },
+  );
 }
 
-test("the settings dialog offers the output quality, and a share started from it reaches the other browser as live video", async ({ person, testChannel }) => {
+test("the settings dialog offers the output quality, and a share started from it reaches the other browser as live video", async ({
+  person,
+  testChannel,
+}) => {
   const room = await testChannel("real-share");
   const { alice, bob } = await twoInARoom(person, room.name);
 
@@ -88,10 +97,18 @@ test("the settings dialog offers the output quality, and a share started from it
 
   await watchButton(bob.page).click();
   await expect(player(bob.page)).toBeVisible();
-  const live = await poll(() => videoState(bob.page), (state) => state !== null && state.width > 0 && state.ready >= 2, { message: "Bob's video to have a picture" });
+  const live = await poll(
+    () => videoState(bob.page),
+    (state) => state !== null && state.width > 0 && state.ready >= 2,
+    { message: "Bob's video to have a picture" },
+  );
   expect(live?.paused).toBe(false);
   // The picture moves: the playback position advances.
-  await poll(() => videoState(bob.page), (state) => state !== null && state.time > live!.time, { message: "Bob's video to keep playing" });
+  await poll(
+    () => videoState(bob.page),
+    (state) => state !== null && state.time > live!.time,
+    { message: "Bob's video to keep playing" },
+  );
   await expect(bob.page.getByText("Watching", { exact: true }).first()).toBeVisible();
 
   expect(alice.session.pageErrors).toEqual([]);
@@ -107,12 +124,24 @@ test("the share volume slider sets the volume of the video, and Exit viewer leav
   expect((await videoState(bob.page))?.volume).toBe(1);
   await volume(bob.page).focus();
   await bob.page.keyboard.press("Home");
-  await poll(() => videoState(bob.page), (state) => state?.volume === 0, { message: "the video to be silent at 0%" });
+  await poll(
+    () => videoState(bob.page),
+    (state) => state?.volume === 0,
+    { message: "the video to be silent at 0%" },
+  );
   await bob.page.keyboard.press("ArrowRight");
-  const raised = await poll(() => videoState(bob.page), (state) => state !== null && state.volume > 0, { message: "the video to get louder" });
+  const raised = await poll(
+    () => videoState(bob.page),
+    (state) => state !== null && state.volume > 0,
+    { message: "the video to get louder" },
+  );
   expect(raised?.volume).toBeLessThan(1);
   await bob.page.keyboard.press("End");
-  await poll(() => videoState(bob.page), (state) => state?.volume === 1, { message: "the video to be at full volume at 100%" });
+  await poll(
+    () => videoState(bob.page),
+    (state) => state?.volume === 1,
+    { message: "the video to be at full volume at 100%" },
+  );
 
   await bob.page.getByRole("button", { name: "Exit viewer" }).click();
   await expect(player(bob.page)).toBeHidden();
@@ -120,7 +149,11 @@ test("the share volume slider sets the volume of the video, and Exit viewer leav
   await expect(stopButton(alice.page)).toBeVisible();
   // Watching again works: the share never stopped.
   await watchButton(bob.page).click();
-  await poll(() => videoState(bob.page), (state) => state !== null && state.width > 0 && state.ready >= 2, { message: "Bob's video to have a picture the second time" });
+  await poll(
+    () => videoState(bob.page),
+    (state) => state !== null && state.width > 0 && state.ready >= 2,
+    { message: "Bob's video to have a picture the second time" },
+  );
 });
 
 test("stopping the share clears the sharer's card and the viewer's player and button", async ({ person, testChannel }) => {

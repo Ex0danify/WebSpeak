@@ -1,6 +1,6 @@
 <template>
   <section
-    class="flex h-dvh min-h-0 flex-col overflow-hidden bg-surface-0 text-fg desktop:h-[calc(100dvh/var(--ui-scale))] desktop:max-h-[calc(100dvh/var(--ui-scale))] max-compact:h-svh max-compact:max-h-svh max-compact:min-h-svh motion-reduce:**:animate-none motion-reduce:**:transition-none"
+    class="flex h-dvh min-h-0 flex-col overflow-hidden bg-surface-0 text-fg motion-reduce:**:animate-none motion-reduce:**:transition-none max-compact:h-svh max-compact:max-h-svh max-compact:min-h-svh desktop:h-[calc(100dvh/var(--ui-scale))] desktop:max-h-[calc(100dvh/var(--ui-scale))]"
   >
     <JoinHeader
       class="relative z-10 mx-auto flex min-h-18 w-[min(1240px,calc(100%-64px))] animate-join-fade-up items-center justify-between max-compact:min-h-[calc(62px+env(safe-area-inset-top,0px))] max-compact:w-[min(100%-28px,560px)] max-compact:pt-[env(safe-area-inset-top,0px)] max-phone-lg:w-[calc(100%-20px)] max-phone-lg:gap-1.5"
@@ -16,11 +16,7 @@
     <main
       class="relative z-1 mx-auto grid min-h-0 w-[min(1240px,calc(100%-64px))] flex-1 grid-cols-[minmax(0,1fr)_minmax(480px,520px)] items-center gap-[clamp(40px,6vw,88px)] overflow-y-auto pt-7 pb-9 max-medium:gap-10 max-compact:flex max-compact:w-[min(100%-28px,560px)] max-compact:flex-col max-compact:items-stretch max-compact:justify-start max-compact:gap-6 max-compact:pt-6 max-compact:pb-7 max-phone:gap-4.5"
     >
-      <JoinHero
-        :welcome-text="localizedWelcomeText"
-        :visitor-number="visitorNumber"
-        :visitor-total="visitorTotal"
-      />
+      <JoinHero :welcome-text="localizedWelcomeText" :visitor-number="visitorNumber" :visitor-total="visitorTotal" />
 
       <JoinForm
         v-model:server-host="serverHost"
@@ -51,15 +47,15 @@
       />
     </main>
 
-    <JoinFooter class="animate-join-fade-up-late" @clear-local-data="clearBrowserData" />
+    <JoinFooter class="animate-join-fade-up-late" :app-version="appVersion" @clear-local-data="clearBrowserData" />
 
     <QqDialog v-model="qqModalOpen" />
   </section>
 
   <!-- TeamSpeak server password modal -->
   <PasswordDialog
-    :open="serverPasswordDialog.open"
     v-model:password="serverPasswordDialog.password"
+    :open="serverPasswordDialog.open"
     :title="t('serverPasswordTitle')"
     :lead="serverPasswordDialog.errorCode === 'INVALID_SERVER_PASSWORD' ? t('serverPasswordInvalidLead') : t('serverPasswordRequiredLead')"
     :label="t('serverPasswordPrompt')"
@@ -73,7 +69,6 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from "vue";
 import PasswordDialog from "@/shared/components/PasswordDialog.vue";
 import { useAppearance } from "@/shared/composables/useAppearance";
 import { useI18n } from "@/shared/i18n/useI18n";
@@ -81,13 +76,7 @@ import { JoinFooter, JoinForm, JoinHeader, JoinHero, QqDialog, useJoinForm, useJ
 import { useRoomContext } from "@/features/room";
 
 const room = useRoomContext();
-const {
-  state: voiceState,
-  identityMaterial,
-  connect,
-  disconnect,
-  clearError,
-} = room.session;
+const { state: voiceState, identityMaterial, connect, disconnect, clearError } = room.session;
 const { checkSupport } = room.audio;
 
 const { t } = useI18n();

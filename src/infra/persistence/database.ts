@@ -90,11 +90,7 @@ export class WebSpeakDatabase {
     });
   }
 
-  recordConnectionTest(result: {
-    protocol: TeamSpeakProtocol | null;
-    latencyMs: number | null;
-    error: string | null;
-  }): void {
+  recordConnectionTest(result: { protocol: TeamSpeakProtocol | null; latencyMs: number | null; error: string | null }): void {
     this.settings.recordConnectionTest(result);
   }
 
@@ -125,7 +121,11 @@ export class WebSpeakDatabase {
       this.database.exec(`VACUUM INTO '${escapedPath}'`);
       return readFileSync(exportPath);
     } finally {
-      try { unlinkSync(exportPath); } catch { /* best effort cleanup */ }
+      try {
+        unlinkSync(exportPath);
+      } catch {
+        /* best effort cleanup */
+      }
     }
   }
 

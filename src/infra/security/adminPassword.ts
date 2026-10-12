@@ -61,11 +61,7 @@ export async function verifyAdminPassword(password: string, credential: AdminCre
   }
 }
 
-async function derive(
-  password: string,
-  salt: Buffer,
-  parameters: { N: number; r: number; p: number; maxmem: number },
-): Promise<Buffer> {
+async function derive(password: string, salt: Buffer, parameters: { N: number; r: number; p: number; maxmem: number }): Promise<Buffer> {
   return new Promise((resolve, reject) => {
     scrypt(password, salt, KEY_LENGTH, parameters, (error, result) => {
       if (error) reject(error);

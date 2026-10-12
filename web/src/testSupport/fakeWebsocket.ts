@@ -46,13 +46,11 @@ export class FakeWebSocket {
     if (this.accumulateBuffered && typeof data !== "string" && !(data instanceof Blob)) this.bufferedAmount += data.byteLength;
   }
 
-  /** The browser closing the socket: it stays CLOSING until the test calls `serverClose`. */
+  /** The browser closing the socket, it stays CLOSING until the test calls `serverClose`. */
   close(code?: number, reason?: string): void {
     this.closedWith = { code, reason };
     this.readyState = FakeWebSocket.CLOSING;
   }
-
-  // ---- test controls -------------------------------------------------------
 
   /** The handshake completing. */
   open(): void {
@@ -83,11 +81,11 @@ export class FakeWebSocket {
     this.onclose?.({ code, reason });
   }
 
-  // ---- inspection ----------------------------------------------------------
-
   /** Every JSON text frame the composable has sent, parsed. */
   get sentJson(): Record<string, unknown>[] {
-    return this.sent.filter((frame): frame is string => typeof frame === "string").map((frame) => JSON.parse(frame) as Record<string, unknown>);
+    return this.sent
+      .filter((frame): frame is string => typeof frame === "string")
+      .map((frame) => JSON.parse(frame) as Record<string, unknown>);
   }
 
   /** Every binary frame the composable has sent (PCM uplink). */

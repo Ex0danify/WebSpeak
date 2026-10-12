@@ -1,5 +1,5 @@
-// Characterization of the chat, whisper, latency, command and audio-transport messages
-// (Step V0.3b, part 1). The screen-share family is in messages.screenshare.test.ts.
+// Characterization of the chat, whisper, latency, command and audio-transport messages.
+// The screen-share family is in messages.screenshare.test.ts.
 import { flushPromises } from "@vue/test-utils";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { createVoiceHarness, type VoiceHarness } from "@/testSupport/harness";
@@ -26,9 +26,26 @@ afterEach(() => {
 describe("chatMessage", () => {
   it("stores a channel message with defaults for missing fields", async () => {
     const socket = await connected();
-    await push(socket, { type: "chatMessage", scope: "channel", invokerId: 9, invokerName: "Ana", message: "hi", timestamp: 123, senderUid: "u9", targetId: 4 });
+    await push(socket, {
+      type: "chatMessage",
+      scope: "channel",
+      invokerId: 9,
+      invokerName: "Ana",
+      message: "hi",
+      timestamp: 123,
+      senderUid: "u9",
+      targetId: 4,
+    });
     expect(harness.voice.chat.chatMessages).toHaveLength(1);
-    expect(harness.voice.chat.chatMessages[0]).toMatchObject({ scope: "channel", targetId: "4", senderId: 9, senderUid: "u9", invokerName: "Ana", message: "hi", timestamp: 123 });
+    expect(harness.voice.chat.chatMessages[0]).toMatchObject({
+      scope: "channel",
+      targetId: "4",
+      senderId: 9,
+      senderUid: "u9",
+      invokerName: "Ana",
+      message: "hi",
+      timestamp: 123,
+    });
     expect(harness.voice.chat.chatMessages[0].id).toMatch(/^remote-/);
     expect(harness.voice.chat.chatMessages[0]).not.toHaveProperty("conversationId");
   });
@@ -67,7 +84,13 @@ describe("serverEvent / pokeReceived", () => {
     await push(socket, { type: "pokeReceived", invokerId: 9, invokerUid: "u9", invokerName: "Ana", message: "wake up", timestamp: 55 });
     await push(socket, { type: "pokeReceived" });
     expect(harness.voice.roster.pokeNotifications).toHaveLength(2);
-    expect(harness.voice.roster.pokeNotifications[0]).toMatchObject({ invokerId: 9, invokerUid: "u9", invokerName: "Ana", message: "wake up", timestamp: 55 });
+    expect(harness.voice.roster.pokeNotifications[0]).toMatchObject({
+      invokerId: 9,
+      invokerUid: "u9",
+      invokerName: "Ana",
+      message: "wake up",
+      timestamp: 55,
+    });
     expect(harness.voice.roster.pokeNotifications[0].id).toMatch(/^poke-/);
     expect(harness.voice.roster.pokeNotifications[1]).toMatchObject({ invokerId: 0, invokerUid: "", invokerName: "Unknown", message: "" });
   });
@@ -78,7 +101,13 @@ describe("latencyPong", () => {
     const socket = await connected();
     const probe = harness.voice.session.measureLatency();
     const [{ payload }] = socket.sentOfType("latencyProbe") as [{ payload: { sequence: string } }];
-    await push(socket, { type: "latencyPong", sequence: payload.sequence, teamSpeakLatencyMs: 31, teamSpeakReachable: true, teamSpeakErrorCode: "SLOW" });
+    await push(socket, {
+      type: "latencyPong",
+      sequence: payload.sequence,
+      teamSpeakLatencyMs: 31,
+      teamSpeakReachable: true,
+      teamSpeakErrorCode: "SLOW",
+    });
     const result = await probe;
     expect(result).toMatchObject({ teamSpeakLatencyMs: 31, teamSpeakReachable: true, teamSpeakErrorCode: "SLOW" });
     expect(result?.browserRttMs).toBeGreaterThanOrEqual(0);
@@ -143,7 +172,14 @@ describe("commandCompleted / error with a request id", () => {
     const move = harness.voice.actions.moveClient(9, "2");
     await push(socket, { type: "commandCompleted", requestId: "other" });
     let settled = false;
-    void move.then(() => { settled = true; }, () => { settled = true; });
+    void move.then(
+      () => {
+        settled = true;
+      },
+      () => {
+        settled = true;
+      },
+    );
     await flushPromises();
     expect(settled).toBe(false);
     const outcome = expect(move).rejects.toThrow("The voice connection was closed");

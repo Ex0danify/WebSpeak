@@ -6,22 +6,29 @@ import type { ScreenSharePeerContext, createScreenSharePeerLifecycle } from "./s
 export interface ScreenShareSignallingContext extends ScreenSharePeerContext {
   lifecycle: ReturnType<typeof createScreenSharePeerLifecycle>;
   activeStreamId: Ref<string>;
-  localPeerId: () => string;
 }
 
 /** Offer/answer/ICE signalling on the peers the lifecycle owns: the viewer and native-viewer offers,
  *  incoming signals and the pending-candidate flush. */
 export function createScreenShareSignalling(ctx: ScreenShareSignallingContext) {
   const {
-    armScreenSharePeerTimer, closeScreenSharePeer, closeAllScreenSharePeers, setScreenShareP2PError,
-    failScreenSharePeer, createScreenSharePeer,
+    armScreenSharePeerTimer,
+    closeScreenSharePeer,
+    closeAllScreenSharePeers,
+    setScreenShareP2PError,
+    failScreenSharePeer,
+    createScreenSharePeer,
   } = ctx.lifecycle;
 
   async function flushScreenShareCandidates(peerId: string, peer: RTCPeerConnection): Promise<void> {
     const pending = ctx.pendingIce.get(peerId) ?? [];
     ctx.pendingIce.delete(peerId);
     for (const candidate of pending) {
-      try { await peer.addIceCandidate(candidate); } catch { /* an obsolete candidate can be ignored */ }
+      try {
+        await peer.addIceCandidate(candidate);
+      } catch {
+        /* an obsolete candidate can be ignored */
+      }
     }
   }
 
@@ -54,7 +61,7 @@ export function createScreenShareSignalling(ctx: ScreenShareSignallingContext) {
 
   async function startNativeScreenShareViewer(streamId: string, peerId: string): Promise<void> {
     const stream = ctx.streams.find((candidate) => candidate.streamId === streamId);
-    if (!stream || stream.source !== "browser" || ctx.activeStreamId.value !== streamId || stream.ownerPeerId !== ctx.localPeerId()) return;
+    if (!stream || stream.source !== "browser" || ctx.activeStreamId.value !== streamId) return;
     closeScreenSharePeer(peerId);
     const peer = createScreenSharePeer(streamId, peerId, "owner");
     try {
@@ -96,11 +103,20 @@ export function createScreenShareSignalling(ctx: ScreenShareSignallingContext) {
         ctx.pendingIce.set(fromPeerId, [...(ctx.pendingIce.get(fromPeerId) ?? []), candidate]);
         return;
       }
-      try { await peer.addIceCandidate(candidate); } catch { /* stale ICE is not fatal */ }
+      try {
+        await peer.addIceCandidate(candidate);
+      } catch {
+        /* stale ICE is not fatal */
+      }
       return;
     }
 
-    if (stream.source === "teamspeak" && ctx.viewingStreamId.value === streamId && fromPeerId === stream.ownerPeerId && signal.kind === "offer") {
+    if (
+      stream.source === "teamspeak" &&
+      ctx.viewingStreamId.value === streamId &&
+      fromPeerId === stream.ownerPeerId &&
+      signal.kind === "offer"
+    ) {
       const peer = ctx.peers.get(fromPeerId) ?? createScreenSharePeer(streamId, fromPeerId, "viewer");
       if (!signal.sdp) return;
       armScreenSharePeerTimer(fromPeerId);
@@ -116,7 +132,12 @@ export function createScreenShareSignalling(ctx: ScreenShareSignallingContext) {
       return;
     }
 
-    if (stream.source === "browser" && ctx.activeStreamId.value === streamId && stream.ownerPeerId === ctx.localPeerId() && fromPeerId.startsWith("ts-viewer-") && signal.kind === "answer") {
+    if (
+      stream.source === "browser" &&
+      ctx.activeStreamId.value === streamId &&
+      fromPeerId.startsWith("ts-viewer-") &&
+      signal.kind === "answer"
+    ) {
       const peer = ctx.peers.get(fromPeerId);
       if (!peer || !signal.sdp) return;
       try {
@@ -140,7 +161,7 @@ export function createScreenShareSignalling(ctx: ScreenShareSignallingContext) {
       return;
     }
 
-    if (ctx.activeStreamId.value === streamId && stream.ownerPeerId === ctx.localPeerId()) {
+    if (ctx.activeStreamId.value === streamId) {
       const peer = ctx.peers.get(fromPeerId) ?? createScreenSharePeer(streamId, fromPeerId, "owner");
       if (signal.kind !== "offer" || !signal.sdp) return;
       armScreenSharePeerTimer(fromPeerId);

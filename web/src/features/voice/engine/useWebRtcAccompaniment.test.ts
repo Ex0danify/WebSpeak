@@ -1,8 +1,15 @@
 // The accompaniment (shared display audio) mixed into the WebRTC stream, driven through the transport that owns the peer.
 import { describe, expect, it, vi } from "vitest";
 import { FakeMediaStream, FakeMediaStreamTrack } from "@/testSupport/browserStubs";
-import { FakeDisplayTrack, recordSources, rtc, setup, shareAccompaniment, started, useTransportFixture } from "@/testSupport/webRtcTransportFixture";
-import { useVoiceAudioStore } from "../stores/voiceAudioStore";
+import {
+  FakeDisplayTrack,
+  recordSources,
+  rtc,
+  setup,
+  shareAccompaniment,
+  started,
+  useTransportFixture,
+} from "@/testSupport/webRtcTransportFixture";
 
 useTransportFixture();
 
@@ -39,7 +46,11 @@ describe("accompaniment", () => {
     const shared = await shareAccompaniment(peer, transport);
     expect(shared.video.stopped).toBe(true);
     expect(shared.audio.stopped).toBe(false);
-    expect(shared.audio.applyConstraints).toHaveBeenCalledWith({ autoGainControl: false, echoCancellation: false, noiseSuppression: false });
+    expect(shared.audio.applyConstraints).toHaveBeenCalledWith({
+      autoGainControl: false,
+      echoCancellation: false,
+      noiseSuppression: false,
+    });
     expect(shared.audio.contentHint).toBe("music");
     expect(audio.accompanimentActive).toBe(true);
     expect(audio.accompanimentErrorCode).toBe("");
@@ -53,13 +64,21 @@ describe("accompaniment", () => {
     const options: unknown[] = [];
     const devices = navigator.mediaDevices as unknown as { getSupportedConstraints: () => Record<string, boolean> };
     devices.getSupportedConstraints = () => ({ restrictOwnAudio: true });
-    displayMedia(async (...args: unknown[]) => { options.push(args[0]); return new FakeMediaStream([new FakeDisplayTrack("audio")]); });
-    vi.spyOn(peer, "getSenders").mockReturnValue([{ track: { kind: "audio" }, replaceTrack: async () => undefined }] as unknown as RTCRtpSender[]);
+    displayMedia(async (...args: unknown[]) => {
+      options.push(args[0]);
+      return new FakeMediaStream([new FakeDisplayTrack("audio")]);
+    });
+    vi.spyOn(peer, "getSenders").mockReturnValue([
+      { track: { kind: "audio" }, replaceTrack: async () => undefined },
+    ] as unknown as RTCRtpSender[]);
     await transport.startAccompaniment();
     devices.getSupportedConstraints = () => ({});
     await transport.startAccompaniment();
     expect(options[0]).toMatchObject({
-      video: { displaySurface: "browser" }, selfBrowserSurface: "exclude", systemAudio: "include", windowAudio: "window",
+      video: { displaySurface: "browser" },
+      selfBrowserSurface: "exclude",
+      systemAudio: "include",
+      windowAudio: "window",
       audio: { autoGainControl: false, echoCancellation: false, noiseSuppression: false, restrictOwnAudio: true },
     });
     expect((options[1] as { audio: object }).audio).not.toHaveProperty("restrictOwnAudio");
@@ -68,11 +87,15 @@ describe("accompaniment", () => {
   it("does nothing when the picker is dismissed, and reports a refused capture as a permission problem", async () => {
     const { audio, deps, transport } = await started();
     audio.accompanimentSupported = true;
-    displayMedia(async () => { throw new DOMException("dismissed", "AbortError"); });
+    displayMedia(async () => {
+      throw new DOMException("dismissed", "AbortError");
+    });
     await expect(transport.startAccompaniment()).resolves.toBeUndefined();
     expect(audio.accompanimentErrorCode).toBe("");
     expect(audio.accompanimentActive).toBe(false);
-    displayMedia(async () => { throw new DOMException("no", "NotAllowedError"); });
+    displayMedia(async () => {
+      throw new DOMException("no", "NotAllowedError");
+    });
     await expect(transport.startAccompaniment()).rejects.toBeInstanceOf(DOMException);
     expect(audio.accompanimentErrorCode).toBe("permission");
     expect(deps.sendCmd).not.toHaveBeenCalled();
@@ -95,7 +118,9 @@ describe("accompaniment", () => {
     const track = new FakeDisplayTrack("audio");
     track.applyConstraints.mockRejectedValue(new Error("optional"));
     displayMedia(async () => new FakeMediaStream([track]));
-    vi.spyOn(peer, "getSenders").mockReturnValue([{ track: { kind: "audio" }, replaceTrack: async () => undefined }] as unknown as RTCRtpSender[]);
+    vi.spyOn(peer, "getSenders").mockReturnValue([
+      { track: { kind: "audio" }, replaceTrack: async () => undefined },
+    ] as unknown as RTCRtpSender[]);
     await transport.startAccompaniment();
     expect(audio.accompanimentActive).toBe(true);
   });

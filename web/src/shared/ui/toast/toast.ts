@@ -7,7 +7,7 @@ export const toastRootClass =
 export const toastViewportClass =
   "fixed bottom-0 right-0 z-60 m-0 box-border flex w-[26rem] max-w-full list-none flex-col gap-2 p-4 outline-none";
 
-// The round status badge from the mock.
+// The round status badge.
 export const toastIconVariants = cva("mt-px inline-flex size-7 shrink-0 items-center justify-center rounded-full", {
   variants: {
     variant: {

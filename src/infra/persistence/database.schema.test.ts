@@ -1,7 +1,7 @@
 import { join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { describe, expect, it } from "vitest";
-import { mkdirSyncFor, useDatabaseFixture } from "../../../test/helpers/database.js";
+import { mkdirSyncFor, useDatabaseFixture } from "../../../test/support/database.js";
 
 const fx = useDatabaseFixture();
 

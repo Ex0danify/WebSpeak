@@ -17,7 +17,7 @@ const picked = (page: Page) => page.getByText(/^Last action:/);
 async function openMenu(page: Page): Promise<Locator> {
   await trigger(page).focus();
   await page.keyboard.press("Enter");
-  // Both the popup and the sheet are named by the label (F34).
+  // Both the popup and the sheet are named by the label.
   const menu = page.getByRole("menu").or(page.getByRole("dialog", { name: "Actions for Kestrel" }));
   await expect(menu).toBeVisible();
   return menu;
@@ -88,7 +88,7 @@ test.describe("popup (desktop)", () => {
     await expect(picked(page)).toHaveText("Last action: mute");
   });
 
-  test("the popup is named by its label, as the Menu doc comment says (F34)", async ({ page }) => {
+  test("the popup is named by its label, as the Menu doc comment says", async ({ page }) => {
     await openMenu(page);
     await expect(page.getByRole("menu")).toHaveAccessibleName("Actions for Kestrel");
     await expect(page.getByRole("menu")).not.toHaveAttribute("aria-labelledby");

@@ -1,5 +1,8 @@
 <template>
-  <div v-if="visiblePokes.length" class="fixed right-6 top-[82px] z-35 flex w-[380px] max-w-[calc(100%-48px)] flex-col gap-2 desktop:right-[calc(24px/var(--ui-scale))] desktop:top-[calc(82px/var(--ui-scale))]">
+  <div
+    v-if="visiblePokes.length"
+    class="fixed top-[82px] right-6 z-35 flex w-[380px] max-w-[calc(100%-48px)] flex-col gap-2 desktop:top-[calc(82px/var(--ui-scale))] desktop:right-[calc(24px/var(--ui-scale))]"
+  >
     <Banner
       v-for="poke in visiblePokes"
       :key="poke.id"
@@ -22,7 +25,7 @@ import { Banner } from "@/shared/ui/banner";
 import { useI18n } from "@/shared/i18n/useI18n.js";
 
 // Mirrors the inline shape of `pokeNotifications` in useRoomSession.ts, which has
-// no exported type of its own and is off-limits to edit (see decompose-plan.md §0.3).
+// no exported type of its own, so the shape is repeated here.
 interface PokeNotification {
   id: string;
   invokerId: number;

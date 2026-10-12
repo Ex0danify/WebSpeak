@@ -3,8 +3,8 @@ import { expect, test } from "./fixtures";
 import { installVoiceFixture, type ScriptedGatewayOptions } from "./fixtures/scripted-gateway";
 import { expectInRoom, submitJoin } from "./helpers";
 
-// The scripted gateway serves states the fake TeamSpeak client cannot produce cheaply. These tests
-// show that each one reaches the screen; what the UI does with them is covered by steps 4.4 and 4.7.
+// The scripted gateway serves states the fake TeamSpeak client cannot produce cheaply. These tests show that each one reaches
+// the screen, not what the UI does with them.
 
 async function scriptedJoin(page: Page, options?: ScriptedGatewayOptions) {
   const scripted = await installVoiceFixture(page.context(), options);
@@ -74,5 +74,9 @@ test("a protected channel asks for its password until it gets the right one", as
   await dialog.locator("input").fill("right");
   await page.keyboard.press("Enter");
   await expect(dialog).toBeHidden();
-  expect(scripted.commands.filter((command) => command.type === "switchChannel").map((command) => command.payload.password)).toEqual([undefined, "wrong", "right"]);
+  expect(scripted.commands.filter((command) => command.type === "switchChannel").map((command) => command.payload.password)).toEqual([
+    undefined,
+    "wrong",
+    "right",
+  ]);
 });

@@ -1,14 +1,12 @@
-import { flushPromises, mount, type VueWrapper } from "@vue/test-utils";
+import { flushPromises, type VueWrapper } from "@vue/test-utils";
 import { IDBFactory } from "fake-indexeddb";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type * as Persistence from "@/shared/services/localPersistence";
 import { mountClient, warmClient } from "@/testSupport/mountClient";
 
-// The remembered-identity flow of the join view, tested on the real component:
-// identity restore on mount, save when the gateway hands one out, and the
-// checkbox. Only the browser edges are replaced (IndexedDB, fetch, and the
-// AudioWorkletNode class that the noise suppressor library extends when it loads).
-// JoinView and useRoomSession run as they do in the app.
+// The remembered-identity flow of the join view on the real component: restore on mount, save when the gateway hands one out,
+// and the checkbox. Only the browser edges are replaced (IndexedDB, fetch, the AudioWorkletNode class the noise suppressor
+// extends), JoinView and useRoomSession run as in the app.
 
 const KEY = "webspeak:remember-identity";
 const STORED = "stored-identity-material";
@@ -25,7 +23,10 @@ let wrapper: VueWrapper | undefined;
 beforeAll(async () => {
   vi.stubGlobal("indexedDB", new IDBFactory());
   vi.stubGlobal("AudioWorkletNode", class {});
-  vi.stubGlobal("fetch", vi.fn(async () => new Response("{}", { status: 200, headers: { "content-type": "application/json" } })));
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async () => new Response("{}", { status: 200, headers: { "content-type": "application/json" } })),
+  );
   store = await import("@/shared/services/localPersistence");
   // mountClient() imports the router and JoinView lazily; under CPU load that cold import alone
   // exceeds the 5 s test default for the first test, so it is paid here against the 30 s budget.
@@ -74,8 +75,8 @@ describe("restoring the identity on mount", () => {
     expect(view.identityMaterial).toBe("");
   });
 
-  // F1: with no key the checkbox shows on, so the stored identity is restored, as the checkbox says.
-  it("restores a stored identity when the key was never written (F1)", async () => {
+  // With no key the checkbox shows on, so the stored identity is restored, as the checkbox says.
+  it("restores a stored identity when the key was never written", async () => {
     await store.saveStoredIdentity(STORED);
     const view = await mountView();
     expect(view.rememberIdentity).toBe(true);

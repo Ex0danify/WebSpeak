@@ -15,26 +15,42 @@ export interface UseRoomSoundsOptions {
 export function useRoomSounds({ voiceState, chatMessages, pokeNotifications, playNotification }: UseRoomSoundsOptions): void {
   const { t } = useI18n();
 
-  watch(() => chatMessages.length, (length, previousLength) => {
-    const latest = chatMessages[length - 1];
-    if (latest && length > previousLength && latest.scope === "private" && !latest.isSelf) playNotification("private");
-  });
-  watch(() => pokeNotifications.length, (length, previousLength) => {
-    const latest = pokeNotifications[length - 1];
-    if (!latest || length <= previousLength) return;
-    showToast(`${latest.invokerName} ${t("pokedYou")}${latest.message ? `: ${latest.message}` : ""}`);
-    playNotification("poke");
-    if (typeof Notification !== "undefined" && Notification.permission === "granted") new Notification(t("poke"), { body: `${latest.invokerName}: ${latest.message || t("pokedYou")}` });
-  });
-  watch(() => voiceState.connected, (connected) => {
-    if (connected) playNotification("connected");
-  });
-  watch(() => voiceState.reconnecting, (reconnecting, wasReconnecting) => {
-    if (reconnecting && !wasReconnecting) {
-      playNotification("disconnected");
-    }
-  });
-  watch(() => voiceState.reconnectFailed, (failed, wasFailed) => {
-    if (failed && !wasFailed) playNotification("reconnectFailed");
-  });
+  watch(
+    () => chatMessages.length,
+    (length, previousLength) => {
+      const latest = chatMessages[length - 1];
+      if (latest && length > previousLength && latest.scope === "private" && !latest.isSelf) playNotification("private");
+    },
+  );
+  watch(
+    () => pokeNotifications.length,
+    (length, previousLength) => {
+      const latest = pokeNotifications[length - 1];
+      if (!latest || length <= previousLength) return;
+      showToast(`${latest.invokerName} ${t("pokedYou")}${latest.message ? `: ${latest.message}` : ""}`);
+      playNotification("poke");
+      if (typeof Notification !== "undefined" && Notification.permission === "granted")
+        new Notification(t("poke"), { body: `${latest.invokerName}: ${latest.message || t("pokedYou")}` });
+    },
+  );
+  watch(
+    () => voiceState.connected,
+    (connected) => {
+      if (connected) playNotification("connected");
+    },
+  );
+  watch(
+    () => voiceState.reconnecting,
+    (reconnecting, wasReconnecting) => {
+      if (reconnecting && !wasReconnecting) {
+        playNotification("disconnected");
+      }
+    },
+  );
+  watch(
+    () => voiceState.reconnectFailed,
+    (failed, wasFailed) => {
+      if (failed && !wasFailed) playNotification("reconnectFailed");
+    },
+  );
 }

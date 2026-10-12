@@ -20,7 +20,8 @@ const RATE = 48_000;
 export function toneWav({ frequencyHz = 440, amplitude = 0.5, seconds = 5 }: ToneOptions = {}): Buffer {
   const samples = Math.round(RATE * seconds);
   const data = Buffer.alloc(samples * 2);
-  for (let i = 0; i < samples; i++) data.writeInt16LE(Math.round(Math.sin((2 * Math.PI * frequencyHz * i) / RATE) * amplitude * 32767), i * 2);
+  for (let i = 0; i < samples; i++)
+    data.writeInt16LE(Math.round(Math.sin((2 * Math.PI * frequencyHz * i) / RATE) * amplitude * 32767), i * 2);
   const header = Buffer.alloc(44);
   header.write("RIFF", 0);
   header.writeUInt32LE(36 + data.length, 4);
@@ -38,9 +39,9 @@ export function toneWav({ frequencyHz = 440, amplitude = 0.5, seconds = 5 }: Ton
 }
 
 /**
- * `test.use(withAudioTone({ frequencyHz: 440 }))` at the top of a spec file: the fake microphone of
- * every browser in that file plays this tone instead of Chromium's default beeps. Launch options
- * cannot be set in a describe block, so a test that needs another tone gets its own file.
+ * `test.use(withAudioTone({ frequencyHz: 440 }))` at the top of a spec file makes the fake microphone of every browser in it
+ * play this tone instead of Chromium's default beeps. Launch options can't be set in a describe block, so another tone needs
+ * its own file.
  */
 export function withAudioTone(options: ToneOptions = {}): { launchOptions: LaunchOptions } {
   const { frequencyHz = 440, amplitude = 0.5, seconds = 5, extraArgs = [] } = options;

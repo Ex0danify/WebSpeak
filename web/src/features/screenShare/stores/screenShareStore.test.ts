@@ -14,7 +14,12 @@ describe("useScreenShareStore", () => {
     const s = useScreenShareStore();
     expect(s.screenShareStreams).toHaveLength(0);
     expect([s.screenShareActive, s.screenShareStarting, s.screenShareViewing]).toEqual([false, false, false]);
-    expect([s.screenShareActiveStreamId, s.screenShareViewingStreamId, s.screenShareError, s.screenShareErrorCode]).toEqual(["", "", "", ""]);
+    expect([s.screenShareActiveStreamId, s.screenShareViewingStreamId, s.screenShareError, s.screenShareErrorCode]).toEqual([
+      "",
+      "",
+      "",
+      "",
+    ]);
     expect(s.screenShareRemoteStream).toBeNull();
     expect(s.screenShareRemoteVolume).toBe(1);
     expect(s.screenShareWebRtcStats).toEqual({ updatedAt: null, capture: null, peers: [] });
@@ -38,7 +43,12 @@ describe("useScreenShareStore", () => {
     s.reset();
     expect(s.screenShareStreams).toHaveLength(0);
     expect([s.screenShareActive, s.screenShareStarting, s.screenShareViewing]).toEqual([false, false, false]);
-    expect([s.screenShareActiveStreamId, s.screenShareViewingStreamId, s.screenShareError, s.screenShareErrorCode]).toEqual(["", "", "", ""]);
+    expect([s.screenShareActiveStreamId, s.screenShareViewingStreamId, s.screenShareError, s.screenShareErrorCode]).toEqual([
+      "",
+      "",
+      "",
+      "",
+    ]);
     expect(s.screenShareRemoteStream).toBeNull();
     expect(s.screenShareRemoteVolume).toBe(1);
     expect(s.screenShareWebRtcStats).toEqual({ updatedAt: null, capture: null, peers: [] });

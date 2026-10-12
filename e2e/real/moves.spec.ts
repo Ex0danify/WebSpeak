@@ -3,8 +3,8 @@ import { expect, test } from "./fixtures";
 import { channelGroup, openMemberMenu, poll } from "../helpers";
 import { channelIdOf, channelWith, menuAction, moveTarget } from "./ui";
 
-// Moving another member through the member menu (step 5.5). What decides it is the server's own
-// permissions: identities 0 to 3 are Server Admin, `GUEST_IDENTITY` is an ordinary guest (step 5.2b).
+// Moving another member through the member menu. What decides it is the server's own permissions, identities 0 to 3 are Server
+// Admin and `GUEST_IDENTITY` is an ordinary guest.
 
 test("an administrator moves a guest to another channel from the member menu", async ({ person, testChannel, query }) => {
   const from = await testChannel("real-move-from");
@@ -20,7 +20,11 @@ test("an administrator moves a guest to another channel from the member menu", a
   await moveTarget(admin.page, to.name).click();
 
   await expect(admin.page.getByText("Member moved", { exact: true })).toBeVisible();
-  await poll(() => channelIdOf(query, guest.nickname), (cid) => cid === to.id, { message: "the server to have moved the guest" });
+  await poll(
+    () => channelIdOf(query, guest.nickname),
+    (cid) => cid === to.id,
+    { message: "the server to have moved the guest" },
+  );
   for (const { page } of [admin, guest]) {
     await expect(channelWith(page, from.name, 1)).toBeVisible();
     await expect(channelWith(page, to.name, 1)).toBeVisible();

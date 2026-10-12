@@ -1,11 +1,13 @@
-// The router seams, stream list helpers and message sender of useScreenSharePeers (split from the session test).
+// The router seams, stream list helpers and message sender of useScreenSharePeers.
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { FakeMediaStream, FakeMediaStreamTrack, type BrowserStubs } from "@/testSupport/browserStubs";
 import { installPeerEnvironment, setupPeers } from "@/testSupport/screenSharePeers";
 
 let stubs: BrowserStubs;
 
-beforeEach(() => { stubs = installPeerEnvironment(); });
+beforeEach(() => {
+  stubs = installPeerEnvironment();
+});
 afterEach(() => {
   vi.restoreAllMocks();
   stubs.restore();
@@ -17,13 +19,17 @@ class DisplayTrack extends FakeMediaStreamTrack {
   surface: string | undefined;
   private readonly endedListeners: (() => void)[] = [];
   readonly listenerOptions: unknown[] = [];
-  override getSettings(): Record<string, unknown> { return this.surface ? { displaySurface: this.surface } : {}; }
+  override getSettings(): Record<string, unknown> {
+    return this.surface ? { displaySurface: this.surface } : {};
+  }
   override addEventListener(type?: string, listener?: () => void, options?: unknown): void {
     if (type !== "ended" || !listener) return;
     this.endedListeners.push(listener);
     this.listenerOptions.push(options);
   }
-  end(): void { for (const listener of this.endedListeners.splice(0)) listener(); }
+  end(): void {
+    for (const listener of this.endedListeners.splice(0)) listener();
+  }
 }
 
 function display(options: { video?: boolean; audio?: boolean; surface?: string } = {}) {
@@ -43,7 +49,13 @@ function picker(result: () => Promise<MediaStream>) {
 function deferredPicker() {
   let resolve: (stream: MediaStream) => void = () => {};
   let reject: (error: unknown) => void = () => {};
-  const getDisplayMedia = picker(() => new Promise<MediaStream>((ok, fail) => { resolve = ok; reject = fail; }));
+  const getDisplayMedia = picker(
+    () =>
+      new Promise<MediaStream>((ok, fail) => {
+        resolve = ok;
+        reject = fail;
+      }),
+  );
   return { getDisplayMedia, resolve: (stream: MediaStream) => resolve(stream), reject: (error: unknown) => reject(error) };
 }
 
@@ -98,12 +110,22 @@ describe("stream list helpers", () => {
     vi.spyOn(Date, "now").mockReturnValue(7_000);
     const first = context.module.upsertScreenShareStream({ streamId: "a", ownerPeerId: "p" });
     expect(first).toEqual({
-      streamId: "a", source: "browser", ownerPeerId: "p", ownerNickname: "", name: "", audio: false,
-      createdAt: 7_000, viewerCount: 0, viewers: [],
+      streamId: "a",
+      source: "browser",
+      ownerPeerId: "p",
+      ownerNickname: "",
+      name: "",
+      audio: false,
+      createdAt: 7_000,
+      viewerCount: 0,
+      viewers: [],
     });
     context.module.upsertScreenShareStream({ streamId: "b", ownerPeerId: "q", source: "teamspeak", ownerClientId: 4, audio: true });
     context.module.upsertScreenShareStream({ streamId: "a", ownerPeerId: "p", name: "renamed", viewerCount: 3 });
-    expect(context.store.screenShareStreams.map((stream) => [stream.streamId, stream.name])).toEqual([["a", "renamed"], ["b", ""]]);
+    expect(context.store.screenShareStreams.map((stream) => [stream.streamId, stream.name])).toEqual([
+      ["a", "renamed"],
+      ["b", ""],
+    ]);
     expect(context.store.screenShareStreams[1]).toMatchObject({ source: "teamspeak", ownerClientId: 4, audio: true });
   });
 
@@ -118,11 +140,28 @@ describe("stream list helpers", () => {
   it("upsertScreenShareStream ignores fields of the wrong type", () => {
     const context = setupPeers();
     vi.spyOn(Date, "now").mockReturnValue(9);
-    expect(context.module.upsertScreenShareStream({
-      streamId: "a", ownerPeerId: "p", ownerClientId: "4", ownerNickname: 1, name: 2, audio: "yes", createdAt: "x", viewerCount: "3", viewers: "no",
-    })).toEqual({
-      streamId: "a", source: "browser", ownerPeerId: "p", ownerNickname: "", name: "", audio: false,
-      createdAt: 9, viewerCount: 0, viewers: [],
+    expect(
+      context.module.upsertScreenShareStream({
+        streamId: "a",
+        ownerPeerId: "p",
+        ownerClientId: "4",
+        ownerNickname: 1,
+        name: 2,
+        audio: "yes",
+        createdAt: "x",
+        viewerCount: "3",
+        viewers: "no",
+      }),
+    ).toEqual({
+      streamId: "a",
+      source: "browser",
+      ownerPeerId: "p",
+      ownerNickname: "",
+      name: "",
+      audio: false,
+      createdAt: 9,
+      viewerCount: 0,
+      viewers: [],
     });
   });
 
@@ -135,7 +174,10 @@ describe("stream list helpers", () => {
       { peerId: "p".repeat(200), nickname: "n".repeat(200) },
       { peerId: "a", nickname: "b", avatar: "x".repeat(128 * 1024) },
       { peerId: "c", nickname: "d", avatar: "x".repeat(128 * 1024 + 1) },
-      { peerId: 1, nickname: "e" }, { peerId: "f" }, null, "g",
+      { peerId: 1, nickname: "e" },
+      { peerId: "f" },
+      null,
+      "g",
     ]);
     expect(viewer).toEqual({ peerId: "p".repeat(128), nickname: "n".repeat(120) });
     expect(small.avatar).toHaveLength(128 * 1024);

@@ -1,4 +1,4 @@
-// Characterization of the outgoing actions and the connect lifecycle (Step V0.4): the exact JSON
+// Characterization of the outgoing actions and the connect lifecycle: the exact JSON
 // frames sent, the local state each action leaves behind, and the not-connected no-ops.
 import { flushPromises } from "@vue/test-utils";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -28,7 +28,15 @@ describe("connect", () => {
     const [call] = harness.stubs.fetchCalls;
     expect(call.url).toBe("/api/join-ticket");
     expect(call.init?.method).toBe("POST");
-    expect(JSON.parse(String(call.init?.body))).toEqual({ target: "ts.example.test:9987", nickname: "Tester", channel: "Lobby", serverPassword: "secret", invite: "invite-1", accelerated: true, accelerationRelayId: "relay-1" });
+    expect(JSON.parse(String(call.init?.body))).toEqual({
+      target: "ts.example.test:9987",
+      nickname: "Tester",
+      channel: "Lobby",
+      serverPassword: "secret",
+      invite: "invite-1",
+      accelerated: true,
+      accelerationRelayId: "relay-1",
+    });
     expect(harness.socket().url).toContain("/ws/voice?ticket=test-ticket");
     expect(harness.socket().binaryType).toBe("arraybuffer");
   });
@@ -50,7 +58,12 @@ describe("connect", () => {
     harness = await createVoiceHarness({ joinTicket: { status: 429, body: { code: "RATE_LIMITED" } } });
     harness.voice.session.connect("t", "c", "n");
     await flushPromises();
-    expect(harness.voice.session.state).toMatchObject({ connecting: false, connected: false, errorCode: "RATE_LIMITED", error: { key: "err_RATE_LIMITED" } });
+    expect(harness.voice.session.state).toMatchObject({
+      connecting: false,
+      connected: false,
+      errorCode: "RATE_LIMITED",
+      error: { key: "err_RATE_LIMITED" },
+    });
     expect(() => harness.socket()).toThrow();
   });
 
@@ -72,7 +85,11 @@ describe("connect", () => {
     harness.voice.session.reconnectNow();
     await flushPromises();
     expect(harness.stubs.fetchCalls).toHaveLength(2);
-    expect(JSON.parse(String(harness.stubs.fetchCalls[1].init?.body))).toMatchObject({ target: "ts.example.test", nickname: "Tester", channel: "Lobby" });
+    expect(JSON.parse(String(harness.stubs.fetchCalls[1].init?.body))).toMatchObject({
+      target: "ts.example.test",
+      nickname: "Tester",
+      channel: "Lobby",
+    });
     expect(socket.closedWith).toEqual({ code: 1000, reason: undefined });
     harness.voice.session.reconnectNow();
     await flushPromises();
@@ -82,12 +99,26 @@ describe("connect", () => {
 
 describe("disconnect", () => {
   it("closes the socket with 1000 and resets the session state", async () => {
-    const socket = await connected({ members: [{ id: 7, nickname: "Me" }, { id: 9, nickname: "Ana" }], whisperTargetIds: [9], whisperActive: true });
+    const socket = await connected({
+      members: [
+        { id: 7, nickname: "Me" },
+        { id: 9, nickname: "Ana" },
+      ],
+      whisperTargetIds: [9],
+      whisperActive: true,
+    });
     harness.voice.chat.chatMessages.push({ id: "m", scope: "channel", invokerName: "x", message: "y", timestamp: 1 });
     harness.voice.session.disconnect();
     expect(socket.closedWith).toEqual({ code: 1000, reason: undefined });
     expect(harness.voice.session.ws.value).toBeNull();
-    expect(harness.voice.session.state).toMatchObject({ connected: false, connecting: false, reconnecting: false, reconnectFailed: false, tsClientId: 0, errorCode: "" });
+    expect(harness.voice.session.state).toMatchObject({
+      connected: false,
+      connecting: false,
+      reconnecting: false,
+      reconnectFailed: false,
+      tsClientId: 0,
+      errorCode: "",
+    });
     expect(harness.voice.roster.members).toHaveLength(0);
     expect(harness.voice.roster.channels).toHaveLength(0);
     expect(harness.voice.chat.chatMessages).toHaveLength(0);
@@ -143,6 +174,13 @@ describe("commands", () => {
       { type: "switchChannel", payload: { channelId: "5" } },
       { type: "switchChannel", payload: { channelId: "6", password: "pw" } },
     ]);
+  });
+
+  it("switchChannel says so when the socket is not open instead of dropping the click", async () => {
+    harness = await createVoiceHarness();
+    harness.voice.actions.switchChannel("5");
+    expect(harness.voice.session.state.errorCode).toBe("VOICE_CONNECTION_NOT_READY");
+    expect(harness.voice.session.state.error).toEqual({ key: "voiceConnectionNotReady" });
   });
 
   it("moveClient sends a request id and resolves on commandCompleted", async () => {
@@ -210,7 +248,14 @@ describe("chat", () => {
     harness.voice.chat.sendTextMessage("x".repeat(501));
     expect(socket.sentJson).toEqual([{ type: "sendTextMessage", payload: { message: "hello" } }]);
     expect(harness.voice.chat.chatMessages).toHaveLength(1);
-    expect(harness.voice.chat.chatMessages[0]).toMatchObject({ scope: "channel", targetId: "4", senderId: 7, invokerName: "", message: "hello", isSelf: true });
+    expect(harness.voice.chat.chatMessages[0]).toMatchObject({
+      scope: "channel",
+      targetId: "4",
+      senderId: 7,
+      invokerName: "",
+      message: "hello",
+      isSelf: true,
+    });
     expect(harness.voice.chat.chatMessages[0].id).toMatch(/^self-/);
   });
 
@@ -254,7 +299,10 @@ describe("whisper and mute", () => {
     socket.sent.length = 0;
     harness.voice.actions.setWhisperActive(true);
     harness.voice.actions.setWhisperActive(false);
-    expect(socket.sentJson).toEqual([{ type: "setWhisperActive", payload: { active: true } }, { type: "setWhisperActive", payload: { active: false } }]);
+    expect(socket.sentJson).toEqual([
+      { type: "setWhisperActive", payload: { active: true } },
+      { type: "setWhisperActive", payload: { active: false } },
+    ]);
     expect(harness.voice.roster.whisperActive.value).toBe(false);
   });
 

@@ -1,4 +1,4 @@
-// useConnection on its own (Step V6.1): a call-order spy for the teardown lambdas, and the pieces of the
+// useConnection on its own: a call-order spy for the teardown lambdas, and the pieces of the
 // lifecycle that the message tests only reach through the whole composable.
 import { createPinia, setActivePinia } from "pinia";
 import { ref } from "vue";
@@ -10,18 +10,25 @@ import { useConnection } from "./useConnection";
 function setup() {
   const volumes: Record<number, number> = {};
   const calls: string[] = [];
-  const spy = (name: string) => vi.fn(() => { calls.push(name); });
+  const spy = (name: string) =>
+    vi.fn(() => {
+      calls.push(name);
+    });
   const deps = {
     audioPreferencesReady: Promise.resolve(),
     identityMaterial: ref(""),
     handleMessage: vi.fn(),
     handleAudioFrame: vi.fn(),
     clearLatencyProbes: spy("clearLatencyProbes"),
-    rejectPendingCommands: vi.fn((error: Error) => { calls.push(`rejectPendingCommands:${error.message}`); }),
+    rejectPendingCommands: vi.fn((error: Error) => {
+      calls.push(`rejectPendingCommands:${error.message}`);
+    }),
     stopMicrophone: spy("stopMicrophone"),
     clearMicrophoneError: spy("clearMicrophoneError"),
     clearAudioNotice: spy("clearAudioNotice"),
-    stopScreenShareTransport: vi.fn((clear: boolean) => { calls.push(`stopScreenShareTransport:${clear}`); }),
+    stopScreenShareTransport: vi.fn((clear: boolean) => {
+      calls.push(`stopScreenShareTransport:${clear}`);
+    }),
     stopWebRtcTransport: spy("stopWebRtcTransport"),
     resetDownlink: spy("resetDownlink"),
     sendCmd: vi.fn(),
@@ -32,7 +39,9 @@ function setup() {
     startWebRtcTransport: vi.fn(async () => {}),
     sendScreenShareMessage: vi.fn(),
     isMicrophoneMuted: vi.fn(() => false),
-    clearMemberVolumes: vi.fn(() => { for (const key of Object.keys(volumes)) delete volumes[Number(key)]; }),
+    clearMemberVolumes: vi.fn(() => {
+      for (const key of Object.keys(volumes)) delete volumes[Number(key)];
+    }),
   };
   const session = useSessionStore();
   return { calls, deps, volumes, session, connection: useConnection(deps) };
@@ -49,7 +58,10 @@ beforeEach(() => {
   setActivePinia(createPinia());
   FakeWebSocket.reset();
   vi.stubGlobal("WebSocket", FakeWebSocket);
-  vi.stubGlobal("fetch", vi.fn(async () => ({ ok: true, json: async () => ({ ticket: "t 1" }) })));
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async () => ({ ok: true, json: async () => ({ ticket: "t 1" }) })),
+  );
 });
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -135,14 +147,22 @@ describe("connect", () => {
     const { connection, session } = setup();
     const socket = await connectAndOpen(connection);
     expect(fetch).toHaveBeenCalledWith("/api/join-ticket", expect.objectContaining({ method: "POST" }));
-    expect(JSON.parse((fetch as ReturnType<typeof vi.fn>).mock.calls[0]![1].body)).toEqual({ target: "ts.example", nickname: "guest", channel: "1", serverPassword: "" });
+    expect(JSON.parse((fetch as ReturnType<typeof vi.fn>).mock.calls[0]![1].body)).toEqual({
+      target: "ts.example",
+      nickname: "guest",
+      channel: "1",
+      serverPassword: "",
+    });
     expect(socket.url).toMatch(/\/ws\/voice\?ticket=t%201$/);
     expect(socket.binaryType).toBe("arraybuffer");
     expect(session.state.connecting).toBe(true);
   });
 
   it("reports a refused ticket with its mapped message and code", async () => {
-    vi.stubGlobal("fetch", vi.fn(async () => ({ ok: false, json: async () => ({ code: "RATE_LIMITED" }) })));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => ({ ok: false, json: async () => ({ code: "RATE_LIMITED" }) })),
+    );
     const { connection, session } = setup();
     connection.connect("ts.example", "1", "guest");
     await vi.waitFor(() => expect(session.state.errorCode).toBe("RATE_LIMITED"));
@@ -152,7 +172,15 @@ describe("connect", () => {
 
   it("drops a ticket that arrives after a newer connect", async () => {
     let release: (value: unknown) => void = () => {};
-    vi.stubGlobal("fetch", vi.fn(() => new Promise((resolve) => { release = resolve; })));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(
+        () =>
+          new Promise((resolve) => {
+            release = resolve;
+          }),
+      ),
+    );
     const { connection } = setup();
     connection.connect("a", "1", "guest");
     await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(1));
@@ -181,7 +209,14 @@ describe("socket close", () => {
     calls.length = 0;
     socket.onclose?.({ code: 4005, reason: "" });
     expect(session.state.errorCode).toBe("IDENTITY_IN_USE");
-    expect(calls).toEqual(["clearLatencyProbes", "rejectPendingCommands:The voice connection was closed", "stopWebRtcTransport", "stopMicrophone", "clearMicrophoneError", "clearAudioNotice"]);
+    expect(calls).toEqual([
+      "clearLatencyProbes",
+      "rejectPendingCommands:The voice connection was closed",
+      "stopWebRtcTransport",
+      "stopMicrophone",
+      "clearMicrophoneError",
+      "clearAudioNotice",
+    ]);
   });
 
   it("stays silent on a plain 1000 leave but not on admin-terminated", async () => {
@@ -195,7 +230,7 @@ describe("socket close", () => {
     expect(admin.session.state.errorCode).not.toBe("");
   });
 
-  it("does not raise a second failure after connectionFailed reported this attempt (F23)", async () => {
+  it("does not raise a second failure after connectionFailed reported this attempt", async () => {
     const { connection, session } = setup();
     const socket = await connectAndOpen(connection);
     connection.handlers.connectionFailed!({ type: "connectionFailed", code: "SERVER_REJECTED" });
@@ -228,7 +263,10 @@ describe("reconnectNow and identity", () => {
     session.state.connecting = false;
     connection.reconnectNow();
     await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(2));
-    expect(JSON.parse((fetch as ReturnType<typeof vi.fn>).mock.calls[1]![1].body)).toMatchObject({ identity: "issued", rememberIdentity: true });
+    expect(JSON.parse((fetch as ReturnType<typeof vi.fn>).mock.calls[1]![1].body)).toMatchObject({
+      identity: "issued",
+      rememberIdentity: true,
+    });
     expect(deps.identityMaterial.value).toBe("issued");
   });
 
@@ -256,7 +294,10 @@ describe("error messages", () => {
     const { connection } = setup();
     expect(connection.protocolErrorMessage("CHANNEL_FULL", "x")).toEqual({ key: "err_CHANNEL_FULL" });
     expect(connection.protocolErrorMessage("BANNED", "x")).toEqual({ key: "opErr_BANNED" });
-    expect(connection.protocolErrorMessage("NOPE", "boom")).toEqual({ key: "operationFailedUnknownDetail", params: { code: "NOPE", detail: "boom" } });
+    expect(connection.protocolErrorMessage("NOPE", "boom")).toEqual({
+      key: "operationFailedUnknownDetail",
+      params: { code: "NOPE", detail: "boom" },
+    });
     expect(connection.protocolErrorMessage("NOPE", "")).toEqual({ key: "operationFailedUnknown", params: { code: "NOPE" } });
   });
 });

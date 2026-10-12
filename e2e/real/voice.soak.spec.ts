@@ -2,14 +2,14 @@ import { withAudioTone } from "../helpers";
 import { AudioCounters } from "./counters";
 import { expect, test } from "./fixtures";
 
-// The 60 s soak of step 5.4: a steady tone for a minute, and the gateway's counters must show no
-// dropped frame, no send error and no long gap. Opt-in (nightly, or by hand), because it takes a
-// minute: WEBSPEAK_TEST_SOAK=1 WEBSPEAK_TEST_TS_LICENSE=accept npm run test:real -- voice.soak
+// The 60 s soak, a steady tone for a minute with the gateway's counters showing no dropped frame, send error or long gap.
+// Opt-in (nightly or by hand) because it takes a minute: WEBSPEAK_TEST_SOAK=1 WEBSPEAK_TEST_TS_LICENSE=accept npm run test:real
+// -- voice.soak
 test.use(withAudioTone({ frequencyHz: 1000 }));
 test.skip(process.env.WEBSPEAK_TEST_SOAK !== "1", "the 60 s soak runs only with WEBSPEAK_TEST_SOAK=1");
 
 const SOAK_MS = 60_000;
-/** One frame is 20 ms, so a minute is 3000. A tenth of them may be missing: the start is not instant. */
+/** One frame is 20 ms, so a minute is 3000. A tenth of them may be missing, the start is not instant. */
 const MIN_FRAMES = 2700;
 /** The longest silence between two frames of a steady tone. Timers jitter, but half a second is a stall. */
 const MAX_GAP_MS = 500;

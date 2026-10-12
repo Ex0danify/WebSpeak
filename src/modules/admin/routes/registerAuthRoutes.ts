@@ -7,12 +7,7 @@ import { isSecureRequest } from "../adminSession.js";
 import { type AdminLoginRateLimiter, waitFor } from "../loginRateLimit.js";
 
 /** The routes reachable without a session: status, session, login, change-password, logout. */
-export function registerAuthRoutes(
-  router: Router,
-  options: AdminRouterOptions,
-  limiter: AdminLoginRateLimiter,
-  logger: Logger,
-): void {
+export function registerAuthRoutes(router: Router, options: AdminRouterOptions, limiter: AdminLoginRateLimiter, logger: Logger): void {
   router.get("/status", (_request, response) => {
     response.json({ initialized: options.service.isInitialized() });
   });
@@ -42,7 +37,7 @@ export function registerAuthRoutes(
     const body = asRecord(request.body);
     const username = readString(body, "username", 64).trim();
     const password = readOptionalString(body, "password", 1024);
-    if (!await options.service.verifyPassword(username, password)) {
+    if (!(await options.service.verifyPassword(username, password))) {
       const delayMs = limiter.recordFailure(peer);
       await waitFor(delayMs);
       options.service.database.addAudit("ADMIN_LOGIN_FAILED");
@@ -53,7 +48,12 @@ export function registerAuthRoutes(
     limiter.recordSuccess(peer);
     options.service.database.addAudit("ADMIN_LOGIN_SUCCEEDED");
     const session = options.sessions.create(response, isSecureRequest(request));
-    response.json({ ok: true, csrfToken: session.csrfToken, expiresAt: session.expiresAt, mustChangePassword: options.service.isPasswordChangeRequired() });
+    response.json({
+      ok: true,
+      csrfToken: session.csrfToken,
+      expiresAt: session.expiresAt,
+      mustChangePassword: options.service.isPasswordChangeRequired(),
+    });
   });
 
   router.post("/change-password", requireSameOrigin, requireCsrf(options.sessions), async (request, response) => {

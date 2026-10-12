@@ -3,7 +3,7 @@ const DEFAULT_SCREEN_SHARE_ICE_SERVERS: RTCIceServer[] = [
   { urls: "stun:turn.teamspeak.com:3478" },
   { urls: "stun:turn2.teamspeak.com:3478" },
 ];
-// Shared by every voice instance in the page, like the module-level variable it replaces.
+// Shared by every voice instance in the page.
 let screenShareIceServers: RTCIceServer[] = DEFAULT_SCREEN_SHARE_ICE_SERVERS;
 
 export function getScreenShareIceServers(): RTCIceServer[] {

@@ -11,7 +11,13 @@ import { DEFAULT_WELCOME_TEXTS, resolveWelcomeTexts } from "./siteCopy.js";
 import { AdminInputError } from "./adminErrors.js";
 import { AdminInviteService, type ManagedInviteInput, type ManagedInviteView } from "./adminInviteService.js";
 import { importLegacyConfigOnce } from "./adminLegacyImport.js";
-import { legacyRelayNodesFromSettings, normalizeRelayNodes, normalizeSettings, toSettingsUpdate, type AdminSettingsInput } from "./adminSettingsNormalizer.js";
+import {
+  legacyRelayNodesFromSettings,
+  normalizeRelayNodes,
+  normalizeSettings,
+  toSettingsUpdate,
+  type AdminSettingsInput,
+} from "./adminSettingsNormalizer.js";
 
 export { AdminInputError };
 export type { ManagedInviteInput, ManagedInviteView } from "./adminInviteService.js";
@@ -26,14 +32,21 @@ export interface ConnectionPolicy {
 type ProbeFunction = typeof probeTeamSpeak;
 type HostPingFunction = (host: string) => Promise<TeamSpeakPingResult>;
 
-/** What "Test connection" reports. `ok` is the answer of the voice port; the host ping is context. */
+/** What Test connection reports. ok is the voice port's answer, the host ping is just context. */
 export interface ConnectionTestResult {
   ok: boolean;
-  /** Round trip of the TeamSpeak handshake packet; null when nothing answered. */
+  /** Round trip of the handshake packet, null when nothing answered. */
   latencyMs: number | null;
   errorCode?: string;
   /** Ping of the host from the WebSpeak machine. A host that drops ICMP can fail it while the server is fine. */
-  hostPing: { ok: boolean; latencyMs: number | null; packetLossPercent: number; attempts: number; successfulAttempts: number; errorCode?: string };
+  hostPing: {
+    ok: boolean;
+    latencyMs: number | null;
+    packetLossPercent: number;
+    attempts: number;
+    successfulAttempts: number;
+    errorCode?: string;
+  };
 }
 
 export class AdminService {
@@ -66,7 +79,7 @@ export class AdminService {
 
   async verifyPassword(username: string, password: string): Promise<boolean> {
     const credential = this.database.getAdminCredential();
-    return credential?.username === username && await verifyAdminPassword(password, credential);
+    return credential?.username === username && (await verifyAdminPassword(password, credential));
   }
 
   isPasswordChangeRequired(): boolean {
@@ -90,7 +103,7 @@ export class AdminService {
       version: this.version,
       initialized: this.isInitialized(),
       siteName: settings.siteName,
-      // The complete map, with the built-in default filled in for every language without a stored text.
+      // Complete map with the default filled in for every language without a stored text.
       welcomeTexts,
       accessMode: settings.accessMode,
       target: formatTeamSpeakTarget({ host: settings.tsHost, port: settings.tsPort }),
@@ -139,7 +152,10 @@ export class AdminService {
         const token = decryptSecret(node.tokenEncrypted, this.masterSecret);
         relays.push({ id: node.id, name: node.name, relayHost: node.host, relayPort: node.port, token });
       } catch (error: unknown) {
-        this.logger.error({ err: error instanceof Error ? error.message : String(error), relayId: node.id }, "Stored acceleration relay token could not be decrypted");
+        this.logger.error(
+          { err: error instanceof Error ? error.message : String(error), relayId: node.id },
+          "Stored acceleration relay token could not be decrypted",
+        );
       }
     }
     return relays;
@@ -151,7 +167,8 @@ export class AdminService {
 
   updateSettings(input: AdminSettingsInput): void {
     const current = this.database.getSettings();
-    const relayNodes = input.relayNodes === undefined ? undefined : normalizeRelayNodes(input.relayNodes, this.database.listRelayNodes(), this.masterSecret);
+    const relayNodes =
+      input.relayNodes === undefined ? undefined : normalizeRelayNodes(input.relayNodes, this.database.listRelayNodes(), this.masterSecret);
     const settings = normalizeSettings(input, current, this.masterSecret, relayNodes);
     const targetChanged = current.tsHost !== settings.tsHost || current.tsPort !== settings.tsPort;
     this.database.updateSettings(settings);
@@ -169,7 +186,10 @@ export class AdminService {
     try {
       serverPassword = decryptSecret(settings.tsPasswordEncrypted, this.masterSecret);
     } catch (error: unknown) {
-      this.logger.error({ err: error instanceof Error ? error.message : String(error) }, "Stored TeamSpeak password could not be decrypted");
+      this.logger.error(
+        { err: error instanceof Error ? error.message : String(error) },
+        "Stored TeamSpeak password could not be decrypted",
+      );
     }
     return {
       defaultTarget: { host: settings.tsHost, port: settings.tsPort },
@@ -179,9 +199,8 @@ export class AdminService {
   }
 
   /**
-   * Checks the voice port with the first packets of the TeamSpeak handshake (no client is created,
-   * so nothing shows up in a channel and the server password is not checked) and pings the host
-   * next to it. A silent or wrong port gives `ok: false` with the reason in `errorCode`.
+   * Checks the voice port with the first handshake packets (no client, so nothing shows in a channel and no password
+   * check) and pings the host next to it. A silent or wrong port gives ok: false with the reason in errorCode.
    */
   async testConnection(targetText: string, persistResult: boolean): Promise<ConnectionTestResult> {
     let target: TeamSpeakTarget;
@@ -222,7 +241,12 @@ export class AdminService {
     return { ok: true, latencyMs: handshake.latencyMs, hostPing };
   }
 
-  private recordConnectionTest(persistResult: boolean, latencyMs: number | null, code: string | null, details: Record<string, unknown>): void {
+  private recordConnectionTest(
+    persistResult: boolean,
+    latencyMs: number | null,
+    code: string | null,
+    details: Record<string, unknown>,
+  ): void {
     if (!persistResult) return;
     this.database.recordConnectionTest({ protocol: null, latencyMs, error: code });
     this.database.addAudit(code ? "CONNECTION_TEST_FAILED" : "CONNECTION_TEST_SUCCEEDED", {

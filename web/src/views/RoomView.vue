@@ -34,8 +34,8 @@
 
   <!-- Protected channel password modal -->
   <PasswordDialog
-    :open="channelPasswordDialog.open"
     v-model:password="channelPasswordDialog.password"
+    :open="channelPasswordDialog.open"
     :title="t('channelPasswordTitle')"
     :lead="t('channelPasswordLead')"
     :label="t('channelPasswordPrompt')"
@@ -111,20 +111,8 @@ import { avatarStyle } from "@/shared/lib/format";
 
 const session = useRoomContext();
 const { state: voiceState, disconnect } = session.session;
-const {
-  members,
-  channels,
-  pokeNotifications,
-  volumes,
-  whisperTargetIds,
-} = session.roster;
-const {
-  chatMessages,
-  sendTextMessage,
-  sendServerMessage,
-  sendPrivateMessage,
-  sendPoke,
-} = session.chat;
+const { pokeNotifications, volumes, whisperTargetIds } = session.roster;
+const { sendPoke } = session.chat;
 const {
   microphoneMuted,
   noiseSuppressionEnabled,
@@ -138,7 +126,6 @@ const {
   selectedOutputDeviceId,
   outputDeviceSupported,
   audioPermission,
-  audioContextState,
   micLevel,
   microphoneTestActive,
   testAudioUrl,
@@ -148,39 +135,10 @@ const {
   setOutputVolume,
   setVoxThreshold,
   setNotificationVolume,
-  prepareInputDevices,
   refreshAudioDevices,
-  setInputDevice,
-  setOutputDevice,
-  startMicrophoneTest,
-  stopMicrophoneTest,
-  playNotification,
-  setMicrophoneMuted,
   accompanimentActive,
-  accompanimentErrorCode,
-  startAccompaniment,
   stopAccompaniment,
-  checkSupport,
 } = session.audio;
-const {
-  screenShareStreams,
-  screenShareViewing,
-  screenShareViewingStreamId,
-  screenShareRemoteStream,
-  screenShareError,
-  screenShareErrorCode,
-  screenShareRemoteVolume,
-  startScreenShare,
-  joinScreenShare,
-  leaveScreenShare,
-} = session.screenShare;
-const {
-  switchChannel,
-  moveClient,
-  setAway,
-  setWhisperTargets,
-  setWhisperActive,
-} = session.actions;
 
 const selectedChannelId = ref("");
 const chatTab = ref<"channel" | "server" | "private" | "events">("channel");
@@ -217,14 +175,8 @@ const tree = useChannelTree({
   memberMenu,
 });
 const {
-  channelTree,
   currentChannel,
-  ownChannelId,
   currentChannelName,
-  currentChannelDescription,
-  memberChannels,
-  selectChannelById,
-  channelLabel,
   channelPasswordDialog,
   submitChannelPassword,
   cancelChannelPassword,
@@ -246,10 +198,7 @@ const chat = useChat({
   isMobileViewport,
   mobileSection,
 });
-const {
-  openPrivateChat,
-  scrollChatToEnd,
-} = chat;
+const { openPrivateChat } = chat;
 const roomChat = { ...chat, chatTab };
 
 const screenShare = useScreenShare({ screenShare: session.screenShare, avatarStyle, nickname });
@@ -269,10 +218,7 @@ const {
 } = audioPanel;
 
 const whisper = useWhisper({ roster: session.roster, actions: session.actions });
-const {
-  toggleWhisperTarget,
-  stopWhisperTalk,
-} = whisper;
+const { toggleWhisperTarget } = whisper;
 
 const performance = useNetworkPerformance({ session: session.session });
 </script>

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { settingsInput, useAdminService } from "../../../test/helpers/adminService.js";
+import { settingsInput, useAdminService } from "../../../test/support/adminService.js";
 import { DEFAULT_WELCOME_TEXTS } from "./siteCopy.js";
 import { AdminInputError } from "./adminService.js";
 
@@ -40,18 +40,33 @@ describe("initialize", () => {
     ctx.writeLegacyConfig({ tsHost: "legacy.example.org", tsPort: 9000, tsServerPassword: "legacy-secret" });
     const service = ctx.create();
     await service.initialize();
-    expect(service.getConnectionPolicy()).toMatchObject({ defaultTarget: { host: "legacy.example.org", port: 9000 }, serverPassword: "legacy-secret" });
+    expect(service.getConnectionPolicy()).toMatchObject({
+      defaultTarget: { host: "legacy.example.org", port: 9000 },
+      serverPassword: "legacy-secret",
+    });
     expect(ctx.database.open().getSettings().tsPasswordEncrypted).not.toContain("legacy-secret");
     expect(service.getOverview(0, 0, Date.now()).legacyConfigImported).toBe(true);
-    expect(ctx.database.open().recentAudit(50).map((entry) => entry.event)).toEqual(expect.arrayContaining(["LEGACY_CONFIG_IMPORTED", "ADMIN_INITIALIZED"]));
+    expect(
+      ctx.database
+        .open()
+        .recentAudit(50)
+        .map((entry) => entry.event),
+    ).toEqual(expect.arrayContaining(["LEGACY_CONFIG_IMPORTED", "ADMIN_INITIALIZED"]));
   });
 
   it("keeps the other settings when it imports the legacy target", async () => {
     ctx.writeLegacyConfig({ tsHost: "legacy.example.org" });
     const service = ctx.create();
-    ctx.database.open().updateSettings({ ...service.database.getSettings(), siteName: "Kept", tsPasswordEncrypted: null, welcomeTexts: { en: "kept en" } });
+    ctx.database
+      .open()
+      .updateSettings({ ...service.database.getSettings(), siteName: "Kept", tsPasswordEncrypted: null, welcomeTexts: { en: "kept en" } });
     await service.initialize();
-    expect(service.database.getSettings()).toMatchObject({ siteName: "Kept", welcomeTexts: { en: "kept en" }, tsHost: "legacy.example.org", tsPort: 9987 });
+    expect(service.database.getSettings()).toMatchObject({
+      siteName: "Kept",
+      welcomeTexts: { en: "kept en" },
+      tsHost: "legacy.example.org",
+      tsPort: 9987,
+    });
   });
 
   it("does not import again after the first start, even if the file changes", async () => {
@@ -118,7 +133,13 @@ describe("views", () => {
     const service = ctx.create();
     service.updateSettings(settingsInput({ welcomeTexts: { en: "en text", fr: "fr text" } }));
     const config = service.getPublicConfig() as { welcomeTexts: Record<string, string> } & Record<string, unknown>;
-    expect(config).toMatchObject({ version: "9.9.9", initialized: false, siteName: "Test site", accessMode: "open", target: "ts.example.org:9988" });
+    expect(config).toMatchObject({
+      version: "9.9.9",
+      initialized: false,
+      siteName: "Test site",
+      accessMode: "open",
+      target: "ts.example.org:9988",
+    });
     expect(config).not.toHaveProperty("welcomeText");
     expect(config).not.toHaveProperty("welcomeTextEn");
     expect(config.welcomeTexts).toMatchObject({ en: "en text", fr: "fr text", de: DEFAULT_WELCOME_TEXTS.de });
@@ -126,14 +147,24 @@ describe("views", () => {
 
   it("public config leaks neither the server password nor relay data", () => {
     const service = ctx.create();
-    service.updateSettings(settingsInput({ serverPassword: "very-secret-password", relayNodes: [{ name: "R", target: "relay.example.org", enabled: true, token: "relay-token-1234567" }] }));
+    service.updateSettings(
+      settingsInput({
+        serverPassword: "very-secret-password",
+        relayNodes: [{ name: "R", target: "relay.example.org", enabled: true, token: "relay-token-1234567" }],
+      }),
+    );
     const text = JSON.stringify(service.getPublicConfig());
     for (const secret of ["very-secret-password", "relay-token-1234567", "relay.example.org", "v1:"]) expect(text).not.toContain(secret);
   });
 
   it("admin settings report whether secrets exist but never their value or ciphertext", () => {
     const service = ctx.create();
-    service.updateSettings(settingsInput({ serverPassword: "very-secret-password", relayNodes: [{ name: "R", target: "relay.example.org", enabled: true, token: "relay-token-1234567" }] }));
+    service.updateSettings(
+      settingsInput({
+        serverPassword: "very-secret-password",
+        relayNodes: [{ name: "R", target: "relay.example.org", enabled: true, token: "relay-token-1234567" }],
+      }),
+    );
     const view = service.getAdminSettings();
     expect(view).toMatchObject({ hasPassword: true, target: "ts.example.org:9988", welcomeDefaults: DEFAULT_WELCOME_TEXTS });
     expect((view.relayNodes as unknown[])[0]).toMatchObject({ name: "R", target: "relay.example.org#39087", hasToken: true });
@@ -172,7 +203,14 @@ describe("updateSettings validation", () => {
 
   it("accepts the limits: 80 character name, 500 character texts, ports 1024 and 65535", () => {
     const service = ctx.create();
-    service.updateSettings(settingsInput({ siteName: "x".repeat(80), welcomeTexts: { en: "y".repeat(500), de: "z".repeat(500) }, webRtcUdpStart: 1024, webRtcUdpEnd: 65535 }));
+    service.updateSettings(
+      settingsInput({
+        siteName: "x".repeat(80),
+        welcomeTexts: { en: "y".repeat(500), de: "z".repeat(500) },
+        webRtcUdpStart: 1024,
+        webRtcUdpEnd: 65535,
+      }),
+    );
     expect(service.database.getSettings()).toMatchObject({ webRtcUdpStart: 1024, webRtcUdpEnd: 65535 });
   });
 
@@ -201,7 +239,9 @@ describe("updateSettings validation", () => {
   it("locks the WebRTC range while WebRTC is on, but allows saving the same range or turning it off", () => {
     const service = ctx.create();
     service.updateSettings(settingsInput({ webRtcEnabled: true, webRtcUdpStart: 41000, webRtcUdpEnd: 41010 }));
-    expect(rejection(() => service.updateSettings(settingsInput({ webRtcEnabled: true, webRtcUdpStart: 42000, webRtcUdpEnd: 42010 }))).code).toBe("WEBRTC_PORT_LOCKED");
+    expect(
+      rejection(() => service.updateSettings(settingsInput({ webRtcEnabled: true, webRtcUdpStart: 42000, webRtcUdpEnd: 42010 }))).code,
+    ).toBe("WEBRTC_PORT_LOCKED");
     service.updateSettings(settingsInput({ webRtcEnabled: true, siteName: "Same range", webRtcUdpStart: 41000, webRtcUdpEnd: 41010 }));
     service.updateSettings(settingsInput({ webRtcEnabled: false, webRtcUdpStart: 41000, webRtcUdpEnd: 41010 }));
     expect(service.getWebRtcAudioOptions()).toEqual({ enabled: false, udpPortRange: [41000, 41010] });
@@ -215,7 +255,11 @@ describe("server password", () => {
     const stored = service.database.getSettings().tsPasswordEncrypted;
     expect(stored).toMatch(/^v1:/);
     expect(stored).not.toContain("pw-1");
-    expect(service.getConnectionPolicy()).toEqual({ defaultTarget: { host: "ts.example.org", port: 9988 }, serverPassword: "pw-1", accessMode: "open" });
+    expect(service.getConnectionPolicy()).toEqual({
+      defaultTarget: { host: "ts.example.org", port: 9988 },
+      serverPassword: "pw-1",
+      accessMode: "open",
+    });
   });
 
   it("keeps the stored password by default, and when the action is keep", () => {

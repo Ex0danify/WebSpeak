@@ -1,28 +1,22 @@
 import { computed, ref } from "vue";
 import type { ChannelMember } from "@/features/session";
 
-/** The member context menu (desktop right-click / mobile "more" action): its position, open/close
- *  state, and the F34/F47 focus-return behavior when it closes. `memberMenu` itself is also read
- *  and cleared by useChannelTree (the move-to-channel submenu) and by RoomView's own chat and
- *  viewport handlers, so it stays exposed as a plain Ref rather than hidden behind actions only. */
+/** The member context menu (desktop right-click, mobile "more" action) with its position, open state and focus return on close.
+ *  `memberMenu` is also read and cleared by useChannelTree and RoomView's chat and viewport handlers, so it stays a plain Ref. */
 export function useMemberMenu() {
   const memberMenu = ref<{ member: ChannelMember; x: number; y: number } | null>(null);
 
   const memberMenuStyle = computed(() => {
     if (!memberMenu.value) return {};
-    // #app applies zoom:var(--ui-scale) which also scales fixed-element
-    // coordinates against the viewport; divide the pointer position back to CSS
-    // pixels so the context menu opens exactly where the user clicked on large
-    // displays.
+    // #app applies zoom:var(--ui-scale), which also scales fixed-element coordinates against the viewport, so divide the
+    // pointer position back to CSS pixels or the menu opens off-target on large displays.
     const scale = Number.parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--ui-scale")) || 1;
     return { left: `${memberMenu.value.x / scale}px`, top: `${memberMenu.value.y / scale}px` };
   });
 
-  // The desktop menu's trigger is a hidden zero-size span placed at the click point (F34), which
-  // cannot take the keyboard focus back when the menu closes: Reka's default then leaves the focus
-  // on the document. Remember which member's row opened it and, on close, give the focus to that
-  // row's own volume slider instead (F47); it exists for every row a menu can open on, whether the
-  // menu was opened with a right click or with Shift+F10 on the slider itself.
+  // The desktop menu's trigger is a hidden zero-size span that cannot take focus back on close, so Reka leaves it on the
+  // document. Remember which member's row opened it and focus that row's volume slider instead (right click or Shift+F10 both
+  // end up there).
   let memberMenuOpenerId: number | null = null;
 
   function openMemberMenu(member: ChannelMember, event: Event): void {

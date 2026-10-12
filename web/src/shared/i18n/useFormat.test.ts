@@ -105,7 +105,14 @@ describe("useFormat", () => {
 
   it("re-renders a component on a language switch", async () => {
     useI18n().setLanguage("en");
-    const wrapper = mount(defineComponent({ setup: () => { const format = useFormat(); return () => h("p", format.number(1234.5)); } }));
+    const wrapper = mount(
+      defineComponent({
+        setup: () => {
+          const format = useFormat();
+          return () => h("p", format.number(1234.5));
+        },
+      }),
+    );
     expect(wrapper.text()).toBe("1,234.5");
     useI18n().setLanguage("de");
     await nextTick();

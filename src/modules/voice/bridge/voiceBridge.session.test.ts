@@ -1,13 +1,18 @@
 import { generateIdentity } from "@echosixhiya/teamspeak-client";
 import { describe, expect, it, vi } from "vitest";
-import { FakeTeamSpeakServer } from "../../../../test/helpers/fakeTsClient.js";
-import { useGateway } from "../../../../test/helpers/gateway.js";
-import { joinVoice } from "../../../../test/helpers/voice.js";
-import type { JsonMessage } from "../../../../test/helpers/wsClient.js";
+import { FakeTeamSpeakServer } from "../../../../test/support/fakeTsClient.js";
+import { useGateway } from "../../../../test/support/gateway.js";
+import { joinVoice } from "../../../../test/support/voice.js";
+import type { JsonMessage } from "../../../../test/support/wsClient.js";
 
 const gateways = useGateway();
 
-type ChannelNode = { id: string; parentID: string; name: string; members: { id: number; nickname: string; away?: boolean; awayMessage?: string; inputMuted?: boolean }[] };
+type ChannelNode = {
+  id: string;
+  parentID: string;
+  name: string;
+  members: { id: number; nickname: string; away?: boolean; awayMessage?: string; inputMuted?: boolean }[];
+};
 
 const channelsOf = (message: JsonMessage) => message.channels as ChannelNode[];
 const channel = (message: JsonMessage, name: string) => channelsOf(message).find((node) => node.name === name)!;
@@ -30,7 +35,9 @@ describe("the initial state", () => {
     expect(id).toBe(client.getClientId());
     expect((connected.members as { nickname: string }[]).map((member) => member.nickname).sort()).toEqual(["alice", "bob"]);
     expect(connected.members).toContainEqual(expect.objectContaining({ id, nickname: "alice", uid: client.uid }));
-    expect(connected.members).toContainEqual(expect.objectContaining({ nickname: "bob", uid: "remote-bob", away: false, inputMuted: false, outputMuted: false }));
+    expect(connected.members).toContainEqual(
+      expect.objectContaining({ nickname: "bob", uid: "remote-bob", away: false, inputMuted: false, outputMuted: false }),
+    );
     expect(connected.serverEventLog).toEqual([expect.objectContaining({ kind: "connection", message: "Connected to the server" })]);
     expect(connected).toMatchObject({ whisperTargetIds: [], whisperActive: false, webrtcAvailable: false, accelerated: false });
     expect(connected.screenShareIceServers).toEqual(expect.any(Array));
@@ -53,7 +60,13 @@ describe("the initial state", () => {
   });
 
   it("sends the channel tree with string ids, parents, and each member under their channel", async () => {
-    const ts = new FakeTeamSpeakServer({ channels: [{ id: 1n, name: "Lobby" }, { id: 2n, name: "Games" }, { id: 3n, name: "Chess", parentId: 2n }] });
+    const ts = new FakeTeamSpeakServer({
+      channels: [
+        { id: 1n, name: "Lobby" },
+        { id: 2n, name: "Games" },
+        { id: 3n, name: "Chess", parentId: 2n },
+      ],
+    });
     ts.addMember("bob", 3n);
     const gateway = await gateways.start({ ts });
     const { socket } = await joinVoice(gateway, { nickname: "alice" });
@@ -85,11 +98,13 @@ describe("members after the initial state", () => {
     const bob = gateway.ts.addMember("bob", 2n);
     const enter = await socket.waitForMessage("memberEnter", { after });
     expect(enter).toEqual({ type: "memberEnter", id: bob.id, nickname: "bob", uid: "remote-bob", isSelf: false });
-    const list = await socket.waitForMessage((message) => message.type === "channelList" && memberNames(message, "Room A").includes("bob"), { after });
+    const list = await socket.waitForMessage(
+      (message) => message.type === "channelList" && memberNames(message, "Room A").includes("bob"),
+      { after },
+    );
     expect(memberNames(list, "Lobby")).toEqual(["alice"]);
     const event = await socket.waitForMessage("serverEvent", { after });
-    // The message stays for an older gateway; the browser now builds its own sentence from
-    // kind and nickname instead of showing this Chinese text whatever the page's language (F24).
+    // message is only a fallback, the browser builds its own sentence from kind and nickname.
     expect(event.event).toMatchObject({ kind: "joined", message: "bob joined the server", nickname: "bob", params: { nickname: "bob" } });
   });
 
@@ -100,9 +115,16 @@ describe("members after the initial state", () => {
     const after = socket.mark();
     bob.leave();
     expect(await socket.waitForMessage("memberLeave", { after })).toEqual({ type: "memberLeave", id: bob.id });
-    const list = await socket.waitForMessage((message) => message.type === "channelList" && memberNames(message, "Room A").length === 0, { after });
+    const list = await socket.waitForMessage((message) => message.type === "channelList" && memberNames(message, "Room A").length === 0, {
+      after,
+    });
     expect(memberNames(list, "Lobby")).toEqual(["alice"]);
-    expect((await socket.waitForMessage("serverEvent", { after })).event).toMatchObject({ kind: "left", message: "bob left the server", nickname: "bob", params: { nickname: "bob" } });
+    expect((await socket.waitForMessage("serverEvent", { after })).event).toMatchObject({
+      kind: "left",
+      message: "bob left the server",
+      nickname: "bob",
+      params: { nickname: "bob" },
+    });
   });
 
   it("moves a member in the tree when they change channel, with a server event", async () => {
@@ -111,9 +133,17 @@ describe("members after the initial state", () => {
     const { socket } = await joinVoice(gateway, { nickname: "alice" });
     const after = socket.mark();
     bob.moveTo(3n);
-    const list = await socket.waitForMessage((message) => message.type === "channelList" && memberNames(message, "Room B").includes("bob"), { after });
+    const list = await socket.waitForMessage(
+      (message) => message.type === "channelList" && memberNames(message, "Room B").includes("bob"),
+      { after },
+    );
     expect(memberNames(list, "Room A")).toEqual([]);
-    expect((await socket.waitForMessage("serverEvent", { after })).event).toMatchObject({ kind: "moved", message: "bob moved to another channel", nickname: "bob", params: { nickname: "bob" } });
+    expect((await socket.waitForMessage("serverEvent", { after })).event).toMatchObject({
+      kind: "moved",
+      message: "bob moved to another channel",
+      nickname: "bob",
+      params: { nickname: "bob" },
+    });
   });
 
   it("carries away and mute flags of other members in the tree", async () => {
@@ -122,7 +152,10 @@ describe("members after the initial state", () => {
     const { socket } = await joinVoice(gateway, { nickname: "alice" });
     const after = socket.mark();
     bob.update({ away: true, awayMessage: "back soon", inputMuted: true });
-    const list = await socket.waitForMessage((message) => message.type === "channelList" && channel(message, "Room A").members[0]?.away === true, { after });
+    const list = await socket.waitForMessage(
+      (message) => message.type === "channelList" && channel(message, "Room A").members[0]?.away === true,
+      { after },
+    );
     expect(channel(list, "Room A").members[0]).toMatchObject({ nickname: "bob", away: true, awayMessage: "back soon", inputMuted: true });
   });
 
@@ -163,7 +196,7 @@ describe("the handshake", () => {
     expect((connected.members as { nickname: string }[]).map((member) => member.nickname).sort()).toEqual(["alice", "bob", "carol"]);
   });
 
-  it("F15: a snapshot that arrives in time completes the join, and commands answer SESSION_NOT_READY until it does", async () => {
+  it("a snapshot that arrives in time completes the join, and commands answer SESSION_NOT_READY until it does", async () => {
     const gateway = await gateways.start({ ts: new FakeTeamSpeakServer({ withholdSnapshot: true }) });
     const socket = await gateway.openVoice(gateway.ticket({ nickname: "alice" }));
     const client = await vi.waitFor(() => {
@@ -180,7 +213,7 @@ describe("the handshake", () => {
     await socket.waitForMessage("channelList");
   });
 
-  it("F15: without a directory snapshot the session fails with TIMEOUT after the bounded wait and is closed", async () => {
+  it("without a directory snapshot the session fails with TIMEOUT after the bounded wait and is closed", async () => {
     const gateway = await gateways.start({
       ts: new FakeTeamSpeakServer({ withholdSnapshot: true }),
       voiceBridgeOptions: { directorySyncTimeoutMs: 100 },

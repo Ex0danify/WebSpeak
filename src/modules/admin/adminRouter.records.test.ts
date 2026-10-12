@@ -1,18 +1,20 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { settingsInput } from "../../../test/helpers/adminService.js";
-import type { FakeTSClient } from "../../../test/helpers/fakeTsClient.js";
-import { type AdminApi, type Gateway, TEST_ADMIN_PASSWORD, useGateway } from "../../../test/helpers/gateway.js";
+import { settingsInput } from "../../../test/support/adminService.js";
+import type { FakeTSClient } from "../../../test/support/fakeTsClient.js";
+import { type AdminApi, type Gateway, TEST_ADMIN_PASSWORD, useGateway } from "../../../test/support/gateway.js";
 import { WebSpeakDatabase } from "../../infra/persistence/database.js";
 
 const gateways = useGateway();
 const HOUR_MS = 60 * 60 * 1000;
 
-afterEach(() => { vi.useRealTimers(); });
+afterEach(() => {
+  vi.useRealTimers();
+});
 
 async function json(response: Response): Promise<Record<string, any>> {
-  return await response.json() as Record<string, any>;
+  return (await response.json()) as Record<string, any>;
 }
 
 async function start(options?: Parameters<typeof gateways.start>[0]): Promise<{ gateway: Gateway; admin: AdminApi }> {
@@ -21,7 +23,6 @@ async function start(options?: Parameters<typeof gateways.start>[0]): Promise<{ 
 }
 
 const audit = (gateway: Gateway) => gateway.database.recentAudit(50).map((row) => row.event);
-const jsonLines = (lines: unknown[]) => lines.map((line) => (typeof line === "string" ? line : JSON.stringify(line))).join("\n") + "\n";
 
 describe("sessions", () => {
   it("lists nothing when nobody is connected", async () => {
@@ -38,10 +39,25 @@ describe("sessions", () => {
     const { sessions } = await json(await admin.get("sessions"));
     expect(sessions.map((session: { nickname: string }) => session.nickname)).toEqual(["alice", "bob"]);
     const [alice, bob] = sessions;
-    expect(alice).toMatchObject({ id: expect.stringMatching(/^w-/), target: "ts.test:9987", state: "connected", tsClientId: (gateway.ts.created[0] as FakeTSClient).getClientId(), channelId: "1", memberCount: 2, ageSeconds: expect.any(Number) });
+    expect(alice).toMatchObject({
+      id: expect.stringMatching(/^w-/),
+      target: "ts.test:9987",
+      state: "connected",
+      tsClientId: (gateway.ts.created[0] as FakeTSClient).getClientId(),
+      channelId: "1",
+      memberCount: 2,
+      ageSeconds: expect.any(Number),
+    });
     expect(bob).toMatchObject({ channelId: "3", memberCount: 2 });
     expect(Date.parse(alice.createdAt)).not.toBeNaN();
-    expect(alice.audio).toMatchObject({ ingressFrames: 0, ingressDroppedFrames: 0, tsSendFrames: 0, tsReceiveFrames: 0, egressFrames: 0, egressDroppedFrames: 0 });
+    expect(alice.audio).toMatchObject({
+      ingressFrames: 0,
+      ingressDroppedFrames: 0,
+      tsSendFrames: 0,
+      tsReceiveFrames: 0,
+      egressFrames: 0,
+      egressDroppedFrames: 0,
+    });
   });
 
   it("terminates a session: the socket closes with a reason, the TeamSpeak client leaves, and it is audited once", async () => {
@@ -80,7 +96,19 @@ describe("invites", () => {
     gateway.adminService.updateSettings(settingsInput({ target: "8.8.8.8:9988" }));
     const { status, body } = await create(admin, { channel: " Room A ", expiresInHours: 2, maxUses: 3 });
     expect(status).toBe(201);
-    expect(body).toMatchObject({ ok: true, token: expect.stringMatching(/^[\w-]{43}$/), invite: { id: expect.stringMatching(/^invite-/), target: "8.8.8.8:9988", channel: "Room A", maxUses: 3, useCount: 0, revokedAt: null, status: "active" } });
+    expect(body).toMatchObject({
+      ok: true,
+      token: expect.stringMatching(/^[\w-]{43}$/),
+      invite: {
+        id: expect.stringMatching(/^invite-/),
+        target: "8.8.8.8:9988",
+        channel: "Room A",
+        maxUses: 3,
+        useCount: 0,
+        revokedAt: null,
+        status: "active",
+      },
+    });
     expect(Date.parse(body.invite.expiresAt) - Date.now()).toBeGreaterThan(2 * HOUR_MS - 60_000);
     const listed = await (await admin.get("invites")).text();
     expect(listed).toContain(body.invite.id);
@@ -99,10 +127,16 @@ describe("invites", () => {
   it("refuses an expiry outside 1 to 720 hours and a use count outside 0 to 10000, or either as text", async () => {
     const { admin } = await start();
     const cases: [Record<string, unknown>, string][] = [
-      [{ expiresInHours: 0 }, "INVALID_INVITE_EXPIRY"], [{ expiresInHours: 721 }, "INVALID_INVITE_EXPIRY"], [{ expiresInHours: "5" }, "INVALID_INVITE_EXPIRY"],
-      [{ maxUses: -1 }, "INVALID_INVITE_USES"], [{ maxUses: 10001 }, "INVALID_INVITE_USES"], [{ maxUses: 1.5 }, "INVALID_INVITE_USES"], [{ maxUses: "2" }, "INVALID_INVITE_USES"],
+      [{ expiresInHours: 0 }, "INVALID_INVITE_EXPIRY"],
+      [{ expiresInHours: 721 }, "INVALID_INVITE_EXPIRY"],
+      [{ expiresInHours: "5" }, "INVALID_INVITE_EXPIRY"],
+      [{ maxUses: -1 }, "INVALID_INVITE_USES"],
+      [{ maxUses: 10001 }, "INVALID_INVITE_USES"],
+      [{ maxUses: 1.5 }, "INVALID_INVITE_USES"],
+      [{ maxUses: "2" }, "INVALID_INVITE_USES"],
     ];
-    for (const [body, code] of cases) expect(await create(admin, body), JSON.stringify(body)).toMatchObject({ status: 400, body: { ok: false, code } });
+    for (const [body, code] of cases)
+      expect(await create(admin, body), JSON.stringify(body)).toMatchObject({ status: 400, body: { ok: false, code } });
     expect((await create(admin, { expiresInHours: 720, maxUses: 10000 })).status).toBe(201);
     expect((await json(await admin.get("invites"))).invites).toHaveLength(1);
   });
@@ -112,12 +146,30 @@ describe("invites", () => {
     const single = (await create(admin, { maxUses: 1 })).body;
     const timed = (await create(admin, { expiresInHours: 1 })).body;
     const revoked = (await create(admin, {})).body;
-    const statuses = async () => Object.fromEntries((await json(await admin.get("invites"))).invites.map((invite: { id: string; status: string; useCount: number }) => [invite.id, `${invite.status}/${invite.useCount}`]));
+    const statuses = async () =>
+      Object.fromEntries(
+        (await json(await admin.get("invites"))).invites.map((invite: { id: string; status: string; useCount: number }) => [
+          invite.id,
+          `${invite.status}/${invite.useCount}`,
+        ]),
+      );
     expect(await statuses()).toEqual({ [single.invite.id]: "active/0", [timed.invite.id]: "active/0", [revoked.invite.id]: "active/0" });
-    expect((await gateway.request("/api/join-ticket", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ nickname: "a", invite: single.token }) })).status).toBe(201);
+    expect(
+      (
+        await gateway.request("/api/join-ticket", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ nickname: "a", invite: single.token }),
+        })
+      ).status,
+    ).toBe(201);
     expect((await admin.post(`invites/${revoked.invite.id}/revoke`)).status).toBe(200);
-    expect(await statuses()).toEqual({ [single.invite.id]: "exhausted/1", [timed.invite.id]: "active/0", [revoked.invite.id]: "revoked/0" });
-    // All three expire after an hour; a revoked invite stays revoked, a used-up one now reads as expired.
+    expect(await statuses()).toEqual({
+      [single.invite.id]: "exhausted/1",
+      [timed.invite.id]: "active/0",
+      [revoked.invite.id]: "revoked/0",
+    });
+    // All three expire after an hour, a revoked invite stays revoked and a used-up one now reads as expired.
     vi.useFakeTimers({ toFake: ["Date"] });
     vi.setSystemTime(Date.now() + 2 * HOUR_MS);
     expect(await statuses()).toEqual({ [single.invite.id]: "expired/1", [timed.invite.id]: "expired/0", [revoked.invite.id]: "revoked/0" });
@@ -157,7 +209,8 @@ describe("audit", () => {
   it("takes a limit from 1 up, ignores one that is not a number, and never returns more than 50", async () => {
     const { gateway, admin } = await start();
     for (let i = 0; i < 60; i++) gateway.database.addAudit(`EVENT_${i}`);
-    const count = async (limit?: string) => (await json(await admin.get(limit === undefined ? "audit" : `audit?limit=${limit}`))).events.length;
+    const count = async (limit?: string) =>
+      (await json(await admin.get(limit === undefined ? "audit" : `audit?limit=${limit}`))).events.length;
     expect(await count()).toBe(50);
     expect(await count("3")).toBe(3);
     expect(await count("2.9")).toBe(2);
@@ -166,71 +219,6 @@ describe("audit", () => {
     expect(await count("abc")).toBe(50);
     // The route accepts up to 200, but the database returns at most 50.
     expect(await count("200")).toBe(50);
-  });
-});
-
-describe("logs", () => {
-  it("says the log is not available when there is no file", async () => {
-    const { admin } = await start();
-    expect(await json(await admin.get("logs"))).toEqual({ available: false, entries: [], sessions: [] });
-  });
-
-  it("returns the last lines in order with a level name and only the known context fields", async () => {
-    const { gateway, admin } = await start();
-    writeFileSync(gateway.logFile, jsonLines([
-      { level: 30, time: "2026-01-01T10:00:00.000Z", msg: "old line" },
-      { level: 10, time: "2026-01-01T10:00:01.000Z", msg: "debug line" },
-      { level: 40, time: "2026-01-01T10:00:02.000Z", msg: "warn line", component: "web", attempt: 2, reconnect: true, serverPassword: "hunter2", token: "t0ken", identity: "id-secret", nested: { a: 1 }, port: 3040 },
-      { level: 50, time: "2026-01-01T10:00:03.000Z", msg: "error line" },
-      { level: 60, time: "2026-01-01T10:00:04.000Z", msg: "fatal line" },
-      "this is not json",
-    ]));
-    const body = await json(await admin.get("logs?limit=5"));
-    expect(body.available).toBe(true);
-    expect(body.entries.map((entry: { message: string }) => entry.message)).toEqual(["debug line", "warn line", "error line", "fatal line", "this is not json"]);
-    expect(body.entries.map((entry: { level: string }) => entry.level)).toEqual(["DEBUG", "WARN", "ERROR", "FATAL", "INFO"]);
-    expect(body.entries[1].context).toEqual({ component: "web", attempt: 2, reconnect: true, port: 3040 });
-    expect(JSON.stringify(body)).not.toMatch(/hunter2|t0ken|id-secret/);
-    expect(body.entries[4]).toEqual({ timestamp: null, level: "INFO", message: "this is not json", context: {} });
-  });
-
-  it("returns 100 lines by default, at least 1 and at most 200", async () => {
-    const { gateway, admin } = await start();
-    writeFileSync(gateway.logFile, jsonLines(Array.from({ length: 250 }, (_, i) => ({ level: 30, time: "2026-01-01T10:00:00.000Z", msg: `line ${i}` }))));
-    const entries = async (limit?: string) => (await json(await admin.get(limit === undefined ? "logs" : `logs?limit=${limit}`))).entries as { message: string }[];
-    const byDefault = await entries();
-    expect(byDefault).toHaveLength(100);
-    expect([byDefault[0]!.message, byDefault.at(-1)!.message]).toEqual(["line 150", "line 249"]);
-    expect(await entries("0")).toHaveLength(1);
-    expect(await entries("-3")).toHaveLength(1);
-    expect(await entries("500")).toHaveLength(200);
-    expect(await entries("abc")).toHaveLength(100);
-  });
-
-  it("rebuilds the connection history from the log, including the rotated file, newest first", async () => {
-    const { gateway, admin } = await start();
-    writeFileSync(`${gateway.logFile}.1`, jsonLines([
-      { level: 30, time: "2026-01-01T09:00:00.000Z", msg: "WebClient connecting", entryId: "w-old", nickname: "olga", clientIp: "10.0.0.1", target: "ts.test:9987" },
-      { level: 30, time: "2026-01-01T09:00:02.000Z", msg: "Web client connected to TeamSpeak", entryId: "w-old" },
-      { level: 30, time: "2026-01-01T09:10:02.000Z", msg: "Client session torn down", entryId: "w-old", reason: "websocket-close", durationSeconds: 600 },
-    ]));
-    writeFileSync(gateway.logFile, jsonLines([
-      { level: 30, time: "2026-01-01T10:00:00.000Z", msg: "WebClient connecting", entryId: "w-failed", nickname: "fred", clientIp: "10.0.0.2", target: "ts.test:9987", relayName: "Relay one", relayTarget: "relay.test:39087" },
-      { level: 40, time: "2026-01-01T10:00:01.000Z", msg: "TS connect failed", entryId: "w-failed", code: "BANNED", failureDetail: "you are banned" },
-      { level: 30, time: "2026-01-01T10:00:02.000Z", msg: "Client session torn down", entryId: "w-failed", reason: "teamSpeak-connect-failed", failureCode: "BANNED" },
-      { level: 30, time: "2026-01-01T11:00:00.000Z", msg: "WebClient connecting", entryId: "w-live", nickname: "lena", clientIp: "10.0.0.3", target: "ts.test:9987" },
-      { level: 30, time: "2026-01-01T11:00:03.000Z", msg: "Web client connected to TeamSpeak", entryId: "w-live" },
-      { level: 30, time: "2026-01-01T11:30:00.000Z", msg: "WebClient connecting", entryId: "w-wait" },
-      { level: 30, time: "2026-01-01T12:00:00.000Z", msg: "an unrelated line without an entry id" },
-    ]));
-    const { sessions } = await json(await admin.get("logs"));
-    expect(sessions.map((session: { id: string; status: string }) => `${session.id}:${session.status}`)).toEqual(["w-wait:connecting", "w-live:active", "w-failed:failed", "w-old:disconnected"]);
-    const byId = Object.fromEntries(sessions.map((session: { id: string }) => [session.id, session]));
-    expect(byId["w-old"]).toMatchObject({ nickname: "olga", clientIp: "10.0.0.1", target: "ts.test:9987", startedAt: "2026-01-01T09:00:00.000Z", connectedAt: "2026-01-01T09:00:02.000Z", disconnectedAt: "2026-01-01T09:10:02.000Z", durationSeconds: 600, reason: null, relayName: null });
-    expect(byId["w-failed"]).toMatchObject({ reason: "BANNED", failureDetail: "you are banned", relayName: "Relay one", relayTarget: "relay.test:39087", connectedAt: null, durationSeconds: null });
-    expect(byId["w-live"]).toMatchObject({ disconnectedAt: null, durationSeconds: expect.any(Number) });
-    expect(byId["w-wait"]).toMatchObject({ nickname: "—", clientIp: "—", target: "—", connectedAt: null });
-    expect((await json(await admin.get("logs?limit=2"))).sessions.map((session: { id: string }) => session.id)).toEqual(["w-wait", "w-live"]);
   });
 });
 
@@ -278,10 +266,19 @@ describe("diagnostics", () => {
 
   it("downloads a report that carries no secret", async () => {
     const { gateway, admin } = await start();
-    await admin.put("server", settingsInput({
-      passwordAction: "replace", serverPassword: "s3cret-server-pass",
-      relaySettingsAction: "replace", relayEnabled: true, relayName: "Relay", relayTarget: "relay.example.org:39087", relayTokenAction: "replace", relayToken: "s3cret-relay-token",
-    }));
+    await admin.put(
+      "server",
+      settingsInput({
+        passwordAction: "replace",
+        serverPassword: "s3cret-server-pass",
+        relaySettingsAction: "replace",
+        relayEnabled: true,
+        relayName: "Relay",
+        relayTarget: "relay.example.org:39087",
+        relayTokenAction: "replace",
+        relayToken: "s3cret-relay-token",
+      }),
+    );
     const response = await admin.get("diagnostics/report");
     expect(response.headers.get("content-type")).toBe("application/json; charset=utf-8");
     expect(response.headers.get("content-disposition")).toBe('attachment; filename="webspeak-diagnostic-report.json"');
@@ -291,7 +288,15 @@ describe("diagnostics", () => {
     expect(report.audit.map((entry: { event: string }) => entry.event)).toContain("SETTINGS_CHANGED");
     expect(text).toContain('\n  "gateway"');
     const credential = gateway.database.getAdminCredential()!;
-    for (const secret of ["s3cret-server-pass", "s3cret-relay-token", TEST_ADMIN_PASSWORD, credential.hash, credential.salt, admin.csrfToken, admin.cookie.split("=")[1]!]) {
+    for (const secret of [
+      "s3cret-server-pass",
+      "s3cret-relay-token",
+      TEST_ADMIN_PASSWORD,
+      credential.hash,
+      credential.salt,
+      admin.csrfToken,
+      admin.cookie.split("=")[1]!,
+    ]) {
       expect(text.includes(secret), secret.slice(0, 12)).toBe(false);
     }
   });

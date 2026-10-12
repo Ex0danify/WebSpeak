@@ -31,11 +31,15 @@ provide(fieldContextKey, {
 
 <template>
   <div :class="cn('flex min-w-0 flex-col gap-1.5', props.class)">
-    <Label v-if="label || $slots.label" :for="id"><slot name="label">{{ label }}</slot></Label>
+    <Label v-if="label || $slots.label" :for="id"
+      ><slot name="label">{{ label }}</slot></Label
+    >
     <slot />
     <!-- The live region exists before the message does, so screen readers announce a new error. -->
     <div aria-live="polite" class="empty:hidden">
-      <Hint v-if="hasMessage" :id="messageId" :invalid="invalid"><slot name="message">{{ error || hint }}</slot></Hint>
+      <Hint v-if="hasMessage" :id="messageId" :invalid="invalid"
+        ><slot name="message">{{ error || hint }}</slot></Hint
+      >
     </div>
   </div>
 </template>

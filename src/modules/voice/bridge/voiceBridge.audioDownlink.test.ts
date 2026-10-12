@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
-import { decodeOpus, powerAt, rms, sineFrames } from "../../../../test/helpers/audio.js";
-import { type Gateway, useGateway } from "../../../../test/helpers/gateway.js";
-import { ask, joinVoice, type VoiceSession } from "../../../../test/helpers/voice.js";
+import { decodeOpus, powerAt, rms, sineFrames } from "../../../../test/support/audio.js";
+import { type Gateway, useGateway } from "../../../../test/support/gateway.js";
+import { ask, joinVoice, type VoiceSession } from "../../../../test/support/voice.js";
 
 const gateways = useGateway();
 
@@ -83,8 +83,22 @@ describe("TeamSpeak to browser: Opus relay", () => {
     for (let i = 0; i < 5; i++) carol.speak(Buffer.from([i]));
     await bob.socket.waitForBinaryCount(17);
     await settle(alice);
-    expect(await counters(gateway, "alice")).toMatchObject({ ingressFrames: 12, tsSendFrames: 12, tsReceiveFrames: 5, egressFrames: 5, egressDroppedFrames: 0, egressFramesByClient: { [carol.id]: 5 } });
-    expect(await counters(gateway, "bob")).toMatchObject({ ingressFrames: 0, tsSendFrames: 0, tsReceiveFrames: 17, egressFrames: 17, egressDroppedFrames: 0, egressFramesByClient: { [alice.id]: 12, [carol.id]: 5 } });
+    expect(await counters(gateway, "alice")).toMatchObject({
+      ingressFrames: 12,
+      tsSendFrames: 12,
+      tsReceiveFrames: 5,
+      egressFrames: 5,
+      egressDroppedFrames: 0,
+      egressFramesByClient: { [carol.id]: 5 },
+    });
+    expect(await counters(gateway, "bob")).toMatchObject({
+      ingressFrames: 0,
+      tsSendFrames: 0,
+      tsReceiveFrames: 17,
+      egressFrames: 17,
+      egressDroppedFrames: 0,
+      egressFramesByClient: { [alice.id]: 12, [carol.id]: 5 },
+    });
   });
 });
 
@@ -102,7 +116,10 @@ describe("the egress byte guard", () => {
     let audio = await counters(gateway, "alice");
     // The kernel buffers absorb a few megabytes first; keep going until the guard has had to act.
     for (let batch = 0; batch < 20 && audio.egressDroppedFrames === 0; batch++) {
-      for (let i = 0; i < 50; i++) { bob.speak(big); sent++; }
+      for (let i = 0; i < 50; i++) {
+        bob.speak(big);
+        sent++;
+      }
       audio = await counters(gateway, "alice");
     }
     expect(audio.egressDroppedFrames).toBeGreaterThan(0);
@@ -115,9 +132,12 @@ describe("the egress byte guard", () => {
 
     alice.socket.resumeReading();
     const marker = Buffer.from([0xaa, 0xbb]);
-    await vi.waitFor(() => {
-      bob.speak(marker);
-      expect(alice.socket.binary.some((frame) => frame.length === 5 && frame.subarray(3).equals(marker))).toBe(true);
-    }, { timeout: 5000 });
+    await vi.waitFor(
+      () => {
+        bob.speak(marker);
+        expect(alice.socket.binary.some((frame) => frame.length === 5 && frame.subarray(3).equals(marker))).toBe(true);
+      },
+      { timeout: 5000 },
+    );
   });
 });

@@ -1,10 +1,6 @@
 /**
- * Screen-share signaling for browser peers and native TeamSpeak peers.
- *
- * Media never passes through this module. The gateway only authenticates the
- * connected TeamSpeak session and relays SDP/ICE messages. Browser peers use
- * the configured ICE servers only for candidate discovery/negotiation; this
- * module never handles the resulting media packets.
+ * Screen share signaling for browser and native TS peers. Media never passes through here, the gateway only
+ * authenticates the TS session and relays SDP and ICE. The ICE servers are for candidate discovery only.
  */
 
 import type { MessageCode } from "../../shared/messageCodes.js";
@@ -27,11 +23,7 @@ const MAX_ICE_SERVER_COUNT = 8;
 const MAX_ICE_URL_LENGTH = 512;
 const MAX_ICE_CREDENTIAL_LENGTH = 512;
 
-/**
- * Keep ICE configuration server-owned and bounded before exposing it to a
- * browser. TURN is accepted only as an explicitly configured external server;
- * the WebSpeak gateway is never inserted into this list.
- */
+/** ICE config stays server-owned and bounded. TURN only as an explicitly configured external server, never the gateway. */
 export function normalizeScreenShareIceServers(value?: readonly unknown[]): ScreenShareIceServer[] {
   const source: readonly unknown[] = value ?? DEFAULT_SCREEN_SHARE_ICE_SERVERS;
   const normalized: ScreenShareIceServer[] = [];
@@ -46,12 +38,12 @@ export function normalizeScreenShareIceServers(value?: readonly unknown[]): Scre
       .filter((url) => SCREEN_SHARE_ICE_URL_PATTERN.test(url));
     const uniqueUrls = [...new Set(urls)];
     if (!uniqueUrls.length) continue;
-    const username = typeof candidate.username === "string" && candidate.username.length <= MAX_ICE_CREDENTIAL_LENGTH
-      ? candidate.username
-      : undefined;
-    const credential = typeof candidate.credential === "string" && candidate.credential.length <= MAX_ICE_CREDENTIAL_LENGTH
-      ? candidate.credential
-      : undefined;
+    const username =
+      typeof candidate.username === "string" && candidate.username.length <= MAX_ICE_CREDENTIAL_LENGTH ? candidate.username : undefined;
+    const credential =
+      typeof candidate.credential === "string" && candidate.credential.length <= MAX_ICE_CREDENTIAL_LENGTH
+        ? candidate.credential
+        : undefined;
     const key = JSON.stringify([uniqueUrls, username ?? ""]);
     if (seen.has(key)) continue;
     seen.add(key);
@@ -79,7 +71,7 @@ export type ScreenSharePeerSignal =
     }
   | {
       kind: "close";
-  };
+    };
 
 export interface ScreenShareViewerDescription {
   peerId: string;
@@ -91,11 +83,11 @@ export interface ScreenShareStreamDescription {
   streamId: string;
   source: "browser" | "teamspeak";
   ownerPeerId: string;
-  /** TeamSpeak client id used to match a stream to the member card. */
+  /** Matches a stream to the member card. */
   ownerClientId?: number;
   ownerNickname: string;
   name: string;
-  /** Set when `name` is a default the gateway filled in; the browser renders its own text for it. */
+  /** Set when name is a default the gateway filled in, the browser renders its own text for it. */
   nameKind?: "teamspeakNative" | "ownerScreen";
   audio: boolean;
   createdAt: number;
@@ -135,9 +127,7 @@ export type ScreenShareClientMessage =
       signal: ScreenSharePeerSignal;
     };
 
-export type ScreenShareMessageParseResult =
-  | ScreenShareClientMessage
-  | { error: { code: MessageCode; message: string } };
+export type ScreenShareMessageParseResult = ScreenShareClientMessage | { error: { code: MessageCode; message: string } };
 
 const MAX_STREAM_ID_LENGTH = 128;
 const MAX_PEER_ID_LENGTH = 128;
@@ -162,7 +152,8 @@ export function parseScreenShareMessage(raw: string): ScreenShareMessageParseRes
     case "screenShareStart": {
       const name = value.name === undefined ? undefined : parseName(value.name);
       if (name === false) return invalid("INVALID_SCREEN_SHARE_NAME", "Screen share name is invalid");
-      if (value.audio !== undefined && typeof value.audio !== "boolean") return invalid("INVALID_SCREEN_SHARE_AUDIO", "Share audio option is invalid");
+      if (value.audio !== undefined && typeof value.audio !== "boolean")
+        return invalid("INVALID_SCREEN_SHARE_AUDIO", "Share audio option is invalid");
       return {
         type: "screenShareStart",
         ...(requestId ? { requestId } : {}),
@@ -205,7 +196,12 @@ function parseSignal(value: unknown): ScreenSharePeerSignal | null {
   if (value.kind !== "iceCandidate" || typeof value.candidate !== "string" || value.candidate.length > MAX_CANDIDATE_LENGTH) return null;
   if (value.sdpMid !== undefined && value.sdpMid !== null && typeof value.sdpMid !== "string") return null;
   const sdpMLineIndex = value.sdpMLineIndex;
-  if (sdpMLineIndex !== undefined && sdpMLineIndex !== null && (typeof sdpMLineIndex !== "number" || !Number.isInteger(sdpMLineIndex) || sdpMLineIndex < 0 || sdpMLineIndex > 255)) return null;
+  if (
+    sdpMLineIndex !== undefined &&
+    sdpMLineIndex !== null &&
+    (typeof sdpMLineIndex !== "number" || !Number.isInteger(sdpMLineIndex) || sdpMLineIndex < 0 || sdpMLineIndex > 255)
+  )
+    return null;
   return {
     kind: "iceCandidate",
     candidate: value.candidate,

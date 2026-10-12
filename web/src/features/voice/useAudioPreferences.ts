@@ -4,8 +4,10 @@ import { loadLocalPreferences, saveLocalPreferences } from "@/shared/services/lo
 import { useVoiceAudioStore } from "./stores/voiceAudioStore";
 import { useSessionStore } from "@/features/session";
 
-/** The parts of a volume change that touch audio nodes or the gateway. They stay with the audio graph
- *  and are late-bound (V-D2): the assembler passes them in, later tracks move them next to the nodes. */
+/**
+ * The parts of a volume change that touch audio nodes or the gateway. They stay with the audio graph and are late-bound,
+ * the assembler passes them in.
+ */
 export interface AudioPreferencesDeps {
   /** Push a member's new volume to its gain node and, on WebRTC, to the gateway. */
   applyMemberVolume(clientId: number, normalized: number): void;
@@ -20,8 +22,15 @@ export interface AudioPreferencesDeps {
 export function useAudioPreferences(deps: AudioPreferencesDeps) {
   const audio = useVoiceAudioStore();
   const {
-    microphoneMuted, noiseSuppressionEnabled, inputVolume, outputVolume, outputMuted, notificationVolume, voxThreshold,
-    selectedInputDeviceId, selectedOutputDeviceId,
+    microphoneMuted,
+    noiseSuppressionEnabled,
+    inputVolume,
+    outputVolume,
+    outputMuted,
+    notificationVolume,
+    voxThreshold,
+    selectedInputDeviceId,
+    selectedOutputDeviceId,
   } = storeToRefs(audio);
   const { volumes } = audio;
   const { members } = useSessionStore();

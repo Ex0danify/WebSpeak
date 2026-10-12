@@ -1,13 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { AdminInputError } from "./adminService.js";
-import {
-  asRecord,
-  readLimit,
-  readOptionalNumber,
-  readOptionalString,
-  readSettingsInput,
-  readString,
-} from "./adminRequestParsing.js";
+import { asRecord, readLimit, readOptionalNumber, readOptionalString, readSettingsInput, readString } from "./adminRequestParsing.js";
 
 describe("adminRequestParsing", () => {
   it("asRecord rejects non-objects and arrays", () => {
@@ -50,9 +43,7 @@ describe("adminRequestParsing", () => {
     });
     expect(input.passwordAction).toBe("replace");
     expect(input.relaySettingsAction).toBe("keep");
-    expect(input.relayNodes).toEqual([
-      { id: "n1", name: "N", target: "t", enabled: true, token: undefined, tokenAction: "remove" },
-    ]);
+    expect(input.relayNodes).toEqual([{ id: "n1", name: "N", target: "t", enabled: true, token: undefined, tokenAction: "remove" }]);
     expect(() => readSettingsInput({ siteName: "x" })).toThrow(AdminInputError);
   });
 });

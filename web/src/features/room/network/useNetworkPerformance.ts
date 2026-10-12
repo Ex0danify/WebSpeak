@@ -18,10 +18,9 @@ export interface NetworkPerformanceStats {
   ready: boolean;
 }
 
-/** The network-performance popover: its own open state, a rolling window of browser<->gateway
- *  and gateway<->TeamSpeak latency samples measured via useRoomSession()'s measureLatency(),
- *  and the polling loop that keeps that window fresh while the popover is open. The loop stops when
- *  the connection drops or the owner unmounts, and restarts on reconnect if the popover is still open. */
+/** The network-performance popover with its own open state, a rolling window of browser<->gateway and gateway<->TeamSpeak
+ *  latency samples (measureLatency()), and the polling loop that keeps it fresh while open. It stops when the connection drops
+ *  or the owner unmounts and restarts on reconnect if still open. */
 export function useNetworkPerformance(options: UseNetworkPerformanceOptions) {
   const { state: voiceState, measureLatency } = options.session;
 
@@ -37,7 +36,9 @@ export function useNetworkPerformance(options: UseNetworkPerformanceOptions) {
     const samples = performanceSamples.value;
     const attempts = performanceAttempts.value;
     const gatewaySamples = samples.map((sample) => sample.browserRttMs);
-    const teamSpeakSamples = samples.filter((sample) => sample.teamSpeakReachable && sample.teamSpeakLatencyMs != null).map((sample) => sample.teamSpeakLatencyMs as number);
+    const teamSpeakSamples = samples
+      .filter((sample) => sample.teamSpeakReachable && sample.teamSpeakLatencyMs != null)
+      .map((sample) => sample.teamSpeakLatencyMs as number);
     return {
       gatewayLatencyMs: median(gatewaySamples),
       gatewayLossPercent: attempts > 0 ? Math.round(((attempts - samples.length) / attempts) * 100) : null,
@@ -97,10 +98,13 @@ export function useNetworkPerformance(options: UseNetworkPerformanceOptions) {
     }
   }
 
-  watch(() => voiceState.connected, (connected) => {
-    if (!connected) stopPerformanceMonitoring();
-    else if (performancePanelOpen.value) startPerformanceMonitoring();
-  });
+  watch(
+    () => voiceState.connected,
+    (connected) => {
+      if (!connected) stopPerformanceMonitoring();
+      else if (performancePanelOpen.value) startPerformanceMonitoring();
+    },
+  );
 
   onUnmounted(stopPerformanceMonitoring);
 

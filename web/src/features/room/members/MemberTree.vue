@@ -1,7 +1,32 @@
 <template>
-  <div class="mt-4.5 min-h-0 flex-1 overflow-y-auto pr-0.75 compact:max-medium:mt-2.5 max-compact:mt-3 max-compact:flex-auto max-compact:pr-0.5 max-compact:pb-1 max-compact:[scrollbar-gutter:stable]">
-    <section v-for="channelItem in channels" :key="channelItem.id" :class="['not-first:mt-2', dragOverChannelId === channelItem.id ? 'rounded-lg border border-dashed border-accent bg-accent/7 p-1.5 pb-3' : 'border-b border-line pt-2 pb-3.5 max-compact:pt-1.75 max-compact:pb-3']" :data-member-channel-id="channelItem.id" :style="{ marginLeft: `${channelItem.depth * 10}px` }" @dragover="$emit('channel-drag-over', channelItem, $event)" @dragleave="$emit('channel-drag-leave', channelItem, $event)" @drop="$emit('channel-drop', channelItem, $event)" @pointermove="$emit('member-pointer-move', $event)" @pointerup="$emit('member-pointer-up', $event)" @pointercancel="$emit('member-pointer-cancel', $event)">
-      <Button variant="soft" size="row" :aria-current="isActive(channelItem) ? 'true' : undefined" :title="t('switchChannel')" @click="$emit('select-channel', channelItem)">
+  <div
+    class="mt-4.5 min-h-0 flex-1 overflow-y-auto pr-0.75 max-compact:mt-3 max-compact:flex-auto max-compact:[scrollbar-gutter:stable] max-compact:pr-0.5 max-compact:pb-1 compact:max-medium:mt-2.5"
+  >
+    <section
+      v-for="channelItem in channels"
+      :key="channelItem.id"
+      :class="[
+        'not-first:mt-2',
+        dragOverChannelId === channelItem.id
+          ? 'rounded-lg border border-dashed border-accent bg-accent/7 p-1.5 pb-3'
+          : 'border-b border-line pt-2 pb-3.5 max-compact:pt-1.75 max-compact:pb-3',
+      ]"
+      :data-member-channel-id="channelItem.id"
+      :style="{ marginLeft: `${channelItem.depth * 10}px` }"
+      @dragover="$emit('channel-drag-over', channelItem, $event)"
+      @dragleave="$emit('channel-drag-leave', channelItem, $event)"
+      @drop="$emit('channel-drop', channelItem, $event)"
+      @pointermove="$emit('member-pointer-move', $event)"
+      @pointerup="$emit('member-pointer-up', $event)"
+      @pointercancel="$emit('member-pointer-cancel', $event)"
+    >
+      <Button
+        variant="soft"
+        size="row"
+        :aria-current="isActive(channelItem) ? 'true' : undefined"
+        :title="t('switchChannel')"
+        @click="$emit('select-channel', channelItem)"
+      >
         <Icon name="volume" :size="16" />
         <span class="min-w-0 flex-1 truncate text-md font-bold">{{ channelNameText(channelItem, t) }}</span>
         <small class="text-ui">{{ channelItem.members.length }}</small>
@@ -27,7 +52,7 @@
           @set-volume="$emit('set-volume', member.id, $event)"
         />
       </div>
-      <div v-else class="mt-1.75 mr-1 ml-7.75 text-caption text-fg-muted">{{ t('noMembersInChannel') }}</div>
+      <div v-else class="mt-1.75 mr-1 ml-7.75 text-caption text-fg-muted">{{ t("noMembersInChannel") }}</div>
     </section>
   </div>
 </template>

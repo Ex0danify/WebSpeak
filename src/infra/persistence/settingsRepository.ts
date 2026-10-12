@@ -33,16 +33,14 @@ export class SettingsRepository {
     };
   }
 
-  recordConnectionTest(result: {
-    protocol: TeamSpeakProtocol | null;
-    latencyMs: number | null;
-    error: string | null;
-  }): void {
-    this.context.database.prepare(
-      `UPDATE settings
+  recordConnectionTest(result: { protocol: TeamSpeakProtocol | null; latencyMs: number | null; error: string | null }): void {
+    this.context.database
+      .prepare(
+        `UPDATE settings
        SET detected_protocol = ?, last_test_at = ?, last_test_latency_ms = ?, last_test_error = ?
        WHERE id = 1`,
-    ).run(result.protocol, new Date().toISOString(), result.latencyMs, result.error);
+      )
+      .run(result.protocol, new Date().toISOString(), result.latencyMs, result.error);
   }
 
   clearConnectionTest(): void {
@@ -52,30 +50,32 @@ export class SettingsRepository {
   }
 
   write(settings: SettingsUpdate, now: string): void {
-    this.context.database.prepare(
-      `UPDATE settings SET
+    this.context.database
+      .prepare(
+        `UPDATE settings SET
          site_name = ?, access_mode = ?, ts_host = ?, ts_port = ?,
          ts_password_encrypted = ?, webrtc_enabled = ?, webrtc_udp_start = ?,
          webrtc_udp_end = ?, relay_configured = ?, relay_enabled = ?, relay_name = ?,
          relay_host = ?, relay_port = ?, relay_token_encrypted = ?, updated_at = ?
        WHERE id = 1`,
-    ).run(
-      settings.siteName,
-      settings.accessMode,
-      settings.tsHost,
-      settings.tsPort,
-      settings.tsPasswordEncrypted,
-      settings.webRtcEnabled ? 1 : 0,
-      settings.webRtcUdpStart ?? DEFAULT_WEBRTC_UDP_PORT_RANGE[0],
-      settings.webRtcUdpEnd ?? DEFAULT_WEBRTC_UDP_PORT_RANGE[1],
-      settings.relayConfigured ? 1 : 0,
-      settings.relayEnabled ? 1 : 0,
-      settings.relayName,
-      settings.relayHost,
-      settings.relayPort,
-      settings.relayTokenEncrypted,
-      now,
-    );
+      )
+      .run(
+        settings.siteName,
+        settings.accessMode,
+        settings.tsHost,
+        settings.tsPort,
+        settings.tsPasswordEncrypted,
+        settings.webRtcEnabled ? 1 : 0,
+        settings.webRtcUdpStart ?? DEFAULT_WEBRTC_UDP_PORT_RANGE[0],
+        settings.webRtcUdpEnd ?? DEFAULT_WEBRTC_UDP_PORT_RANGE[1],
+        settings.relayConfigured ? 1 : 0,
+        settings.relayEnabled ? 1 : 0,
+        settings.relayName,
+        settings.relayHost,
+        settings.relayPort,
+        settings.relayTokenEncrypted,
+        now,
+      );
     this.writeWelcomeTexts(settings.welcomeTexts ?? {});
   }
 

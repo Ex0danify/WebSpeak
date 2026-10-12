@@ -1,7 +1,8 @@
 import { createApp } from "vue";
+import { registerAdminStores } from "./adminStores";
 import { createPinia } from "pinia";
 import { routeLocationKey, routerKey } from "vue-router";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from "vitest";
 import { useAdminOperationsStore } from "./adminOperations";
 import { useAdminOverviewStore } from "./adminOverview";
 import { useAdminServerSettingsStore } from "./adminServerSettings";
@@ -13,10 +14,15 @@ function respond(status: number, body: unknown) {
 
 function setup(path = "/admin") {
   const route = { path } as any;
-  const router = { replace: vi.fn(async (to: string) => { route.path = to; }) } as any;
+  const router = {
+    replace: vi.fn(async (to: string) => {
+      route.path = to;
+    }),
+  } as any;
   const app = createApp({});
   const pinia = createPinia();
   app.use(pinia);
+  registerAdminStores();
   app.provide(routerKey, router);
   app.provide(routeLocationKey, route);
   const store = app.runWithContext(() => useAdminSessionStore(pinia));
@@ -26,8 +32,11 @@ function setup(path = "/admin") {
   return { session: store, route, router, loadAdminData };
 }
 
-let fetchMock: ReturnType<typeof vi.fn>;
-beforeEach(() => { fetchMock = vi.fn(); vi.stubGlobal("fetch", fetchMock); });
+let fetchMock: Mock<(...args: any[]) => Promise<Response>>;
+beforeEach(() => {
+  fetchMock = vi.fn();
+  vi.stubGlobal("fetch", fetchMock);
+});
 afterEach(() => vi.unstubAllGlobals());
 
 describe("useAdminSessionStore", () => {

@@ -3,9 +3,9 @@ import { useSessionStore } from "@/features/session";
 import ClientLayout from "./ClientLayout.vue";
 import JoinView from "./JoinView.vue";
 
-/** The client: `ClientLayout` owns the session for both pages, `/` is the join page and `/room`
- *  the connected room. The layout moves between them as the session connects and ends. Layout and
- *  join page are in the entry chunk (every visit starts there); only the room is loaded on demand. */
+/** The client. `ClientLayout` owns the session for both pages, `/` is the join page and `/room` the connected room, and the
+ *  layout moves between them as the session connects and ends. Layout and join page are in the entry chunk (every visit starts
+ *  there), only the room loads on demand. */
 export const clientRoutes: RouteRecordRaw[] = [
   {
     path: "/",

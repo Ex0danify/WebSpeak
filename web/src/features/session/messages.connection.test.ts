@@ -1,6 +1,5 @@
-// Characterization of the gateway messages that drive the connection state and the roster
-// (Step V0.3a). Each test pins what the composable does today, bugs included: the router
-// refactor (Track V6) must keep every assertion here true.
+// Characterization of the gateway messages that drive the connection state and the roster.
+// Each test pins what the composable does, so a change in the router keeps every assertion true.
 import { flushPromises } from "@vue/test-utils";
 import { afterEach, describe, expect, it } from "vitest";
 import { createVoiceHarness, type VoiceHarness } from "@/testSupport/harness";
@@ -26,16 +25,41 @@ describe("connected", () => {
     harness.voice.session.state.error = "old";
     harness.voice.session.state.errorCode = "OLD";
     const socket = await harness.join();
-    socket.receive({ type: "connected", tsClientId: 7, members: [{ id: 7, nickname: "Me" }, { id: 9, nickname: "Ana", uid: "u9" }] });
+    socket.receive({
+      type: "connected",
+      tsClientId: 7,
+      members: [
+        { id: 7, nickname: "Me" },
+        { id: 9, nickname: "Ana", uid: "u9" },
+      ],
+    });
     const { state } = harness.voice.session;
     const { members } = harness.voice.roster;
-    expect(state).toMatchObject({ connected: true, connecting: false, reconnecting: false, reconnectAttempt: 0, reconnectFailed: false, tsClientId: 7, error: "", errorCode: "", channelSwitchedChannelId: "" });
-    expect(members.map((m) => [m.id, m.nickname, m.isSelf])).toEqual([[7, "Me", true], [9, "Ana", false]]);
+    expect(state).toMatchObject({
+      connected: true,
+      connecting: false,
+      reconnecting: false,
+      reconnectAttempt: 0,
+      reconnectFailed: false,
+      tsClientId: 7,
+      error: "",
+      errorCode: "",
+      channelSwitchedChannelId: "",
+    });
+    expect(members.map((m) => [m.id, m.nickname, m.isSelf])).toEqual([
+      [7, "Me", true],
+      [9, "Ana", false],
+    ]);
   });
 
   it("replaces the roster and server event log of a previous session", async () => {
     const socket = await connected({ members: [{ id: 1, nickname: "Old" }], serverEventLog: [{ id: "e1" }] });
-    await push(socket, { type: "connected", tsClientId: 7, members: [{ id: 2, nickname: "New" }], serverEventLog: [{ id: "e2" }, { id: "e3" }] });
+    await push(socket, {
+      type: "connected",
+      tsClientId: 7,
+      members: [{ id: 2, nickname: "New" }],
+      serverEventLog: [{ id: "e2" }, { id: "e3" }],
+    });
     expect(harness.voice.roster.members.map((m) => m.id)).toEqual([2]);
     expect(harness.voice.roster.serverEvents.map((e) => e.id)).toEqual(["e2", "e3"]);
   });
@@ -83,7 +107,9 @@ describe("connected", () => {
     const socket = await harness.joinAndConnect({ webrtcAvailable: true });
     await flushPromises();
     expect(FakeRTCPeerConnection.instances).toHaveLength(1);
-    expect(socket.sentOfType("webrtcOffer")).toMatchObject([{ payload: { sdp: { type: "offer" }, muted: false, accompanimentActive: false } }]);
+    expect(socket.sentOfType("webrtcOffer")).toMatchObject([
+      { payload: { sdp: { type: "offer" }, muted: false, accompanimentActive: false } },
+    ]);
     expect(socket.sentBinary).toHaveLength(0);
   });
 });
@@ -119,7 +145,19 @@ describe("memberEnter / memberLeave / memberAvatar", () => {
 
   it("updates the avatar in the roster and in every channel copy, matching uid when given", async () => {
     const socket = await connected({ members: [{ id: 9, nickname: "Ana", uid: "u9" }] });
-    await push(socket, { type: "channelList", channels: [{ id: "1", name: "Lobby", members: [{ id: 9, nickname: "Ana", uid: "u9" }, { id: 8, nickname: "Ben", uid: "u8" }] }] });
+    await push(socket, {
+      type: "channelList",
+      channels: [
+        {
+          id: "1",
+          name: "Lobby",
+          members: [
+            { id: 9, nickname: "Ana", uid: "u9" },
+            { id: 8, nickname: "Ben", uid: "u8" },
+          ],
+        },
+      ],
+    });
     await push(socket, { type: "memberAvatar", id: 9, uid: "u9", avatar: "data:new" });
     expect(harness.voice.roster.members[0].avatar).toBe("data:new");
     expect(harness.voice.roster.channels[0].members?.find((m) => m.id === 9)?.avatar).toBe("data:new");
@@ -134,7 +172,13 @@ describe("memberEnter / memberLeave / memberAvatar", () => {
 describe("channelList", () => {
   it("replaces the channel list and tolerates a missing array", async () => {
     const socket = await connected();
-    await push(socket, { type: "channelList", channels: [{ id: "1", name: "A" }, { id: "2", name: "B" }] });
+    await push(socket, {
+      type: "channelList",
+      channels: [
+        { id: "1", name: "A" },
+        { id: "2", name: "B" },
+      ],
+    });
     expect(harness.voice.roster.channels.map((c) => c.id)).toEqual(["1", "2"]);
     await push(socket, { type: "channelList", channels: [{ id: "3", name: "C" }] });
     expect(harness.voice.roster.channels.map((c) => c.id)).toEqual(["3"]);
@@ -159,13 +203,23 @@ describe("disconnected / reconnecting / reconnected / reconnectFailed / connecti
   it("disconnected is a recoverable reconnect unless the gateway says otherwise", async () => {
     const socket = await connected();
     await push(socket, { type: "disconnected" });
-    expect(harness.voice.session.state).toMatchObject({ connected: false, connecting: false, reconnecting: true, reconnectFailed: false, error: "" });
+    expect(harness.voice.session.state).toMatchObject({
+      connected: false,
+      connecting: false,
+      reconnecting: true,
+      reconnectFailed: false,
+      error: "",
+    });
   });
 
   it("disconnected with recoverable:false raises the disconnect error", async () => {
     const socket = await connected();
     await push(socket, { type: "disconnected", recoverable: false });
-    expect(harness.voice.session.state).toMatchObject({ connected: false, reconnecting: false, error: { key: "connectionClosedTeamSpeak" } });
+    expect(harness.voice.session.state).toMatchObject({
+      connected: false,
+      reconnecting: false,
+      error: { key: "connectionClosedTeamSpeak" },
+    });
   });
 
   it("disconnected clears the whisper state", async () => {
@@ -200,7 +254,13 @@ describe("disconnected / reconnecting / reconnected / reconnectFailed / connecti
   it("reconnectFailed sets the failed flag with a mapped error", async () => {
     const socket = await connected();
     await push(socket, { type: "reconnectFailed", code: "SERVER_REJECTED" });
-    expect(harness.voice.session.state).toMatchObject({ connected: false, connecting: false, reconnecting: false, reconnectFailed: true, errorCode: "SERVER_REJECTED" });
+    expect(harness.voice.session.state).toMatchObject({
+      connected: false,
+      connecting: false,
+      reconnecting: false,
+      reconnectFailed: true,
+      errorCode: "SERVER_REJECTED",
+    });
     expect(harness.voice.session.state.error).not.toBe("");
   });
 
@@ -208,7 +268,13 @@ describe("disconnected / reconnecting / reconnected / reconnectFailed / connecti
     harness = await createVoiceHarness();
     const socket = await harness.join();
     await push(socket, { type: "connectionFailed", code: "IDENTITY_IN_USE" });
-    expect(harness.voice.session.state).toMatchObject({ connected: false, connecting: false, reconnecting: false, reconnectFailed: false, errorCode: "IDENTITY_IN_USE" });
+    expect(harness.voice.session.state).toMatchObject({
+      connected: false,
+      connecting: false,
+      reconnecting: false,
+      reconnectFailed: false,
+      errorCode: "IDENTITY_IN_USE",
+    });
     harness.voice.session.clearError();
     socket.serverClose(4004, "");
     expect(harness.voice.session.state.errorCode).toBe("");
@@ -218,7 +284,11 @@ describe("disconnected / reconnecting / reconnected / reconnectFailed / connecti
   it("without a prior connectionFailed, a non-1000 close raises the code-derived error", async () => {
     const socket = await connected();
     socket.serverClose(4004, "");
-    expect(harness.voice.session.state).toMatchObject({ connected: false, errorCode: "SERVER_REJECTED", error: { key: "closeServerFullOrRejected" } });
+    expect(harness.voice.session.state).toMatchObject({
+      connected: false,
+      errorCode: "SERVER_REJECTED",
+      error: { key: "closeServerFullOrRejected" },
+    });
   });
 
   it("a plain close (1000) stays silent, but admin-terminated does not", async () => {

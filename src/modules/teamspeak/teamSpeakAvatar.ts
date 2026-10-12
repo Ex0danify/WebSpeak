@@ -7,23 +7,15 @@ export interface TSClientAvatar {
   data: Buffer;
 }
 
-/** The slice of the SDK client the avatar download needs. */
 export type TeamSpeakAvatarClient = Pick<TS3FullClient, "execCommandWithResponse" | "fileTransferInitDownload" | "downloadFileData">;
 
-// Keep enough room for avatars produced by the native client. The previous
-// 120 KiB limit rejected the 134 KiB PNG used by the Shanghai test account,
+// Room for avatars from the native client. The old 120 KiB limit rejected a 134 KiB PNG,
 // so every avatar silently fell back to its initial letter.
 export const MAX_CLIENT_AVATAR_BYTES = 256 * 1024;
 
 /**
- * Load a visible client's TeamSpeak avatar through the client protocol.
- *
- * TeamSpeak does not include the avatar bytes in directory notifications.
- * `clientinfo` exposes the avatar marker and the per-identity filename; the
- * file itself is then read through the normal TeamSpeak file-transfer port.
- * A missing permission, missing avatar, blocked file-transfer port, or an
- * oversized image is intentionally reported as `null` so the web client can
- * keep its generated initial avatar.
+ * Avatars are not in directory notifications. clientinfo gives the marker and filename, the file comes over
+ * the file-transfer port. Any failure (permission, missing, blocked port, too big) returns null so the web client keeps its initial.
  */
 export async function loadClientAvatar(
   client: TeamSpeakAvatarClient,

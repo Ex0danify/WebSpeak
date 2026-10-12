@@ -2,14 +2,14 @@ import { generateIdentity } from "@echosixhiya/teamspeak-client";
 import { createServer } from "node:http";
 import type { AddressInfo } from "node:net";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { stubLogger } from "../../../../test/helpers/adminService.js";
-import { FakeTeamSpeakServer } from "../../../../test/helpers/fakeTsClient.js";
-import { type Gateway, useGateway } from "../../../../test/helpers/gateway.js";
-import { silentFrame } from "../../../../test/helpers/audio.js";
+import { stubLogger } from "../../../../test/support/adminService.js";
+import { FakeTeamSpeakServer } from "../../../../test/support/fakeTsClient.js";
+import { type Gateway, useGateway } from "../../../../test/support/gateway.js";
+import { silentFrame } from "../../../../test/support/audio.js";
 import { JoinTicketStore } from "../../join/joinTicket.js";
 import { VoiceBridge } from "../voiceBridge.js";
-import { ask, joinVoice } from "../../../../test/helpers/voice.js";
-import { WsClient } from "../../../../test/helpers/wsClient.js";
+import { ask, joinVoice } from "../../../../test/support/voice.js";
+import { WsClient } from "../../../../test/support/wsClient.js";
 import { normalizeTeamSpeakKickedReason } from "../../../shared/errors.js";
 
 const gateways = useGateway();
@@ -35,9 +35,9 @@ describe("kick and transport drop", () => {
     expect(await sessionNicknames(gateway)).toEqual([]);
   });
 
-  // GF1: a drop that arrives before the kick parks nothing. `kicked` is ignored unless the
-  // session is still `connected`, and `disconnected` has already moved it to `reconnecting`.
-  it.fails("GF1: drop first, then the kick: the browser gets the kick reason and the session does not reconnect", async () => {
+  // disconnected already moved the session to reconnecting when the kick arrives, the kick must still
+  // end it instead of reconnecting into the kick.
+  it("drop first, then the kick: the browser gets the kick reason and the session does not reconnect", async () => {
     const gateway = await gateways.start();
     const { socket, client } = await joinVoice(gateway, { nickname: "alice" });
     client.emit("disconnected", new Error("read ECONNRESET"));
@@ -70,9 +70,10 @@ describe("the reconnect window", () => {
 
 describe("the heartbeat", () => {
   /** Resolves when the browser side has received a ping, which `ws` answers with a pong at once. */
-  const nextPing = (socket: WsClient) => new Promise<void>((resolve) => {
-    (socket as unknown as { socket: { once(event: string, listener: () => void): void } }).socket.once("ping", resolve);
-  });
+  const nextPing = (socket: WsClient) =>
+    new Promise<void>((resolve) => {
+      (socket as unknown as { socket: { once(event: string, listener: () => void): void } }).socket.once("ping", resolve);
+    });
 
   it("terminates a session whose peer never answers a ping, and frees its identity", async () => {
     vi.useFakeTimers({ toFake: ["setInterval", "clearInterval"] });
@@ -136,7 +137,7 @@ describe("ending several sessions at once", () => {
     const after = owner.socket.mark();
     owner.socket.send({ type: "screenShareStart", requestId } as never);
     await owner.socket.waitForMessage((message) => message.requestId === requestId, { after });
-    const mark = await viewer.socket.mark();
+    const mark = viewer.socket.mark();
     const admin = await gateway.adminLogin();
     const { sessions } = (await (await admin.get("sessions")).json()) as { sessions: { id: string; nickname: string }[] };
     await admin.post(`sessions/${sessions.find((session) => session.nickname === "owner")!.id}/terminate`);
@@ -174,12 +175,22 @@ describe("an unavailable Opus encoder", () => {
       const ticket = joinTickets.create({ target: { host: "ts.test", port: 9987 }, serverPassword: "", nickname: "alice" });
       const socket = await WsClient.open(`ws://127.0.0.1:${(server.address() as AddressInfo).port}/ws/voice?ticket=${ticket}`);
       await socket.waitForMessage("channelList");
-      for (const entry of (bridge as unknown as { entries: Map<string, { opusEncoder: unknown }> }).entries.values()) entry.opusEncoder = null;
-      const frames = () => { for (let i = 0; i < 3; i++) socket.sendRaw(silentFrame()); };
-      const settle = async () => { const id = `s-${Math.random()}`; const after = socket.mark(); socket.send({ type: "sendTextMessage", requestId: id, payload: { message: "" } }); await socket.waitForMessage((m) => m.requestId === id, { after }); };
+      for (const entry of (bridge as unknown as { entries: Map<string, { opusEncoder: unknown }> }).entries.values())
+        entry.opusEncoder = null;
+      const frames = () => {
+        for (let i = 0; i < 3; i++) socket.sendRaw(silentFrame());
+      };
+      const settle = async () => {
+        const id = `s-${Math.random()}`;
+        const after = socket.mark();
+        socket.send({ type: "sendTextMessage", requestId: id, payload: { message: "" } });
+        await socket.waitForMessage((m) => m.requestId === id, { after });
+      };
       frames();
       await settle();
-      expect(socket.messagesOfType("audioError")).toEqual([{ type: "audioError", code: "AUDIO_ENCODER_UNAVAILABLE", detail: "Opus encoder unavailable" }]);
+      expect(socket.messagesOfType("audioError")).toEqual([
+        { type: "audioError", code: "AUDIO_ENCODER_UNAVAILABLE", detail: "Opus encoder unavailable" },
+      ]);
       const realNow = Date.now();
       vi.spyOn(Date, "now").mockImplementation(() => realNow + 6_000);
       frames();
@@ -202,12 +213,18 @@ describe("the TeamSpeak listener order", () => {
   it("attaches every listener, in the register* order, before connect() is called", async () => {
     const ts = new FakeTeamSpeakServer();
     const calls: string[] = [];
-    const createClient: typeof ts.createClient = (options) => {
-      const client = ts.createClient(options);
+    const createClient: typeof ts.createClient = (...args) => {
+      const client = ts.createClient(...args);
       const on = client.on.bind(client) as (event: string, listener: never) => unknown;
       const connect = client.connect.bind(client);
-      (client as unknown as { on: unknown }).on = (event: string, listener: never) => { calls.push(`on:${event}`); return on(event, listener); };
-      (client as unknown as { connect: unknown }).connect = () => { calls.push("connect"); return connect(); };
+      (client as unknown as { on: unknown }).on = (event: string, listener: never) => {
+        calls.push(`on:${event}`);
+        return on(event, listener);
+      };
+      (client as unknown as { connect: unknown }).connect = () => {
+        calls.push("connect");
+        return connect();
+      };
       return client;
     };
     const joinTickets = new JoinTicketStore();
@@ -221,13 +238,20 @@ describe("the TeamSpeak listener order", () => {
       await socket.waitForMessage("channelList");
       expect(calls).toEqual([
         // registerVoiceDirectory
-        "on:directorySnapshot", "on:clientEnter", "on:clientLeave", "on:clientMoved", "on:clientUpdated",
+        "on:directorySnapshot",
+        "on:clientEnter",
+        "on:clientLeave",
+        "on:clientMoved",
+        "on:clientUpdated",
         // rawNotification, voiceData (inline in VoiceBridge.attach)
-        "on:rawNotification", "on:voiceData",
+        "on:rawNotification",
+        "on:voiceData",
         // registerVoiceChat
-        "on:textMessage", "on:poked",
+        "on:textMessage",
+        "on:poked",
         // registerVoiceConnection
-        "on:kicked", "on:disconnected",
+        "on:kicked",
+        "on:disconnected",
         "connect",
       ]);
       socket.close();

@@ -2,12 +2,12 @@ import type { Page } from "@playwright/test";
 import { expect, test } from "./fixtures";
 import { installVoiceFixture } from "./fixtures/scripted-gateway";
 import { discoveredLanguages, loadFolder } from "./helpers/translations";
-import { TEST_ADMIN_PASSWORD } from "../test/helpers/gateway";
+import { TEST_ADMIN_PASSWORD } from "../test/support/gateway";
 
-// I6.2: every discovered language (a loop over the list, so a later language is covered with no edit)
-// shows the finished states in its own words. Expected text comes from the language files, so the
-// spec never hard-codes a translation; what it asserts besides is the absence of defects: a message
-// key or `err_CODE` on screen, a CJK character, an unfilled `{{placeholder}}`, a wrong `<html lang>`.
+// Every discovered language (a loop over the list, so a new one is covered with no edit) shows the finished states in its own
+// words. Expected text comes from the language files. Besides that it asserts the absence of defects, meaning a message key or
+// `err_CODE`, a CJK character, an unfilled `{{placeholder}}` or a wrong `<html lang>` on screen.
+
 // The chat tabs and the member tree sit on other tabs of the phone layout, so the matrix runs on desktop.
 
 const FOLDERS = {
@@ -19,8 +19,11 @@ const FOLDERS = {
   room: "features/room/i18n",
 } as const;
 
-const catalogs = Object.fromEntries(await Promise.all(Object.entries(FOLDERS).map(async ([name, folder]) => [name, await loadFolder(folder)] as const)));
-const tagOf = async (code: string): Promise<string> => ((await import(`../web/src/shared/i18n/common/${code}.ts`)) as { meta: { tag: string } }).meta.tag;
+const catalogs = Object.fromEntries(
+  await Promise.all(Object.entries(FOLDERS).map(async ([name, folder]) => [name, await loadFolder(folder)] as const)),
+);
+const tagOf = async (code: string): Promise<string> =>
+  ((await import(`../web/src/shared/i18n/common/${code}.ts`)) as { meta: { tag: string } }).meta.tag;
 
 const CJK = new RegExp("[\\u2e80-\\u9fff\\uac00-\\ud7af\\uf900-\\ufaff\\uff00-\\uffef\\u3040-\\u30ff]");
 
@@ -36,7 +39,9 @@ async function expectCleanPage(page: Page, tag: string): Promise<void> {
   expect(text, "an unfilled placeholder").not.toContain("{{");
   expect(text, "CJK text").not.toMatch(CJK);
   const keys = new Set(Object.values(catalogs).flatMap((byLanguage) => Object.keys(byLanguage.en ?? {})));
-  const stray = text.split(/\s+/).filter((word) => /^[a-z][A-Za-z0-9]*_?[A-Za-z0-9]*$/.test(word) && /[a-z][A-Z]/.test(word) && keys.has(word));
+  const stray = text
+    .split(/\s+/)
+    .filter((word) => /^[a-z][A-Za-z0-9]*_?[A-Za-z0-9]*$/.test(word) && /[a-z][A-Z]/.test(word) && keys.has(word));
   expect(stray, "a message key shown as text").toEqual([]);
 }
 
@@ -79,7 +84,16 @@ for (const language of discoveredLanguages()) {
       scripted.send({ type: "screenShareError", code: "SCREEN_SHARE_ALREADY_ACTIVE" });
       await expect(page.getByText(msg("screenShare", "err_SCREEN_SHARE_ALREADY_ACTIVE")).first()).toBeVisible();
 
-      scripted.send({ type: "serverEvent", event: { id: "matrix-1", kind: "joined", nickname: "Zed", message: "Zed joined the server", timestamp: Date.UTC(2026, 0, 15, 20, 15) } });
+      scripted.send({
+        type: "serverEvent",
+        event: {
+          id: "matrix-1",
+          kind: "joined",
+          nickname: "Zed",
+          message: "Zed joined the server",
+          timestamp: Date.UTC(2026, 0, 15, 20, 15),
+        },
+      });
       await page.getByRole("tab", { name: msg("chat", "eventLog"), exact: true }).click();
       await expect(page.getByText(msg("chat", "eventMemberJoined", { nickname: "Zed" }))).toBeVisible();
 

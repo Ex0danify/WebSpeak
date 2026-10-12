@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { isMessageCode, MESSAGE_CODES } from "./messageCodes.js";
 
-// Every file that puts a user-visible code on the wire (I2.2 to I2.5 convert them one by one).
+// Every file that puts a user-visible code on the wire.
 const SEND_SITES = [
   "../modules/voice/messages/voiceProtocol.ts",
   "../modules/voice/messages/voiceCommands.ts",
@@ -37,7 +37,11 @@ describe("message code catalog", () => {
   });
 
   it("covers every code the send sites use", () => {
-    const missing = SEND_SITES.flatMap((path) => codesIn(readFileSync(new URL(path, import.meta.url), "utf8")).filter((code) => !isMessageCode(code)).map((code) => `${path}: ${code}`));
+    const missing = SEND_SITES.flatMap((path) =>
+      codesIn(readFileSync(new URL(path, import.meta.url), "utf8"))
+        .filter((code) => !isMessageCode(code))
+        .map((code) => `${path}: ${code}`),
+    );
     expect(missing).toEqual([]);
   });
 

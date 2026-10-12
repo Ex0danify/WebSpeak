@@ -18,8 +18,7 @@ export interface ScreenStreamRecord extends ScreenShareStreamDescription {
   nativeViewerClids: Set<number>;
 }
 
-// Stream ids are scoped to a TeamSpeak server. Keep the target in the key so
-// two unrelated servers cannot overwrite each other's native stream record.
+// Stream ids are per TS server, so the key carries the target and two servers cannot overwrite each other.
 export function screenStreamKey(targetKey: string, streamId: string): string {
   return `${targetKey}\u0000${streamId}`;
 }
@@ -83,10 +82,8 @@ export class ScreenShareHub {
 
   broadcastScreenMessage(stream: ScreenStreamRecord, message: Record<string, unknown>, excludeEntryId?: string): void {
     for (const candidate of this.host.participants()) {
-      if (candidate.id === excludeEntryId || candidate.target && teamSpeakTargetKey(candidate.target) !== stream.targetKey) continue;
-      // A stream is scoped to the source channel. Do not leak its card or
-      // viewer roster to users who are connected to another channel on the
-      // same TeamSpeak target.
+      if (candidate.id === excludeEntryId || (candidate.target && teamSpeakTargetKey(candidate.target) !== stream.targetKey)) continue;
+      // Streams are scoped to the source channel, don't leak a card or viewer roster to other channels.
       if (candidate.id !== stream.ownerEntryId) {
         try {
           if (candidate.tsClient.getChannelId() !== stream.channelId) continue;
@@ -107,10 +104,14 @@ export class ScreenShareHub {
     if (stream.source === "browser" && stream.teamSpeakStreamId && stream.teamSpeakPublisherEntryId) {
       const publisher = this.host.getParticipant(stream.teamSpeakPublisherEntryId);
       if (publisher) {
-        void publisher.tsClient.sendProtocolCommand(buildTeamSpeakCommand("stopstream", {
-          id: stream.teamSpeakStreamId,
-          reason: "1",
-        })).catch(() => undefined);
+        void publisher.tsClient
+          .sendProtocolCommand(
+            buildTeamSpeakCommand("stopstream", {
+              id: stream.teamSpeakStreamId,
+              reason: "1",
+            }),
+          )
+          .catch(() => undefined);
       }
     }
     if (!this.screenStreams.delete(screenStreamKey(stream.targetKey, stream.streamId))) return;
@@ -124,12 +125,17 @@ export class ScreenShareHub {
   leaveScreenStream(entry: ScreenShareParticipant, stream: ScreenStreamRecord): void {
     if (!stream.viewerEntryIds.delete(entry.id)) return;
     stream.viewerCount = this.screenShareViewerCount(stream);
-    if (stream.source === "browser") this.sendToEntry(stream.ownerEntryId, { type: "screenShareViewerLeft", streamId: stream.streamId, viewerPeerId: entry.screenPeerId });
+    if (stream.source === "browser")
+      this.sendToEntry(stream.ownerEntryId, { type: "screenShareViewerLeft", streamId: stream.streamId, viewerPeerId: entry.screenPeerId });
     else {
-      void entry.tsClient.sendProtocolCommand(buildTeamSpeakCommand("removeclientfromstream", {
-        id: stream.streamId,
-        clid: String(entry.tsClient.getClientId()),
-      })).catch(() => undefined);
+      void entry.tsClient
+        .sendProtocolCommand(
+          buildTeamSpeakCommand("removeclientfromstream", {
+            id: stream.streamId,
+            clid: String(entry.tsClient.getClientId()),
+          }),
+        )
+        .catch(() => undefined);
     }
     this.sendToEntry(entry.id, { type: "screenShareLeft", streamId: stream.streamId });
     this.broadcastScreenMessage(stream, this.screenShareViewerCountMessage(stream));
@@ -148,21 +154,19 @@ export class ScreenShareHub {
 
   reconcileScreenShareAfterClientMove(entry: ScreenShareParticipant, movedClientId: number, targetChannelId: bigint): void {
     const targetKey = teamSpeakTargetKey(entry.target);
-    // Every session is told every move on the server; the two browser rules below are about this
-    // session's own client only (F18). The native rule is about the source client, whoever's session sees it.
+    // Every session hears every move on the server. The browser rules below only care about this
+    // session's own client, the native rule is about the source client.
     const movedIsSelf = movedClientId === entry.tsClient.getClientId();
     for (const stream of [...this.screenStreams.values()]) {
       if (stream.targetKey !== targetKey) continue;
-      // A browser share belongs to the gateway user's current channel. Stop
-      // it when that user moves so existing viewers cannot keep a cross-
-      // channel peer alive.
+      // A browser share belongs to the user's current channel, stop it on a move so viewers
+      // cannot keep a cross-channel peer alive.
       if (movedIsSelf && stream.source === "browser" && stream.ownerEntryId === entry.id && stream.channelId !== targetChannelId) {
         this.stopScreenStream(stream, "owner-moved-channel");
         continue;
       }
-      // Native TS6 shares are channel-scoped as well. The notification is
-      // observed by every gateway session, so stop the shared record once the
-      // native source changes channels.
+      // Native shares are channel-scoped too. Every session sees the notification, so stop the
+      // record once the source changes channel.
       if (stream.source === "teamspeak" && stream.sourceClientId === movedClientId) {
         this.stopScreenStream(stream, "source-moved-channel");
         continue;

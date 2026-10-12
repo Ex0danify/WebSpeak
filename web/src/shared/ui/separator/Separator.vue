@@ -16,11 +16,7 @@ const props = withDefaults(
 );
 
 const classes = computed(() =>
-  cn(
-    "shrink-0 border-0 bg-line",
-    props.orientation === "vertical" ? "w-px self-stretch" : "h-px w-full",
-    props.class,
-  ),
+  cn("shrink-0 border-0 bg-line", props.orientation === "vertical" ? "w-px self-stretch" : "h-px w-full", props.class),
 );
 </script>
 

@@ -1,7 +1,12 @@
 import type { TSDirectorySnapshot } from "../../teamspeak/index.js";
 
 export function isChannelRecord(value: unknown): value is { id: string; name: string } {
-  return Boolean(value) && typeof value === "object" && typeof (value as { id?: unknown }).id === "string" && typeof (value as { name?: unknown }).name === "string";
+  return (
+    Boolean(value) &&
+    typeof value === "object" &&
+    typeof (value as { id?: unknown }).id === "string" &&
+    typeof (value as { name?: unknown }).name === "string"
+  );
 }
 
 export function mapChannelTree(snapshot: TSDirectorySnapshot, avatarCache = new Map<string, string | null>()): unknown[] {
@@ -33,10 +38,14 @@ export function mapChannelTree(snapshot: TSDirectorySnapshot, avatarCache = new 
 }
 
 export function avatarDataUrl(data: Buffer): string | null {
-  if (data.length >= 8 && data.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]))) return `data:image/png;base64,${data.toString("base64")}`;
-  if (data.length >= 3 && data.subarray(0, 3).equals(Buffer.from([0xff, 0xd8, 0xff]))) return `data:image/jpeg;base64,${data.toString("base64")}`;
-  if (data.length >= 6 && (data.subarray(0, 6).toString("ascii") === "GIF87a" || data.subarray(0, 6).toString("ascii") === "GIF89a")) return `data:image/gif;base64,${data.toString("base64")}`;
-  if (data.length >= 12 && data.subarray(0, 4).toString("ascii") === "RIFF" && data.subarray(8, 12).toString("ascii") === "WEBP") return `data:image/webp;base64,${data.toString("base64")}`;
+  if (data.length >= 8 && data.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])))
+    return `data:image/png;base64,${data.toString("base64")}`;
+  if (data.length >= 3 && data.subarray(0, 3).equals(Buffer.from([0xff, 0xd8, 0xff])))
+    return `data:image/jpeg;base64,${data.toString("base64")}`;
+  if (data.length >= 6 && (data.subarray(0, 6).toString("ascii") === "GIF87a" || data.subarray(0, 6).toString("ascii") === "GIF89a"))
+    return `data:image/gif;base64,${data.toString("base64")}`;
+  if (data.length >= 12 && data.subarray(0, 4).toString("ascii") === "RIFF" && data.subarray(8, 12).toString("ascii") === "WEBP")
+    return `data:image/webp;base64,${data.toString("base64")}`;
   return null;
 }
 
@@ -56,11 +65,12 @@ export function normalizeDirectorySnapshot(
   const requestedChannel = requestedName
     ? snapshot.channels.find((channel) => channel.name.trim().toLocaleLowerCase() === requestedName)
     : undefined;
-  const resolvedChannelId = selfChannelId !== 0n
-    ? selfChannelId
-    : snapshotChannelId !== 0n
-      ? snapshotChannelId
-      : requestedChannel?.id ?? snapshot.channels[0]?.id ?? 0n;
+  const resolvedChannelId =
+    selfChannelId !== 0n
+      ? selfChannelId
+      : snapshotChannelId !== 0n
+        ? snapshotChannelId
+        : (requestedChannel?.id ?? snapshot.channels[0]?.id ?? 0n);
   if (selfIndex >= 0) {
     const current = clients[selfIndex]!;
     if (resolvedChannelId !== 0n) clients[selfIndex] = { ...current, channelID: resolvedChannelId };

@@ -11,7 +11,7 @@ const runRoot = fileURLToPath(new URL("../../test-results/real", import.meta.url
 /** A logger for gateway clients used directly by the setup and by specs. */
 export const silentLogger: Logger = { debug() {}, info() {}, warn() {}, error() {}, child: () => silentLogger };
 
-/** The one variable that starts the server. A person sets it; no file in the repository does. */
+/** The one variable that starts the server. A person sets it, no file in the repository does. */
 export const LICENSE_VARIABLE = "WEBSPEAK_TEST_TS_LICENSE";
 
 export function requireLicenseAccepted(env: NodeJS.ProcessEnv = process.env): void {
@@ -31,9 +31,8 @@ export function requireLicenseAccepted(env: NodeJS.ProcessEnv = process.env): vo
 }
 
 /**
- * Everything that differs between two servers on one machine. Slot 0 is the default; another
- * worktree (or a second run) picks another slot with `WEBSPEAK_TEST_TS_SLOT`, which moves the
- * ports, the compose project and the network together.
+ * Everything that differs between two servers on one machine. Slot 0 is the default, another worktree or a second run picks
+ * another with `WEBSPEAK_TEST_TS_SLOT`, which moves the ports, the compose project and the network together.
  */
 export interface Slot {
   slot: number;
@@ -41,12 +40,13 @@ export interface Slot {
   voicePort: number;
   queryPort: number;
   subnet: string;
-  /** The bridge's own address: where a published port's traffic appears to come from. */
+  /** The bridge's own address, where a published port's traffic appears to come from. */
   gateway: string;
 }
 
 export function slotFor(slot: number): Slot {
-  if (!Number.isInteger(slot) || slot < 0 || slot > 100) throw new Error(`WEBSPEAK_TEST_TS_SLOT must be an integer from 0 to 100, got ${slot}`);
+  if (!Number.isInteger(slot) || slot < 0 || slot > 100)
+    throw new Error(`WEBSPEAK_TEST_TS_SLOT must be an integer from 0 to 100, got ${slot}`);
   const net = 87 + slot;
   return {
     slot,
@@ -97,7 +97,7 @@ function compose(server: RealServer, args: string[], options: { allowFailure?: b
   return result.stdout + result.stderr;
 }
 
-/** A WebQuery answer: `body` rows, or an error `status`. Error 1281 (empty result) is not an error. */
+/** A WebQuery answer, with `body` rows or an error `status`. Error 1281 (empty result) is not an error. */
 interface WebQueryAnswer {
   body?: Record<string, string>[];
   status: { code: number; message: string };
@@ -113,8 +113,12 @@ export class WebQuery {
     return new WebQuery(`http://127.0.0.1:${server.queryPort}`, server.apiKey);
   }
 
-  /** `command` is a ServerQuery command; `serverId` is the virtual server, or null for the instance. */
-  async call(command: string, params: Record<string, string | number> = {}, serverId: number | null = 1): Promise<Record<string, string>[]> {
+  /** `command` is a ServerQuery command, `serverId` is the virtual server or null for the instance. */
+  async call(
+    command: string,
+    params: Record<string, string | number> = {},
+    serverId: number | null = 1,
+  ): Promise<Record<string, string>[]> {
     const path = serverId === null ? `/${command}` : `/${serverId}/${command}`;
     const response = await fetch(this.baseUrl + path, {
       method: "POST",
@@ -157,7 +161,7 @@ export async function startServer(slotNumber = Number(process.env.WEBSPEAK_TEST_
   } catch (error) {
     const logs = compose(server, ["logs", "--tail", "60", "tsserver"], { allowFailure: true });
     await stopServer(server);
-    throw new Error(`${(error as Error).message}\n\nServer log:\n${logs}`);
+    throw new Error(`${(error as Error).message}\n\nServer log:\n${logs}`, { cause: error });
   }
   return server;
 }
@@ -165,16 +169,19 @@ export async function startServer(slotNumber = Number(process.env.WEBSPEAK_TEST_
 /** Waits until WebQuery answers with this run's key. */
 export async function waitForQuery(server: RealServer, timeoutMs = 90_000): Promise<void> {
   await poll(
-    () => fetch(`http://127.0.0.1:${server.queryPort}/version`, { headers: { "x-api-key": server.apiKey } }).then((r) => r.ok, () => false),
+    () =>
+      fetch(`http://127.0.0.1:${server.queryPort}/version`, { headers: { "x-api-key": server.apiKey } }).then(
+        (r) => r.ok,
+        () => false,
+      ),
     Boolean,
     { timeoutMs, intervalMs: 250, message: "the TeamSpeak server's WebQuery to answer" },
   );
 }
 
 /**
- * Stops the container without removing it, the way a crashed or restarted server looks to a
- * client. The data directory is a tmpfs, so the server that `startContainer` brings back is empty:
- * no channels, no rights, default flood limits (`provisionServer` sets them up again).
+ * Stops the container without removing it, the way a crashed or restarted server looks to a client. The data directory is a
+ * tmpfs, so the server `startContainer` brings back is empty (no channels or rights, default flood limits).
  */
 export function stopContainer(server: RealServer): void {
   compose(server, ["stop", "--timeout", "1", "tsserver"]);

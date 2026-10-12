@@ -11,7 +11,7 @@ services:
     # 6.0.0-beta13.1. Pinned by digest so a run cannot change license or protocol behavior silently.
     image: teamspeaksystems/teamspeak6-server@sha256:d845f803aecf842c2df034c959c23ff2462357bacafb3807500885c5ec170fa1
     environment:
-      TSSERVER_LICENSE_ACCEPTED: ${WEBSPEAK_TEST_TS_LICENSE:?the person running the tests must accept the TeamSpeak server license, see docs/testing/README.md}
+      TSSERVER_LICENSE_ACCEPTED: ${WEBSPEAK_TEST_TS_LICENSE:?the person running the tests must accept the TeamSpeak server license, see docs/testing.md}
       # WebQuery is off by default. The key is per run, so the suite can drive the server with the
       # same HTTP API the gateway uses for the channel list.
       TSSERVER_QUERY_HTTP_ENABLED: "1"

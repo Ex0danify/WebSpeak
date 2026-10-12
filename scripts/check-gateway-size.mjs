@@ -1,12 +1,11 @@
-// File-size ratchet for the gateway (gateway-decompose plan G0.4). Twin of web/scripts/check-file-size.mjs.
+// File-size ratchet for the gateway. Twin of web/scripts/check-file-size.mjs.
 //
 //   npm run check:gateway-size               check
 //   npm run check:gateway-size -- --update   rewrite the budget (only lowers or removes entries)
 //
-// Covers src/ and test/ (tests included). A file over LIMIT lines must be listed in
-// gateway-size-budget.json with its current line count. A listed file may shrink but not grow; an
-// unlisted file may not cross LIMIT. `--update` lowers entries and drops files that fell under
-// LIMIT; it never adds or raises one. Counts are newline counts (as `wc -l`).
+// Covers src/ and test/. A file over LIMIT lines needs an entry in gateway-size-budget.json with its current
+// count, listed files may shrink but not grow. --update lowers entries and drops files under LIMIT, it never
+// adds or raises one. Counts are newline counts like wc -l.
 import { readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { dirname, join, relative, sep } from "node:path";
 import { fileURLToPath } from "node:url";

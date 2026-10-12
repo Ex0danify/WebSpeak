@@ -4,7 +4,8 @@ export const de: Record<string, string> = {
   err_NOT_INITIALIZED: "WebSpeak wurde noch nicht konfiguriert. Wende dich an den Administrator",
   err_RATE_LIMITED: "Zu viele Anfragen. Versuche es gleich erneut",
   err_INVALID_TARGET: "Die TeamSpeak-Serveradresse ist ungültig",
-  err_INVALID_NICKNAME: "Die Länge des Spitznamens entspricht nicht den Anforderungen des TeamSpeak-Servers (mindestens 3 Zeichen). Ändere ihn und versuche es erneut",
+  err_INVALID_NICKNAME:
+    "Die Länge des Spitznamens entspricht nicht den Anforderungen des TeamSpeak-Servers (mindestens 3 Zeichen). Ändere ihn und versuche es erneut",
   err_HOST_NOT_FOUND: "Der TeamSpeak-Servername konnte nicht aufgelöst werden. Prüfe die Adresse",
   err_UNREACHABLE: "Der TeamSpeak-Server ist nicht erreichbar. Prüfe Netzwerk und Adresse",
   err_CONNECTION_REFUSED: "Der TeamSpeak-Server hat die Verbindung abgelehnt. Prüfe Port und Serverstatus",
@@ -16,28 +17,38 @@ export const de: Record<string, string> = {
   err_SERVER_REJECTED: "Der TeamSpeak-Server hat die Verbindung abgelehnt",
   err_CHANNEL_PASSWORD_REQUIRED: "Dieser Kanal erfordert ein Passwort",
   err_NICKNAME_IN_USE: "Dieser Spitzname wird auf dem Server bereits verwendet. Wähle einen anderen",
-  err_IDENTITY_SECURITY_LEVEL_TOO_LOW: "Deine Sicherheitsstufe liegt unter der Anforderung dieses Servers. Erhöhe sie und versuche es erneut",
+  err_IDENTITY_SECURITY_LEVEL_TOO_LOW:
+    "Deine Sicherheitsstufe liegt unter der Anforderung dieses Servers. Erhöhe sie und versuche es erneut",
   err_IDENTITY_LIMIT_REACHED: "Diese Identität hat ihr Verbindungslimit erreicht. Schließe die anderen Verbindungen und versuche es erneut",
-  err_CLIENT_VERSION_OUTDATED: "Deine Client-Version ist veraltet und der Server hat die Verbindung abgelehnt. Aktualisiere und versuche es erneut",
+  err_CLIENT_VERSION_OUTDATED:
+    "Deine Client-Version ist veraltet und der Server hat die Verbindung abgelehnt. Aktualisiere und versuche es erneut",
   err_FLOOD_PROTECTION: "Zu viele Anfragen: Der Flood-Schutz des Servers hat dich vorübergehend abgewiesen. Versuche es gleich erneut",
   err_BANNED: "Du wurdest von diesem Server gebannt und kannst nicht verbinden",
   err_KICKED: "Du wurdest vom Server entfernt",
   err_SERVER_SHUTTING_DOWN: "Der TeamSpeak-Server wird heruntergefahren und ist derzeit nicht erreichbar",
-  err_CONNECTION_INITIALISATION_FAILED: "Der TeamSpeak-Server konnte die Verbindungsinitialisierung nicht abschließen. Prüfe Adresse und Port oder versuche es später erneut",
+  err_CONNECTION_INITIALISATION_FAILED:
+    "Der TeamSpeak-Server konnte die Verbindungsinitialisierung nicht abschließen. Prüfe Adresse und Port oder versuche es später erneut",
   err_SERVER_FULL: "Der Server ist derzeit voll. Versuche es später erneut",
-  err_INVALID_PARAMETER: "Der TeamSpeak-Server hat die Parameter abgelehnt, meist wegen ungültiger Länge oder ungültigen Formats des Spitznamens",
-  err_IDENTITY_IN_USE: "Diese TeamSpeak-Identität wird bereits in einem anderen Browser-Tab verwendet. Schließe die andere Verbindung oder deaktiviere „Identität merken“ und versuche es erneut",
+  err_IDENTITY_IN_USE:
+    "Diese TeamSpeak-Identität wird bereits in einem anderen Browser-Tab verwendet. Schließe die andere Verbindung oder deaktiviere „Identität merken“ und versuche es erneut",
   err_CONNECTION_FAILED: "Die TeamSpeak-Verbindung ist fehlgeschlagen. Prüfe Adresse, Netzwerk und Serverstatus",
-  err_JOIN_TICKET_REQUIRED: "Der Sprachsitzungs-Token fehlt oder ist abgelaufen. Kehre zur Liste zurück und tritt dem Sprachraum erneut bei",
-  err_IDENTITY_INVALID: "Das Sprach-Gateway hat die Verbindung abgelehnt: Die Identität ist ungültig. Deaktiviere „Identität merken“ und tritt erneut bei",
-  err_IDENTITY_REJECTED: "Das Sprach-Gateway hat die Verbindung abgelehnt: Die Identität ist ungültig oder kann auf dieser Seite nicht verwendet werden. Deaktiviere „Identität merken“ und tritt erneut bei",
-  err_ACCELERATION_UNAVAILABLE: "Der beschleunigte Relay-Modus ist nicht verfügbar. Deaktiviere ihn und versuche es erneut oder wende dich an den Administrator",
-  err_GATEWAY_NETWORK_LOST: "Die Verbindung zum Sprach-Gateway wurde unerwartet unterbrochen (Offline oder Proxy getrennt) – der TeamSpeak-Server hat die Verbindung nicht abgelehnt. Prüfe deine Netzwerkverbindung und tritt erneut bei",
+  err_JOIN_TICKET_REQUIRED:
+    "Der Sprachsitzungs-Token fehlt oder ist abgelaufen. Kehre zur Liste zurück und tritt dem Sprachraum erneut bei",
+  err_IDENTITY_INVALID:
+    "Das Sprach-Gateway hat die Verbindung abgelehnt: Die Identität ist ungültig. Deaktiviere „Identität merken“ und tritt erneut bei",
+  err_IDENTITY_REJECTED:
+    "Das Sprach-Gateway hat die Verbindung abgelehnt: Die Identität ist ungültig oder kann auf dieser Seite nicht verwendet werden. Deaktiviere „Identität merken“ und tritt erneut bei",
+  err_ACCELERATION_UNAVAILABLE:
+    "Der beschleunigte Relay-Modus ist nicht verfügbar. Deaktiviere ihn und versuche es erneut oder wende dich an den Administrator",
+  err_GATEWAY_NETWORK_LOST:
+    "Die Verbindung zum Sprach-Gateway wurde unerwartet unterbrochen (Offline oder Proxy getrennt) – der TeamSpeak-Server hat die Verbindung nicht abgelehnt. Prüfe deine Netzwerkverbindung und tritt erneut bei",
   err_GATEWAY_SESSION_ENDED: "Die Sprach-Gateway-Sitzung wurde unerwartet beendet. Tritt dem Sprachraum erneut bei",
   err_GATEWAY_RESTARTING: "Das Sprach-Gateway wird neu gestartet oder gewartet. Warte einen Moment und tritt erneut bei",
   err_ADMIN_TERMINATED: "Ein Administrator hat deine Sprachsitzung beendet. Tritt erneut bei, wenn du fortsetzen möchtest",
-  err_TEAM_SPEAK_CLIENT_UNAVAILABLE: "Das Sprach-Gateway konnte keinen TeamSpeak-Client erstellen (der Server ist möglicherweise aus oder nicht erreichbar). Prüfe die Serveradresse oder versuche es später erneut",
-  joinErr_ACCELERATION_UNAVAILABLE: "Das ausgewählte Relay ist nicht verfügbar. Deaktiviere den Relay-Modus oder wende dich an den Administrator",
+  err_TEAM_SPEAK_CLIENT_UNAVAILABLE:
+    "Das Sprach-Gateway konnte keinen TeamSpeak-Client erstellen (der Server ist möglicherweise aus oder nicht erreichbar). Prüfe die Serveradresse oder versuche es später erneut",
+  joinErr_ACCELERATION_UNAVAILABLE:
+    "Das ausgewählte Relay ist nicht verfügbar. Deaktiviere den Relay-Modus oder wende dich an den Administrator",
   joinErr_INVALID_NICKNAME: "Gib einen gültigen Nicknamen ein",
   joinErr_INVITE_INVALID: "Der Einladungslink ist ungültig, abgelaufen oder widerrufen",
   err_INVALID_JSON: "Ungültiges Nachrichtenformat",
@@ -69,7 +80,8 @@ export const de: Record<string, string> = {
   err_CLIENT_NOT_FOUND: "Das Mitglied ist offline",
   err_OPERATION_FAILED: "Operation fehlgeschlagen",
   connectionFailedUnknown: "TeamSpeak-Verbindung fehlgeschlagen (Fehlercode: {{code}}). Prüfe Eingaben, Netzwerk und Serverstatus",
-  connectionFailedUnknownDetail: "TeamSpeak-Verbindung fehlgeschlagen (Fehlercode: {{code}}): {{detail}}. Prüfe Eingaben, Netzwerk und Serverstatus",
+  connectionFailedUnknownDetail:
+    "TeamSpeak-Verbindung fehlgeschlagen (Fehlercode: {{code}}): {{detail}}. Prüfe Eingaben, Netzwerk und Serverstatus",
   operationFailedUnknown: "Vorgang fehlgeschlagen (Fehlercode: {{code}}). Prüfe Eingaben, Netzwerk und Serverstatus",
   operationFailedUnknownDetail: "Vorgang fehlgeschlagen (Fehlercode: {{code}}): {{detail}}. Prüfe Eingaben, Netzwerk und Serverstatus",
   closeServerFullOrRejected: "Der Server ist voll oder hat die Verbindung abgelehnt. Versuche es später erneut",

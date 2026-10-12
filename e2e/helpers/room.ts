@@ -1,9 +1,8 @@
 import { expect, type Locator, type Page } from "@playwright/test";
 
 /**
- * Fills the join form and submits it, with a target channel when one is given. Does not wait for
- * the room: a test of a failed join calls this and expects something else, a normal one follows
- * with `expectInRoom`.
+ * Fills the join form and submits it, with a target channel when one is given. Does not wait for the room, a test of a failed
+ * join calls this and a normal one follows with `expectInRoom`.
  */
 export async function submitJoin(page: Page, nickname: string, channel?: string): Promise<void> {
   await page.goto("/");
@@ -19,9 +18,8 @@ export async function join(page: Page, nickname: string): Promise<void> {
 }
 
 /**
- * The connected view: the member list is there and has the nickname. The list is on screen on
- * desktop and on the phone's first tab, so this holds for both; the header's Exit is not, it sits
- * in the phone's "More" tab.
+ * The connected view, meaning the member list is there and has the nickname. The list is on screen on desktop and on the
+ * phone's first tab, so this holds for both, unlike the header's Exit, which sits in the phone's "More" tab.
  */
 export async function expectInRoom(page: Page, nickname: string): Promise<void> {
   await expect(page.getByRole("textbox", { name: "Search members" })).toBeVisible();
@@ -29,9 +27,8 @@ export async function expectInRoom(page: Page, nickname: string): Promise<void> 
 }
 
 /**
- * One row of the member list. A row has no role or label of its own, so it is the innermost block
- * that holds the nickname and the member-states group (the volume slider is not on a phone). The list writes your own row as
- * "nickname (You)". Nicknames are unique per test.
+ * One row of the member list. A row has no role or label, so it is the innermost block that holds the nickname and the
+ * member-states group. Your own row reads "nickname (You)". Nicknames are unique per test.
  */
 export function memberRow(page: Page, nickname: string): Locator {
   return page
@@ -43,7 +40,7 @@ export function memberRow(page: Page, nickname: string): Locator {
 
 const escapeRegExp = (text: string): string => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
-/** The button of one channel in the member tree; its name is the channel and the number of people in it. */
+/** The button of one channel in the member tree, named by the channel and the number of people in it. */
 export function channelHeading(page: Page, channel: string): Locator {
   return page.getByRole("button", { name: new RegExp(`^${escapeRegExp(channel)} \\d+$`) });
 }
@@ -54,8 +51,8 @@ export function channelGroup(page: Page, channel: string): Locator {
 }
 
 /**
- * Opens the menu of another member the way the viewport does it: a right click on desktop, the
- * "..." button of the row on a phone. Returns the opened menu or sheet.
+ * Opens another member's menu the way the viewport does it, a right click on desktop and the "..." button of the row on a
+ * phone. Returns the opened menu or sheet.
  */
 export async function openMemberMenu(page: Page, nickname: string): Promise<Locator> {
   const row = memberRow(page, nickname);

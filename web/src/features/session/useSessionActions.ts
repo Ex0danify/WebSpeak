@@ -7,7 +7,7 @@ import type { MessageHandlers } from "./messageRouter";
 
 /** Outgoing commands and everything that waits on a reply: command completion, latency probes, chat,
  *  poke, away and whisper. Reads the session store directly. The pending maps are returned so the
- *  message router (still one switch until Step V6.2) can settle them. */
+ *  message router can settle them. */
 export interface RoomActionsDeps {
   protocolErrorMessage: (code: string, fallback: string) => LocalizedText;
 }
@@ -19,7 +19,10 @@ export function useSessionActions(deps: RoomActionsDeps) {
   // A message of your own is flagged isSelf and rendered as "You"; the name only feeds avatars.
   const selfName = () => members.find((member) => member.isSelf)?.nickname ?? "";
   let latencyProbeSequence = 0;
-  const pendingLatencyProbes = new Map<string, { startedAt: number; resolve: (result: LatencyProbeResult | null) => void; timer: ReturnType<typeof setTimeout> }>();
+  const pendingLatencyProbes = new Map<
+    string,
+    { startedAt: number; resolve: (result: LatencyProbeResult | null) => void; timer: ReturnType<typeof setTimeout> }
+  >();
   let commandSequence = 0;
   const pendingCommands = new Map<string, { resolve: () => void; reject: (error: Error) => void; timer: ReturnType<typeof setTimeout> }>();
 
@@ -28,7 +31,8 @@ export function useSessionActions(deps: RoomActionsDeps) {
   }
 
   function sendCommandAndWait(type: string, payload: Record<string, unknown>, timeoutMs = 8_000): Promise<void> {
-    if (ws.value?.readyState !== WebSocket.OPEN) return Promise.reject(new LocalizedError(text("voiceConnectionNotReady"), "VOICE_CONNECTION_NOT_READY"));
+    if (ws.value?.readyState !== WebSocket.OPEN)
+      return Promise.reject(new LocalizedError(text("voiceConnectionNotReady"), "VOICE_CONNECTION_NOT_READY"));
     const requestId = `command-${Date.now().toString(36)}-${(commandSequence++).toString(36)}`;
     return new Promise((resolve, reject) => {
       const timer = setTimeout(() => {
@@ -44,6 +48,11 @@ export function useSessionActions(deps: RoomActionsDeps) {
     state.error = "";
     state.errorCode = "";
     state.channelSwitchedChannelId = "";
+    if (ws.value?.readyState !== WebSocket.OPEN) {
+      state.errorCode = "VOICE_CONNECTION_NOT_READY";
+      state.error = text("voiceConnectionNotReady");
+      return;
+    }
     sendCmd("switchChannel", { channelId, ...(password ? { password } : {}) });
   }
 
@@ -101,14 +110,32 @@ export function useSessionActions(deps: RoomActionsDeps) {
     const trimmed = message.trim();
     if (!trimmed || trimmed.length > 500) return;
     sendCmd("sendServerMessage", { message: trimmed });
-    chatMessages.push({ id: `self-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`, scope: "server", senderId: state.tsClientId, invokerName: selfName(), message: trimmed, timestamp: Date.now(), isSelf: true });
+    chatMessages.push({
+      id: `self-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+      scope: "server",
+      senderId: state.tsClientId,
+      invokerName: selfName(),
+      message: trimmed,
+      timestamp: Date.now(),
+      isSelf: true,
+    });
   }
 
   function sendPrivateMessage(clientId: number, message: string, targetId = ""): void {
     const trimmed = message.trim();
     if (!trimmed || trimmed.length > 500) return;
     sendCmd("sendPrivateMessage", { clientId, message: trimmed });
-    chatMessages.push({ id: `self-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`, scope: "private", targetId, conversationId: String(clientId), senderId: state.tsClientId, invokerName: selfName(), message: trimmed, timestamp: Date.now(), isSelf: true });
+    chatMessages.push({
+      id: `self-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+      scope: "private",
+      targetId,
+      conversationId: String(clientId),
+      senderId: state.tsClientId,
+      invokerName: selfName(),
+      message: trimmed,
+      timestamp: Date.now(),
+      isSelf: true,
+    });
   }
 
   function sendPoke(clientId: number, message = ""): void {
@@ -120,7 +147,9 @@ export function useSessionActions(deps: RoomActionsDeps) {
   }
 
   function setWhisperTargets(clientIds: number[]): void {
-    const targets = [...new Set(clientIds)].filter((clientId) => Number.isInteger(clientId) && clientId > 0 && clientId <= 65535 && clientId !== state.tsClientId).slice(0, 8);
+    const targets = [...new Set(clientIds)]
+      .filter((clientId) => Number.isInteger(clientId) && clientId > 0 && clientId <= 65535 && clientId !== state.tsClientId)
+      .slice(0, 8);
     whisperTargetIds.clear();
     for (const clientId of targets) whisperTargetIds.add(clientId);
     if (!targets.length) whisperActive.value = false;
@@ -137,7 +166,14 @@ export function useSessionActions(deps: RoomActionsDeps) {
     whisperTargetIds.clear();
     if (Array.isArray(targetIds)) {
       for (const clientId of targetIds) {
-        if (typeof clientId === "number" && Number.isInteger(clientId) && clientId > 0 && clientId <= 65535 && clientId !== state.tsClientId) whisperTargetIds.add(clientId);
+        if (
+          typeof clientId === "number" &&
+          Number.isInteger(clientId) &&
+          clientId > 0 &&
+          clientId <= 65535 &&
+          clientId !== state.tsClientId
+        )
+          whisperTargetIds.add(clientId);
       }
     }
     whisperActive.value = active === true && whisperTargetIds.size > 0;
@@ -183,7 +219,12 @@ export function useSessionActions(deps: RoomActionsDeps) {
         if (pending) {
           clearTimeout(pending.timer);
           pendingCommands.delete(requestId);
-          pending.reject(new LocalizedError(deps.protocolErrorMessage(state.errorCode, String(msg.error?.message || msg.message || "")), state.errorCode));
+          pending.reject(
+            new LocalizedError(
+              deps.protocolErrorMessage(state.errorCode, String(msg.error?.message || msg.message || "")),
+              state.errorCode,
+            ),
+          );
         }
       }
     },

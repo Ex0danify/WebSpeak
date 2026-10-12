@@ -2,11 +2,9 @@ import { computed, onMounted, onUnmounted, ref } from "vue";
 import { useI18n } from "../i18n/useI18n.js";
 import { applyTheme, getStoredTheme, isDarkTheme, nextTheme, saveTheme, watchSystemDark, type ThemeMode } from "../services/theme.js";
 
-/** Theme-cycling state shared by every view with a theme toggle. Wraps `services/theme.ts` and
- *  keeps the operating system's setting reactive so the icon/label follow it while the theme is
- *  System (F26). A caller that also mirrors the theme into its own storage (useAppearance's
- *  cross-device local preferences) wraps `cycleTheme`/`setThemeMode` itself; this composable only
- *  owns localStorage persistence via `saveTheme`. */
+/** Theme-cycling state shared by every view with a theme toggle. Wraps `services/theme.ts` and keeps the OS setting reactive so
+ *  the icon/label follow it in System mode. A caller that mirrors the theme into its own storage (useAppearance) wraps
+ *  `cycleTheme`/`setThemeMode` itself, this only owns localStorage via `saveTheme`. */
 export function useTheme() {
   const { t } = useI18n();
 

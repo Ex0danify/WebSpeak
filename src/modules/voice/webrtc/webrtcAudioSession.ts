@@ -1,21 +1,10 @@
 import { randomInt } from "node:crypto";
-import {
-  MediaStreamTrack,
-  RtpHeader,
-  RtpPacket,
-  RTCPeerConnection,
-} from "werift";
+import { MediaStreamTrack, RtpHeader, RtpPacket, RTCPeerConnection } from "werift";
 import type { Logger as LoggerType } from "../../../shared/logger.js";
 import type { TSVoiceData } from "../../teamspeak/index.js";
 import { OpusEncoder } from "../voiceOpus.js";
-import {
-  AUDIO_CLOCK_INTERVAL_MS,
-  AUDIO_FRAME_SAMPLES,
-  AUDIO_SAMPLE_RATE,
-  MAX_MIXER_PACER_LAG_MS,
-  WebRtcMixer,
-} from "./webrtcMixer.js";
-import { WEBRTC_UDP_PORT_RANGE, type WebRtcAudioOptions } from "../../../config/webrtcConfig.js";
+import { AUDIO_CLOCK_INTERVAL_MS, AUDIO_FRAME_SAMPLES, AUDIO_SAMPLE_RATE, MAX_MIXER_PACER_LAG_MS, WebRtcMixer } from "./webrtcMixer.js";
+import { WEBRTC_UDP_PORT_RANGE } from "../../../config/webrtcConfig.js";
 
 const DEFAULT_WEBRTC_OPUS_PAYLOAD_TYPE = 111;
 const SPEAKER_ACTIVITY_INTERVAL_MS = 100;
@@ -60,13 +49,8 @@ export interface WebRtcAudioStats {
 }
 
 /**
- * One low-latency WebRTC audio session for one browser connection.
- *
- * TeamSpeak provides one Opus payload per speaker. WebRTC has one negotiated
- * audio track in this first transport, so this class mixes one 20 ms frame
- * from each active speaker and packetizes the result as RTP. Each speaker has
- * a very small bounded queue so bursts from the TeamSpeak adapter can be
- * smoothed without turning into an ever-growing playback delay.
+ * One low-latency WebRTC audio session per browser connection. Mixes one 20 ms frame per active speaker
+ * into the single negotiated track, with small bounded queues so bursts do not become growing delay.
  */
 export class WebRtcAudioSession {
   readonly peer: RTCPeerConnection;
@@ -133,24 +117,22 @@ export class WebRtcAudioSession {
       track.onReceiveRtp.subscribe((rtp) => {
         if (this.closed) return;
         const receivedAt = performance.now();
-        if (this.lastIngressRtpAt !== null) this.stats.webrtcIngressRtpMaxGapMs = Math.max(this.stats.webrtcIngressRtpMaxGapMs, Math.round(receivedAt - this.lastIngressRtpAt));
+        if (this.lastIngressRtpAt !== null)
+          this.stats.webrtcIngressRtpMaxGapMs = Math.max(
+            this.stats.webrtcIngressRtpMaxGapMs,
+            Math.round(receivedAt - this.lastIngressRtpAt),
+          );
         this.lastIngressRtpAt = receivedAt;
         this.stats.webrtcIngressRtpFirstAt ??= Date.now();
         this.stats.webrtcIngressRtpLastAt = Date.now();
         this.stats.webrtcIngressRtpFrames++;
         if (!this.opusPayloadTypes.has(rtp.header.payloadType)) return;
         const payload = Buffer.from(rtp.payload);
-        // A muted microphone must stop the browser user's TeamSpeak voice
-        // packets at the gateway. Browser-side track.enabled/gain changes
-        // still produce RTP comfort-silence on some browsers, and forwarding
-        // those packets makes TeamSpeak keep the user in the speaking state.
-        // When accompaniment is active, keep forwarding the mixed track: the
-        // browser has already removed only the microphone component.
+        // A muted mic must stop here, some browsers still send comfort silence RTP that keeps the user
+        // speaking in TS. With accompaniment on the browser already removed the mic part, so keep going.
         if (this.microphoneMuted && !this.accompanimentActive) return;
-        // Forward every valid negotiated Opus payload unchanged. Do not
-        // decode it for RMS analysis or pass it through a speech/silence gate:
-        // quiet frames are still part of the codec timeline and dropping them
-        // can cause downstream gaps, clicks, or decoder recovery artifacts.
+        // Forward valid Opus payloads unchanged. No RMS decode or speech gate, dropping quiet frames
+        // causes gaps, clicks and decoder recovery artifacts.
         this.onVoiceFrame(payload, this.accompanimentActive ? 5 : 4);
       });
       void audio.sender.replaceTrack(this.outgoingTrack).catch((error: unknown) => {
@@ -167,7 +149,7 @@ export class WebRtcAudioSession {
     } catch (error: unknown) {
       this.logger.error({ err: error instanceof Error ? error.message : String(error) }, "Could not create WebRTC mixer encoder");
       this.outgoingTrack.stop();
-      throw new Error("WebRTC Opus codec is unavailable");
+      throw new Error("WebRTC Opus codec is unavailable", { cause: error });
     }
     this.mixer = new WebRtcMixer(encoder, this.stats, this.logger);
 
@@ -237,18 +219,22 @@ export class WebRtcAudioSession {
   }
 
   private sendRtpAudio(encoded: Buffer): void {
-    const packet = new RtpPacket(new RtpHeader({
-      payloadType: this.outgoingPayloadType,
-      sequenceNumber: this.sequenceNumber,
-      timestamp: this.timestamp,
-      ssrc: this.ssrc,
-      marker: true,
-    }), encoded);
+    const packet = new RtpPacket(
+      new RtpHeader({
+        payloadType: this.outgoingPayloadType,
+        sequenceNumber: this.sequenceNumber,
+        timestamp: this.timestamp,
+        ssrc: this.ssrc,
+        marker: true,
+      }),
+      encoded,
+    );
     this.sequenceNumber = (this.sequenceNumber + 1) & 0xffff;
     this.timestamp = (this.timestamp + AUDIO_FRAME_SAMPLES) >>> 0;
     this.outgoingTrack.writeRtp(packet);
     const sentAt = performance.now();
-    if (this.lastEgressRtpAt !== null) this.stats.webrtcEgressRtpMaxGapMs = Math.max(this.stats.webrtcEgressRtpMaxGapMs, Math.round(sentAt - this.lastEgressRtpAt));
+    if (this.lastEgressRtpAt !== null)
+      this.stats.webrtcEgressRtpMaxGapMs = Math.max(this.stats.webrtcEgressRtpMaxGapMs, Math.round(sentAt - this.lastEgressRtpAt));
     this.lastEgressRtpAt = sentAt;
     this.stats.webrtcEgressRtpFirstAt ??= Date.now();
     this.stats.webrtcEgressRtpLastAt = Date.now();

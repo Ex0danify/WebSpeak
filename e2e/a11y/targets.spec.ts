@@ -6,13 +6,12 @@ import { discoveredLanguages, loadJoinRoomTranslations } from "../helpers/transl
 import { smallTargetRows } from "./small-targets";
 import { smallTargets, TOUCH_TARGET } from "./targets";
 
-// Touch targets at 390 px on the guest page and in the room (join form, the phone's four panels,
-// the audio settings dialog and the member sheet). The admin console and the demo page are not
-// scanned: the console is a desk tool and the demo a preview.
-//
-// The rows of small-targets.ts are keyed by the English labels, so English is checked against them.
-// Every other language (I6.4) is checked against English in the same run: a longer label may wrap and
-// make a target taller, but no state may gain a small target or have one shrink below its English size.
+// Touch targets at 390 px on the guest page and in the room (join form, the phone's four panels, the audio settings dialog, the
+// member sheet). The admin console and the demo page are not scanned, one is a desk tool and the other a preview.
+
+// small-targets.ts is keyed by English labels, so English is checked against it. Every other language is checked against
+// English in the same run, since a longer label may wrap and make a target taller, but no state may gain a small target or
+// shrink below its English size.
 
 const translations = await loadJoinRoomTranslations();
 
@@ -47,7 +46,10 @@ async function measure(page: Page, lang: string): Promise<Measured> {
     },
     "member sheet": async () => {
       await joined();
-      await page.getByRole("button", { name: text("moreMemberOptions") }).first().click();
+      await page
+        .getByRole("button", { name: text("moreMemberOptions") })
+        .first()
+        .click();
       await page.getByRole("dialog").last().waitFor();
     },
   };
@@ -85,7 +87,9 @@ function byTag(measured: Measured): Measured {
 }
 
 for (const lang of discoveredLanguages()) {
-  test(`${lang}: every touch target is 44 px${lang === "en" ? " or listed in small-targets.ts" : " or no smaller than in English"}`, async ({ page }, { project }) => {
+  test(`${lang}: every touch target is 44 px${lang === "en" ? " or listed in small-targets.ts" : " or no smaller than in English"}`, async ({
+    page,
+  }, { project }) => {
     test.skip(project.name !== "mobile", "touch targets are measured on the phone viewport");
     const problems: string[] = [];
 
@@ -101,7 +105,8 @@ for (const lang of discoveredLanguages()) {
           else if (group.count > (row.count ?? 1)) problems.push(`${state}: ${group.count} of ${key}, listed ${row.count ?? 1}`);
         }
       }
-      for (const row of smallTargetRows) if (!seen.has(row.target)) problems.push(`${row.target} is now 44 px or more, or gone: delete its row`);
+      for (const row of smallTargetRows)
+        if (!seen.has(row.target)) problems.push(`${row.target} is now 44 px or more, or gone: delete its row`);
     } else {
       const english = byTag(await measure(page, "en"));
       for (const [state, groups] of await measure(page, lang)) {

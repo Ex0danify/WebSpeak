@@ -37,8 +37,16 @@ export interface UseScreenShareOptions {
 export function useScreenShare(options: UseScreenShareOptions) {
   const { avatarStyle, nickname } = options;
   const {
-    screenShareStreams, screenShareViewing, screenShareViewingStreamId, screenShareRemoteStream, screenShareRemoteVolume,
-    screenShareError, screenShareErrorCode, startScreenShare, joinScreenShare, leaveScreenShare,
+    screenShareStreams,
+    screenShareViewing,
+    screenShareViewingStreamId,
+    screenShareRemoteStream,
+    screenShareRemoteVolume,
+    screenShareError,
+    screenShareErrorCode,
+    startScreenShare,
+    joinScreenShare,
+    leaveScreenShare,
   } = options.screenShare;
   const { t } = useI18n();
 
@@ -79,17 +87,23 @@ export function useScreenShare(options: UseScreenShareOptions) {
     if (stream.nameKind === "teamspeakNative") return t("screenShareTeamSpeakUser", { id: stream.ownerClientId ?? "" });
     return stream.ownerNickname || t("screenShare");
   }
-  const activeScreenShareStream = computed<ScreenShareStream | null>(() => screenShareStreams.find((stream) => stream.streamId === screenShareViewingStreamId.value) ?? null);
+  const activeScreenShareStream = computed<ScreenShareStream | null>(
+    () => screenShareStreams.find((stream) => stream.streamId === screenShareViewingStreamId.value) ?? null,
+  );
   const screenSharePlayerViewers = computed(() => activeScreenShareStream.value?.viewers.slice(-5) ?? []);
-  const screenSharePlayerViewerCount = computed(() => activeScreenShareStream.value?.viewerCount ?? activeScreenShareStream.value?.viewers.length ?? 0);
+  const screenSharePlayerViewerCount = computed(
+    () => activeScreenShareStream.value?.viewerCount ?? activeScreenShareStream.value?.viewers.length ?? 0,
+  );
   const screenSharePlayerOwnerName = computed(() => ownerName(activeScreenShareStream.value));
 
   function screenShareStreamForMember(member: ChannelMember): ScreenShareStream | null {
-    return screenShareStreams.find((stream) => {
-      if (typeof stream.ownerClientId === "number" && stream.ownerClientId === member.id) return true;
-      if (stream.source === "teamspeak" && stream.ownerPeerId === `ts-${member.id}`) return true;
-      return stream.ownerNickname === member.nickname;
-    }) ?? null;
+    return (
+      screenShareStreams.find((stream) => {
+        if (typeof stream.ownerClientId === "number" && stream.ownerClientId === member.id) return true;
+        if (stream.source === "teamspeak" && stream.ownerPeerId === `ts-${member.id}`) return true;
+        return stream.ownerNickname === member.nickname;
+      }) ?? null
+    );
   }
 
   function toggleScreenShareForMember(member: ChannelMember): void {

@@ -72,14 +72,14 @@ describe("AdminLoginRateLimiter", () => {
     expect(limiter.recordFailure("old", 3)).toBe(250); // "old" starts again from one failure, not two
   });
 
-  it("F5: a locked-out peer survives a flood of new peers that fail once", () => {
+  it("a locked-out peer survives a flood of new peers that fail once", () => {
     const limiter = new AdminLoginRateLimiter(3);
     fail(limiter, "locked", 5, 0);
     for (let i = 0; i < 50; i += 1) limiter.recordFailure(`flood-${i}`, 1 + i);
     expect(limiter.retryAfterMs("locked", 100)).toBeGreaterThan(0);
   });
 
-  it("F5: with the default table size, 2000 other peers do not lift a lockout", () => {
+  it("with the default table size, 2000 other peers do not lift a lockout", () => {
     const limiter = new AdminLoginRateLimiter();
     fail(limiter, "locked", 5, 0);
     for (let i = 0; i < 2000; i += 1) limiter.recordFailure(`flood-${i}`, 1 + i);

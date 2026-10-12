@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { DatabaseSync } from "node:sqlite";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { settingsInput, useAdminService } from "../../../test/helpers/adminService.js";
+import { settingsInput, useAdminService } from "../../../test/support/adminService.js";
 import { TeamSpeakProbeError } from "../teamspeak/teamSpeakProbe.js";
 import { AdminInputError } from "./adminService.js";
 
@@ -52,15 +52,33 @@ describe("testConnection with an injected probe and host ping", () => {
 
   it("does not fail the test because the host ignores ping", async () => {
     ctx.probe.mockResolvedValue({ ok: true, latencyMs: 31 });
-    ctx.ping.mockResolvedValue({ ok: false, latencyMs: null, packetLossPercent: 100, attempts: 4, successfulAttempts: 0, samples: [], errorCode: "UNREACHABLE" });
+    ctx.ping.mockResolvedValue({
+      ok: false,
+      latencyMs: null,
+      packetLossPercent: 100,
+      attempts: 4,
+      successfulAttempts: 0,
+      samples: [],
+      errorCode: "UNREACHABLE",
+    });
     const result = await ctx.create().testConnection("ts.example.org", true);
-    expect(result).toEqual({ ok: true, latencyMs: 31, hostPing: { ok: false, latencyMs: null, packetLossPercent: 100, attempts: 4, successfulAttempts: 0, errorCode: "UNREACHABLE" } });
+    expect(result).toEqual({
+      ok: true,
+      latencyMs: 31,
+      hostPing: { ok: false, latencyMs: null, packetLossPercent: 100, attempts: 4, successfulAttempts: 0, errorCode: "UNREACHABLE" },
+    });
   });
 
   it("runs the probe and the ping side by side, so a dead host costs the longer of the two, not their sum", async () => {
     const started: string[] = [];
-    ctx.probe.mockImplementation(async () => { started.push("probe"); return new Promise(() => undefined); });
-    ctx.ping.mockImplementation(async () => { started.push("ping"); return ping; });
+    ctx.probe.mockImplementation(async () => {
+      started.push("probe");
+      return new Promise(() => undefined);
+    });
+    ctx.ping.mockImplementation(async () => {
+      started.push("ping");
+      return ping;
+    });
     void ctx.create().testConnection("ts.example.org", false);
     await new Promise((resolve) => setImmediate(resolve));
     expect(started).toEqual(["probe", "ping"]);
@@ -121,7 +139,15 @@ describe("managed invites", () => {
     service.updateSettings(settingsInput({ serverPassword: "pw-1" }));
     const { invite, token } = service.createManagedInvite({ channel: "  Lobby  ", expiresInHours: 2, maxUses: 3 });
     expect(token).toMatch(/^[A-Za-z0-9_-]{43}$/);
-    expect(invite).toMatchObject({ target: "ts.example.org:9988", channel: "Lobby", maxUses: 3, useCount: 0, status: "active", expiresAt: "2026-01-01T02:00:00.000Z", revokedAt: null });
+    expect(invite).toMatchObject({
+      target: "ts.example.org:9988",
+      channel: "Lobby",
+      maxUses: 3,
+      useCount: 0,
+      status: "active",
+      expiresAt: "2026-01-01T02:00:00.000Z",
+      revokedAt: null,
+    });
     expect(invite.id).toMatch(/^invite-[a-z0-9]+-[0-9a-f]{8}$/);
     const raw = new DatabaseSync(ctx.database.path);
     try {
@@ -161,7 +187,11 @@ describe("managed invites", () => {
     const service = ctx.create();
     service.updateSettings(settingsInput({ serverPassword: "pw-1" }));
     const { token } = service.createManagedInvite({ channel: "Lobby", expiresInHours: 1, maxUses: 1 });
-    expect(service.consumeManagedInvite(token)).toEqual({ target: { host: "ts.example.org", port: 9988 }, serverPassword: "pw-1", channel: "Lobby" });
+    expect(service.consumeManagedInvite(token)).toEqual({
+      target: { host: "ts.example.org", port: 9988 },
+      serverPassword: "pw-1",
+      channel: "Lobby",
+    });
     expect(service.listManagedInvites()[0]).toMatchObject({ useCount: 1, status: "exhausted" });
     expect(service.database.recentAudit()[0]?.event).toBe("INVITE_CONSUMED");
     expect(service.consumeManagedInvite(token)).toBeNull();
@@ -178,7 +208,8 @@ describe("managed invites", () => {
   it("refuses tokens with the wrong shape without touching the invites", () => {
     const service = ctx.create();
     const { token } = service.createManagedInvite({ channel: "", expiresInHours: 1, maxUses: 0 });
-    for (const bad of ["", "short", `${token}!`, "x".repeat(129), " ".repeat(40)]) expect(service.consumeManagedInvite(bad), JSON.stringify(bad)).toBeNull();
+    for (const bad of ["", "short", `${token}!`, "x".repeat(129), " ".repeat(40)])
+      expect(service.consumeManagedInvite(bad), JSON.stringify(bad)).toBeNull();
     expect(service.listManagedInvites()[0]?.useCount).toBe(0);
   });
 

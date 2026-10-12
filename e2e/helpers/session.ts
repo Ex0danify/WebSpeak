@@ -4,9 +4,8 @@ import { poll, type PollOptions } from "./poll";
 export type GatewayMessage = { type: string } & Record<string, unknown>;
 
 /**
- * A page plus what its `/ws/voice` socket carried. Attach before the first navigation, because
- * Playwright only reports sockets that open after it started listening. Frames are recorded as
- * the browser sees them; nothing is logged per frame, only counted and kept in memory.
+ * A page plus what its `/ws/voice` socket carried. Attach before the first navigation, Playwright only reports sockets that
+ * open after it started listening. Frames are kept in memory as the browser sees them, only counted and not logged.
  */
 export class Session {
   /** JSON the gateway sent to the browser. */
@@ -36,7 +35,7 @@ export class Session {
     try {
       into.push(JSON.parse(payload) as GatewayMessage);
     } catch {
-      // not JSON: nothing in the protocol, so nothing to keep
+      // not JSON, nothing in the protocol
     }
   }
 
@@ -45,18 +44,22 @@ export class Session {
     return this.received.filter((message) => message.type === type);
   }
 
-  /** Where the received list ends now, to look only at what comes later: `since(mark)`. */
+  /** Where the received list ends now, to look only at what comes later with `since(mark)`. */
   mark(): number {
     return this.received.length;
   }
 
-  /** The first message of `type` received after `mark` (default: ever), waited for by polling. */
+  /** The first message of `type` received after `mark` (default ever), waited for by polling. */
   async waitForMessage(type: string, options: PollOptions & { after?: number } = {}): Promise<GatewayMessage> {
     const { after = 0, ...poller } = options;
-    const found = await poll(() => this.received.slice(after).find((message) => message.type === type), (message) => message !== undefined, {
-      message: `a "${type}" message`,
-      ...poller,
-    });
+    const found = await poll(
+      () => this.received.slice(after).find((message) => message.type === type),
+      (message) => message !== undefined,
+      {
+        message: `a "${type}" message`,
+        ...poller,
+      },
+    );
     return found!;
   }
 

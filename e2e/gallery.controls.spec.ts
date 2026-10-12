@@ -2,9 +2,8 @@ import type { Page } from "@playwright/test";
 import { expect, test } from "./fixtures";
 import { gallerySection, openGallery } from "./helpers";
 
-// The keyboard and label contracts of the form controls, as their doc comments state them, in the
-// gallery on a Vite dev server. These are behaviors of reka-ui and the browser, which happy-dom
-// cannot judge.
+// The keyboard and label contracts of the form controls, as their doc comments state them, in the gallery on a Vite dev server.
+// Behaviors of reka-ui and the browser that happy-dom cannot judge.
 
 /**
  * A key press that lasts as long as a person's. reka-ui's radio checks itself from a `setTimeout(0)`

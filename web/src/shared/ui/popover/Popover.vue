@@ -4,30 +4,11 @@ import { PopoverAnchor, PopoverContent, PopoverPortal, PopoverRoot, PopoverTrigg
 import { cn } from "../../lib/cn";
 import { popoverContentClass } from "./popover";
 
-// A floating panel anchored to its trigger, for content rather than actions
-// (for actions use Menu). Not modal: focus moves into the panel when it
-// opens, Tab can leave it, Esc or a click outside closes it, and focus goes
-// back to the trigger.
-//
-//   <Popover label="Output volume">
-//     <template #trigger><Button icon-only aria-label="Volume"><Icon name="volume" /></Button></template>
-//     <template #default="{ close }">
-//       <Slider v-model="volume" aria-label="Output volume" />
-//       <Button @click="close">Done</Button>
-//     </template>
-//   </Popover>
-//
-// The trigger slot takes exactly one element. `label` names the panel for
-// assistive tech. `v-model:open` opens it from code. Width is `w-72`; pass a
-// `class` to change it.
-//
-// `trigger="hover"` is for a control that keeps its own click action (a mute
-// button) and shows a panel next to it: the panel opens while the pointer or
-// keyboard focus is on the trigger or the panel, closes shortly after both
-// have left, and Esc closes it until they leave. Focus is never moved into
-// the panel (Tab from the trigger enters it, because the panel is rendered
-// right after the trigger, not in a portal) and a click on the trigger does
-// not toggle it.
+// A floating panel anchored to its trigger, for content rather than actions (use Menu for those). Not modal, focus
+// moves into the panel on open, Tab can leave it, Esc or an outside click closes it and focus returns to the trigger.
+
+// `trigger="hover"` is for a control that keeps its own click action (a mute button). The panel opens while pointer or focus is
+// on trigger or panel, Esc closes it until they leave, and focus never moves in (the panel follows the trigger in the DOM).
 const props = withDefaults(
   defineProps<{
     label?: string;
@@ -89,15 +70,13 @@ function dismiss(): void {
   open.value = false;
 }
 
-// Hover mode keeps the panel open on outside interaction and focus changes: only the pointer and
-// focus state above, and Esc, close it.
+// Hover mode ignores outside interaction and focus changes, only the pointer and focus state above and Esc close it.
 function keepOpen(event: Event): void {
   if (hover.value) event.preventDefault();
 }
 
-// reka-ui puts two tabbable guard spans at the edges of the document while any panel is open. In
-// click mode focus has moved into the panel, so they never matter; in hover mode a Tab round would
-// stop on them (an empty stop with no ring) once the keyboard opened a panel.
+// reka-ui puts tabbable guard spans at the edges of the document while a panel is open. They don't matter in click mode,
+// but in hover mode a Tab round stops on them (an empty stop with no ring).
 watch(open, async (isOpen) => {
   if (!isOpen || !hover.value) return;
   await nextTick();
@@ -106,19 +85,19 @@ watch(open, async (isOpen) => {
 
 onBeforeUnmount(() => clearTimeout(closeTimer));
 
-const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+const FOCUSABLE =
+  'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
 function tabbableEdges(container: HTMLElement): [HTMLElement, HTMLElement] | [] {
-  const candidates = Array.from(container.querySelectorAll<HTMLElement>(FOCUSABLE)).filter((element) => element.getClientRects().length > 0);
+  const candidates = Array.from(container.querySelectorAll<HTMLElement>(FOCUSABLE)).filter(
+    (element) => element.getClientRects().length > 0,
+  );
   return candidates.length ? [candidates[0], candidates[candidates.length - 1]] : [];
 }
 
-// reka-ui's FocusScope always loops inside a popover (the `loop` prop it passes to FocusScope is
-// hardcoded true, with no way to turn it off from here), which contradicts this component's own
-// contract ("Tab can leave it", F35). FocusScope listens on the panel itself; a capture listener on
-// an ancestor therefore runs first. At the panel's tabbable edges only, stop the key press from
-// reaching FocusScope, so the browser's own default action (moving focus) runs unopposed instead of
-// being redirected back into the panel.
+// reka-ui hardcodes `loop` to true on its FocusScope, so focus can never leave a popover, which breaks our "Tab can leave it".
+// FocusScope listens on the panel, so a capture listener on an ancestor runs first and can swallow Tab at the edges so the
+// browser moves focus.
 function releaseTabAtEdges(event: KeyboardEvent): void {
   if (event.key !== "Tab" || event.altKey || event.ctrlKey || event.metaKey) return;
   const [first, last] = tabbableEdges(event.currentTarget as HTMLElement);

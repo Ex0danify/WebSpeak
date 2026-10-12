@@ -2,14 +2,15 @@ import { computed, reactive, ref, watch, type Ref } from "vue";
 import { useI18n } from "@/shared/i18n/useI18n.js";
 import { errorText, resolveText, text } from "@/shared/i18n/localizedText.js";
 import { toast as raiseToast } from "@/shared/composables/useToast.js";
-import { channelNameText, type ChannelInfo, type ChannelMember } from "@/features/session";
+import { channelNameText, type ChannelMember } from "@/features/session";
 import type { RoomSession, TreeChannel } from "../roomTypes.js";
+import { buildChannelTree } from "./buildChannelTree.js";
 
 export interface UseChannelTreeOptions {
   session: Pick<RoomSession["session"], "state" | "clearError">;
   roster: Pick<RoomSession["roster"], "channels" | "members">;
   actions: Pick<RoomSession["actions"], "switchChannel" | "moveClient" | "setAway">;
-  /** Owned by useJoinForm: the target channel name typed on the join screen, used as a fallback
+  /** Owned by useJoinForm, the target channel name typed on the join screen. It is the fallback
    *  before the member list confirms which channel you actually landed in. */
   channel: Ref<string>;
   selectedChannelId: Ref<string>;
@@ -19,9 +20,8 @@ export interface UseChannelTreeOptions {
   memberMenu: Ref<{ member: ChannelMember; x: number; y: number } | null>;
 }
 
-/** The channel tree, the current-channel/member derivations built on top of it, the member-panel
- *  search, the protected-channel password dialog, the away toggle, and the drag/drop (mouse and
- *  pointer) machinery for moving members between channels. */
+/** The channel tree and the current-channel/member derivations on top of it, the member-panel search, the protected-channel
+ *  password dialog, the away toggle and the drag/drop machinery for moving members between channels. */
 export function useChannelTree(options: UseChannelTreeOptions) {
   const { channel, selectedChannelId, chatTab, memberMenu } = options;
   const { state: voiceState, clearError } = options.session;
@@ -39,81 +39,16 @@ export function useChannelTree(options: UseChannelTreeOptions) {
   const channelPasswordDialog = reactive({ open: false, channelId: "", password: "", error: "", submitting: false });
   const draggedMember = ref<ChannelMember | null>(null);
   const dragOverChannelId = ref("");
-  const memberPointerDrag = reactive({ member: null as ChannelMember | null, pointerId: null as number | null, startX: 0, startY: 0, active: false, targetChannelId: "" });
-
-  const channelTree = computed<TreeChannel[]>(() => {
-    const source = [...channels];
-    const sourceIndex = new Map(source.map((item, index) => [item.id, index]));
-    const enriched = source.map((item) => ({
-      ...item,
-      members: (item.members ?? []).map((member) => ({ ...member, isSelf: member.id === voiceState.tsClientId })),
-    }));
-    const byId = new Map(enriched.map((item) => [item.id, item]));
-    const depthCache = new Map<string, number>();
-
-    function depthOf(item: ChannelInfo, visiting = new Set<string>()): number {
-      if (depthCache.has(item.id)) return depthCache.get(item.id)!;
-      if (!item.parentID || item.parentID === "0" || visiting.has(item.id)) return 0;
-      const parent = byId.get(item.parentID);
-      const depth = parent ? depthOf(parent, new Set(visiting).add(item.id)) + 1 : 0;
-      depthCache.set(item.id, depth);
-      return depth;
-    }
-
-    const childrenByParent = new Map<string, TreeChannel[]>();
-    for (const item of enriched) {
-      const channel = { ...item, depth: depthOf(item) };
-      const siblings = childrenByParent.get(channel.parentID) ?? [];
-      siblings.push(channel);
-      childrenByParent.set(channel.parentID, siblings);
-    }
-
-    function orderSiblings(siblings: TreeChannel[]): TreeChannel[] {
-      const bySiblingId = new Map(siblings.map((item) => [item.id, item]));
-      const successors = new Map<string, TreeChannel[]>();
-      const roots: TreeChannel[] = [];
-      const sourceOrder = (left: TreeChannel, right: TreeChannel) =>
-        (sourceIndex.get(left.id) ?? Number.MAX_SAFE_INTEGER) - (sourceIndex.get(right.id) ?? Number.MAX_SAFE_INTEGER);
-
-      for (const item of siblings) {
-        const predecessor = item.order && item.order !== "0" && bySiblingId.has(item.order) ? item.order : "";
-        if (!predecessor) roots.push(item);
-        else successors.set(predecessor, [...(successors.get(predecessor) ?? []), item]);
-      }
-
-      roots.sort(sourceOrder);
-      for (const items of successors.values()) items.sort(sourceOrder);
-
-      const ordered: TreeChannel[] = [];
-      const visited = new Set<string>();
-      const append = (item: TreeChannel) => {
-        if (visited.has(item.id)) return;
-        visited.add(item.id);
-        ordered.push(item);
-        for (const successor of successors.get(item.id) ?? []) append(successor);
-      };
-      for (const root of roots) append(root);
-      for (const item of [...siblings].sort(sourceOrder)) append(item);
-      return ordered;
-    }
-
-    const orderedTree: TreeChannel[] = [];
-    const visit = (parentID: string) => {
-      for (const channel of orderSiblings(childrenByParent.get(parentID) ?? [])) {
-        orderedTree.push(channel);
-        visit(channel.id);
-      }
-    };
-    visit("0");
-    for (const channel of enriched) {
-      if (!orderedTree.some((item) => item.id === channel.id)) {
-        const fallback = { ...channel, depth: depthOf(channel) };
-        orderedTree.push(fallback);
-        visit(channel.id);
-      }
-    }
-    return orderedTree;
+  const memberPointerDrag = reactive({
+    member: null as ChannelMember | null,
+    pointerId: null as number | null,
+    startX: 0,
+    startY: 0,
+    active: false,
+    targetChannelId: "",
   });
+
+  const channelTree = computed<TreeChannel[]>(() => buildChannelTree(channels, voiceState.tsClientId));
 
   const currentChannel = computed<TreeChannel | undefined>(() => {
     const explicitlySelected = channelTree.value.find((item) => item.id === selectedChannelId.value);
@@ -122,8 +57,10 @@ export function useChannelTree(options: UseChannelTreeOptions) {
     if (fromSelf) return fromSelf;
     return channelTree.value.find((item) => item.name === channel.value) ?? channelTree.value[0];
   });
-  /** The channel the member list says you are in right now, whoever moved you there (F22). */
-  const ownChannelId = computed(() => channelTree.value.find((item) => item.members.some((member) => member.id === voiceState.tsClientId))?.id ?? "");
+  /** The channel the member list says you are in right now, whoever moved you there. */
+  const ownChannelId = computed(
+    () => channelTree.value.find((item) => item.members.some((member) => member.id === voiceState.tsClientId))?.id ?? "",
+  );
   const currentChannelName = computed(() => (currentChannel.value?.name ?? channel.value) || t("voiceLobby"));
   const currentChannelDescription = computed(() => currentChannel.value?.description ?? "");
   const currentMembers = computed<ChannelMember[]>(() => {
@@ -133,12 +70,23 @@ export function useChannelTree(options: UseChannelTreeOptions) {
   const roomMembers = computed(() => currentMembers.value.slice(0, 4));
   const memberChannels = computed<TreeChannel[]>(() => {
     if (channelTree.value.length) return channelTree.value;
-    return [{ id: "__current__", parentID: "0", name: currentChannelName.value, description: currentChannelDescription.value, members: currentMembers.value, depth: 0 }];
+    return [
+      {
+        id: "__current__",
+        parentID: "0",
+        name: currentChannelName.value,
+        description: currentChannelDescription.value,
+        members: currentMembers.value,
+        depth: 0,
+      },
+    ];
   });
   const filteredMemberChannels = computed(() => {
     const search = memberQuery.value.trim().toLowerCase();
     if (!search) return memberChannels.value;
-    return memberChannels.value.filter((item) => item.name.toLowerCase().includes(search) || item.members.some((member) => member.nickname.toLowerCase().includes(search)));
+    return memberChannels.value.filter(
+      (item) => item.name.toLowerCase().includes(search) || item.members.some((member) => member.nickname.toLowerCase().includes(search)),
+    );
   });
   const memberMoveMenuCurrentChannel = computed<TreeChannel | null>(() => {
     const member = memberMenu.value?.member;
@@ -155,42 +103,54 @@ export function useChannelTree(options: UseChannelTreeOptions) {
   const memberMoveMenuOtherChannels = computed<TreeChannel[]>(() => {
     const member = memberMenu.value?.member;
     if (!member) return [];
-    const sourceChannelId = memberChannels.value.find((channel) => channel.members.some((candidate) => candidate.id === member.id))?.id ?? "";
+    const sourceChannelId =
+      memberChannels.value.find((channel) => channel.members.some((candidate) => candidate.id === member.id))?.id ?? "";
     const currentChannelId = memberMoveMenuCurrentChannel.value?.id;
-    return memberChannels.value.filter((channel) => channel.id !== "__current__" && channel.id !== sourceChannelId && channel.id !== currentChannelId);
+    return memberChannels.value.filter(
+      (channel) => channel.id !== "__current__" && channel.id !== sourceChannelId && channel.id !== currentChannelId,
+    );
   });
 
-  watch(channelTree, (list) => {
-    if (!selectedChannelId.value && list[0]) {
-      selectedChannelId.value = list.find((item) => item.name === channel.value)?.id
-        ?? list.find((item) => item.members.some((member) => member.id === voiceState.tsClientId))?.id
-        ?? "";
-    }
-  }, { deep: true });
-  // F22: a move made by someone else changes the member list, not selectedChannelId, so the
-  // highlight, the voice cards and the channel chat stayed on the channel you used to be in. Follow
-  // the member list instead: once your own channel is known, keep selectedChannelId matched to it.
-  // The very first assignment is left to the watcher above, which also honours the channel you typed.
+  watch(
+    channelTree,
+    (list) => {
+      if (!selectedChannelId.value && list[0]) {
+        selectedChannelId.value =
+          list.find((item) => item.name === channel.value)?.id ??
+          list.find((item) => item.members.some((member) => member.id === voiceState.tsClientId))?.id ??
+          "";
+      }
+    },
+    { deep: true },
+  );
+  // A move made by someone else changes the member list, not selectedChannelId, so keep selectedChannelId matched to your own
+  // channel once it is known. The very first assignment is left to the watcher above, which also honours the typed channel.
   watch(ownChannelId, (id, previous) => {
     if (id && previous) selectedChannelId.value = id;
   });
-  watch(() => voiceState.errorCode, (code) => {
-    if (code !== "CHANNEL_PASSWORD_REQUIRED" || !selectedChannelId.value) return;
-    channelPasswordDialog.open = true;
-    channelPasswordDialog.channelId = selectedChannelId.value;
-    channelPasswordDialog.password = "";
-    channelPasswordDialog.error = t("channelPasswordRetry");
-    channelPasswordDialog.submitting = false;
-    clearError();
-  });
-  watch(() => voiceState.channelSwitchedChannelId, (channelId) => {
-    if (!channelPasswordDialog.open || !channelId || channelId !== channelPasswordDialog.channelId) return;
-    channelPasswordDialog.open = false;
-    channelPasswordDialog.channelId = "";
-    channelPasswordDialog.password = "";
-    channelPasswordDialog.error = "";
-    channelPasswordDialog.submitting = false;
-  });
+  watch(
+    () => voiceState.errorCode,
+    (code) => {
+      if (code !== "CHANNEL_PASSWORD_REQUIRED" || !selectedChannelId.value) return;
+      channelPasswordDialog.open = true;
+      channelPasswordDialog.channelId = selectedChannelId.value;
+      channelPasswordDialog.password = "";
+      channelPasswordDialog.error = t("channelPasswordRetry");
+      channelPasswordDialog.submitting = false;
+      clearError();
+    },
+  );
+  watch(
+    () => voiceState.channelSwitchedChannelId,
+    (channelId) => {
+      if (!channelPasswordDialog.open || !channelId || channelId !== channelPasswordDialog.channelId) return;
+      channelPasswordDialog.open = false;
+      channelPasswordDialog.channelId = "";
+      channelPasswordDialog.password = "";
+      channelPasswordDialog.error = "";
+      channelPasswordDialog.submitting = false;
+    },
+  );
 
   function selectChannel(item: TreeChannel) {
     selectedChannelId.value = item.id;
@@ -241,8 +201,7 @@ export function useChannelTree(options: UseChannelTreeOptions) {
     }
     memberMenu.value = null;
     try {
-      // Moving a visible client is a server-admin operation; channel passwords
-      // must never be requested or forwarded for this action.
+      // Moving a visible client is a server-admin operation, so channel passwords are never requested or forwarded here.
       await moveClient(member.id, targetChannelId);
       notify(t("moveMemberSuccess"));
     } catch (error: unknown) {
@@ -290,7 +249,9 @@ export function useChannelTree(options: UseChannelTreeOptions) {
     draggedMember.value = memberPointerDrag.member;
     const target = document.elementFromPoint(event.clientX, event.clientY)?.closest<HTMLElement>("[data-member-channel-id]");
     const targetChannelId = target?.dataset.memberChannelId ?? "";
-    const sourceChannel = memberChannels.value.find((channel) => channel.members.some((candidate) => candidate.id === memberPointerDrag.member?.id));
+    const sourceChannel = memberChannels.value.find((channel) =>
+      channel.members.some((candidate) => candidate.id === memberPointerDrag.member?.id),
+    );
     if (!sourceChannel || !targetChannelId || targetChannelId === sourceChannel.id) {
       memberPointerDrag.targetChannelId = "";
       dragOverChannelId.value = "";

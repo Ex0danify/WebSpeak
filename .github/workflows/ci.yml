@@ -26,6 +26,10 @@ jobs:
           npm run prepare:sdk
           npm rebuild @discordjs/opus --foreground-scripts --no-audit --no-fund
           npm --prefix web ci --no-audit --no-fund
+      - name: Check formatting
+        run: npm run format:check
+      - name: Lint
+        run: npm run lint
       - name: Build application
         run: |
           npm run build

@@ -39,10 +39,8 @@ export function useWebRtcAccompaniment(deps: WebRtcAccompanimentDeps) {
     }
 
     const captureProcessingConstraints: MediaTrackConstraints = {
-      // Display/application audio must not pass through browser voice
-      // processing. Those processors are designed for speech and can change
-      // music level from frame to frame (AGC), suppress quiet passages, or
-      // cancel sustained tones.
+      // Display/application audio must not pass through browser voice processing. Those processors are made for speech and can
+      // change music level frame to frame (AGC), suppress quiet passages or cancel sustained tones.
       autoGainControl: false,
       echoCancellation: false,
       noiseSuppression: false,
@@ -75,14 +73,12 @@ export function useWebRtcAccompaniment(deps: WebRtcAccompanimentDeps) {
     }
 
     try {
-      // Do not pass the Chromium-only restrictOwnAudio hint to
-      // applyConstraints: rejecting an unknown key could otherwise cause the
-      // browser to discard all three standard processing-off constraints.
+      // Do not pass the Chromium-only restrictOwnAudio hint to applyConstraints, rejecting an unknown key could make the
+      // browser discard all three standard processing-off constraints.
       await audioTrack.applyConstraints(captureProcessingConstraints);
     } catch {
-      // Some browsers expose display audio but reject one or more optional
-      // processing constraints. The capture can still proceed without
-      // introducing a WebSpeak-side gain stage.
+      // Some browsers expose display audio but reject optional processing constraints. The capture still proceeds, without
+      // adding a WebSpeak-side gain stage.
     }
     if ("contentHint" in audioTrack) audioTrack.contentHint = "music";
 
@@ -90,7 +86,13 @@ export function useWebRtcAccompaniment(deps: WebRtcAccompanimentDeps) {
     accompanimentStream = nextStream;
     accompanimentActive.value = true;
     deps.sendCmd("setAccompanimentActive", { active: true });
-    audioTrack.addEventListener("ended", () => { void stopAccompaniment(); }, { once: true });
+    audioTrack.addEventListener(
+      "ended",
+      () => {
+        void stopAccompaniment();
+      },
+      { once: true },
+    );
     try {
       await deps.replaceWebRtcAudioTrack();
     } catch (error) {

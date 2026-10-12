@@ -32,15 +32,18 @@ export const de: Record<string, string> = {
   err_SCREEN_SHARE_SIGNAL_FAILED: "Das Signal der Bildschirmfreigabe konnte nicht gesendet werden",
   err_SCREEN_SHARE_PEER_NOT_FOUND: "Der Zuschauer hat die Freigabe verlassen",
   err_SCREEN_SHARE_JOIN_FAILED: "Der Bildschirmfreigabe konnte nicht beigetreten werden",
-  err_SCREEN_SHARE_NATIVE_PUBLISHER_STOPPED: "Der Freigabekanal des TeamSpeak-Clients wurde beendet; die Web-Freigabe kann fortgesetzt werden",
+  err_SCREEN_SHARE_NATIVE_PUBLISHER_STOPPED:
+    "Der Freigabekanal des TeamSpeak-Clients wurde beendet; die Web-Freigabe kann fortgesetzt werden",
   screenShareSignalFailedDetail: "Das Signal der Bildschirmfreigabe konnte nicht gesendet werden: {{detail}}",
   screenShareJoinFailedDetail: "Der Bildschirmfreigabe konnte nicht beigetreten werden: {{detail}}",
   screenShareOperationFailed: "Vorgang der Bildschirmfreigabe fehlgeschlagen",
   screenShareUnsupported: "Dieser Browser unterstützt keine Bildschirmfreigabe",
   screenSharePermissionDenied: "Die Bildschirmfreigabe wurde abgebrochen oder der Browser hat die Berechtigung nicht erteilt",
   screenShareStartFailed: "Die Bildschirmfreigabe konnte nicht gestartet werden. Prüfe die Berechtigungen deines Browsers.",
-  screenShareP2PFailed: "Direktes P2P fehlgeschlagen. Das aktuelle Netzwerk kann keine direkte Verbindung zwischen den Browsern herstellen.",
-  screenShareP2PTimeout: "Zeitüberschreitung bei der Aushandlung der direkten Verbindung. Stelle sicher, dass beide Netzwerke direkte Browserverbindungen erlauben.",
+  screenShareP2PFailed:
+    "Direktes P2P fehlgeschlagen. Das aktuelle Netzwerk kann keine direkte Verbindung zwischen den Browsern herstellen.",
+  screenShareP2PTimeout:
+    "Zeitüberschreitung bei der Aushandlung der direkten Verbindung. Stelle sicher, dass beide Netzwerke direkte Browserverbindungen erlauben.",
   screenShareP2POfferFailed: "Die direkte Freigabeanfrage konnte nicht erstellt werden. Versuche es erneut.",
   screenShareP2PTsViewerFailed: "Für den TeamSpeak-Zuschauer konnte keine direkte Freigabeverbindung erstellt werden",
   screenShareP2PTsAnswerFailed: "Die direkte Verbindungsanfrage der TeamSpeak-Bildschirmfreigabe konnte nicht beantwortet werden",

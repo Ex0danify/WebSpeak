@@ -1,19 +1,7 @@
-// Token check. The theme (`@theme` in src/shared/styles/tokens.css) is the only source of
-// font sizes, radii, shadows, z-indexes, breakpoints and colors. Per .vue/.css/.ts file under
-// src/ (tokens.css, test files and test support excluded) it counts
-//   ws          reads of the private theme layer, `var(--ws-`
-//   fontSize    arbitrary font sizes, `text-[11px]`
-//   radius      arbitrary radii, `rounded-[10px]`, `rounded-t-[..]`
-//   shadow      arbitrary shadows, `shadow-[..]`
-//   zIndex      arbitrary z-indexes, `z-[50]`
-//   viewport    arbitrary breakpoints, `min-[740px]:`, `max-[740px]:` (use `compact:`, `max-compact:`)
-//   arbitrary   every other arbitrary value, `w-[620px]`, `gap-[6px]` (W-ARB)
-// The first five have no budget: any hit fails. `arbitrary` is a ratchet in
-// scripts/token-budget.json (pure layout dimensions may stay; the count only shrinks) and its
-// total is printed on every run.
-//
-//   npm run check:tokens            check
-//   npm run check:tokens -- --update  lower the arbitrary budgets to the current counts (never raises one)
+// The `@theme` in src/shared/styles/tokens.css is the only source of font sizes, radii, shadows, z-indexes, breakpoints and
+// colors. Per file this counts `var(--ws-` reads and arbitrary values (text-[..], rounded-[..], shadow-[..], z-[..],
+// min-[..]:). Everything but plain `arbitrary` fails on any hit, `arbitrary` is a ratchet in token-budget.json that `--update`
+// lowers.
 import { readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -57,7 +45,9 @@ function count(source) {
 }
 
 const budget = JSON.parse(readFileSync(budgetPath, "utf8"));
-const files = sourceFiles(join(root, "src")).map((path) => relative(root, path).split("\\").join("/")).sort();
+const files = sourceFiles(join(root, "src"))
+  .map((path) => relative(root, path).split("\\").join("/"))
+  .sort();
 const problems = [];
 const lowered = [];
 const totals = Object.fromEntries(KEYS.map((key) => [key, 0]));
@@ -91,6 +81,7 @@ if (update) {
   writeFileSync(budgetPath, `${JSON.stringify(budget, null, 2)}\n`);
   console.log(`budget updated (${lowered.length} value(s) lowered)`);
 } else {
-  for (const change of lowered) console.log(`below budget: ${change.file} ${change.key} ${change.to} < ${change.from} (run check:tokens -- --update)`);
-  console.log(`OK: tokens (${KEYS.map((key) => `${key} ${totals[key]}`).join(", ")}; W-ARB budget only shrinks)`);
+  for (const change of lowered)
+    console.log(`below budget: ${change.file} ${change.key} ${change.to} < ${change.from} (run check:tokens -- --update)`);
+  console.log(`OK: tokens (${KEYS.map((key) => `${key} ${totals[key]}`).join(", ")}; the arbitrary budget only shrinks)`);
 }
