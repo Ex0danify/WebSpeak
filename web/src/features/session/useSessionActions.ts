@@ -149,8 +149,8 @@ export function useSessionActions(deps: RoomActionsDeps) {
     );
   }
 
-  function sendPoke(clientId: number, message = ""): void {
-    sendCmd("poke", { clientId, message: message.trim().slice(0, 200) });
+  function sendPoke(clientId: number, message = ""): Promise<void> {
+    return sendCommandAndWait("poke", { clientId, message: message.trim().slice(0, 200) });
   }
 
   function setAway(away: boolean, message = ""): void {

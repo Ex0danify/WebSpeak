@@ -219,13 +219,13 @@ describe("commands", () => {
 
   it("sendPoke and setAway trim and cap the message at 200 characters", async () => {
     const socket = await connected();
-    harness.voice.chat.sendPoke(9, `  ${"a".repeat(300)}  `);
-    harness.voice.chat.sendPoke(9);
+    void harness.voice.chat.sendPoke(9, `  ${"a".repeat(300)}  `).catch(() => undefined);
+    void harness.voice.chat.sendPoke(9).catch(() => undefined);
     harness.voice.actions.setAway(true, " brb ");
     harness.voice.actions.setAway(false);
     expect(socket.sentJson).toEqual([
-      { type: "poke", payload: { clientId: 9, message: "a".repeat(200) } },
-      { type: "poke", payload: { clientId: 9, message: "" } },
+      { type: "poke", payload: { clientId: 9, message: "a".repeat(200) }, requestId: expect.stringMatching(/^command-/) },
+      { type: "poke", payload: { clientId: 9, message: "" }, requestId: expect.stringMatching(/^command-/) },
       { type: "setAway", payload: { away: true, message: "brb" } },
       { type: "setAway", payload: { away: false, message: "" } },
     ]);
@@ -234,7 +234,7 @@ describe("commands", () => {
   it("does nothing while the socket is not open", async () => {
     harness = await createVoiceHarness();
     harness.voice.actions.switchChannel("1");
-    harness.voice.chat.sendPoke(9);
+    await expect(harness.voice.chat.sendPoke(9)).rejects.toMatchObject({ code: "VOICE_CONNECTION_NOT_READY" });
     harness.voice.actions.setAway(true);
     expect(() => harness.socket()).toThrow();
   });

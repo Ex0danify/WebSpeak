@@ -1,6 +1,7 @@
 import { onMounted, onUnmounted, ref, type Ref } from "vue";
 import { showToast } from "@/shared/composables/useToast";
 import { useI18n } from "@/shared/i18n/useI18n";
+import { errorText, resolveText, text } from "@/shared/i18n/localizedText";
 import type { ChannelMember, PokeNotification } from "@/features/session";
 
 export interface UseRoomShellOptions {
@@ -9,7 +10,7 @@ export interface UseRoomShellOptions {
   accompanimentActive: Ref<boolean>;
   stopAccompaniment: () => Promise<void> | void;
   refreshAudioDevices: () => Promise<unknown>;
-  sendPoke: (clientId: number, message: string) => void;
+  sendPoke: (clientId: number, message: string) => Promise<void>;
 }
 
 /** Shell state of the connected room: the mobile viewport flag and active mobile section, the
@@ -50,9 +51,13 @@ export function useRoomShell({
     if (viewportMediaQuery && viewportChangeHandler) viewportMediaQuery.removeEventListener?.("change", viewportChangeHandler);
   });
 
-  function pokeMember(member: ChannelMember): void {
-    sendPoke(member.id, window.prompt(t("pokeMessagePrompt"), "") ?? "");
-    showToast(t("pokeSent"));
+  async function pokeMember(member: ChannelMember): Promise<void> {
+    try {
+      await sendPoke(member.id, window.prompt(t("pokeMessagePrompt"), "") ?? "");
+      showToast(t("pokeSent"));
+    } catch (error: unknown) {
+      showToast(resolveText(errorText(error, text("err_OPERATION_FAILED"))), "danger");
+    }
   }
 
   function copyMemberName(member: ChannelMember): void {
