@@ -1,8 +1,6 @@
 <div align="center">
   <a id="readme-top"></a>
 
-  <img src="./image.png" alt="WebSpeak project banner" width="100%" />
-
   <h1>WebSpeak</h1>
 
   <p>A self-hosted browser voice client for TeamSpeak 3 and TeamSpeak 6.</p>
