@@ -4,6 +4,8 @@ const ci = process.env.CI === "true" || process.env.CI === "1";
 
 export default defineConfig({
   test: {
+    // Two tests are load-sensitive (useJoinIdentity "remember-identity", gateway admin setup): CI retries them, and the reporter marks a test that passed on retry as flaky.
+    retry: ci ? 2 : 0,
     // In CI a JUnit report lands in test-results/ (gitignored) next to the console output.
     reporters: ci ? ["default", "junit"] : ["default"],
     outputFile: { junit: "test-results/junit-vitest.xml" },

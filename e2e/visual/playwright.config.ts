@@ -12,7 +12,8 @@ export default defineConfig({
   testMatch: "**/*.spec.ts",
   globalSetup: fileURLToPath(new URL("../global-setup.ts", import.meta.url)),
   outputDir: "../../test-results/visual",
-  snapshotDir: "../../.snapshots/baseline",
+  // CI points this at the baseline committed on master; locally it stays the gitignored .snapshots.
+  snapshotDir: process.env.WEBSPEAK_VISUAL_BASELINE ?? "../../.snapshots/baseline",
   snapshotPathTemplate: "{snapshotDir}/{arg}{ext}",
   fullyParallel: true,
   workers: 4,

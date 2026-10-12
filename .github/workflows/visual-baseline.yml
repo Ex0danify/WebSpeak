@@ -1,0 +1,38 @@
+name: Visual baseline
+
+# After every merge to master: rebuild the screenshots on the CI runner image and commit them if they moved. The commit is made with
+# GITHUB_TOKEN, so it starts no further workflow. If master is protected, allow github-actions to push, or this job fails.
+on:
+  push:
+    branches: [master]
+    paths-ignore:
+      - "e2e/visual/baseline/**"
+      - "**.md"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: visual-baseline
+  cancel-in-progress: false
+
+jobs:
+  baseline:
+    runs-on: ubuntu-latest
+    env:
+      WEBSPEAK_VISUAL_BASELINE: ${{ github.workspace }}/e2e/visual/baseline
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+      - run: npx playwright install --with-deps chromium
+      - run: npm run build:web
+      - run: npm run test:visual -- --update-snapshots
+      - name: Commit changed baseline
+        run: |
+          git add e2e/visual/baseline
+          if git diff --cached --quiet; then echo "Baseline unchanged"; exit 0; fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "chore(visual): rebuild baseline for ${GITHUB_SHA::8} [skip ci]"
+          git push
