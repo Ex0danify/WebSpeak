@@ -19,4 +19,13 @@ describe("ServerPasswordBackoff", () => {
     backoff.recordSuccess("a:9987");
     expect(backoff.retryAfterMs("a:9987", 0)).toBe(0);
   });
+
+  it("forgets the oldest target once it tracks too many", () => {
+    const backoff = new ServerPasswordBackoff(2);
+    backoff.recordFailure("a", 0);
+    backoff.recordFailure("b", 0);
+    backoff.recordFailure("c", 0);
+    expect(backoff.retryAfterMs("a", 0)).toBe(0);
+    expect(backoff.retryAfterMs("c", 0)).toBe(5_000);
+  });
 });

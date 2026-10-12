@@ -4,11 +4,15 @@ import { Session } from "../helpers/session";
 import { type Gateway, type GatewayOptions, startGateway } from "../../test/support/gateway";
 import type { FakeRemoteMember } from "../../test/support/fakeTsClient";
 import { JoinRateLimiter } from "../../src/modules/join/joinRateLimit";
+import { ServerPasswordBackoff } from "../../src/modules/join/serverPasswordBackoff";
 import { startGalleryServer } from "./gallery";
 
 // Every browser of a worker joins from 127.0.0.1, so join-heavy specs would hit the 30 a minute ticket limit and time
 // out on a different test each run. createWebServer gives no way to swap the limiter, so this process switches it off.
 JoinRateLimiter.prototype.allow = () => true;
+// A wrong server password makes the gateway refuse the next typed one for 5 seconds, which would fail every test that
+// retries with the right password at once. The wait itself is covered by serverPasswordBackoff.test.ts.
+ServerPasswordBackoff.prototype.retryAfterMs = () => 0;
 
 const staticDir = fileURLToPath(new URL("../../web/dist", import.meta.url));
 
