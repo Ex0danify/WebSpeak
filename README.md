@@ -20,8 +20,7 @@
 
   <p>
     <a href="./docs/README.en.md">English documentation</a> ·
-    <a href="./docs/README.de.md">Deutsche Dokumentation</a> ·
-    <a href="./docs/README.ru.md">Русская документация</a>
+    <a href="./docs/README.de.md">Deutsche Dokumentation</a>
   </p>
 </div>
 
@@ -37,7 +36,6 @@
 
 - [English](./docs/README.en.md)
 - [Deutsch](./docs/README.de.md)
-- [Русский](./docs/README.ru.md)
 
 ## Community
 
