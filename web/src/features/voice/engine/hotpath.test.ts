@@ -79,7 +79,7 @@ describe("uplink: VOX gate", () => {
 
   it("sends nothing while muted, however loud", async () => {
     const { socket, worklet } = await liveMicrophone();
-    harness.voice.audio.setMicrophoneMuted(true);
+    void harness.voice.audio.setMicrophoneMuted(true).catch(() => undefined);
     socket.sent.length = 0;
     capture(worklet, constant(0.9));
     expect(socket.sentBinary).toHaveLength(0);

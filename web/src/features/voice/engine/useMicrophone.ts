@@ -23,7 +23,8 @@ export interface MicrophoneDeps {
   releaseAudioCtx(): void;
   markSpeaking(clientId: number): void;
   clearSpeaking(clientId: number): void;
-  sendCmd(type: string, payload?: Record<string, unknown>): void;
+  /** Resolves once the gateway completed the command, rejects when it refuses or stays silent. */
+  sendCommand(type: string, payload: Record<string, unknown>): Promise<void>;
   /** The transport's flag, PCM is not sent over the WebSocket while WebRTC carries the microphone. */
   webrtcActive: Ref<boolean>;
   /** The last microphone level of the capture chunk or the WebRTC mic monitor, the assembler owns the ref (it is public). */
@@ -303,7 +304,8 @@ export function useMicrophone(deps: MicrophoneDeps) {
     }
   }
 
-  function setMicrophoneMuted(muted: boolean): void {
+  /** The local mute takes effect at once and stays when the gateway refuses it, so a failed sync never opens the microphone. */
+  function setMicrophoneMuted(muted: boolean): Promise<void> {
     microphoneMuted.value = muted;
     processing.resetVox();
     accumLen = 0;
@@ -313,9 +315,10 @@ export function useMicrophone(deps: MicrophoneDeps) {
       });
     const mixMicGain = deps.webrtcMixMicGain();
     if (mixMicGain) mixMicGain.gain.value = muted ? 0 : inputVolume.value;
-    deps.sendCmd("setMicrophoneMuted", { muted });
+    const synced = deps.sendCommand("setMicrophoneMuted", { muted });
     if (muted && state.tsClientId) deps.clearSpeaking(state.tsClientId);
     void deps.saveAudioPreferences();
+    return synced;
   }
 
   async function setNoiseSuppressionEnabled(enabled: boolean): Promise<void> {

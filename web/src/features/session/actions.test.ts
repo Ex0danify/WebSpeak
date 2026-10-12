@@ -321,13 +321,19 @@ describe("whisper and mute", () => {
     const socket = await connected({ members: [{ id: 7, nickname: "Me" }] });
     socket.receive({ type: "voiceActivity", clientIds: [7] });
     expect(harness.voice.roster.speakingIds.has(7)).toBe(true);
-    harness.voice.audio.setMicrophoneMuted(true);
+    void harness.voice.audio.setMicrophoneMuted(true).catch(() => undefined);
     expect(harness.voice.audio.microphoneMuted.value).toBe(true);
-    expect(socket.sentJson).toEqual([{ type: "setMicrophoneMuted", payload: { muted: true } }]);
+    expect(socket.sentJson).toEqual([
+      { type: "setMicrophoneMuted", payload: { muted: true }, requestId: expect.stringMatching(/^command-/) },
+    ]);
     expect(harness.voice.roster.speakingIds.has(7)).toBe(false);
-    harness.voice.audio.setMicrophoneMuted(false);
+    void harness.voice.audio.setMicrophoneMuted(false).catch(() => undefined);
     expect(harness.voice.audio.microphoneMuted.value).toBe(false);
-    expect(socket.sentJson.at(-1)).toEqual({ type: "setMicrophoneMuted", payload: { muted: false } });
+    expect(socket.sentJson.at(-1)).toEqual({
+      type: "setMicrophoneMuted",
+      payload: { muted: false },
+      requestId: expect.stringMatching(/^command-/),
+    });
   });
 });
 

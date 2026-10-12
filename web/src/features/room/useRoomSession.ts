@@ -94,6 +94,7 @@ export function useRoomSession() {
   const { state, members, channels, chatMessages, serverEvents, pokeNotifications, speakingIds, whisperTargetIds } = session;
   const {
     sendCmd,
+    sendCommandAndWait,
     switchChannel,
     moveClient,
     measureLatency,
@@ -181,7 +182,7 @@ export function useRoomSession() {
     releaseAudioCtx,
     markSpeaking,
     clearSpeaking,
-    sendCmd,
+    sendCommand: sendCommandAndWait,
     webrtcActive,
     micLevel,
     webrtcMixMicGain: () => transport.getWebRtcMixMicGain(),
