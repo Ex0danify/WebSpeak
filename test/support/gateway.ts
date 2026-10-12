@@ -1,4 +1,4 @@
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, rmSync } from "node:fs";
 import { createServer } from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -10,7 +10,7 @@ import { createWebServer, type WebServer } from "../../src/transport/http/httpSe
 import { probeTeamSpeak, type TeamSpeakProbeResult } from "../../src/modules/teamspeak/teamSpeakProbe.js";
 import type { TeamSpeakPingResult } from "../../src/modules/relay/networkProbe.js";
 import type { VoiceBridgeOptions } from "../../src/modules/voice/voiceBridge.js";
-import { MASTER_SECRET, stubLogger, type StubLogger } from "./adminService.js";
+import { BOOTSTRAP, MASTER_SECRET, stubLogger, type StubLogger } from "./adminService.js";
 import { FakeTeamSpeakServer } from "./fakeTsClient.js";
 import { WsClient } from "./wsClient.js";
 
@@ -27,8 +27,6 @@ export interface GatewayOptions {
   realTeamSpeak?: boolean;
   /** Skip creating the administrator account, as on a database that was never set up. Default true. */
   initialize?: boolean;
-  /** Written as the old `config.json` before the first start, to be imported once. */
-  legacyConfig?: Record<string, unknown>;
   /**
    * What admin test connection does instead of the handshake. Succeeds by default, except with realTeamSpeak,
    * which gets the real probe and ping (gateway.probe and gateway.ping are not called).
@@ -36,7 +34,7 @@ export interface GatewayOptions {
   probe?: (...args: Parameters<ProbeFn>) => Promise<TeamSpeakProbeResult>;
   /** The host ping next to the probe. Succeeds by default (no ICMP from the tests). */
   ping?: (host: string) => Promise<TeamSpeakPingResult>;
-  /** Leave the first-run account (`admin` / `admin`, password change required) as it is. */
+  /** Leave the first-run account (the bootstrap account, password change required) as it is. */
   forcePasswordChange?: boolean;
   /** Overrides for the `VoiceBridgeOptions` the harness wires like `src/index.ts` does. */
   voiceBridgeOptions?: Omit<VoiceBridgeOptions, "joinTickets" | "createClient">;
@@ -96,25 +94,17 @@ export async function startGateway(options: GatewayOptions = {}): Promise<Gatewa
     options.ping ??
       (async () => ({ ok: true, latencyMs: 3, packetLossPercent: 0, attempts: 4, successfulAttempts: 4, samples: [3, 3, 3, 3] })),
   );
-  if (options.legacyConfig) writeFileSync(join(dataDir, "config.json"), JSON.stringify(options.legacyConfig));
+  // start() does not report the bound port, so it is picked first and nothing else is expected to grab it.
+  const port = await freePort();
   const adminProbe = options.realTeamSpeak && !options.probe ? probeTeamSpeak : probe;
   const adminPing = options.realTeamSpeak && !options.ping ? undefined : ping;
-  const adminService = new AdminService(
-    database,
-    MASTER_SECRET,
-    logger,
-    join(dataDir, "config.json"),
-    adminProbe as unknown as ProbeFn,
-    "9.9.9",
-    adminPing,
-  );
+  const adminService = new AdminService(database, MASTER_SECRET, logger, port, adminProbe as unknown as ProbeFn, "9.9.9", adminPing);
   if (options.initialize !== false) {
-    await adminService.initialize();
+    await adminService.initialize(BOOTSTRAP);
     if (!options.forcePasswordChange) await adminService.changePassword(TEST_ADMIN_PASSWORD);
   }
   const joinTickets = new JoinTicketStore();
   const logFile = join(dataDir, "webspeak.log");
-  const port = await freePort();
   const webServer: WebServer = createWebServer({
     port,
     version: "9.9.9",

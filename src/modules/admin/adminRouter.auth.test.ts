@@ -1,7 +1,8 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { stubLogger } from "../../../test/support/adminService.js";
+import { BOOTSTRAP, stubLogger } from "../../../test/support/adminService.js";
 import { type Gateway, TEST_ADMIN_PASSWORD, useGateway } from "../../../test/support/gateway.js";
 import { createAdminRouter } from "./adminRouter.js";
+import { resetAdminAccount } from "./adminReset.js";
 import { AdminSessionStore } from "./adminSession.js";
 
 // The real limiter runs, only its wait (250 ms up to 2 s after each failure) is skipped and recorded.
@@ -155,9 +156,9 @@ describe("login lockout", () => {
 });
 
 describe("first-run password change", () => {
-  it("logs in with the default account, blocks every admin route until the password is changed, then opens them", async () => {
+  it("logs in with the bootstrap account, blocks every admin route until the password is changed, then opens them", async () => {
     const gateway = await gateways.start({ forcePasswordChange: true });
-    const admin = await gateway.adminLogin("admin");
+    const admin = await gateway.adminLogin(BOOTSTRAP.password);
     expect(admin.mustChangePassword).toBe(true);
     expect(await (await admin.get("session")).json()).toMatchObject({ authenticated: true, mustChangePassword: true });
     for (const path of ["overview", "server", "sessions", "invites", "audit", "logs", "diagnostics", "diagnostics/report", "backup"]) {
@@ -173,10 +174,26 @@ describe("first-run password change", () => {
     const changed = await admin.post("change-password", { newPassword: "a brand new password 1" });
     expect(await changed.json()).toEqual({ ok: true, mustChangePassword: false });
     expect((await admin.get("overview")).status).toBe(200);
-    expect(await login(gateway, { username: "admin", password: "admin" })).toMatchObject({ response: { status: 401 } });
+    expect(await login(gateway, { username: "admin", password: BOOTSTRAP.password })).toMatchObject({ response: { status: 401 } });
     expect(await login(gateway, { username: "admin", password: "a brand new password 1" })).toMatchObject({
       response: { status: 200 },
       body: { mustChangePassword: false },
+    });
+  });
+});
+
+describe("account reset", () => {
+  it("signs out sessions from before the reset, so a stolen cookie cannot take over", async () => {
+    const gateway = await gateways.start();
+    const admin = await gateway.adminLogin();
+    expect((await admin.get("overview")).status).toBe(200);
+    await resetAdminAccount(gateway.database, { password: "a fresh recovery password" });
+    expect((await admin.get("overview")).status).toBe(401);
+    expect((await admin.post("change-password", { newPassword: "attacker chosen password" })).status).toBe(403);
+    expect(await login(gateway, { username: "admin", password: TEST_ADMIN_PASSWORD })).toMatchObject({ response: { status: 401 } });
+    expect(await login(gateway, { username: "admin", password: "a fresh recovery password" })).toMatchObject({
+      response: { status: 200 },
+      body: { mustChangePassword: true },
     });
   });
 });
@@ -203,7 +220,6 @@ describe("every mutating admin route needs the same origin, JSON and the CSRF to
     { method: "POST", path: "/invites/:id/revoke", guard: "admin" },
     { method: "PUT", path: "/server", guard: "admin" },
     { method: "POST", path: "/server/test", guard: "admin" },
-    { method: "POST", path: "/legacy-import/dismiss", guard: "admin" },
   ] as const;
 
   it("has a row in this table for every POST and PUT route of the router, and for none that does not exist", async () => {

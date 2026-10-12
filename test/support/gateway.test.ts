@@ -1,5 +1,6 @@
 import { existsSync } from "node:fs";
 import { describe, expect, it } from "vitest";
+import { BOOTSTRAP } from "./adminService.js";
 import { startGateway, TEST_ADMIN_PASSWORD, useGateway } from "./gateway.js";
 import type { FakeTSClient } from "./fakeTsClient.js";
 
@@ -54,7 +55,7 @@ describe("admin login", () => {
   it("leaves the first-run account alone when forcePasswordChange is set, and admin routes then ask for a change", async () => {
     const gateway = await gateways.start({ forcePasswordChange: true });
     await expect(gateway.adminLogin(TEST_ADMIN_PASSWORD)).rejects.toThrow("HTTP 401");
-    const admin = await gateway.adminLogin("admin");
+    const admin = await gateway.adminLogin(BOOTSTRAP.password);
     expect(admin.mustChangePassword).toBe(true);
     const overview = await admin.get("overview");
     expect(overview.status).toBe(403);

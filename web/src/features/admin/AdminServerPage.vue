@@ -26,7 +26,7 @@
         </div>
         <div class="rounded-md bg-surface-0 p-3.25">
           <dt class="text-2xs text-fg-muted">{{ t("internalPort") }}</dt>
-          <dd class="mt-1.25 text-xs font-bold">3040</dd>
+          <dd class="mt-1.25 text-xs font-bold">{{ serverForm.internalPort ?? "—" }}</dd>
         </div>
       </dl>
     </article>

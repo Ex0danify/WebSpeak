@@ -14,8 +14,7 @@ RUN npm rebuild @discordjs/opus --foreground-scripts --no-audit --no-fund
 RUN npm --prefix web ci
 
 COPY . .
-RUN npm --prefix web run build \
-  && npm run build \
+RUN npm run build \
   && npm prune --omit=dev \
   && rm -rf web/node_modules
 
@@ -38,8 +37,9 @@ COPY --from=build --chown=node:node /app/web/dist ./web/dist
 
 USER node
 VOLUME ["/data"]
+# Documentation only: the port is WEBSPEAK_PORT (3040 in .env.example).
 EXPOSE 3040/tcp 39087/udp 40000-40099/udp
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
-  CMD ["sh", "-c", "if [ \"$WEBSPEAK_MODE\" = \"relay\" ]; then node -e \"process.exit(0)\"; else node -e \"fetch('http://127.0.0.1:3040/health').then(r => { if (!r.ok) process.exit(1) }).catch(() => process.exit(1))\"; fi"]
+  CMD ["sh", "-c", "if [ \"$WEBSPEAK_MODE\" = \"relay\" ]; then node -e \"process.exit(0)\"; else node -e \"fetch('http://127.0.0.1:'+process.env.WEBSPEAK_PORT+'/health').then(r => { if (!r.ok) process.exit(1) }).catch(() => process.exit(1))\"; fi"]
 
 CMD ["node", "dist/index.js"]

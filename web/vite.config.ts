@@ -1,6 +1,6 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { fileURLToPath, URL } from "node:url";
-import { defineConfig, type Plugin } from "vite";
+import { defineConfig, loadEnv, type Plugin } from "vite";
 import vue from "@vitejs/plugin-vue";
 import tailwindcss from "@tailwindcss/vite";
 
@@ -22,19 +22,24 @@ function languageTags(): Plugin {
   };
 }
 
-export default defineConfig({
-  plugins: [vue(), tailwindcss(), languageTags()],
-  resolve: {
-    alias: { "@": fileURLToPath(new URL("./src", import.meta.url)) },
-  },
-  server: {
-    port: 5173,
-    proxy: {
-      "/api": "http://localhost:3040",
-      "/ws": {
-        target: "ws://localhost:3040",
-        ws: true,
-      },
+// The dev server proxies to the gateway on the port the gateway itself reads from WEBSPEAK_PORT (root .env included).
+// Without it there is no proxy rather than a guess: builds and the e2e gallery run without a gateway.
+export default defineConfig(({ mode }) => {
+  const env = loadEnv(mode, fileURLToPath(new URL("..", import.meta.url)), "WEBSPEAK_");
+  const gatewayPort = env.WEBSPEAK_PORT?.trim();
+  return {
+    plugins: [vue(), tailwindcss(), languageTags()],
+    resolve: {
+      alias: { "@": fileURLToPath(new URL("./src", import.meta.url)) },
     },
-  },
+    server: {
+      port: 5173,
+      proxy: gatewayPort
+        ? {
+            "/api": `http://localhost:${gatewayPort}`,
+            "/ws": { target: `ws://localhost:${gatewayPort}`, ws: true },
+          }
+        : {},
+    },
+  };
 });

@@ -49,11 +49,10 @@ describe("admin router layer order", () => {
       "GET /sessions",
       "POST /invites",
       "POST /invites/:id/revoke",
-      "POST /legacy-import/dismiss",
       "POST /server/test",
       "POST /sessions/:id/terminate",
       "PUT /server",
     ]);
-    expect(stack).toHaveLength(guard + 1 + 15 + 1);
+    expect(stack).toHaveLength(guard + 1 + 14 + 1);
   });
 });

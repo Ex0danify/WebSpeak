@@ -1,17 +1,16 @@
 services:
   webspeak:
-    image: ${WEBSPEAK_IMAGE:-ghcr.io/echosixhiya/webspeak:latest}
-    pull_policy: missing
+    # No published image yet, so Compose builds it from the Dockerfile.
+    build: .
     restart: unless-stopped
+    user: "${WEBSPEAK_UID:?}:${WEBSPEAK_GID:?}"
     # WebSpeak needs to reach a TeamSpeak server running on the same host.
     # Host networking also exposes the configured WebRTC UDP range directly.
     network_mode: host
-    # Behind a reverse proxy that sets X-Forwarded-For, enable this so rate limits and the audit log see the
-    # real visitor. Leave it off when WebSpeak is reachable directly, the header could be forged.
-    # environment:
-    #   WEBSPEAK_TRUST_PROXY: "1"
+    # Compose refuses to start without the file, and WebSpeak without any of its variables.
+    env_file: .env
+    environment:
+      # Inside the container the data is always /data. WEBSPEAK_DATA_DIR from .env is the host folder mounted there.
+      WEBSPEAK_DATA_DIR: /data
     volumes:
-      - webspeak-data:/data
-
-volumes:
-  webspeak-data:
+      - ${WEBSPEAK_DATA_DIR:?}:/data

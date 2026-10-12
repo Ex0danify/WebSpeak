@@ -11,5 +11,5 @@ release-artifacts
 *.tar.gz
 *.tar.xz
 claude.pem
-config.json
+.env
 *.log

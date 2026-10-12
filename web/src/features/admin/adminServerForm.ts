@@ -101,6 +101,7 @@ export function initialServerForm() {
     relayNodes: [] as RelayNodeForm[],
     lastTestAt: null as string | null,
     lastTestLatencyMs: null as number | null,
+    internalPort: null as number | null,
   };
 }
 

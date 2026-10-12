@@ -32,7 +32,7 @@ export default tseslint.config(
   },
   { files: ["src/**", "test/**", "scripts/**", "*.ts", "*.mjs"], languageOptions: { globals: globals.node } },
   { files: ["web/src/**"], languageOptions: { globals: globals.browser } },
-  area(["src/**/*.ts", "test/**/*.ts", "scripts/**/*.ts", "vitest.config.ts"], "./tsconfig.eslint.json"),
+  area(["src/**/*.ts", "test/**/*.ts", "scripts/**/*.ts", "vitest.config.ts"], "./tsconfig.json"),
   area(["web/src/**/*.ts", "web/src/**/*.vue"], "./web/tsconfig.json"),
   area(["e2e/**/*.ts"], "./e2e/tsconfig.json"),
   prettier,

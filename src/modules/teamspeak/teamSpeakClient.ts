@@ -15,6 +15,7 @@ import type { Logger } from "../../shared/logger.js";
 import { describeTeamSpeakError, normalizeTeamSpeakError, normalizeTeamSpeakKickedReason } from "../../shared/errors.js";
 import { TeamSpeakAdapter } from "./teamSpeakAdapter.js";
 import { createCommandPacer } from "./commandPacer.js";
+import { escapeTeamSpeakValue } from "./teamSpeakCommand.js";
 import { toTSChatMessage, type TSChatScope, type TSVoiceData } from "./teamSpeakMessages.js";
 import { InputMuteSync } from "./inputMuteSync.js";
 import { listClientsWithStatus } from "./teamSpeakClientList.js";
@@ -389,14 +390,4 @@ export class TSClient extends EventEmitter {
       this.clientId = 0;
     }
   }
-}
-
-function escapeTeamSpeakValue(value: string): string {
-  return value
-    .replace(/\\/g, "\\\\")
-    .replace(/ /g, "\\s")
-    .replace(/\//g, "\\/")
-    .replace(/\|/g, "\\p")
-    .replace(/\n/g, "\\n")
-    .replace(/\r/g, "\\r");
 }

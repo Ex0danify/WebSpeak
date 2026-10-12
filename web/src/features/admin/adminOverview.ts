@@ -10,12 +10,10 @@ function initialOverview() {
     teamSpeak: { target: "", status: "unknown", lastTestAt: null as string | null, latencyMs: null as number | null },
     sessions: { active: 0, peak: 0, limit: 100 },
     recentEvents: [] as Array<{ event: string; createdAt: string }>,
-    legacyConfigImported: false,
   };
 }
 
-/** The overview page's data: gateway/TeamSpeak/session status, recent events and the legacy-import
- *  notice, plus the database backup download that hangs off the diagnostics card. */
+/** The overview page's data: gateway/TeamSpeak/session status and recent events, plus the database backup download that hangs off the diagnostics card. */
 export const useAdminOverviewStore = defineStore("adminOverview", () => {
   const session = useAdminSessionStore();
 
@@ -23,11 +21,6 @@ export const useAdminOverviewStore = defineStore("adminOverview", () => {
 
   async function loadOverview() {
     Object.assign(overview, await session.getJson("/api/admin/overview"));
-  }
-
-  async function dismissLegacyNotice() {
-    await session.sendJson("/api/admin/legacy-import/dismiss", "POST", {});
-    overview.legacyConfigImported = false;
   }
 
   async function downloadBackup() {
@@ -53,5 +46,5 @@ export const useAdminOverviewStore = defineStore("adminOverview", () => {
     Object.assign(overview, initialOverview());
   }
 
-  return { overview, loadOverview, dismissLegacyNotice, downloadBackup, reset };
+  return { overview, loadOverview, downloadBackup, reset };
 });

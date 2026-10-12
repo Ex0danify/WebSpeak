@@ -5,7 +5,7 @@ import type { AdminRouterOptions } from "../adminRouterOptions.js";
 import type { AdminService } from "../adminService.js";
 import { TeamSpeakProbeError } from "../../teamspeak/index.js";
 
-/** TeamSpeak target settings, the connection test and the legacy-import notice. */
+/** TeamSpeak target settings, and the connection test. */
 export function registerServerRoutes(router: Router, options: AdminRouterOptions): void {
   router.get("/server", (_request, response) => {
     response.json(options.service.getAdminSettings());
@@ -24,11 +24,6 @@ export function registerServerRoutes(router: Router, options: AdminRouterOptions
   // just the target and no server password.
   router.post("/server/test", requireSameOrigin, requireCsrf(options.sessions), async (request, response) => {
     await runProbe(options.service, response, readString(asRecord(request.body), "target", 300), true);
-  });
-
-  router.post("/legacy-import/dismiss", requireSameOrigin, requireCsrf(options.sessions), (_request, response) => {
-    options.service.dismissLegacyImportNotice();
-    response.json({ ok: true });
   });
 }
 

@@ -96,8 +96,6 @@ export const de: Record<string, string> = {
   latency: "Latenz",
   internalPort: "Interner Port",
   unknown: "Unbekannt",
-  legacyImported:
-    "Die alte config.json wurde importiert. WebSpeak wird jetzt hier verwaltet, die alte Datei ist keine aktive Konfigurationsquelle mehr.",
   gotIt: "Verstanden",
   settingsSaved: "Einstellungen gespeichert.",
   systemStatus: "SYSTEMSTATUS",

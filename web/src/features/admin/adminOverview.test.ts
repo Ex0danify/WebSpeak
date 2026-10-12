@@ -29,20 +29,11 @@ afterEach(() => vi.unstubAllGlobals());
 describe("useAdminOverviewStore", () => {
   it("loadOverview merges the response into the reactive overview", async () => {
     const s = setup();
-    s.getJson.mockResolvedValue({ gateway: { version: "1.2.3", uptimeSeconds: 42 }, legacyConfigImported: true });
+    s.getJson.mockResolvedValue({ gateway: { version: "1.2.3", uptimeSeconds: 42 } });
     await s.loadOverview();
     expect(s.getJson).toHaveBeenCalledWith("/api/admin/overview");
     expect(s.overview.gateway.version).toBe("1.2.3");
-    expect(s.overview.legacyConfigImported).toBe(true);
     expect(s.overview.sessions.limit).toBe(100);
-  });
-
-  it("dismissLegacyNotice posts the dismissal and clears the flag", async () => {
-    const s = setup();
-    s.overview.legacyConfigImported = true;
-    await s.dismissLegacyNotice();
-    expect(s.sendJson).toHaveBeenCalledWith("/api/admin/legacy-import/dismiss", "POST", {});
-    expect(s.overview.legacyConfigImported).toBe(false);
   });
 
   it("downloadBackup saves the file and refreshes operations", async () => {

@@ -1,53 +1,68 @@
 import path from "node:path";
 import { existsSync, readFileSync, unlinkSync } from "node:fs";
 import { fileURLToPath } from "node:url";
+import { EnvError, type GatewayEnv, loadEnvFile, readDataDir, readGatewayEnv, readMode, readRelayEnv } from "./config/env.js";
+import { ADMIN_RESET_COMMAND, runAdminResetCommand } from "./transport/cli/adminResetCommand.js";
 import { createAccelerationRelayServer } from "./modules/relay/index.js";
+import { AdminBootstrapError } from "./modules/admin/index.js";
 import { normalizeScreenShareIceServers, type ScreenShareIceServer } from "./modules/screenShare/index.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT_DIR = path.resolve(__dirname, "..");
-const CONFIG_PATH = path.join(ROOT_DIR, "config.json");
 const CERT_DIR = path.join(ROOT_DIR, "certs");
-// Production images mount the data volume at /data, source installs use ./data unless overridden.
-const DATA_DIR = process.env.WEBSPEAK_DATA_DIR?.trim() || path.join(ROOT_DIR, "data");
-const LOG_DIR = path.join(DATA_DIR, "logs");
 const STATIC_DIR = path.join(ROOT_DIR, "web", "dist");
 const APP_VERSION = readPackageVersion();
 const SHUTDOWN_TIMEOUT_MS = 10_000;
-const SCREEN_SHARE_ICE_SERVERS = readScreenShareIceServers(process.env.WEBSPEAK_SCREEN_SHARE_ICE_SERVERS);
 
 async function main() {
-  if (process.env.WEBSPEAK_MODE?.trim().toLowerCase() === "relay") {
+  // A .env next to package.json, see .env.example. Variables from the real environment win over it.
+  loadEnvFile(path.join(ROOT_DIR, ".env"));
+  if (process.argv[2] === ADMIN_RESET_COMMAND) {
+    process.exitCode = await runAdminResetCommand(process.argv.slice(3), path.resolve(ROOT_DIR, readDataDir()));
+    return;
+  }
+  if (readMode() === "relay") {
     await runRelayMode();
     return;
   }
+  await runGateway(readGatewayEnv());
+}
+
+async function runGateway(env: GatewayEnv): Promise<void> {
+  const dataDir = path.resolve(ROOT_DIR, env.dataDir);
+  const logDir = path.join(dataDir, "logs");
+  const screenShareIceServers = readScreenShareIceServers(env.screenShareIceServers);
   const [
     { createLogger },
     { createWebServer },
-    { APP_PORT },
     { WebSpeakDatabase },
     { loadOrCreateMasterSecret },
-    { AdminService },
+    { AdminService, parseAdminBootstrap },
     { JoinTicketStore },
   ] = await Promise.all([
     import("./shared/logger.js"),
     import("./transport/http/httpServer.js"),
-    import("./shared/constants.js"),
     import("./infra/persistence/database.js"),
     import("./infra/security/masterSecret.js"),
     import("./modules/admin/index.js"),
     import("./modules/join/index.js"),
   ]);
-  const logger = createLogger(LOG_DIR);
-  const database = new WebSpeakDatabase(path.join(DATA_DIR, "webspeak.db"));
+  const logger = createLogger(logDir);
+  const database = new WebSpeakDatabase(path.join(dataDir, "webspeak.db"));
   const pruned = database.pruneAudit();
-  const masterSecret = loadOrCreateMasterSecret(path.join(DATA_DIR, "master.key"));
-  const adminService = new AdminService(database, masterSecret, logger, CONFIG_PATH, undefined, APP_VERSION);
-  await adminService.initialize();
-  removeObsoleteBootstrapFile();
+  const masterSecret = loadOrCreateMasterSecret(path.join(dataDir, "master.key"));
+  const adminService = new AdminService(database, masterSecret, logger, env.port, undefined, APP_VERSION);
+  // The credentials in .env only matter on a fresh database, so they are not even checked once an account exists.
+  await adminService.initialize(
+    adminService.isInitialized() ? undefined : parseAdminBootstrap({ username: env.adminUsername, password: env.adminPassword }),
+  );
+  removeObsoleteBootstrapFile(dataDir);
   const joinTickets = new JoinTicketStore();
 
-  logger.info({ dataDir: DATA_DIR }, "Starting WebSpeak server");
+  logger.info({ dataDir }, "Starting WebSpeak server");
+  if (existsSync(path.join(ROOT_DIR, "config.json"))) {
+    logger.warn("config.json is no longer read. Set the TeamSpeak target in /admin and deployment settings in .env (see .env.example).");
+  }
   if (pruned > 0) logger.info({ pruned }, "Trimmed the audit log");
   // One stray rejection must not take every live session down. A thrown exception still crashes on purpose.
   process.on("unhandledRejection", (reason) => {
@@ -57,15 +72,16 @@ async function main() {
   const hasCert = existsSync(path.join(CERT_DIR, "cert.pem"));
 
   const webServer = createWebServer({
-    port: APP_PORT,
+    host: env.host,
+    port: env.port,
     version: APP_VERSION,
-    logFile: path.join(LOG_DIR, "webspeak.log"),
+    logFile: path.join(logDir, "webspeak.log"),
     staticDir: STATIC_DIR,
     certDir: hasCert ? CERT_DIR : undefined,
     voiceBridgeOptions: {
       joinTickets,
       webRtc: () => adminService.getWebRtcAudioOptions(),
-      screenShareIceServers: () => SCREEN_SHARE_ICE_SERVERS,
+      screenShareIceServers: () => screenShareIceServers,
       // The public gateway only uses the relay config saved in the admin console. Env vars are for the
       // standalone relay process and must not bring the relay option back after an admin disabled it.
       acceleration: () => adminService.getAccelerationRelayOptions(),
@@ -103,12 +119,8 @@ async function main() {
 }
 
 async function runRelayMode(): Promise<void> {
-  const token = (process.env.WEBSPEAK_RELAY_TOKEN || process.env.WEBSPEAK_ACCELERATION_RELAY_TOKEN)?.trim();
-  if (!token) throw new Error("WEBSPEAK_RELAY_TOKEN is required in relay mode");
-  const host = (process.env.WEBSPEAK_RELAY_HOST || process.env.WEBSPEAK_ACCELERATION_RELAY_HOST)?.trim() || "0.0.0.0";
-  const port = parsePort(process.env.WEBSPEAK_RELAY_PORT || process.env.WEBSPEAK_ACCELERATION_RELAY_PORT, 39087);
-  const allowPrivate = parseBoolean(process.env.WEBSPEAK_RELAY_ALLOW_PRIVATE || process.env.WEBSPEAK_ACCELERATION_RELAY_ALLOW_PRIVATE);
-  const server = await createAccelerationRelayServer({ host, port, token, allowPrivate });
+  const options = readRelayEnv();
+  const server = await createAccelerationRelayServer(options);
   console.log(`WebSpeak relay mode listening on ${server.host}:${server.port}`);
   const shutdown = (): void => {
     server.close();
@@ -127,22 +139,12 @@ function readPackageVersion(): string {
   }
 }
 
-function removeObsoleteBootstrapFile(): void {
+function removeObsoleteBootstrapFile(dataDir: string): void {
   try {
-    unlinkSync(path.join(DATA_DIR, "bootstrap"));
+    unlinkSync(path.join(dataDir, "bootstrap"));
   } catch (error: unknown) {
     if (!(error instanceof Error && "code" in error && error.code === "ENOENT")) throw error;
   }
-}
-
-function parsePort(value: string | undefined, fallback: number): number {
-  const port = value ? Number(value) : fallback;
-  if (!Number.isInteger(port) || port < 1 || port > 65535) throw new Error("Invalid relay port");
-  return port;
-}
-
-function parseBoolean(value: string | undefined): boolean {
-  return value === "1" || value?.toLowerCase() === "true";
 }
 
 function readScreenShareIceServers(value: string | undefined): ScreenShareIceServer[] {
@@ -162,7 +164,9 @@ function readScreenShareIceServers(value: string | undefined): ScreenShareIceSer
   }
 }
 
-main().catch((err) => {
-  console.error("Fatal error:", err);
+main().catch((err: unknown) => {
+  // A bad variable is the operator's to fix: the message says which one, a stack trace would only bury it.
+  if (err instanceof EnvError || err instanceof AdminBootstrapError) console.error(`Configuration error: ${err.message}`);
+  else console.error("Fatal error:", err);
   process.exit(1);
 });

@@ -26,4 +26,16 @@ describe("AdminSessionStore", () => {
     expect(store.get(jar.request(0), 0)).toBeNull();
     expect(store.get(jar.request(1), expiresAt + 1)).not.toBeNull();
   });
+
+  it("ends every session when the epoch changes", () => {
+    const jar = cookieJar();
+    let epoch = "a";
+    const store = new AdminSessionStore(() => epoch);
+    store.create(jar.response, false, 0);
+    expect(store.get(jar.request(0), 1)).not.toBeNull();
+    epoch = "b";
+    expect(store.get(jar.request(0), 1)).toBeNull();
+    store.create(jar.response, false, 2);
+    expect(store.get(jar.request(1), 3)).not.toBeNull();
+  });
 });

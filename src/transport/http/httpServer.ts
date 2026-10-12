@@ -39,7 +39,7 @@ export function createWebServer(options: WebServerOptions): WebServer {
   app.use(express.json({ limit: "100kb" }));
 
   const voiceBridge = new VoiceBridge(options.voiceBridgeOptions, logger);
-  const adminSessions = new AdminSessionStore();
+  const adminSessions = new AdminSessionStore(() => options.adminService.database.getAdminSessionEpoch());
   const joinRateLimiter = new JoinRateLimiter();
   const passwordBackoff = new ServerPasswordBackoff();
   const startedAt = Date.now();
@@ -103,8 +103,8 @@ export function createWebServer(options: WebServerOptions): WebServer {
   return {
     start(): Promise<void> {
       return new Promise((resolve) => {
-        server.listen(options.port, () => {
-          logger.info({ port: options.port }, "Web server started");
+        server.listen(options.port, options.host, () => {
+          logger.info({ host: options.host ?? "all interfaces", port: options.port }, "Web server started");
           resolve();
         });
       });

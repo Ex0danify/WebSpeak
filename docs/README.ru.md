@@ -92,15 +92,17 @@
 ```bash
 git clone --depth 1 https://github.com/EchoSixHIYA/WebSpeak-client-for-TeamSpeak.git
 cd WebSpeak-client-for-TeamSpeak
-docker compose pull
-docker compose up -d
+cp .env.example .env
+# отредактируйте .env и задайте WEBSPEAK_ADMIN_PASSWORD (не короче 12 символов)
+mkdir data
+docker compose up -d --build
 ```
 
-После запуска откройте `http://<ваш-хост>:3040/admin`, войдите с `admin` / `admin`, сразу смените пароль и настройте TeamSpeak. Данные хранятся в volume `webspeak-data`. Не используйте `docker compose down -v`, если не хотите удалить базу и настройки.
+Пока `WEBSPEAK_ADMIN_PASSWORD` не задан, на новой базе WebSpeak не запустится; если контейнер перезапускается, смотрите `docker compose logs webspeak`. После запуска откройте `http://<ваш-хост>:3040/admin` (порт задаёт `WEBSPEAK_PORT`), войдите с `WEBSPEAK_ADMIN_USERNAME` и паролем `WEBSPEAK_ADMIN_PASSWORD` из `.env`, сразу смените пароль и настройте TeamSpeak. Значение из `.env` лишь создаёт учётную запись на новой базе, позже оно ни на что не влияет. Данные хранятся в `WEBSPEAK_DATA_DIR` (по умолчанию `./data` рядом с `docker-compose.yml`); создайте папку до первого запуска, контейнер работает от `WEBSPEAK_UID`:`WEBSPEAK_GID` из `.env` (по умолчанию 1000, свои значения покажут `id -u` и `id -g`) и должен иметь право писать в неё. Для резервной копии остановите контейнер и скопируйте `data/` (база и `master.key` идут вместе).
 
 ### Пакет Release
 
-Скачайте подходящий пакет Windows x64 или Linux x64 из [Releases](https://github.com/EchoSixHIYA/WebSpeak-client-for-TeamSpeak/releases/latest), распакуйте в отдельную папку и запустите `start-webspeak.cmd` или `./start-webspeak.sh`.
+Скачайте подходящий пакет Windows x64 или Linux x64 из [Releases](https://github.com/EchoSixHIYA/WebSpeak-client-for-TeamSpeak/releases/latest), распакуйте в отдельную папку, скопируйте `.env.example` в `.env`, задайте в нём `WEBSPEAK_ADMIN_PASSWORD` и запустите `start-webspeak.cmd` или `./start-webspeak.sh`.
 
 ### Из исходников
 
@@ -109,9 +111,22 @@ npm ci --ignore-scripts
 npm run prepare:sdk
 npm rebuild @discordjs/opus --foreground-scripts
 npm --prefix web ci
-npm --prefix web run build
 npm run build
+cp .env.example .env   # затем задайте в нём WEBSPEAK_ADMIN_PASSWORD
 npm start
+```
+
+### Конфигурация: `.env` и панель администратора
+
+В `.env` (копия [`.env.example`](../.env.example), где указаны и все значения по умолчанию) лежат настройки развёртывания, нужные процессу до первого запроса: начальная учётная запись администратора, `WEBSPEAK_HOST`, `WEBSPEAK_PORT`, `WEBSPEAK_DATA_DIR`, `WEBSPEAK_TRUST_PROXY`, `WEBSPEAK_SCREEN_SHARE_ICE_SERVERS` и переменные relay. Встроенных значений по умолчанию нет: если переменная вообще не задана, WebSpeak не запустится (пустое значение допустимо там, где оно пусто в `.env.example`). Переменная из окружения важнее `.env`. Всё, чем управляет администратор (адрес и пароль TeamSpeak, режим доступа, WebRTC, relay, тексты сайта), настраивается в панели. Старый `config.json` больше не читается.
+
+### Потерян пароль администратора
+
+Выполните команду сброса на хосте или в контейнере. Она запросит новый пароль (не короче 12 символов, ввод скрыт, дважды), потребует сменить его при следующем входе и завершит все сессии администратора. Флаг `--username <имя>` меняет и имя пользователя.
+
+```bash
+docker compose exec webspeak node dist/index.js reset-admin-password   # Docker
+npm run admin:reset-password                                            # пакет Release или исходники
 ```
 
 ## ⚠️ Требования и замечания
@@ -119,7 +134,7 @@ npm start
 - Node.js `>=22.5` нужен для сборки из исходников; Docker и Release уже содержат необходимые компоненты.
 - Нужен современный Chrome, Edge или другой браузер с WebRTC. Микрофон и звук окна обычно требуют HTTPS.
 - WebSpeak должен иметь доступ к TeamSpeak; стандартный голосовой порт — `9987`.
-- Веб-сервис использует `3040/TCP`; для публичного сайта направьте HTTPS и WebSocket через обратный прокси.
+- Веб-сервис по умолчанию использует `3040/TCP` (`WEBSPEAK_PORT`); для публичного сайта направьте HTTPS и WebSocket через обратный прокси.
 - Для IPv6 нужен маршрутизируемый IPv6, включённый IPv6 в ОС/контейнере и правила firewall. Литерал задаётся как `[2001:db8::1]#9987`.
 - Одна сохранённая браузерная идентичность может использоваться только одним активным подключением.
 - Фоновая музыка доступна только на компьютере и требует WebRTC.

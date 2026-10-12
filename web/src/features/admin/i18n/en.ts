@@ -94,8 +94,6 @@ export const en = {
   latency: "Latency",
   internalPort: "Internal port",
   unknown: "Unknown",
-  legacyImported:
-    "Legacy config.json was imported. WebSpeak is now managed here and the old file is no longer a live configuration source.",
   gotIt: "Got it",
   settingsSaved: "Settings saved.",
   systemStatus: "SYSTEM STATUS",

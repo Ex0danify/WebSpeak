@@ -18,7 +18,7 @@ const audit = (gateway: Gateway) => gateway.database.recentAudit(50).map((row) =
 
 describe("GET /server", () => {
   it("shows the defaults, with no password or token in it", async () => {
-    const { admin } = await start();
+    const { gateway, admin } = await start();
     const settings = await json(await admin.get("server"));
     expect(Object.keys(settings).sort()).toEqual([
       "accessMode",
@@ -47,7 +47,8 @@ describe("GET /server", () => {
       hasRelayToken: false,
       webRtcEnabled: false,
       siteName: "WebSpeak",
-      internalPort: 3040,
+      // The port the harness gateway really listens on, not a fixed one.
+      internalPort: Number(new URL(gateway.url).port),
     });
   });
 });
@@ -293,7 +294,6 @@ describe("GET /overview", () => {
       gateway: { status: "running", version: "9.9.9" },
       teamSpeak: { target: expect.any(String), status: "unknown", lastTestAt: null, latencyMs: null, lastError: null },
       sessions: { active: 0, peak: 0, limit: 100 },
-      legacyConfigImported: false,
     });
     expect(overview.gateway.uptimeSeconds).toBeGreaterThanOrEqual(0);
     expect(overview.recentEvents.map((event: { event: string }) => event.event)).toEqual(expect.arrayContaining(["ADMIN_LOGIN_SUCCEEDED"]));
@@ -306,16 +306,5 @@ describe("GET /overview", () => {
     expect((await json(await admin.get("overview"))).sessions).toMatchObject({ active: 1, peak: 1 });
     socket.close();
     await vi.waitFor(async () => expect((await json(await admin.get("overview"))).sessions).toMatchObject({ active: 0, peak: 1 }));
-  });
-
-  it("shows the legacy import notice until the administrator dismisses it", async () => {
-    const { gateway, admin } = await start({
-      legacyConfig: { tsHost: "legacy.example.org", tsPort: 9000, tsServerPassword: "legacy-secret" },
-    });
-    expect((await json(await admin.get("overview"))).legacyConfigImported).toBe(true);
-    expect(await json(await admin.get("server"))).toMatchObject({ target: "legacy.example.org:9000", hasPassword: true });
-    expect(gateway.adminService.getConnectionPolicy().serverPassword).toBe("legacy-secret");
-    expect(await json(await admin.post("legacy-import/dismiss"))).toEqual({ ok: true });
-    expect((await json(await admin.get("overview"))).legacyConfigImported).toBe(false);
   });
 });

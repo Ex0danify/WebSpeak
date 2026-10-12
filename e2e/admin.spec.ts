@@ -1,5 +1,6 @@
 import type { Page } from "@playwright/test";
 import { expect, test } from "./fixtures";
+import { BOOTSTRAP } from "../test/support/adminService";
 import { TEST_ADMIN_PASSWORD, type Gateway } from "../test/support/gateway";
 
 // The admin console against a gateway of its own (`ownGateway`), because these tests change what
@@ -57,7 +58,7 @@ test.describe("sign in", () => {
 test.describe("first sign in", () => {
   test("the default password has to be changed before anything else is open", async ({ page, ownGateway }) => {
     const gateway = await ownGateway({ forcePasswordChange: true });
-    await submitLogin(page, gateway, "admin");
+    await submitLogin(page, gateway, BOOTSTRAP.password);
     await expect(page.getByRole("heading", { name: "Change the default password" })).toBeVisible();
     expect(path(page)).toBe("/admin/change-password");
 
@@ -69,7 +70,7 @@ test.describe("first sign in", () => {
 
   test("a password that is too short, or that does not match, is refused with the reason", async ({ page, ownGateway }) => {
     const gateway = await ownGateway({ forcePasswordChange: true });
-    await submitLogin(page, gateway, "admin");
+    await submitLogin(page, gateway, BOOTSTRAP.password);
     const save = page.getByRole("button", { name: "Save new password" });
 
     await page.getByLabel("New admin password").fill("short");
@@ -86,14 +87,14 @@ test.describe("first sign in", () => {
 
   test("a new password opens the console, and the old one no longer signs in", async ({ page, ownGateway }) => {
     const gateway = await ownGateway({ forcePasswordChange: true });
-    await submitLogin(page, gateway, "admin");
+    await submitLogin(page, gateway, BOOTSTRAP.password);
     await page.getByLabel("New admin password").fill("a brand new admin password");
     await page.getByLabel("Confirm admin password").fill("a brand new admin password");
     await page.getByRole("button", { name: "Save new password" }).click();
     await expect(page.getByRole("heading", { name: "Overview", level: 1 })).toBeVisible();
 
     await page.getByRole("button", { name: "Log out" }).click();
-    await submitLogin(page, gateway, "admin");
+    await submitLogin(page, gateway, BOOTSTRAP.password);
     await expect(page.getByText("The admin password is incorrect.")).toBeVisible();
     await page.getByLabel("Admin password").fill("a brand new admin password");
     await page.getByRole("button", { name: "Sign in" }).click();

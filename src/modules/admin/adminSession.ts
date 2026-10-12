@@ -7,10 +7,14 @@ const SESSION_TTL_MS = 12 * 60 * 60 * 1000;
 interface AdminSession {
   csrfToken: string;
   expiresAt: number;
+  epoch: string;
 }
 
 export class AdminSessionStore {
   private readonly sessions = new Map<string, AdminSession>();
+
+  /** `epoch` names the account state a session belongs to: when it changes, older sessions stop working. */
+  constructor(private readonly epoch: () => string = () => "") {}
 
   create(response: Response, secure: boolean, now = Date.now()): { csrfToken: string; expiresAt: number } {
     const token = randomBytes(32).toString("base64url");
@@ -18,7 +22,7 @@ export class AdminSessionStore {
     const expiresAt = now + SESSION_TTL_MS;
     // A session nobody asks for again would otherwise stay in memory until the process ends.
     for (const [key, session] of this.sessions) if (session.expiresAt <= now) this.sessions.delete(key);
-    this.sessions.set(hashToken(token), { csrfToken, expiresAt });
+    this.sessions.set(hashToken(token), { csrfToken, expiresAt, epoch: this.epoch() });
     response.cookie(COOKIE_NAME, token, {
       httpOnly: true,
       sameSite: "strict",
@@ -35,7 +39,7 @@ export class AdminSessionStore {
     const key = hashToken(token);
     const session = this.sessions.get(key);
     if (!session) return null;
-    if (session.expiresAt <= now) {
+    if (session.expiresAt <= now || session.epoch !== this.epoch()) {
       this.sessions.delete(key);
       return null;
     }

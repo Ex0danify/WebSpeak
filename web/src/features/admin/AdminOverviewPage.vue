@@ -1,11 +1,5 @@
 <template>
   <section :class="adminPage">
-    <Banner v-if="overview.legacyConfigImported" class="mt-0 mb-3 shrink-0">
-      {{ t("legacyImported") }}
-      <template #actions
-        ><Button size="sm" variant="link" @click="dismissLegacyNotice">{{ t("gotIt") }}</Button></template
-      >
-    </Banner>
     <div
       class="flex shrink-0 items-center justify-between rounded-lg bg-accent-soft p-6 text-fg max-desktop:items-start max-desktop:gap-5 max-desktop:p-4.5"
     >
@@ -69,7 +63,7 @@
             <p class="mt-1.25 mb-0 text-2xs text-fg-muted">{{ t("recentEventsLead") }}</p>
           </div>
         </header>
-        <ul class="m-0 mt-4.5 grid min-h-0 flex-auto list-none gap-2.5 overflow-y-auto p-0 max-desktop:overflow-visible">
+        <ul class="m-0 mt-4.5 grid min-h-0 flex-auto list-none content-start gap-2.5 overflow-y-auto p-0 max-desktop:overflow-visible">
           <li
             v-for="event in overview.recentEvents"
             :key="`${event.event}-${event.createdAt}`"
@@ -92,8 +86,6 @@
 import { adminPage } from "./adminPage";
 import { computed } from "vue";
 import { RouterLink } from "vue-router";
-import { Banner } from "@/shared/ui/banner";
-import { Button } from "@/shared/ui/button";
 import { Card } from "@/shared/ui/card";
 import { Chip } from "@/shared/ui/chip";
 import { Icon } from "@/shared/ui/icon";
@@ -103,7 +95,7 @@ import { useAdminOverviewStore } from "./adminOverview";
 import { useI18n } from "@/shared/i18n/useI18n";
 
 const { language, t } = useI18n();
-const { overview, dismissLegacyNotice } = useAdminOverviewStore();
+const { overview } = useAdminOverviewStore();
 const targetStatusText = computed(() =>
   overview.teamSpeak.status === "reachable"
     ? t("reachable")

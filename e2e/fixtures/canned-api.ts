@@ -14,7 +14,6 @@ const overview = {
     { event: "invite.created", createdAt: at(38) },
     { event: "server.updated", createdAt: at(190) },
   ],
-  legacyConfigImported: true,
 };
 
 const server = {
@@ -37,6 +36,7 @@ const server = {
   ],
   lastTestAt: at(12),
   lastTestLatencyMs: 32,
+  internalPort: 3040,
 };
 
 const sessions = {

@@ -10,7 +10,7 @@ import { type WebRtcAudioOptions } from "../../config/webrtcConfig.js";
 import { DEFAULT_WELCOME_TEXTS, resolveWelcomeTexts } from "./siteCopy.js";
 import { AdminInputError } from "./adminErrors.js";
 import { AdminInviteService, type ManagedInviteInput, type ManagedInviteView } from "./adminInviteService.js";
-import { importLegacyConfigOnce } from "./adminLegacyImport.js";
+import { AdminBootstrapError, type AdminBootstrap } from "./adminBootstrap.js";
 import {
   legacyRelayNodesFromSettings,
   normalizeRelayNodes,
@@ -56,7 +56,8 @@ export class AdminService {
     readonly database: WebSpeakDatabase,
     private readonly masterSecret: Buffer,
     private readonly logger: Logger,
-    private readonly legacyConfigPath: string,
+    /** The port the gateway listens on, shown in the console. */
+    private readonly port: number,
     private readonly probe: ProbeFunction = probeTeamSpeak,
     private readonly version = "0.1.0",
     private readonly hostPing: HostPingFunction = (host) => pingTeamSpeakHost(host, { attempts: 4 }),
@@ -64,13 +65,20 @@ export class AdminService {
     this.invites = new AdminInviteService(database, masterSecret, logger);
   }
 
-  async initialize(): Promise<void> {
-    importLegacyConfigOnce(this.database, this.legacyConfigPath, this.masterSecret, this.logger);
-    if (!this.database.hasAdmin()) {
-      const credential = await hashAdminPassword("admin", { username: "admin", mustChangePassword: true, allowWeakPassword: true });
-      this.database.initializeAdmin(credential, toSettingsUpdate(this.database.getSettings()));
-      this.logger.warn("Default admin account created. Change the password on first login.");
+  /**
+   * Creates the administrator account on a fresh database from the bootstrap credentials. An existing account is
+   * left alone, so the bootstrap values only matter once. Without them a fresh database cannot start.
+   */
+  async initialize(bootstrap?: AdminBootstrap): Promise<void> {
+    if (this.database.hasAdmin()) return;
+    if (!bootstrap) {
+      throw new AdminBootstrapError(
+        "No administrator account exists yet. Set WEBSPEAK_ADMIN_PASSWORD (at least 12 characters) in .env or the environment.",
+      );
     }
+    const credential = await hashAdminPassword(bootstrap.password, { username: bootstrap.username, mustChangePassword: true });
+    this.database.initializeAdmin(credential, toSettingsUpdate(this.database.getSettings()));
+    this.logger.info({ username: bootstrap.username }, "Administrator account created. The password must be changed at the first login.");
   }
 
   isInitialized(): boolean {
@@ -131,7 +139,7 @@ export class AdminService {
       relayTarget: settings.relayHost ? formatRelayTarget(settings.relayHost, settings.relayPort) : "",
       hasRelayToken: Boolean(settings.relayTokenEncrypted),
       relayNodes: this.getRelayNodeViews(),
-      internalPort: 3040,
+      internalPort: this.port,
       updatedAt: settings.updatedAt,
     };
   }
@@ -273,7 +281,6 @@ export class AdminService {
       },
       sessions: { active: activeSessions, peak: peakSessions, limit: 100 },
       recentEvents: this.database.recentAudit(),
-      legacyConfigImported: this.database.getMeta("legacy_import_notice_pending") === "1",
     };
   }
 
@@ -291,10 +298,6 @@ export class AdminService {
 
   consumeManagedInvite(token: string): { target: TeamSpeakTarget; serverPassword: string; channel: string } | null {
     return this.invites.consume(token);
-  }
-
-  dismissLegacyImportNotice(): void {
-    this.database.setMeta("legacy_import_notice_pending", "0");
   }
 
   private getRelayNodeViews(): Array<{ id: string; name: string; enabled: boolean; target: string; hasToken: boolean }> {

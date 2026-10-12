@@ -7,7 +7,7 @@ import { existsSync, readdirSync, readFileSync, statSync, writeFileSync } from "
 import { join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
-const INPUTS = ["src", "public", "index.html", "package.json", "package-lock.json", "tsconfig.json", "vite.config.ts"];
+const INPUTS = ["src", "public", "index.html", "package.json", "package-lock.json", "tsconfig.json", "tsconfig.build.json", "vite.config.ts"];
 
 function* walk(path) {
   if (!existsSync(path)) return;

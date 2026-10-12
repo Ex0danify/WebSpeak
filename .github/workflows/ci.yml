@@ -31,9 +31,7 @@ jobs:
       - name: Lint
         run: npm run lint
       - name: Build application
-        run: |
-          npm run build
-          npm --prefix web run build
+        run: npm run build
       - name: Unit tests
         run: npm test -- --maxWorkers=4
       - name: Upload test reports
@@ -68,9 +66,7 @@ jobs:
       - name: Install Chromium
         run: npx playwright install --with-deps chromium
       - name: Build application
-        run: |
-          npm run build
-          npm --prefix web run build
+        run: npm run build
       - name: End-to-end tests
         run: npm run test:e2e -- --workers=2
       - name: Accessibility tests
@@ -94,7 +90,7 @@ jobs:
       - name: Run health smoke test
         run: |
           set -euo pipefail
-          docker run --detach --name webspeak-ci --publish 3040:3040 webspeak:ci
+          docker run --detach --name webspeak-ci --publish 3040:3040 --env-file .env.example --env WEBSPEAK_DATA_DIR=/data --env WEBSPEAK_ADMIN_PASSWORD=ci-smoke-test-password webspeak:ci
           trap 'docker logs webspeak-ci; docker rm --force webspeak-ci' EXIT
           for attempt in $(seq 1 30); do
             if curl --fail --silent http://127.0.0.1:3040/health | grep -q '"status":"ok"'; then

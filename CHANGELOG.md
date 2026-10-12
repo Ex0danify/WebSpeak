@@ -1,5 +1,15 @@
 # Changelog
 
+## [Unreleased]
+
+### English
+
+- **Breaking:** a fresh database no longer gets an `admin` / `admin` account. Set `WEBSPEAK_ADMIN_PASSWORD` (at least 12 characters) in `.env` or the environment; WebSpeak refuses to start without it. The account must still change that password at the first sign-in. `WEBSPEAK_ADMIN_USERNAME` sets the username. Existing installs are unaffected.
+- Added `npm run admin:reset-password` (Docker: `docker compose exec webspeak node dist/index.js reset-admin-password`) to recover a lost administrator password. It signs out every admin session.
+- All deployment settings now come from a `.env` file next to `package.json` (copy `.env.example`, which holds every default) or from the environment, which wins over the file. WebSpeak has no built-in defaults and refuses to start if a variable is not set at all. New: `WEBSPEAK_PORT` and `WEBSPEAK_HOST` (listen address), and `WEBSPEAK_MODE` is now required (`gateway` or `relay`). `docker-compose.yml` builds the image locally, reads `.env`, refuses to start without it and runs as `WEBSPEAK_UID`:`WEBSPEAK_GID` and keeps the data in `./data` (a bind mount) instead of a named volume. Move the contents of the old `webspeak-data` volume there when upgrading.
+- Removed the legacy `config.json` import, its admin banner and `config.example.json`; the file is ignored with a warning. Re-enter the TeamSpeak target in the admin console if you never ran a version that imported it.
+- Removed the `WEBSPEAK_ACCELERATION_RELAY_*` aliases; use `WEBSPEAK_RELAY_*`.
+
 ## [0.2.4] — 2026-09-22
 
 ### English

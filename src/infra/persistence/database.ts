@@ -16,6 +16,8 @@ import { SettingsRepository } from "./settingsRepository.js";
 export { DATABASE_SCHEMA_VERSION };
 export type { AccessMode, ManagedInviteRecord, PersistedRelayNode, PersistedSettings, SettingsUpdate } from "./databaseTypes.js";
 
+const ADMIN_SESSION_EPOCH_KEY = "admin_session_epoch";
+
 export class WebSpeakDatabase {
   private readonly database: DatabaseSync;
   private readonly adminCredentials: AdminCredentialRepository;
@@ -68,6 +70,23 @@ export class WebSpeakDatabase {
 
   updateAdminCredential(credential: AdminCredential): void {
     this.adminCredentials.update(credential);
+  }
+
+  /**
+   * Replaces the account from outside the running gateway (the reset command). A new session epoch signs every
+   * session out, a running gateway reads it on each request.
+   */
+  resetAdminCredential(credential: AdminCredential): void {
+    this.transaction(() => {
+      this.adminCredentials.update(credential);
+      this.meta.set(ADMIN_SESSION_EPOCH_KEY, randomBytes(12).toString("hex"));
+      this.audit.insert("ADMIN_PASSWORD_RESET", { username: credential.username }, new Date().toISOString());
+    });
+  }
+
+  /** Changes whenever the account is reset, a session from before that is no longer valid. */
+  getAdminSessionEpoch(): string {
+    return this.meta.get(ADMIN_SESSION_EPOCH_KEY) ?? "";
   }
 
   getSettings(): PersistedSettings {

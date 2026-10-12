@@ -90,11 +90,12 @@ git clone --depth 1 https://github.com/EchoSixHIYA/WebSpeak-client-for-TeamSpeak
 cd WebSpeak-client-for-TeamSpeak
 npm ci --ignore-scripts
 npm run prepare:sdk
-npm run build
+npm run build:gateway
 WEBSPEAK_MODE=relay \
 WEBSPEAK_RELAY_TOKEN='replace-with-a-long-random-token' \
 WEBSPEAK_RELAY_HOST='0.0.0.0' \
 WEBSPEAK_RELAY_PORT='39087' \
+WEBSPEAK_RELAY_ALLOW_PRIVATE='0' \
 node dist/index.js
 ```
 
@@ -105,6 +106,7 @@ $env:WEBSPEAK_MODE = "relay"
 $env:WEBSPEAK_RELAY_TOKEN = "replace-with-a-long-random-token"
 $env:WEBSPEAK_RELAY_HOST = "0.0.0.0"
 $env:WEBSPEAK_RELAY_PORT = "39087"
+$env:WEBSPEAK_RELAY_ALLOW_PRIVATE = "0"
 node .\dist\index.js
 ```
 
@@ -118,6 +120,7 @@ export WEBSPEAK_MODE=relay
 export WEBSPEAK_RELAY_TOKEN='replace-with-a-long-random-token'
 export WEBSPEAK_RELAY_HOST='0.0.0.0'
 export WEBSPEAK_RELAY_PORT='39087'
+export WEBSPEAK_RELAY_ALLOW_PRIVATE='0'
 ./runtime/node ./dist/index.js
 ```
 
@@ -129,7 +132,9 @@ Unter Windows PowerShell dieselben Variablen setzen und `.\runtime\node.exe .\di
 docker run -d --name webspeak-relay --restart unless-stopped --network host \
   -e WEBSPEAK_MODE=relay \
   -e WEBSPEAK_RELAY_TOKEN='replace-with-a-long-random-token' \
+  -e WEBSPEAK_RELAY_HOST='0.0.0.0' \
   -e WEBSPEAK_RELAY_PORT='39087' \
+  -e WEBSPEAK_RELAY_ALLOW_PRIVATE='0' \
   ghcr.io/echosixhiya/webspeak:latest
 ```
 
@@ -180,11 +185,13 @@ Vollständige Historie: [CHANGELOG.md](../CHANGELOG.md).
 ```bash
 git clone --depth 1 https://github.com/EchoSixHIYA/WebSpeak-client-for-TeamSpeak.git
 cd WebSpeak-client-for-TeamSpeak
-docker compose pull
-docker compose up -d
+cp .env.example .env
+# .env bearbeiten und WEBSPEAK_ADMIN_PASSWORD setzen (mindestens 12 Zeichen)
+mkdir data
+docker compose up -d --build
 ```
 
-Nach dem Start ist WebSpeak unter `http://<dein-host>:3040` erreichbar. Bei einem Reverse Proxy auf diese Adresse zeigen; für WebRTC den im Adminbereich angezeigten UDP-Bereich freigeben. Die Daten liegen im Volume `webspeak-data`.
+Auf einer neuen Datenbank startet WebSpeak nicht, solange `WEBSPEAK_ADMIN_PASSWORD` fehlt; startet der Container immer wieder neu, hilft `docker compose logs webspeak`. Nach dem Start ist WebSpeak unter `http://<dein-host>:3040` erreichbar (der Port ist `WEBSPEAK_PORT`). Bei einem Reverse Proxy auf diese Adresse zeigen; für WebRTC den im Adminbereich angezeigten UDP-Bereich freigeben. Die Daten liegen in `WEBSPEAK_DATA_DIR` (Standard `./data` neben `docker-compose.yml`); vor dem ersten Start anlegen, der Container läuft als `WEBSPEAK_UID`:`WEBSPEAK_GID` aus `.env` (Standard 1000, `id -u` und `id -g` zeigen deine Werte) und muss dort schreiben dürfen.
 
 ```bash
 docker compose ps
@@ -195,15 +202,14 @@ Upgrade:
 
 ```bash
 git pull --ff-only
-docker compose pull
-docker compose up -d
+docker compose up -d --build
 ```
 
-`docker compose down -v` nicht ausführen, da dadurch Datenbank und Administratoreinstellungen gelöscht werden.
+Für ein Backup den Container stoppen und `data/` kopieren (Datenbank und `master.key` gehören zusammen).
 
 ### Release-Paket
 
-Das passende `windows-x64.zip` oder `linux-x64.tar.gz` aus den [GitHub Releases](https://github.com/EchoSixHIYA/WebSpeak-client-for-TeamSpeak/releases/latest) herunterladen, in ein eigenes Verzeichnis entpacken und `start-webspeak.cmd` bzw. `./start-webspeak.sh` starten. Die Pakete enthalten Node.js und Produktionsabhängigkeiten.
+Das passende `windows-x64.zip` oder `linux-x64.tar.gz` aus den [GitHub Releases](https://github.com/EchoSixHIYA/WebSpeak-client-for-TeamSpeak/releases/latest) herunterladen, in ein eigenes Verzeichnis entpacken, `.env.example` nach `.env` kopieren, darin `WEBSPEAK_ADMIN_PASSWORD` setzen und `start-webspeak.cmd` bzw. `./start-webspeak.sh` starten. Die Pakete enthalten Node.js und Produktionsabhängigkeiten.
 
 ### Aus dem Quellcode
 
@@ -214,8 +220,8 @@ npm ci --ignore-scripts
 npm run prepare:sdk
 npm rebuild @discordjs/opus --foreground-scripts
 npm --prefix web ci
-npm --prefix web run build
 npm run build
+cp .env.example .env   # danach WEBSPEAK_ADMIN_PASSWORD darin setzen
 npm start
 ```
 
@@ -224,9 +230,22 @@ Für den Bau von `@discordjs/opus` werden Python, Make und eine C/C++-Toolchain 
 ### Erste Konfiguration
 
 1. `http://<dein-host>:3040/admin` öffnen.
-2. Mit `admin` / `admin` anmelden und sofort ein neues Passwort mit mindestens 12 Zeichen setzen.
+2. Mit `WEBSPEAK_ADMIN_USERNAME` und dem `WEBSPEAK_ADMIN_PASSWORD` aus der `.env` anmelden und ein neues Passwort mit mindestens 12 Zeichen setzen. Der Wert aus der `.env` legt das Konto nur auf einer neuen Datenbank an; spätere Änderungen wirken nicht, und nach der Anmeldung kann er entfernt werden.
 3. Unter **Server** TeamSpeak-Ziel und Zugriffsmethode konfigurieren, zum Beispiel `voice.example.com#9987`.
 4. Für öffentliche Nutzung HTTPS einrichten; bei aktiviertem WebRTC den im Adminbereich angezeigten UDP-Bereich freigeben.
+
+### Konfiguration: `.env` und Adminbereich
+
+Die `.env` (kopiert aus [`.env.example`](../.env.example), das auch alle Standardwerte enthält) enthält die Einstellungen, die der Prozess vor dem ersten Request braucht: das Start-Adminkonto, `WEBSPEAK_HOST`, `WEBSPEAK_PORT`, `WEBSPEAK_DATA_DIR`, `WEBSPEAK_TRUST_PROXY`, `WEBSPEAK_SCREEN_SHARE_ICE_SERVERS` und die Relay-Variablen. WebSpeak hat keine eingebauten Standardwerte: Ist eine Variable gar nicht gesetzt, startet es nicht (ein leerer Wert ist erlaubt, wo `.env.example` ihn leer lässt). Eine in der Umgebung gesetzte Variable hat Vorrang vor der `.env`. Alles, was Administratoren verwalten (TeamSpeak-Ziel und -Passwort, Zugriffsmethode, WebRTC, Relays, Seitentexte), liegt im Adminbereich. Die alte `config.json` wird nicht mehr gelesen.
+
+### Administratorpasswort vergessen
+
+Den Reset-Befehl auf dem Host oder im Container ausführen. Er fragt ein neues Passwort ab (mindestens 12 Zeichen, verdeckt, zweimal), verlangt beim nächsten Login eine Änderung und beendet alle Admin-Sitzungen. Mit `--username <name>` wird auch der Benutzername geändert.
+
+```bash
+docker compose exec webspeak node dist/index.js reset-admin-password   # Docker
+npm run admin:reset-password                                            # Release-Paket oder Quellcode
+```
 
 ## ⚠️ Voraussetzungen und Hinweise
 
@@ -234,10 +253,10 @@ Für den Bau von `@discordjs/opus` werden Python, Make und eine C/C++-Toolchain 
 | --- | --- |
 | Browser | Aktuelles Chrome, Edge oder ein moderner WebRTC-fähiger Browser wird empfohlen. Mikrofon- und Fenster-Audio benötigen normalerweise HTTPS. |
 | TeamSpeak-Netzwerk | Der WebSpeak-Host muss den Zielserver erreichen können; der Standard-Sprachport ist `9987`. |
-| Webnetzwerk | Der Dienst verwendet `3040/TCP`; öffentlich sollte ein HTTPS-Reverse-Proxy für Seite und WebSocket verwendet werden. |
+| Webnetzwerk | Der Dienst verwendet standardmäßig `3040/TCP` (`WEBSPEAK_PORT`); öffentlich sollte ein HTTPS-Reverse-Proxy für Seite und WebSocket verwendet werden. |
 | IPv6 | Literale Ziele als `[2001:db8::1]#9987` eintragen. Host/Container benötigen geroutetes IPv6, aktiviertes IPv6 in Betriebssystem und Node.js sowie passende Firewall-Regeln. |
 | WebRTC | Standardbereich `40000–40099/UDP`; den gesamten Bereich freigeben und WebRTC vor einer Änderung deaktivieren. |
 | Gespeicherte Identität | Eine Browseridentität kann nur eine aktive gespeicherte Verbindung halten. Für parallele Verbindungen deaktivieren oder ein anderes Browserprofil verwenden. |
 | Begleitton | Nur auf dem Desktop verfügbar und WebRTC erforderlich. Bei Fenster- oder Tab-Freigabe auch Audio freigeben. |
-| Daten | Docker verwendet `webspeak-data`; Release-Pakete und Quellcode verwenden `data/`. Vor Updates sichern. |
+| Daten | Docker, Release-Pakete und Quellcode verwenden alle `data/`. Vor Updates sichern. |
 | Sitzungslimit | Eine Instanz akzeptiert bis zu 100 aktive Browser-Sitzungen. |

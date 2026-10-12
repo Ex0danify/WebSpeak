@@ -47,8 +47,6 @@ jobs:
             npm version --no-git-tag-version $releaseVersion
             if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           }
-          npm --prefix web run build
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           npm run build
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           npm test -- --maxWorkers=4
@@ -70,7 +68,7 @@ jobs:
           New-Item -ItemType Directory -Path (Join-Path $packageRoot "web") | Out-Null
           Copy-Item -Recurse -LiteralPath web/dist -Destination (Join-Path $packageRoot "web")
           Copy-Item -Recurse -LiteralPath node_modules -Destination $packageRoot
-          Copy-Item -LiteralPath config.example.json,README.md,LICENSE,package.json,package-lock.json -Destination $packageRoot
+          Copy-Item -LiteralPath .env.example,README.md,LICENSE,package.json,package-lock.json -Destination $packageRoot
           New-Item -ItemType Directory -Path (Join-Path $packageRoot "runtime") | Out-Null
           Copy-Item -LiteralPath (Join-Path $runtimeRoot "node.exe") -Destination (Join-Path $packageRoot "runtime")
           Copy-Item -LiteralPath (Join-Path $runtimeRoot "LICENSE") -Destination (Join-Path $packageRoot "runtime/NODE-LICENSE")
@@ -88,15 +86,8 @@ jobs:
 
           $smokeRoot = Join-Path $env:RUNNER_TEMP ($packageName + "-smoke")
           Copy-Item -Recurse -LiteralPath $packageRoot -Destination $smokeRoot
-          @{
-            port = 3040
-            tsHost = "106.15.36.235"
-            tsPort = 9987
-            tsServerPassword = ""
-            tsServerProtocol = "ts6"
-            maxClients = 20
-            trustProxy = $false
-          } | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $smokeRoot "config.json") -Encoding utf8
+          Copy-Item -LiteralPath (Join-Path $smokeRoot ".env.example") -Destination (Join-Path $smokeRoot ".env")
+          $env:WEBSPEAK_ADMIN_PASSWORD = "release-smoke-test-password"
           $process = $null
           try {
             $process = Start-Process -FilePath (Join-Path $smokeRoot "runtime/node.exe") -ArgumentList "dist/index.js" -WorkingDirectory $smokeRoot -WindowStyle Hidden -PassThru
@@ -144,7 +135,6 @@ jobs:
           if [ "$current_version" != "$release_version" ]; then
             npm version --no-git-tag-version "$release_version"
           fi
-          npm --prefix web run build
           npm run build
           npm test -- --maxWorkers=4
           npm prune --omit=dev --no-audit --no-fund
@@ -161,7 +151,7 @@ jobs:
           cp -a dist "$package_root/dist"
           cp -a web/dist "$package_root/web/dist"
           cp -a node_modules "$package_root/node_modules"
-          cp config.example.json README.md LICENSE package.json package-lock.json "$package_root/"
+          cp .env.example README.md LICENSE package.json package-lock.json "$package_root/"
           cp "$runtime_root/bin/node" "$package_root/runtime/node"
           cp "$runtime_root/LICENSE" "$package_root/runtime/NODE-LICENSE"
           chmod 0755 "$package_root/runtime/node"
@@ -175,17 +165,8 @@ jobs:
 
           smoke_root="$RUNNER_TEMP/${package_name}-smoke"
           cp -a "$package_root" "$smoke_root"
-          cat > "$smoke_root/config.json" <<'CONFIG'
-          {
-            "port": 3040,
-            "tsHost": "106.15.36.235",
-            "tsPort": 9987,
-            "tsServerPassword": "",
-            "tsServerProtocol": "ts6",
-            "maxClients": 20,
-            "trustProxy": false
-          }
-          CONFIG
+          cp "$smoke_root/.env.example" "$smoke_root/.env"
+          export WEBSPEAK_ADMIN_PASSWORD="release-smoke-test-password"
           (
             cd "$smoke_root"
             "$smoke_root/runtime/node" dist/index.js >"$RUNNER_TEMP/linux-smoke.log" 2>&1 &

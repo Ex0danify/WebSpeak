@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { settingsInput, useAdminService } from "../../../test/support/adminService.js";
+import { BOOTSTRAP, settingsInput, useAdminService } from "../../../test/support/adminService.js";
 import { DEFAULT_WELCOME_TEXTS } from "./siteCopy.js";
 import { AdminInputError } from "./adminService.js";
 
@@ -16,100 +16,65 @@ function rejection(action: () => unknown): AdminInputError {
 }
 
 describe("initialize", () => {
-  it("creates the default admin account that must change its password", async () => {
+  it("creates the account from the bootstrap credentials, and it must change its password", async () => {
     const service = ctx.create();
     expect(service.isInitialized()).toBe(false);
-    await service.initialize();
+    await service.initialize({ username: "ops", password: BOOTSTRAP.password });
     expect(service.isInitialized()).toBe(true);
     expect(service.isPasswordChangeRequired()).toBe(true);
-    expect(ctx.logger.warn).toHaveBeenCalledTimes(1);
-    expect(await service.verifyPassword("admin", "admin")).toBe(true);
+    expect(ctx.logger.info).toHaveBeenCalledTimes(1);
+    expect(await service.verifyPassword("ops", BOOTSTRAP.password)).toBe(true);
+    expect(await service.verifyPassword("admin", BOOTSTRAP.password)).toBe(false);
+  });
+
+  it("refuses to start a fresh database without bootstrap credentials", async () => {
+    const service = ctx.create();
+    await expect(service.initialize()).rejects.toThrow(/WEBSPEAK_ADMIN_PASSWORD/);
+    expect(service.isInitialized()).toBe(false);
+    expect(await service.verifyPassword("admin", BOOTSTRAP.password)).toBe(false);
   });
 
   it("does not create the account twice or reset a changed password", async () => {
     const service = ctx.create();
-    await service.initialize();
+    await service.initialize(BOOTSTRAP);
     await service.changePassword("a-new-strong-password");
-    await service.initialize();
-    expect(ctx.logger.warn).toHaveBeenCalledTimes(1);
+    await service.initialize({ username: "other", password: "another initial password 2" });
+    expect(ctx.logger.info).toHaveBeenCalledTimes(1);
     expect(service.isPasswordChangeRequired()).toBe(false);
     expect(await service.verifyPassword("admin", "a-new-strong-password")).toBe(true);
   });
 
-  it("imports the legacy config file once, encrypting its server password", async () => {
-    ctx.writeLegacyConfig({ tsHost: "legacy.example.org", tsPort: 9000, tsServerPassword: "legacy-secret" });
-    const service = ctx.create();
-    await service.initialize();
-    expect(service.getConnectionPolicy()).toMatchObject({
-      defaultTarget: { host: "legacy.example.org", port: 9000 },
-      serverPassword: "legacy-secret",
-    });
-    expect(ctx.database.open().getSettings().tsPasswordEncrypted).not.toContain("legacy-secret");
-    expect(service.getOverview(0, 0, Date.now()).legacyConfigImported).toBe(true);
-    expect(
-      ctx.database
-        .open()
-        .recentAudit(50)
-        .map((entry) => entry.event),
-    ).toEqual(expect.arrayContaining(["LEGACY_CONFIG_IMPORTED", "ADMIN_INITIALIZED"]));
+  it("needs no bootstrap credentials once an account exists", async () => {
+    await ctx.create().initialize(BOOTSTRAP);
+    await expect(ctx.create().initialize()).resolves.toBeUndefined();
   });
 
-  it("keeps the other settings when it imports the legacy target", async () => {
-    ctx.writeLegacyConfig({ tsHost: "legacy.example.org" });
+  it("leaves the default settings in place", async () => {
     const service = ctx.create();
-    ctx.database
-      .open()
-      .updateSettings({ ...service.database.getSettings(), siteName: "Kept", tsPasswordEncrypted: null, welcomeTexts: { en: "kept en" } });
-    await service.initialize();
-    expect(service.database.getSettings()).toMatchObject({
-      siteName: "Kept",
-      welcomeTexts: { en: "kept en" },
-      tsHost: "legacy.example.org",
-      tsPort: 9987,
-    });
+    await service.initialize(BOOTSTRAP);
+    expect(service.database.getSettings()).toMatchObject({ tsHost: "127.0.0.1", tsPort: 9987 });
+    expect(service.database.recentAudit(50).map((entry) => entry.event)).toContain("ADMIN_INITIALIZED");
   });
 
-  it("does not import again after the first start, even if the file changes", async () => {
-    ctx.writeLegacyConfig({ tsHost: "first.example.org" });
-    const service = ctx.create();
-    await service.initialize();
-    ctx.writeLegacyConfig({ tsHost: "second.example.org" });
-    await service.initialize();
-    expect(service.database.getSettings().tsHost).toBe("first.example.org");
-  });
-
-  it("marks the check as done when there is no legacy file, so a file that appears later is ignored", async () => {
-    const service = ctx.create();
-    await service.initialize();
-    expect(service.getOverview(0, 0, Date.now()).legacyConfigImported).toBe(false);
-    ctx.writeLegacyConfig({ tsHost: "late.example.org" });
-    await service.initialize();
-    expect(service.database.getSettings().tsHost).toBe("127.0.0.1");
-  });
-
-  it("dismisses the import notice", async () => {
-    ctx.writeLegacyConfig({ tsHost: "legacy.example.org" });
-    const service = ctx.create();
-    await service.initialize();
-    service.dismissLegacyImportNotice();
-    expect(service.getOverview(0, 0, Date.now()).legacyConfigImported).toBe(false);
+  it("shows the port the gateway listens on", () => {
+    expect(ctx.create().getAdminSettings()).toMatchObject({ internalPort: 3040 });
   });
 });
 
 describe("admin password", () => {
   it("rejects a wrong password, a wrong username, and any login before initialization", async () => {
     const service = ctx.create();
-    expect(await service.verifyPassword("admin", "admin")).toBe(false);
-    await service.initialize();
+    expect(await service.verifyPassword("admin", BOOTSTRAP.password)).toBe(false);
+    await service.initialize(BOOTSTRAP);
     expect(await service.verifyPassword("admin", "wrong")).toBe(false);
-    expect(await service.verifyPassword("root", "admin")).toBe(false);
+    expect(await service.verifyPassword("root", BOOTSTRAP.password)).toBe(false);
   });
 
   it("changes the password: the old one stops working, the change flag clears, an audit entry is written", async () => {
     const service = ctx.create();
-    await service.initialize();
+    await service.initialize(BOOTSTRAP);
     await service.changePassword("a-new-strong-password");
-    expect(await service.verifyPassword("admin", "admin")).toBe(false);
+    expect(await service.verifyPassword("admin", BOOTSTRAP.password)).toBe(false);
     expect(await service.verifyPassword("admin", "a-new-strong-password")).toBe(true);
     expect(service.isPasswordChangeRequired()).toBe(false);
     expect(service.database.recentAudit()[0]?.event).toBe("ADMIN_PASSWORD_CHANGED");
@@ -117,9 +82,9 @@ describe("admin password", () => {
 
   it("refuses a short password and keeps the current one", async () => {
     const service = ctx.create();
-    await service.initialize();
+    await service.initialize(BOOTSTRAP);
     await expect(service.changePassword("short")).rejects.toMatchObject({ code: "INVALID_ADMIN_PASSWORD" });
-    expect(await service.verifyPassword("admin", "admin")).toBe(true);
+    expect(await service.verifyPassword("admin", BOOTSTRAP.password)).toBe(true);
     expect(service.isPasswordChangeRequired()).toBe(true);
   });
 
