@@ -281,7 +281,7 @@ describe("whisper", () => {
     expect(session.whisperTargetIds.size).toBe(0);
     actions.handlers.error!({
       type: "error",
-      requestId: socket.sentJson[0].requestId,
+      requestId: String(socket.sentJson[0].requestId),
       error: { code: "CLIENT_NOT_FOUND", message: "gone", recoverable: false },
     });
     await expect(pending).rejects.toMatchObject({ code: "CLIENT_NOT_FOUND" });
@@ -296,7 +296,7 @@ describe("whisper", () => {
     expect(session.whisperActive).toBe(true);
     actions.handlers.error!({
       type: "error",
-      requestId: socket.sentJson[0].requestId,
+      requestId: String(socket.sentJson[0].requestId),
       error: { code: "NO_WHISPER_TARGETS", message: "none", recoverable: false },
     });
     await expect(pending).rejects.toMatchObject({ code: "NO_WHISPER_TARGETS" });
