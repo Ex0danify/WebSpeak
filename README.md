@@ -6,6 +6,7 @@
   <p>A self-hosted browser voice client for TeamSpeak 3 and TeamSpeak 6.</p>
 
   [![License](https://img.shields.io/badge/license-AGPL--3.0--only-0f766e?style=flat-square)](./LICENSE)
+  [![Vibe coded](https://img.shields.io/badge/vibe%20coded-with%20Claude-d97757?style=flat-square)](#ai-use)
   <br />
   [![TeamSpeak](https://img.shields.io/badge/TeamSpeak-3%20%7C%206-2580C3?style=flat-square)](https://www.teamspeak.com/)
   [![Node.js](https://img.shields.io/badge/Node.js-%3E%3D22.5-339933?style=flat-square&logo=nodedotjs&logoColor=white)](https://nodejs.org/)
@@ -38,6 +39,10 @@
 ## Translations
 
 English and German ship. To add a language, run `npm run i18n:create <code>` (for example `fr`), translate the generated files, and run `npm --prefix web run check:i18n && npm test`. The full workflow is in [CONTRIBUTING.md](./CONTRIBUTING.md#translations-i18n).<br />
+
+## AI use
+
+This project is vibe coded: most of the code, tests and documentation are written with AI assistance (Claude Code), directed by the maintainer. A large automated test suite backs it, but treat it like any young software and review it before trusting it with anything sensitive.
 
 ## Attribution
 
