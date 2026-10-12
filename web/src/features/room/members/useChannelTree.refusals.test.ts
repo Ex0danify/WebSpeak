@@ -15,16 +15,16 @@ afterEach(() => {
 });
 
 describe("a refused channel switch", () => {
-  it("puts the selection and the channel name back on the channel you are still in", async () => {
-    const { vm, options, voiceState, channels } = await mountUseChannelTree();
+  it("never shows the refused channel, the view stays on the channel you are in", async () => {
+    const { vm, options, voiceState } = await mountUseChannelTree();
+    options.selectedChannelId.value = "lobby";
     vm.selectChannel(vm.channelTree.find((item) => item.id === "raid")!);
-    expect(options.selectedChannelId.value).toBe("raid");
-    expect(options.channel.value).toBe("Raid");
+    expect(options.selectedChannelId.value).toBe("lobby");
     voiceState.errorCode = "CHANNEL_FULL";
     await flushPromises();
     expect(options.selectedChannelId.value).toBe("lobby");
-    expect(options.channel.value).toBe("Lobby");
-    expect(channels).toHaveLength(2);
+    expect(options.channel.value).toBe("");
+    expect(options.chatTab.value).toBe("server");
   });
 
   it("tells the user why, and clears the session error", async () => {
@@ -37,7 +37,7 @@ describe("a refused channel switch", () => {
     expect(options.clearError).toHaveBeenCalled();
   });
 
-  it("leaves the selection alone once the move went through, and for a password request", async () => {
+  it("keeps the new channel once the move went through, even when a later error arrives", async () => {
     const { vm, options, voiceState } = await mountUseChannelTree();
     vm.selectChannel(vm.channelTree.find((item) => item.id === "raid")!);
     voiceState.channelSwitchedChannelId = "raid";
@@ -45,12 +45,22 @@ describe("a refused channel switch", () => {
     voiceState.errorCode = "PERMISSION_DENIED";
     await flushPromises();
     expect(options.selectedChannelId.value).toBe("raid");
-    voiceState.errorCode = "";
-    vm.selectChannel(vm.channelTree.find((item) => item.id === "lobby")!);
+    expect(useToast().toasts.value).toHaveLength(0);
+  });
+
+  it("asks for the password without moving the view", async () => {
+    const { vm, options, voiceState } = await mountUseChannelTree();
+    options.selectedChannelId.value = "lobby";
+    vm.selectChannel(vm.channelTree.find((item) => item.id === "raid")!);
     voiceState.errorCode = "CHANNEL_PASSWORD_REQUIRED";
     await flushPromises();
     expect(options.selectedChannelId.value).toBe("lobby");
     expect(vm.channelPasswordDialog.open).toBe(true);
+    expect(vm.channelPasswordDialog.channelId).toBe("raid");
+    voiceState.channelSwitchedChannelId = "raid";
+    await flushPromises();
+    expect(options.selectedChannelId.value).toBe("raid");
+    expect(vm.channelPasswordDialog.open).toBe(false);
   });
 });
 

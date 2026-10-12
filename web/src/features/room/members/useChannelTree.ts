@@ -119,36 +119,35 @@ export function useChannelTree(options: UseChannelTreeOptions) {
         "";
     }
   });
+  // The channel picked last, until the gateway answers it. The view only follows once the join succeeded, so a refused
+  // channel (no permission, full, password) is never shown, not even for a moment.
+  let requested: { id: string; name: string } | null = null;
+  function commitRequested(): void {
+    if (!requested) return;
+    selectedChannelId.value = requested.id;
+    channel.value = requested.name;
+    chatTab.value = "channel";
+    requested = null;
+  }
   // A move made by someone else changes the member list, not selectedChannelId, so keep selectedChannelId matched to your own
   // channel once it is known. The very first assignment is left to the watcher above, which also honours the typed channel.
   watch(ownChannelId, (id, previous) => {
-    if (id && previous) selectedChannelId.value = id;
-  });
-  // Where you were before the last channel pick, until the gateway answers it. A refusal puts the selection back there.
-  let pendingSwitch: { fromId: string; fromName: string; toId: string } | null = null;
-  // True from the pick until the gateway answers, also when there is no channel to go back to.
-  let switchAwaitingAnswer = false;
-  watch(ownChannelId, (id) => {
-    if (pendingSwitch && id === pendingSwitch.toId) pendingSwitch = null;
+    if (requested && id === requested.id) commitRequested();
+    else if (id && previous) selectedChannelId.value = id;
   });
   watch(
     () => voiceState.errorCode,
     (code) => {
-      if (code && code !== "CHANNEL_PASSWORD_REQUIRED" && switchAwaitingAnswer) {
-        switchAwaitingAnswer = false;
-        if (pendingSwitch) {
-          selectedChannelId.value = pendingSwitch.fromId;
-          channel.value = pendingSwitch.fromName;
-          pendingSwitch = null;
-        }
+      if (code && code !== "CHANNEL_PASSWORD_REQUIRED" && requested) {
+        requested = null;
         // The refusal (no permission, channel full, ...) is otherwise only kept in the session state, which nothing shows here.
         notify(resolveText(voiceState.error), "danger");
         clearError();
         return;
       }
-      if (code !== "CHANNEL_PASSWORD_REQUIRED" || !selectedChannelId.value) return;
+      if (code !== "CHANNEL_PASSWORD_REQUIRED" || !requested) return;
       channelPasswordDialog.open = true;
-      channelPasswordDialog.channelId = selectedChannelId.value;
+      channelPasswordDialog.channelId = requested.id;
       channelPasswordDialog.password = "";
       channelPasswordDialog.error = t("channelPasswordRetry");
       channelPasswordDialog.submitting = false;
@@ -158,10 +157,7 @@ export function useChannelTree(options: UseChannelTreeOptions) {
   watch(
     () => voiceState.channelSwitchedChannelId,
     (channelId) => {
-      if (channelId) {
-        pendingSwitch = null;
-        switchAwaitingAnswer = false;
-      }
+      if (channelId && requested?.id === channelId) commitRequested();
       if (!channelPasswordDialog.open || !channelId || channelId !== channelPasswordDialog.channelId) return;
       channelPasswordDialog.open = false;
       channelPasswordDialog.channelId = "";
@@ -172,12 +168,7 @@ export function useChannelTree(options: UseChannelTreeOptions) {
   );
 
   function selectChannel(item: TreeChannel) {
-    const own = channelTree.value.find((candidate) => candidate.id === ownChannelId.value);
-    pendingSwitch = own && own.id !== item.id ? { fromId: own.id, fromName: own.name, toId: item.id } : null;
-    switchAwaitingAnswer = true;
-    selectedChannelId.value = item.id;
-    channel.value = item.name;
-    chatTab.value = "channel";
+    requested = { id: item.id, name: item.name };
     switchChannel(item.id);
   }
 
@@ -189,9 +180,7 @@ export function useChannelTree(options: UseChannelTreeOptions) {
   }
 
   function cancelChannelPassword() {
-    const ownChannel = channelTree.value.find((item) => item.members.some((member) => member.id === voiceState.tsClientId));
-    if (ownChannel) selectedChannelId.value = ownChannel.id;
-    pendingSwitch = null;
+    requested = null;
     channelPasswordDialog.open = false;
     channelPasswordDialog.channelId = "";
     channelPasswordDialog.password = "";

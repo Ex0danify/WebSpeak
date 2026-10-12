@@ -53,14 +53,34 @@ describe("currentChannel", () => {
 });
 
 describe("selectChannel / selectChannelById / channelLabel", () => {
-  it("selectChannel updates selection, channel name, chat tab and calls switchChannel", async () => {
+  it("selectChannel asks the gateway and leaves the view on the current channel until the join succeeded", async () => {
     const { vm, options } = await mountUseChannelTree();
-    const raid = vm.channelTree.find((item) => item.id === "raid")!;
-    vm.selectChannel(raid);
+    options.selectedChannelId.value = "lobby";
+    vm.selectChannel(vm.channelTree.find((item) => item.id === "raid")!);
+    expect(options.switchChannel).toHaveBeenCalledWith("raid");
+    expect(options.selectedChannelId.value).toBe("lobby");
+    expect(options.channel.value).toBe("");
+    expect(options.chatTab.value).toBe("server");
+  });
+
+  it("selectChannel moves the selection, channel name and chat tab once the gateway confirms", async () => {
+    const { vm, options, voiceState } = await mountUseChannelTree();
+    vm.selectChannel(vm.channelTree.find((item) => item.id === "raid")!);
+    voiceState.channelSwitchedChannelId = "raid";
+    await flushPromises();
     expect(options.selectedChannelId.value).toBe("raid");
     expect(options.channel.value).toBe("Raid");
     expect(options.chatTab.value).toBe("channel");
-    expect(options.switchChannel).toHaveBeenCalledWith("raid");
+  });
+
+  it("selectChannel also follows when the member list shows you in the new channel first", async () => {
+    const { vm, options, channels } = await mountUseChannelTree();
+    vm.selectChannel(vm.channelTree.find((item) => item.id === "raid")!);
+    const [lobby, raid] = channels;
+    raid.members!.push(lobby.members!.shift()!);
+    await flushPromises();
+    expect(options.selectedChannelId.value).toBe("raid");
+    expect(options.chatTab.value).toBe("channel");
   });
 
   it("selectChannelById looks up the selected id and delegates to selectChannel", async () => {
@@ -138,8 +158,7 @@ describe("filteredMemberChannels", () => {
 describe("channel password dialog", () => {
   it("opens when the gateway reports CHANNEL_PASSWORD_REQUIRED for the selected channel", async () => {
     const { vm, options, voiceState } = await mountUseChannelTree();
-    options.selectedChannelId.value = "raid";
-    await flushPromises();
+    vm.selectChannel(vm.channelTree.find((item) => item.id === "raid")!);
     voiceState.errorCode = "CHANNEL_PASSWORD_REQUIRED";
     await flushPromises();
     expect(vm.channelPasswordDialog.open).toBe(true);
@@ -157,8 +176,10 @@ describe("channel password dialog", () => {
     expect(options.switchChannel).toHaveBeenCalledWith("raid", "secret");
   });
 
-  it("cancelChannelPassword restores the client's own channel and clears the dialog", async () => {
+  it("cancelChannelPassword leaves the view on the client's own channel and clears the dialog", async () => {
     const { vm, options } = await mountUseChannelTree();
+    options.selectedChannelId.value = "lobby";
+    vm.selectChannel(vm.channelTree.find((item) => item.id === "raid")!);
     vm.channelPasswordDialog.open = true;
     vm.channelPasswordDialog.channelId = "raid";
     await flushPromises();
