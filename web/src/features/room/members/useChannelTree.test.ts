@@ -286,6 +286,16 @@ describe("a refused channel switch", () => {
     expect(channels).toHaveLength(2);
   });
 
+  it("tells the user why, and clears the session error", async () => {
+    const { vm, options, voiceState } = await mountUseChannelTree();
+    vm.selectChannel(vm.channelTree.find((item) => item.id === "raid")!);
+    voiceState.error = "You do not have permission to perform this action";
+    voiceState.errorCode = "PERMISSION_DENIED";
+    await flushPromises();
+    expect(useToast().toasts.value.at(-1)).toMatchObject({ variant: "danger", title: "You do not have permission to perform this action" });
+    expect(options.clearError).toHaveBeenCalled();
+  });
+
   it("leaves the selection alone once the move went through, and for a password request", async () => {
     const { vm, options, voiceState } = await mountUseChannelTree();
     vm.selectChannel(vm.channelTree.find((item) => item.id === "raid")!);

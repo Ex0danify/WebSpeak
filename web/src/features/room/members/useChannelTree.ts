@@ -126,16 +126,24 @@ export function useChannelTree(options: UseChannelTreeOptions) {
   });
   // Where you were before the last channel pick, until the gateway answers it. A refusal puts the selection back there.
   let pendingSwitch: { fromId: string; fromName: string; toId: string } | null = null;
+  // True from the pick until the gateway answers, also when there is no channel to go back to.
+  let switchAwaitingAnswer = false;
   watch(ownChannelId, (id) => {
     if (pendingSwitch && id === pendingSwitch.toId) pendingSwitch = null;
   });
   watch(
     () => voiceState.errorCode,
     (code) => {
-      if (code && code !== "CHANNEL_PASSWORD_REQUIRED" && pendingSwitch) {
-        selectedChannelId.value = pendingSwitch.fromId;
-        channel.value = pendingSwitch.fromName;
-        pendingSwitch = null;
+      if (code && code !== "CHANNEL_PASSWORD_REQUIRED" && switchAwaitingAnswer) {
+        switchAwaitingAnswer = false;
+        if (pendingSwitch) {
+          selectedChannelId.value = pendingSwitch.fromId;
+          channel.value = pendingSwitch.fromName;
+          pendingSwitch = null;
+        }
+        // The refusal (no permission, channel full, ...) is otherwise only kept in the session state, which nothing shows here.
+        notify(resolveText(voiceState.error), "danger");
+        clearError();
         return;
       }
       if (code !== "CHANNEL_PASSWORD_REQUIRED" || !selectedChannelId.value) return;
@@ -150,7 +158,10 @@ export function useChannelTree(options: UseChannelTreeOptions) {
   watch(
     () => voiceState.channelSwitchedChannelId,
     (channelId) => {
-      if (channelId) pendingSwitch = null;
+      if (channelId) {
+        pendingSwitch = null;
+        switchAwaitingAnswer = false;
+      }
       if (!channelPasswordDialog.open || !channelId || channelId !== channelPasswordDialog.channelId) return;
       channelPasswordDialog.open = false;
       channelPasswordDialog.channelId = "";
@@ -163,6 +174,7 @@ export function useChannelTree(options: UseChannelTreeOptions) {
   function selectChannel(item: TreeChannel) {
     const own = channelTree.value.find((candidate) => candidate.id === ownChannelId.value);
     pendingSwitch = own && own.id !== item.id ? { fromId: own.id, fromName: own.name, toId: item.id } : null;
+    switchAwaitingAnswer = true;
     selectedChannelId.value = item.id;
     channel.value = item.name;
     chatTab.value = "channel";
