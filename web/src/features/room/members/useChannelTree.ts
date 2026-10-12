@@ -1,10 +1,13 @@
-import { computed, reactive, ref, watch, type Ref } from "vue";
+import { computed, onScopeDispose, reactive, ref, watch, type Ref } from "vue";
 import { useI18n } from "@/shared/i18n/useI18n.js";
 import { errorText, resolveText, text } from "@/shared/i18n/localizedText.js";
 import { toast as raiseToast } from "@/shared/composables/useToast.js";
 import { channelNameText, type ChannelMember } from "@/features/session";
 import type { RoomSession, TreeChannel } from "../roomTypes.js";
 import { buildChannelTree } from "./buildChannelTree.js";
+
+/** How long the view waits for the member list to show you in the new channel after the gateway confirmed the join. */
+const MEMBER_LIST_GRACE_MS = 1500;
 
 export interface UseChannelTreeOptions {
   session: Pick<RoomSession["session"], "state" | "clearError">;
@@ -122,15 +125,20 @@ export function useChannelTree(options: UseChannelTreeOptions) {
   // The channel picked last, until the gateway answers it. The view only follows once the join succeeded, so a refused
   // channel (no permission, full, password) is never shown, not even for a moment.
   let requested: { id: string; name: string } | null = null;
+  let commitTimer: ReturnType<typeof setTimeout> | undefined;
   function commitRequested(): void {
+    clearTimeout(commitTimer);
     if (!requested) return;
     selectedChannelId.value = requested.id;
     channel.value = requested.name;
     chatTab.value = "channel";
     requested = null;
   }
+  onScopeDispose(() => clearTimeout(commitTimer));
   // A move made by someone else changes the member list, not selectedChannelId, so keep selectedChannelId matched to your own
   // channel once it is known. The very first assignment is left to the watcher above, which also honours the typed channel.
+  // The member list is what places you in the channel, so the view follows it in the same render. Following the gateway's
+  // confirmation alone would show the new channel for a frame without you in it.
   watch(ownChannelId, (id, previous) => {
     if (requested && id === requested.id) commitRequested();
     else if (id && previous) selectedChannelId.value = id;
@@ -139,6 +147,7 @@ export function useChannelTree(options: UseChannelTreeOptions) {
     () => voiceState.errorCode,
     (code) => {
       if (code && code !== "CHANNEL_PASSWORD_REQUIRED" && requested) {
+        clearTimeout(commitTimer);
         requested = null;
         // The refusal (no permission, channel full, ...) is otherwise only kept in the session state, which nothing shows here.
         notify(resolveText(voiceState.error), "danger");
@@ -157,7 +166,15 @@ export function useChannelTree(options: UseChannelTreeOptions) {
   watch(
     () => voiceState.channelSwitchedChannelId,
     (channelId) => {
-      if (channelId && requested?.id === channelId) commitRequested();
+      if (channelId && requested?.id === channelId) {
+        // Already in that channel (nothing will move) or the member list is ahead: show it now. Otherwise the member list
+        // follows within moments and commits, the timer only covers one that never arrives.
+        if (ownChannelId.value === channelId) commitRequested();
+        else {
+          clearTimeout(commitTimer);
+          commitTimer = setTimeout(commitRequested, MEMBER_LIST_GRACE_MS);
+        }
+      }
       if (!channelPasswordDialog.open || !channelId || channelId !== channelPasswordDialog.channelId) return;
       channelPasswordDialog.open = false;
       channelPasswordDialog.channelId = "";
@@ -168,6 +185,7 @@ export function useChannelTree(options: UseChannelTreeOptions) {
   );
 
   function selectChannel(item: TreeChannel) {
+    clearTimeout(commitTimer);
     requested = { id: item.id, name: item.name };
     switchChannel(item.id);
   }
@@ -180,6 +198,7 @@ export function useChannelTree(options: UseChannelTreeOptions) {
   }
 
   function cancelChannelPassword() {
+    clearTimeout(commitTimer);
     requested = null;
     channelPasswordDialog.open = false;
     channelPasswordDialog.channelId = "";

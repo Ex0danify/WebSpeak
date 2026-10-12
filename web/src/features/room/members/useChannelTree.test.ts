@@ -63,14 +63,44 @@ describe("selectChannel / selectChannelById / channelLabel", () => {
     expect(options.chatTab.value).toBe("server");
   });
 
-  it("selectChannel moves the selection, channel name and chat tab once the gateway confirms", async () => {
-    const { vm, options, voiceState } = await mountUseChannelTree();
+  it("selectChannel waits for the member list after the gateway confirmed, so the new channel never shows without you in it", async () => {
+    const { vm, options, voiceState, channels } = await mountUseChannelTree();
+    options.selectedChannelId.value = "lobby";
     vm.selectChannel(vm.channelTree.find((item) => item.id === "raid")!);
     voiceState.channelSwitchedChannelId = "raid";
+    await flushPromises();
+    expect(options.selectedChannelId.value).toBe("lobby");
+    const [lobby, raid] = channels;
+    raid.members!.push(lobby.members!.shift()!);
     await flushPromises();
     expect(options.selectedChannelId.value).toBe("raid");
     expect(options.channel.value).toBe("Raid");
     expect(options.chatTab.value).toBe("channel");
+  });
+
+  it("selectChannel still follows after a short grace when the member list never shows you in the channel", async () => {
+    vi.useFakeTimers();
+    try {
+      const { vm, options, voiceState } = await mountUseChannelTree();
+      options.selectedChannelId.value = "lobby";
+      vm.selectChannel(vm.channelTree.find((item) => item.id === "raid")!);
+      voiceState.channelSwitchedChannelId = "raid";
+      await vi.advanceTimersByTimeAsync(1000);
+      expect(options.selectedChannelId.value).toBe("lobby");
+      await vi.advanceTimersByTimeAsync(1000);
+      expect(options.selectedChannelId.value).toBe("raid");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("selectChannel follows at once when the gateway confirms a channel you are already in", async () => {
+    const { vm, options, voiceState } = await mountUseChannelTree();
+    options.selectedChannelId.value = "raid";
+    vm.selectChannel(vm.channelTree.find((item) => item.id === "lobby")!);
+    voiceState.channelSwitchedChannelId = "lobby";
+    await flushPromises();
+    expect(options.selectedChannelId.value).toBe("lobby");
   });
 
   it("selectChannel also follows when the member list shows you in the new channel first", async () => {

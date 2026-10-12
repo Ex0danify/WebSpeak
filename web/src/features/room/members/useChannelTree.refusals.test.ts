@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { flushPromises } from "@vue/test-utils";
 import { useToast } from "@/shared/composables/useToast";
 import { LocalizedError, text } from "@/shared/i18n/localizedText";
+import type { ChannelInfo } from "@/features/session";
 import { mountUseChannelTree } from "@/testSupport/channelTreeFixture";
 
 beforeEach(() => {
@@ -13,6 +14,11 @@ afterEach(() => {
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
 });
+
+function movedToRaid(channels: ChannelInfo[]): void {
+  const [lobby, raid] = channels;
+  raid.members!.push(lobby.members!.shift()!);
+}
 
 describe("a refused channel switch", () => {
   it("never shows the refused channel, the view stays on the channel you are in", async () => {
@@ -38,9 +44,10 @@ describe("a refused channel switch", () => {
   });
 
   it("keeps the new channel once the move went through, even when a later error arrives", async () => {
-    const { vm, options, voiceState } = await mountUseChannelTree();
+    const { vm, options, voiceState, channels } = await mountUseChannelTree();
     vm.selectChannel(vm.channelTree.find((item) => item.id === "raid")!);
     voiceState.channelSwitchedChannelId = "raid";
+    movedToRaid(channels);
     await flushPromises();
     voiceState.errorCode = "PERMISSION_DENIED";
     await flushPromises();
@@ -49,7 +56,7 @@ describe("a refused channel switch", () => {
   });
 
   it("asks for the password without moving the view", async () => {
-    const { vm, options, voiceState } = await mountUseChannelTree();
+    const { vm, options, voiceState, channels } = await mountUseChannelTree();
     options.selectedChannelId.value = "lobby";
     vm.selectChannel(vm.channelTree.find((item) => item.id === "raid")!);
     voiceState.errorCode = "CHANNEL_PASSWORD_REQUIRED";
@@ -58,6 +65,7 @@ describe("a refused channel switch", () => {
     expect(vm.channelPasswordDialog.open).toBe(true);
     expect(vm.channelPasswordDialog.channelId).toBe("raid");
     voiceState.channelSwitchedChannelId = "raid";
+    movedToRaid(channels);
     await flushPromises();
     expect(options.selectedChannelId.value).toBe("raid");
     expect(vm.channelPasswordDialog.open).toBe(false);
