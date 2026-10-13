@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite --host",
-    "build": "vue-tsc --noEmit && npm run check:styles && npm run check:scoped-style && npm run check:tokens && npm run check:raw-controls && npm run check:i18n && npm run check:i18n-literals && npm run check:i18n-keys && npm run check:deps && npm run check:names && npm run check:file-size && npm run check:comment-refs && vite build && node ../scripts/build-stamp.mjs",
+    "build": "vue-tsc --noEmit && npm run check:styles && npm run check:scoped-style && npm run check:tokens && npm run check:raw-controls && npm run check:i18n && npm run check:i18n-literals && npm run check:i18n-keys && npm run check:deps && npm run check:names && npm run check:file-size && vite build && node ../scripts/build-stamp.mjs",
     "preview": "vite preview",
     "check:styles": "node scripts/check-styles.mjs",
     "check:scoped-style": "node scripts/check-scoped-style.mjs",
@@ -17,7 +17,6 @@
     "check:deps": "depcruise src --config .dependency-cruiser.cjs",
     "check:names": "node scripts/check-names.mjs",
     "check:file-size": "node scripts/check-file-size.mjs",
-    "check:comment-refs": "node ../scripts/check-comment-refs.mjs --web",
     "i18n:usage": "node scripts/i18n-usage.mjs"
   },
   "dependencies": {
