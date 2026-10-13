@@ -135,6 +135,4 @@ They run inside the two build chains, so a red gate fails the same command CI ru
 | `npm run build:gateway` | `tsc`, `check:gateway-types` (tests type-check too), `check:gateway-size` (under 400 lines, ratchet `scripts/gateway-size-budget.json`, covers `src/` and `test/`), `check:gateway-names`, `check:gateway-deps` (layers and module order), `check:gateway-literals` |
 | `npm run build:web` | `vue-tsc`, `check:styles`, `check:scoped-style`, `check:tokens`, `check:raw-controls`, `check:i18n`, `check:i18n-literals`, `check:i18n-keys`, `check:deps` (layers), `check:names`, `check:file-size` (ratchet `web/scripts/file-size-budget.json`), then `vite build` and a build stamp |
 
-`npm --prefix web run check:ui-usage` prints how often each library component is used outside the gallery; it is a report, not a gate.
-
 Comments, test names and docs say why, not when. They carry no plan, step or finding ids.
