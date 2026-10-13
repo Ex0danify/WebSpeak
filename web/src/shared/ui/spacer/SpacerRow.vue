@@ -5,6 +5,7 @@
     class="overflow-hidden text-caption whitespace-nowrap text-fg-muted select-none not-first:mt-2"
     :style="{ marginLeft: `${depth * 10}px` }"
     data-spacer
+    data-spacer-fill
   >
     {{ spacer.text.repeat(REPEAT_COUNT) }}
   </div>
