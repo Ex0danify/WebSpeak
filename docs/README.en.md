@@ -170,7 +170,7 @@ Disable and save the relay configuration to remove the relay option from the wel
 | [v0.1.4](https://github.com/EchoSixHIYA/WebSpeak-client-for-TeamSpeak/releases/tag/v0.1.4) | 2026-09-03 | Fixed WebRTC and channel chat and refined administration, logs, and mobile layouts. |
 | [v0.1.3](https://github.com/EchoSixHIYA/WebSpeak-client-for-TeamSpeak/releases/tag/v0.1.3) | 2026-09-03 | Added bundled WebRTC, migrated the TeamSpeak SDK, and improved member synchronization and voice buffering. |
 
-See the complete history in [CHANGELOG.md](../CHANGELOG.md).
+See the complete history on the [releases page](https://github.com/EchoSixHIYA/WebSpeak-client-for-TeamSpeak/releases).
 
 ## 🚀 Deployment
 

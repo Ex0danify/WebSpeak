@@ -7,4 +7,4 @@ export const BRAND_GLYPH = "B";
 export const VERSION_PREFIX = "v";
 export const BILIBILI_URL = "https://space.bilibili.com/25414873";
 export const GITHUB_URL = "https://github.com/EchoSixHIYA/WebSpeak-client-for-TeamSpeak";
-export const CHANGELOG_URL = "https://github.com/EchoSixHIYA/WebSpeak-client-for-TeamSpeak/blob/master/CHANGELOG.md";
+export const CHANGELOG_URL = "https://github.com/EchoSixHIYA/WebSpeak-client-for-TeamSpeak/releases";

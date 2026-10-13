@@ -170,7 +170,7 @@ Relay deaktivieren und speichern, um die Option von der Willkommensseite zu entf
 | [v0.1.4](https://github.com/EchoSixHIYA/WebSpeak-client-for-TeamSpeak/releases/tag/v0.1.4) | 2026-09-03 | WebRTC und Kanalchat korrigiert sowie Administration, Protokolle und Mobilansicht verbessert. |
 | [v0.1.3](https://github.com/EchoSixHIYA/WebSpeak-client-for-TeamSpeak/releases/tag/v0.1.3) | 2026-09-03 | Integriertes WebRTC, aktualisiertes TeamSpeak-SDK und bessere Mitgliedersynchronisierung und Sprachpufferung. |
 
-Vollständige Historie: [CHANGELOG.md](../CHANGELOG.md).
+Vollständige Historie auf der [Releases-Seite](https://github.com/EchoSixHIYA/WebSpeak-client-for-TeamSpeak/releases).
 
 ## 🚀 Bereitstellung
 
