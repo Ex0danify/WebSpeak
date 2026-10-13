@@ -86,7 +86,19 @@ npm run test:visual                      # a shot fails above 0.01 % differing p
 
 ### CI
 
-`.github/workflows/ci.yml` runs formatting, lint, `npm run build` and `npm test` in the `verify` job, then `test:e2e` and `test:a11y` and a Docker health smoke test; `build-release.yml` runs `npm test` before it packages. `test:visual` and `test:real` never run in CI.
+`.github/workflows/ci.yml` runs formatting, lint, `npm run build` and `npm test` in the `verify` job, then `test:e2e` and `test:a11y` and a Docker health smoke test; `release.yml` runs `npm test` before it packages. `test:visual` and `test:real` never run in CI.
+
+### Commits, pull requests and releases
+
+Pull requests are squash-merged and the pull request title becomes the commit message, so it has to be a [Conventional Commit](https://www.conventionalcommits.org): `type(scope): subject`, subject in lowercase. `.github/workflows/pr-title.yml` checks it. The types are:
+
+- `feat` goes under Features and bumps the minor version.
+- `fix` goes under Bug Fixes and bumps the patch version.
+- `perf` and `revert` have their own sections.
+- `refactor`, `docs`, `copy`, `style`, `test`, `build`, `ci` and `chore` are listed under Other.
+- A `!` before the colon (`feat(config)!: ...`) or a `BREAKING CHANGE:` line in the description marks a breaking change. Below 1.0 it bumps the minor version.
+
+There is no changelog file to write. `.github/workflows/release-please.yml` keeps a "release" pull request open on `master` with the next version number in `package.json` and `package-lock.json`. Merging it creates the `v*` tag and the GitHub release with the notes made from the commit titles; the tag starts `release.yml`, which attaches the Windows and Linux packages. The settings are in `release-please-config.json`.
 
 ## Code style
 

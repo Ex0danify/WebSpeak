@@ -1,0 +1,22 @@
+name: Release PR
+
+# Keeps one open pull request on master that bumps the version in package.json and package-lock.json. Merging it creates the
+# v* tag and the GitHub release with the notes sorted by commit type; the tag starts release.yml, which attaches the packages.
+# It runs with CI_PUSH_TOKEN: tags and pull requests made by GITHUB_TOKEN start no workflows, so the checks and the build would never run.
+on:
+  push:
+    branches: [master]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  release-please:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: googleapis/release-please-action@v4
+        with:
+          token: ${{ secrets.CI_PUSH_TOKEN }}
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json

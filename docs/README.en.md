@@ -86,8 +86,8 @@ A relay instance is a dedicated forwarding service with no visitor page or admin
 #### Run from source
 
 ```bash
-git clone --depth 1 https://github.com/EchoSixHIYA/WebSpeak-client-for-TeamSpeak.git
-cd WebSpeak-client-for-TeamSpeak
+git clone --depth 1 https://github.com/Ex0danify/WebSpeak.git
+cd WebSpeak
 npm ci --ignore-scripts
 npm run prepare:sdk
 npm run build:gateway
@@ -112,7 +112,7 @@ node .\dist\index.js
 
 #### Run from a release package
 
-Download and extract the appropriate package from [Releases](https://github.com/EchoSixHIYA/WebSpeak-client-for-TeamSpeak/releases/latest):
+Download and extract the appropriate package from [Releases](https://github.com/Ex0danify/WebSpeak/releases/latest):
 
 ```bash
 # Linux
@@ -170,7 +170,7 @@ Disable and save the relay configuration to remove the relay option from the wel
 | [v0.1.4](https://github.com/EchoSixHIYA/WebSpeak-client-for-TeamSpeak/releases/tag/v0.1.4) | 2026-09-03 | Fixed WebRTC and channel chat and refined administration, logs, and mobile layouts. |
 | [v0.1.3](https://github.com/EchoSixHIYA/WebSpeak-client-for-TeamSpeak/releases/tag/v0.1.3) | 2026-09-03 | Added bundled WebRTC, migrated the TeamSpeak SDK, and improved member synchronization and voice buffering. |
 
-See the complete history in [CHANGELOG.md](../CHANGELOG.md).
+See the complete history on the [releases page](https://github.com/Ex0danify/WebSpeak/releases).
 
 ## 🚀 Deployment
 
@@ -183,8 +183,8 @@ See the complete history in [CHANGELOG.md](../CHANGELOG.md).
 ### Docker Compose (recommended)
 
 ```bash
-git clone --depth 1 https://github.com/EchoSixHIYA/WebSpeak-client-for-TeamSpeak.git
-cd WebSpeak-client-for-TeamSpeak
+git clone --depth 1 https://github.com/Ex0danify/WebSpeak.git
+cd WebSpeak
 cp .env.example .env
 # edit .env and set WEBSPEAK_ADMIN_PASSWORD (at least 12 characters)
 mkdir data
@@ -209,13 +209,13 @@ To back up, stop the container and copy `data/` (database and `master.key` belon
 
 ### Release package
 
-Download the matching `windows-x64.zip` or `linux-x64.tar.gz` from [GitHub Releases](https://github.com/EchoSixHIYA/WebSpeak-client-for-TeamSpeak/releases/latest), extract it into a dedicated directory, copy `.env.example` to `.env`, set `WEBSPEAK_ADMIN_PASSWORD` in it, and run `start-webspeak.cmd` on Windows or `./start-webspeak.sh` on Linux. Packages include the Node.js runtime and production dependencies.
+Download the matching `windows-x64.zip` or `linux-x64.tar.gz` from [GitHub Releases](https://github.com/Ex0danify/WebSpeak/releases/latest), extract it into a dedicated directory, copy `.env.example` to `.env`, set `WEBSPEAK_ADMIN_PASSWORD` in it, and run `start-webspeak.cmd` on Windows or `./start-webspeak.sh` on Linux. Packages include the Node.js runtime and production dependencies.
 
 ### From source
 
 ```bash
-git clone https://github.com/EchoSixHIYA/WebSpeak-client-for-TeamSpeak.git
-cd WebSpeak-client-for-TeamSpeak
+git clone https://github.com/Ex0danify/WebSpeak.git
+cd WebSpeak
 npm ci --ignore-scripts
 npm run prepare:sdk
 npm rebuild @discordjs/opus --foreground-scripts
