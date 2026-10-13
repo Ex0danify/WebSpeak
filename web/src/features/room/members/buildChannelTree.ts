@@ -1,5 +1,6 @@
 import type { ChannelInfo } from "@/features/session";
 import type { TreeChannel } from "../roomTypes.js";
+import { parseSpacer } from "@/shared/lib/parseSpacer";
 
 /** The channel list as one ordered, depth-annotated tree: children follow their parent, siblings follow the server's
  *  predecessor links (falling back to list order), and each member knows whether it is you. */
@@ -24,7 +25,8 @@ export function buildChannelTree(channels: readonly ChannelInfo[], selfClientId:
 
   const childrenByParent = new Map<string, TreeChannel[]>();
   for (const item of enriched) {
-    const channel = { ...item, depth: depthOf(item) };
+    const spacer = parseSpacer(item.name);
+    const channel = { ...item, depth: depthOf(item), ...(spacer && { spacer }) };
     const siblings = childrenByParent.get(channel.parentID) ?? [];
     siblings.push(channel);
     childrenByParent.set(channel.parentID, siblings);
@@ -69,7 +71,7 @@ export function buildChannelTree(channels: readonly ChannelInfo[], selfClientId:
   visit("0");
   for (const channel of enriched) {
     if (!orderedTree.some((item) => item.id === channel.id)) {
-      const fallback = { ...channel, depth: depthOf(channel) };
+      const fallback = { ...channel, depth: depthOf(channel), ...(parseSpacer(channel.name) && { spacer: parseSpacer(channel.name)! }) };
       orderedTree.push(fallback);
       visit(channel.id);
     }

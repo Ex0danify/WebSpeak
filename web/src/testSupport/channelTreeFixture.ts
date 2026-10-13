@@ -2,20 +2,21 @@ import { flushPromises, mount } from "@vue/test-utils";
 import { defineComponent, reactive, ref } from "vue";
 import { vi } from "vitest";
 import type { ChannelInfo, ChannelMember, VoiceState } from "@/features/session";
+import type { Spacer } from "@/shared/lib/parseSpacer";
 
 export type Exposed = {
   memberQuery: string;
   away: boolean;
   toggleAway: () => Promise<void>;
-  channelTree: Array<ChannelInfo & { depth: number; members: ChannelMember[] }>;
+  channelTree: Array<ChannelInfo & { depth: number; members: ChannelMember[]; spacer?: Spacer }>;
   currentChannel: (ChannelInfo & { depth: number; members: ChannelMember[] }) | undefined;
   ownChannelId: string;
   currentChannelName: string;
   currentChannelDescription: string;
   currentMembers: ChannelMember[];
   roomMembers: ChannelMember[];
-  memberChannels: Array<ChannelInfo & { depth: number; members: ChannelMember[] }>;
-  filteredMemberChannels: Array<ChannelInfo & { depth: number; members: ChannelMember[] }>;
+  memberChannels: Array<ChannelInfo & { depth: number; members: ChannelMember[]; spacer?: Spacer }>;
+  filteredMemberChannels: Array<ChannelInfo & { depth: number; members: ChannelMember[]; spacer?: Spacer }>;
   selectChannel: (item: ChannelInfo & { depth: number; members: ChannelMember[] }) => void;
   selectChannelById: () => void;
   channelLabel: (item: ChannelInfo & { depth: number }) => string;
@@ -32,8 +33,11 @@ export type Exposed = {
   moveMemberDirect: (member: ChannelMember, targetChannelId: string) => Promise<void>;
   memberMoveMenuCurrentChannel: (ChannelInfo & { depth: number; members: ChannelMember[] }) | null;
   memberMoveMenuCurrentSameChannel: boolean;
-  memberMoveMenuOtherChannels: Array<ChannelInfo & { depth: number; members: ChannelMember[] }>;
+  memberMoveMenuOtherChannels: Array<ChannelInfo & { depth: number; members: ChannelMember[]; spacer?: Spacer }>;
 };
+
+/** A centered spacer channel, to push into the fixture's channel list. */
+export const spacerChannel: ChannelInfo = { id: "sp", parentID: "0", name: "[cspacer]Games" };
 
 export function member(id: number, nickname: string): ChannelMember {
   return { id, nickname };

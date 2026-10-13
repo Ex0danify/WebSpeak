@@ -42,6 +42,8 @@ export function overflowScan(page: Page): Promise<{ clipped: string[]; pageScrol
       if (element.clientWidth <= 1 && element.clientHeight <= 1) continue;
       const text = element.textContent?.trim();
       if (!text) continue;
+      // A spacer's repeated pattern is cut at the panel edge on purpose.
+      if (element.hasAttribute("data-spacer-fill")) continue;
       const style = getComputedStyle(element);
       if (element.scrollWidth > element.clientWidth + 1 && style.textOverflow !== "ellipsis" && style.overflowX !== "visible")
         clipped.add(text.slice(0, 30));

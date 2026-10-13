@@ -53,12 +53,15 @@ export function useChannelTree(options: UseChannelTreeOptions) {
 
   const channelTree = computed<TreeChannel[]>(() => buildChannelTree(channels, voiceState.tsClientId));
 
+  /** Spacers are layout rows: they are never the current channel, a join target or a move target. */
+  const joinableChannels = computed(() => channelTree.value.filter((item) => !item.spacer));
+
   const currentChannel = computed<TreeChannel | undefined>(() => {
-    const explicitlySelected = channelTree.value.find((item) => item.id === selectedChannelId.value);
+    const explicitlySelected = joinableChannels.value.find((item) => item.id === selectedChannelId.value);
     if (explicitlySelected) return explicitlySelected;
-    const fromSelf = channelTree.value.find((item) => item.members.some((member) => member.id === voiceState.tsClientId));
+    const fromSelf = joinableChannels.value.find((item) => item.members.some((member) => member.id === voiceState.tsClientId));
     if (fromSelf) return fromSelf;
-    return channelTree.value.find((item) => item.name === channel.value) ?? channelTree.value[0];
+    return joinableChannels.value.find((item) => item.name === channel.value) ?? joinableChannels.value[0];
   });
   /** The channel the member list says you are in right now, whoever moved you there. */
   const ownChannelId = computed(
@@ -88,7 +91,9 @@ export function useChannelTree(options: UseChannelTreeOptions) {
     const search = memberQuery.value.trim().toLowerCase();
     if (!search) return memberChannels.value;
     return memberChannels.value.filter(
-      (item) => item.name.toLowerCase().includes(search) || item.members.some((member) => member.nickname.toLowerCase().includes(search)),
+      (item) =>
+        !item.spacer &&
+        (item.name.toLowerCase().includes(search) || item.members.some((member) => member.nickname.toLowerCase().includes(search))),
     );
   });
   const memberMoveMenuCurrentChannel = computed<TreeChannel | null>(() => {
@@ -110,12 +115,12 @@ export function useChannelTree(options: UseChannelTreeOptions) {
       memberChannels.value.find((channel) => channel.members.some((candidate) => candidate.id === member.id))?.id ?? "";
     const currentChannelId = memberMoveMenuCurrentChannel.value?.id;
     return memberChannels.value.filter(
-      (channel) => channel.id !== "__current__" && channel.id !== sourceChannelId && channel.id !== currentChannelId,
+      (channel) => !channel.spacer && channel.id !== "__current__" && channel.id !== sourceChannelId && channel.id !== currentChannelId,
     );
   });
 
   watch(channelTree, (list) => {
-    if (!selectedChannelId.value && list[0]) {
+    if (!selectedChannelId.value && list.some((item) => !item.spacer)) {
       selectedChannelId.value =
         list.find((item) => item.name === channel.value)?.id ??
         list.find((item) => item.members.some((member) => member.id === voiceState.tsClientId))?.id ??
@@ -209,7 +214,7 @@ export function useChannelTree(options: UseChannelTreeOptions) {
   }
 
   function selectChannelById() {
-    const item = channelTree.value.find((candidate) => candidate.id === selectedChannelId.value);
+    const item = joinableChannels.value.find((candidate) => candidate.id === selectedChannelId.value);
     if (item) selectChannel(item);
   }
 
@@ -330,7 +335,7 @@ export function useChannelTree(options: UseChannelTreeOptions) {
 
   function onChannelDragOver(channelItem: TreeChannel, event: DragEvent): void {
     const member = draggedMember.value;
-    if (!member || channelItem.id === "__current__") return;
+    if (!member || channelItem.id === "__current__" || channelItem.spacer) return;
     const sourceChannel = memberChannels.value.find((channel) => channel.members.some((candidate) => candidate.id === member.id));
     if (!sourceChannel || sourceChannel.id === channelItem.id) return;
     event.preventDefault();
@@ -349,7 +354,7 @@ export function useChannelTree(options: UseChannelTreeOptions) {
     event.preventDefault();
     const member = draggedMember.value;
     onMemberDragEnd();
-    if (!member || channelItem.id === "__current__") return;
+    if (!member || channelItem.id === "__current__" || channelItem.spacer) return;
     void moveMemberDirect(member, channelItem.id);
   }
 
