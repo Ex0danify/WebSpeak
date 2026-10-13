@@ -1,6 +1,6 @@
 import type { useRoomSession } from "./useRoomSession";
 import type { ChannelInfo, ChannelMember } from "@/features/session";
-import type { Spacer } from "./members/parseSpacer.js";
+import type { Spacer } from "@/shared/lib/parseSpacer";
 
 export interface TreeChannel extends ChannelInfo {
   depth: number;

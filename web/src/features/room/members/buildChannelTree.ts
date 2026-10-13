@@ -1,6 +1,6 @@
 import type { ChannelInfo } from "@/features/session";
 import type { TreeChannel } from "../roomTypes.js";
-import { parseSpacer } from "./parseSpacer.js";
+import { parseSpacer } from "@/shared/lib/parseSpacer";
 
 /** The channel list as one ordered, depth-annotated tree: children follow their parent, siblings follow the server's
  *  predecessor links (falling back to list order), and each member knows whether it is you. */

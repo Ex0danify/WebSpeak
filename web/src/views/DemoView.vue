@@ -76,6 +76,7 @@ const reconnecting = ref(false);
 const poke = ref(false);
 const draft = ref("");
 const channels: DemoChannel[] = [
+  { id: "spacer-voice", name: "[cspacer]Voice", members: [] },
   {
     id: "quiet",
     name: "Quiet Zone",
@@ -85,6 +86,7 @@ const channels: DemoChannel[] = [
     ],
   },
   { id: "lounge", name: "Lounge", members: [{ id: "alice", name: "Alice" }] },
+  { id: "spacer-rule", name: "[*spacer]-", members: [] },
   { id: "music", name: "Music room", members: [] },
 ];
 const messages = ref<DemoMessage[]>([

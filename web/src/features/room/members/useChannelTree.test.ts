@@ -1,7 +1,7 @@
 import { flushPromises } from "@vue/test-utils";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useToast } from "@/shared/composables/useToast";
-import { member, mountUseChannelTree } from "@/testSupport/channelTreeFixture";
+import { member, mountUseChannelTree, spacerChannel } from "@/testSupport/channelTreeFixture";
 
 beforeEach(() => {
   useToast().dismiss();
@@ -311,7 +311,7 @@ describe("drag and drop", () => {
 describe("spacers", () => {
   it("marks spacer channels and keeps them out of joins, moves and search", async () => {
     const { vm, channels } = await mountUseChannelTree();
-    channels.unshift({ id: "sp", parentID: "0", name: "[cspacer]Games" });
+    channels.unshift(spacerChannel);
     await flushPromises();
     expect(vm.channelTree.find((item) => item.id === "sp")?.spacer).toEqual({ align: "center", text: "Games" });
     expect(vm.currentChannel?.id).not.toBe("sp");

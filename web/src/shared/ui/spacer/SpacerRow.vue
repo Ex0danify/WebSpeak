@@ -21,7 +21,7 @@
 </template>
 
 <script setup lang="ts">
-import type { Spacer } from "./parseSpacer.js";
+import type { Spacer } from "@/shared/lib/parseSpacer";
 
 defineProps<{ spacer: Spacer; depth: number }>();
 

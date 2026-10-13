@@ -15,6 +15,7 @@ export * from "./radio";
 export * from "./select";
 export * from "./separator";
 export * from "./slider";
+export * from "./spacer";
 export * from "./spinner";
 export * from "./switch";
 export * from "./tabs";

@@ -2,7 +2,7 @@ import { flushPromises, mount } from "@vue/test-utils";
 import { defineComponent, reactive, ref } from "vue";
 import { vi } from "vitest";
 import type { ChannelInfo, ChannelMember, VoiceState } from "@/features/session";
-import type { Spacer } from "@/features/room/members/parseSpacer";
+import type { Spacer } from "@/shared/lib/parseSpacer";
 
 export type Exposed = {
   memberQuery: string;
@@ -35,6 +35,9 @@ export type Exposed = {
   memberMoveMenuCurrentSameChannel: boolean;
   memberMoveMenuOtherChannels: Array<ChannelInfo & { depth: number; members: ChannelMember[]; spacer?: Spacer }>;
 };
+
+/** A centered spacer channel, to push into the fixture's channel list. */
+export const spacerChannel: ChannelInfo = { id: "sp", parentID: "0", name: "[cspacer]Games" };
 
 export function member(id: number, nickname: string): ChannelMember {
   return { id, nickname };

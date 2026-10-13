@@ -63,7 +63,7 @@
 import { Button } from "@/shared/ui/button";
 import { Icon } from "@/shared/ui/icon";
 import MemberRow from "./MemberRow.vue";
-import SpacerRow from "./SpacerRow.vue";
+import { SpacerRow } from "@/shared/ui/spacer";
 import { useI18n } from "@/shared/i18n/useI18n.js";
 import { channelNameText, isSpeaking } from "@/features/session";
 import type { TreeChannel } from "../roomTypes.js";
