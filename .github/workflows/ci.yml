@@ -55,6 +55,9 @@ jobs:
       - run: npm run build
       - name: Unit tests
         run: npm test -- --maxWorkers=4
+      - name: Failed tests on the run summary
+        if: ${{ !cancelled() }}
+        run: node scripts/ci-summary.mjs
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
@@ -72,7 +75,12 @@ jobs:
       - run: npx playwright install --with-deps chromium
       - run: npm run build:web
       - run: npm run test:e2e -- --workers=2
+      # The a11y suite still runs after an e2e failure, so one red suite does not hide the other.
       - run: npm run test:a11y -- --workers=2
+        if: ${{ !cancelled() }}
+      - name: Failed tests on the run summary
+        if: ${{ !cancelled() }}
+        run: node scripts/ci-summary.mjs
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
@@ -98,6 +106,9 @@ jobs:
             exit 0
           fi
           npm run test:visual
+      - name: Failed tests on the run summary
+        if: ${{ !cancelled() }}
+        run: node scripts/ci-summary.mjs
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
