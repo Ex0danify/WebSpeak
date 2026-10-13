@@ -2,6 +2,8 @@ import type { ChannelInfo } from "@/features/session";
 import type { TreeChannel } from "../roomTypes.js";
 import { parseSpacer } from "@/shared/lib/parseSpacer";
 
+type Placed = Omit<TreeChannel, "rootId" | "isLastChild" | "ancestorLines">;
+
 /** The channel list as one ordered, depth-annotated tree: children follow their parent, siblings follow the server's
  *  predecessor links (falling back to list order), and each member knows whether it is you. */
 export function buildChannelTree(channels: readonly ChannelInfo[], selfClientId: number | null | undefined): TreeChannel[] {
@@ -23,7 +25,7 @@ export function buildChannelTree(channels: readonly ChannelInfo[], selfClientId:
     return depth;
   }
 
-  const childrenByParent = new Map<string, TreeChannel[]>();
+  const childrenByParent = new Map<string, Placed[]>();
   for (const item of enriched) {
     const spacer = parseSpacer(item.name);
     const channel = { ...item, depth: depthOf(item), ...(spacer && { spacer }) };
@@ -32,11 +34,11 @@ export function buildChannelTree(channels: readonly ChannelInfo[], selfClientId:
     childrenByParent.set(channel.parentID, siblings);
   }
 
-  function orderSiblings(siblings: TreeChannel[]): TreeChannel[] {
+  function orderSiblings(siblings: Placed[]): Placed[] {
     const bySiblingId = new Map(siblings.map((item) => [item.id, item]));
-    const successors = new Map<string, TreeChannel[]>();
-    const roots: TreeChannel[] = [];
-    const sourceOrder = (left: TreeChannel, right: TreeChannel) =>
+    const successors = new Map<string, Placed[]>();
+    const roots: Placed[] = [];
+    const sourceOrder = (left: Placed, right: Placed) =>
       (sourceIndex.get(left.id) ?? Number.MAX_SAFE_INTEGER) - (sourceIndex.get(right.id) ?? Number.MAX_SAFE_INTEGER);
 
     for (const item of siblings) {
@@ -48,9 +50,9 @@ export function buildChannelTree(channels: readonly ChannelInfo[], selfClientId:
     roots.sort(sourceOrder);
     for (const items of successors.values()) items.sort(sourceOrder);
 
-    const ordered: TreeChannel[] = [];
+    const ordered: Placed[] = [];
     const visited = new Set<string>();
-    const append = (item: TreeChannel) => {
+    const append = (item: Placed) => {
       if (visited.has(item.id)) return;
       visited.add(item.id);
       ordered.push(item);
@@ -61,20 +63,43 @@ export function buildChannelTree(channels: readonly ChannelInfo[], selfClientId:
     return ordered;
   }
 
-  const orderedTree: TreeChannel[] = [];
-  const visit = (parentID: string) => {
+  const orderedTree: Placed[] = [];
+  // The channel each one hangs under, null for roots. Spacers are always roots and never parents.
+  const parentOf = new Map<string, string | null>();
+  const visit = (parentID: string, parent: Placed | null) => {
     for (const channel of orderSiblings(childrenByParent.get(parentID) ?? [])) {
+      if (parentOf.has(channel.id)) continue;
+      parentOf.set(channel.id, channel.spacer ? null : (parent?.id ?? null));
       orderedTree.push(channel);
-      visit(channel.id);
+      visit(channel.id, channel.spacer ? null : channel);
     }
   };
-  visit("0");
+  visit("0", null);
   for (const channel of enriched) {
-    if (!orderedTree.some((item) => item.id === channel.id)) {
-      const fallback = { ...channel, depth: depthOf(channel), ...(parseSpacer(channel.name) && { spacer: parseSpacer(channel.name)! }) };
+    if (!parentOf.has(channel.id)) {
+      const spacer = parseSpacer(channel.name);
+      const fallback = { ...channel, depth: depthOf(channel), ...(spacer && { spacer }) };
+      parentOf.set(channel.id, null);
       orderedTree.push(fallback);
-      visit(channel.id);
+      visit(channel.id, spacer ? null : fallback);
     }
   }
-  return orderedTree;
+
+  const siblingsOf = new Map<string | null, string[]>();
+  for (const channel of orderedTree) {
+    const key = parentOf.get(channel.id) ?? null;
+    siblingsOf.set(key, [...(siblingsOf.get(key) ?? []), channel.id]);
+  }
+  const isLastChild = (id: string) => siblingsOf.get(parentOf.get(id) ?? null)!.at(-1) === id;
+
+  return orderedTree.map((channel) => {
+    // Ancestors below the root, outermost first: a root draws no rail, so its own column never counts.
+    const ancestorLines: boolean[] = [];
+    let rootId = channel.id;
+    for (let parent = parentOf.get(channel.id) ?? null; parent; parent = parentOf.get(parent) ?? null) {
+      rootId = parent;
+      if (parentOf.get(parent)) ancestorLines.unshift(!isLastChild(parent));
+    }
+    return { ...channel, rootId, isLastChild: isLastChild(channel.id), ancestorLines };
+  });
 }

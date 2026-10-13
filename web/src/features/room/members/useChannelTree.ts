@@ -84,6 +84,9 @@ export function useChannelTree(options: UseChannelTreeOptions) {
         description: currentChannelDescription.value,
         members: currentMembers.value,
         depth: 0,
+        rootId: "__current__",
+        isLastChild: true,
+        ancestorLines: [],
       },
     ];
   });

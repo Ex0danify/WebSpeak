@@ -46,7 +46,7 @@ function makeVoiceState(overrides: Partial<VoiceState> = {}): VoiceState {
 }
 
 function channel(id: string, name: string): TreeChannel {
-  return { id, parentID: "0", name, depth: 0, members: [] };
+  return { id, parentID: "0", name, depth: 0, members: [], rootId: id, isLastChild: true, ancestorLines: [] };
 }
 
 async function mountUseChat(overrides: Record<string, unknown> = {}) {
