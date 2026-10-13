@@ -110,6 +110,9 @@
   --breakpoint-demo-wide: 1081px;
   --breakpoint-wide: 1201px;
 
+  /* One level of the channel tree: rail spacing and member indent. Narrower on a phone, see the override below. */
+  --spacing-tree-step: 16px;
+
   /* sm for menu rows and kbd, md for buttons, inputs and tabs, lg for cards, dialogs and menus. */
   --radius-xs: 4px;
   --radius-sm: 6px;
@@ -274,5 +277,11 @@
     --ws-success: #6ddc8b;
     --ws-warning: #e5b567;
     --ws-danger: #f0837c;
+  }
+}
+
+@media (width < theme(--breakpoint-compact)) {
+  :root {
+    --spacing-tree-step: 12px;
   }
 }
