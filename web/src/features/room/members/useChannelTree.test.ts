@@ -307,3 +307,16 @@ describe("drag and drop", () => {
     expect(vm.draggedMember).toBeNull();
   });
 });
+
+describe("spacers", () => {
+  it("marks spacer channels and keeps them out of joins, moves and search", async () => {
+    const { vm, channels } = await mountUseChannelTree();
+    channels.unshift({ id: "sp", parentID: "0", name: "[cspacer]Games" });
+    await flushPromises();
+    expect(vm.channelTree.find((item) => item.id === "sp")?.spacer).toEqual({ align: "center", text: "Games" });
+    expect(vm.currentChannel?.id).not.toBe("sp");
+    vm.memberQuery = "games";
+    await flushPromises();
+    expect(vm.filteredMemberChannels.some((item) => item.id === "sp")).toBe(false);
+  });
+});
