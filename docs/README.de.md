@@ -86,8 +86,8 @@ Eine Relay-Instanz ist ein dedizierter Weiterleitungsdienst ohne Besucher- oder 
 #### Aus dem Quellcode starten
 
 ```bash
-git clone --depth 1 https://github.com/EchoSixHIYA/WebSpeak-client-for-TeamSpeak.git
-cd WebSpeak-client-for-TeamSpeak
+git clone --depth 1 https://github.com/Ex0danify/WebSpeak.git
+cd WebSpeak
 npm ci --ignore-scripts
 npm run prepare:sdk
 npm run build:gateway
@@ -112,7 +112,7 @@ node .\dist\index.js
 
 #### Aus einem Release-Paket starten
 
-Das passende Paket aus den [Releases](https://github.com/EchoSixHIYA/WebSpeak-client-for-TeamSpeak/releases/latest) herunterladen und entpacken:
+Das passende Paket aus den [Releases](https://github.com/Ex0danify/WebSpeak/releases/latest) herunterladen und entpacken:
 
 ```bash
 # Linux
@@ -170,7 +170,7 @@ Relay deaktivieren und speichern, um die Option von der Willkommensseite zu entf
 | [v0.1.4](https://github.com/EchoSixHIYA/WebSpeak-client-for-TeamSpeak/releases/tag/v0.1.4) | 2026-09-03 | WebRTC und Kanalchat korrigiert sowie Administration, Protokolle und Mobilansicht verbessert. |
 | [v0.1.3](https://github.com/EchoSixHIYA/WebSpeak-client-for-TeamSpeak/releases/tag/v0.1.3) | 2026-09-03 | Integriertes WebRTC, aktualisiertes TeamSpeak-SDK und bessere Mitgliedersynchronisierung und Sprachpufferung. |
 
-Vollständige Historie auf der [Releases-Seite](https://github.com/EchoSixHIYA/WebSpeak-client-for-TeamSpeak/releases).
+Vollständige Historie auf der [Releases-Seite](https://github.com/Ex0danify/WebSpeak/releases).
 
 ## 🚀 Bereitstellung
 
@@ -183,8 +183,8 @@ Vollständige Historie auf der [Releases-Seite](https://github.com/EchoSixHIYA/W
 ### Docker Compose (empfohlen)
 
 ```bash
-git clone --depth 1 https://github.com/EchoSixHIYA/WebSpeak-client-for-TeamSpeak.git
-cd WebSpeak-client-for-TeamSpeak
+git clone --depth 1 https://github.com/Ex0danify/WebSpeak.git
+cd WebSpeak
 cp .env.example .env
 # .env bearbeiten und WEBSPEAK_ADMIN_PASSWORD setzen (mindestens 12 Zeichen)
 mkdir data
@@ -209,13 +209,13 @@ Für ein Backup den Container stoppen und `data/` kopieren (Datenbank und `maste
 
 ### Release-Paket
 
-Das passende `windows-x64.zip` oder `linux-x64.tar.gz` aus den [GitHub Releases](https://github.com/EchoSixHIYA/WebSpeak-client-for-TeamSpeak/releases/latest) herunterladen, in ein eigenes Verzeichnis entpacken, `.env.example` nach `.env` kopieren, darin `WEBSPEAK_ADMIN_PASSWORD` setzen und `start-webspeak.cmd` bzw. `./start-webspeak.sh` starten. Die Pakete enthalten Node.js und Produktionsabhängigkeiten.
+Das passende `windows-x64.zip` oder `linux-x64.tar.gz` aus den [GitHub Releases](https://github.com/Ex0danify/WebSpeak/releases/latest) herunterladen, in ein eigenes Verzeichnis entpacken, `.env.example` nach `.env` kopieren, darin `WEBSPEAK_ADMIN_PASSWORD` setzen und `start-webspeak.cmd` bzw. `./start-webspeak.sh` starten. Die Pakete enthalten Node.js und Produktionsabhängigkeiten.
 
 ### Aus dem Quellcode
 
 ```bash
-git clone https://github.com/EchoSixHIYA/WebSpeak-client-for-TeamSpeak.git
-cd WebSpeak-client-for-TeamSpeak
+git clone https://github.com/Ex0danify/WebSpeak.git
+cd WebSpeak
 npm ci --ignore-scripts
 npm run prepare:sdk
 npm rebuild @discordjs/opus --foreground-scripts

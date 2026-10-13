@@ -6,5 +6,5 @@ export const WEB_LABEL = "Web";
 export const BRAND_GLYPH = "B";
 export const VERSION_PREFIX = "v";
 export const BILIBILI_URL = "https://space.bilibili.com/25414873";
-export const GITHUB_URL = "https://github.com/EchoSixHIYA/WebSpeak-client-for-TeamSpeak";
-export const CHANGELOG_URL = "https://github.com/EchoSixHIYA/WebSpeak-client-for-TeamSpeak/releases";
+export const GITHUB_URL = "https://github.com/Ex0danify/WebSpeak";
+export const CHANGELOG_URL = "https://github.com/Ex0danify/WebSpeak/releases";
