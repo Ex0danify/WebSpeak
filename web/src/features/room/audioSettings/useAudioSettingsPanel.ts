@@ -3,7 +3,7 @@ import { computed, ref, watch } from "vue";
 import { Meter } from "@/shared/ui/meter";
 import { useI18n } from "@/shared/i18n/useI18n.js";
 import { toast as raiseToast } from "@/shared/composables/useToast.js";
-import { errorText, text, type MaybeLocalizedText } from "@/shared/i18n/localizedText.js";
+import { errorText, resolveText, text, type MaybeLocalizedText } from "@/shared/i18n/localizedText.js";
 import { microphoneErrorText } from "@/features/voice";
 import type { RoomSession } from "../roomTypes";
 
@@ -121,9 +121,15 @@ export function useAudioSettingsPanel(options: UseAudioSettingsPanelOptions) {
     return 5 + Math.round(intensity * 34);
   }
 
-  function toggleMicrophone(): void {
-    setMicrophoneMuted(!microphoneMuted.value);
+  async function toggleMicrophone(): Promise<void> {
+    const synced = setMicrophoneMuted(!microphoneMuted.value);
     showToast(microphoneMuted.value ? t("microphoneMuted") : t("microphoneActive"));
+    try {
+      await synced;
+    } catch (error: unknown) {
+      // The local state already applies, but the TeamSpeak server may still show the old one.
+      showToast(resolveText(errorText(error, text("err_OPERATION_FAILED"))), "danger");
+    }
   }
 
   async function toggleAccompaniment(): Promise<void> {
@@ -135,7 +141,11 @@ export function useAudioSettingsPanel(options: UseAudioSettingsPanelOptions) {
       }
       await startAccompaniment();
       if (accompanimentActive.value) showToast(t("accompanimentStarted"));
-    } catch {
+    } catch (error: unknown) {
+      if (accompanimentErrorCode.value === "gateway" || !accompanimentErrorCode.value) {
+        showToast(resolveText(errorText(error, text("err_OPERATION_FAILED"))), "danger");
+        return;
+      }
       const messageKey: MessageKey =
         accompanimentErrorCode.value === "needsWebRtc"
           ? "accompanimentNeedsWebRtc"

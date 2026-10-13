@@ -25,6 +25,7 @@ export interface WebRtcTransportDeps {
   markSpeaking(clientId: number): void;
   clearSpeaking(clientId: number): void;
   sendCmd(type: string, payload?: Record<string, unknown>): void;
+  sendCommand(type: string, payload: Record<string, unknown>): Promise<void>;
   connectionSequence(): number;
   hasLastConnection(): boolean;
   /** The transport's flag, PCM is not sent over the WebSocket while WebRTC carries the microphone. */
@@ -322,7 +323,7 @@ export function useWebRtcTransport(deps: WebRtcTransportDeps) {
 
   const accompaniment = useWebRtcAccompaniment({
     getMicStream: () => deps.getMicStream(),
-    sendCmd: (type, payload) => deps.sendCmd(type, payload),
+    sendCommand: (type, payload) => deps.sendCommand(type, payload),
     webrtcActive,
     hasPeer: () => webrtcPeer !== null,
     replaceWebRtcAudioTrack,

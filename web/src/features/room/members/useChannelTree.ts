@@ -1,10 +1,13 @@
-import { computed, reactive, ref, watch, type Ref } from "vue";
+import { computed, onScopeDispose, reactive, ref, watch, type Ref } from "vue";
 import { useI18n } from "@/shared/i18n/useI18n.js";
 import { errorText, resolveText, text } from "@/shared/i18n/localizedText.js";
 import { toast as raiseToast } from "@/shared/composables/useToast.js";
 import { channelNameText, type ChannelMember } from "@/features/session";
 import type { RoomSession, TreeChannel } from "../roomTypes.js";
 import { buildChannelTree } from "./buildChannelTree.js";
+
+/** How long the view waits for the member list to show you in the new channel after the gateway confirmed the join. */
+const MEMBER_LIST_GRACE_MS = 1500;
 
 export interface UseChannelTreeOptions {
   session: Pick<RoomSession["session"], "state" | "clearError">;
@@ -119,28 +122,41 @@ export function useChannelTree(options: UseChannelTreeOptions) {
         "";
     }
   });
+  // The channel picked last, until the gateway answers it. The view only follows once the join succeeded, so a refused
+  // channel (no permission, full, password) is never shown, not even for a moment.
+  let requested: { id: string; name: string } | null = null;
+  let commitTimer: ReturnType<typeof setTimeout> | undefined;
+  function commitRequested(): void {
+    clearTimeout(commitTimer);
+    if (!requested) return;
+    selectedChannelId.value = requested.id;
+    channel.value = requested.name;
+    chatTab.value = "channel";
+    requested = null;
+  }
+  onScopeDispose(() => clearTimeout(commitTimer));
   // A move made by someone else changes the member list, not selectedChannelId, so keep selectedChannelId matched to your own
   // channel once it is known. The very first assignment is left to the watcher above, which also honours the typed channel.
+  // The member list is what places you in the channel, so the view follows it in the same render. Following the gateway's
+  // confirmation alone would show the new channel for a frame without you in it.
   watch(ownChannelId, (id, previous) => {
-    if (id && previous) selectedChannelId.value = id;
-  });
-  // Where you were before the last channel pick, until the gateway answers it. A refusal puts the selection back there.
-  let pendingSwitch: { fromId: string; fromName: string; toId: string } | null = null;
-  watch(ownChannelId, (id) => {
-    if (pendingSwitch && id === pendingSwitch.toId) pendingSwitch = null;
+    if (requested && id === requested.id) commitRequested();
+    else if (id && previous) selectedChannelId.value = id;
   });
   watch(
     () => voiceState.errorCode,
     (code) => {
-      if (code && code !== "CHANNEL_PASSWORD_REQUIRED" && pendingSwitch) {
-        selectedChannelId.value = pendingSwitch.fromId;
-        channel.value = pendingSwitch.fromName;
-        pendingSwitch = null;
+      if (code && code !== "CHANNEL_PASSWORD_REQUIRED" && requested) {
+        clearTimeout(commitTimer);
+        requested = null;
+        // The refusal (no permission, channel full, ...) is otherwise only kept in the session state, which nothing shows here.
+        notify(resolveText(voiceState.error), "danger");
+        clearError();
         return;
       }
-      if (code !== "CHANNEL_PASSWORD_REQUIRED" || !selectedChannelId.value) return;
+      if (code !== "CHANNEL_PASSWORD_REQUIRED" || !requested) return;
       channelPasswordDialog.open = true;
-      channelPasswordDialog.channelId = selectedChannelId.value;
+      channelPasswordDialog.channelId = requested.id;
       channelPasswordDialog.password = "";
       channelPasswordDialog.error = t("channelPasswordRetry");
       channelPasswordDialog.submitting = false;
@@ -150,7 +166,15 @@ export function useChannelTree(options: UseChannelTreeOptions) {
   watch(
     () => voiceState.channelSwitchedChannelId,
     (channelId) => {
-      if (channelId) pendingSwitch = null;
+      if (channelId && requested?.id === channelId) {
+        // Already in that channel (nothing will move) or the member list is ahead: show it now. Otherwise the member list
+        // follows within moments and commits, the timer only covers one that never arrives.
+        if (ownChannelId.value === channelId) commitRequested();
+        else {
+          clearTimeout(commitTimer);
+          commitTimer = setTimeout(commitRequested, MEMBER_LIST_GRACE_MS);
+        }
+      }
       if (!channelPasswordDialog.open || !channelId || channelId !== channelPasswordDialog.channelId) return;
       channelPasswordDialog.open = false;
       channelPasswordDialog.channelId = "";
@@ -161,11 +185,8 @@ export function useChannelTree(options: UseChannelTreeOptions) {
   );
 
   function selectChannel(item: TreeChannel) {
-    const own = channelTree.value.find((candidate) => candidate.id === ownChannelId.value);
-    pendingSwitch = own && own.id !== item.id ? { fromId: own.id, fromName: own.name, toId: item.id } : null;
-    selectedChannelId.value = item.id;
-    channel.value = item.name;
-    chatTab.value = "channel";
+    clearTimeout(commitTimer);
+    requested = { id: item.id, name: item.name };
     switchChannel(item.id);
   }
 
@@ -177,9 +198,8 @@ export function useChannelTree(options: UseChannelTreeOptions) {
   }
 
   function cancelChannelPassword() {
-    const ownChannel = channelTree.value.find((item) => item.members.some((member) => member.id === voiceState.tsClientId));
-    if (ownChannel) selectedChannelId.value = ownChannel.id;
-    pendingSwitch = null;
+    clearTimeout(commitTimer);
+    requested = null;
     channelPasswordDialog.open = false;
     channelPasswordDialog.channelId = "";
     channelPasswordDialog.password = "";
@@ -197,10 +217,18 @@ export function useChannelTree(options: UseChannelTreeOptions) {
     return `${"\u3000".repeat(item.depth)}${channelNameText(item, t)}`;
   }
 
-  function toggleAway(): void {
+  async function toggleAway(): Promise<void> {
+    const previous = { away: away.value, message: awayMessage.value };
     away.value = !away.value;
     awayMessage.value = away.value ? (window.prompt(t("awayPrompt"), awayMessage.value) ?? "") : "";
-    setAway(away.value, awayMessage.value);
+    try {
+      await setAway(away.value, awayMessage.value);
+    } catch (error: unknown) {
+      // The server kept the old state, so the button goes back to it.
+      away.value = previous.away;
+      awayMessage.value = previous.message;
+      notify(resolveText(errorText(error, text("err_OPERATION_FAILED"))), "danger");
+    }
   }
 
   async function moveMemberDirect(member: ChannelMember, targetChannelId: string): Promise<void> {

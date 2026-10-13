@@ -5,7 +5,8 @@ import { useVoiceAudioStore } from "../stores/voiceAudioStore";
 /** What the accompaniment needs from the transport that owns the peer and the mix. */
 export interface WebRtcAccompanimentDeps {
   getMicStream(): MediaStream | null;
-  sendCmd(type: string, payload?: Record<string, unknown>): void;
+  /** Resolves once the gateway completed the command, rejects when it refuses or stays silent. */
+  sendCommand(type: string, payload: Record<string, unknown>): Promise<void>;
   webrtcActive: Ref<boolean>;
   hasPeer(): boolean;
   replaceWebRtcAudioTrack(): Promise<void>;
@@ -85,7 +86,9 @@ export function useWebRtcAccompaniment(deps: WebRtcAccompanimentDeps) {
     accompanimentStream?.getTracks().forEach((track) => track.stop());
     accompanimentStream = nextStream;
     accompanimentActive.value = true;
-    deps.sendCmd("setAccompanimentActive", { active: true });
+    const announced = deps.sendCommand("setAccompanimentActive", { active: true });
+    // Awaited below, this only keeps a refusal from being reported as unhandled when the track swap fails first.
+    announced.catch(() => undefined);
     audioTrack.addEventListener(
       "ended",
       () => {
@@ -97,9 +100,18 @@ export function useWebRtcAccompaniment(deps: WebRtcAccompanimentDeps) {
       await deps.replaceWebRtcAudioTrack();
     } catch (error) {
       releaseAccompanimentStream();
-      deps.sendCmd("setAccompanimentActive", { active: false });
+      deps.sendCommand("setAccompanimentActive", { active: false }).catch(() => undefined);
       deps.stopWebRtcMix();
       accompanimentErrorCode.value = "permission";
+      throw error;
+    }
+    try {
+      await announced;
+    } catch (error) {
+      // The gateway did not take the accompaniment, so it is not shared.
+      releaseAccompanimentStream();
+      deps.stopWebRtcMix();
+      accompanimentErrorCode.value = "gateway";
       throw error;
     }
   }
@@ -107,9 +119,10 @@ export function useWebRtcAccompaniment(deps: WebRtcAccompanimentDeps) {
   async function stopAccompaniment(): Promise<void> {
     accompanimentErrorCode.value = "";
     releaseAccompanimentStream();
-    if (webrtcActive.value) deps.sendCmd("setAccompanimentActive", { active: false });
+    const announced = webrtcActive.value ? deps.sendCommand("setAccompanimentActive", { active: false }) : Promise.resolve();
     if (webrtcActive.value && deps.hasPeer() && deps.getMicStream()) await deps.replaceWebRtcAudioTrack();
     else deps.stopWebRtcMix();
+    await announced;
   }
 
   function getAccompanimentStream(): MediaStream | null {

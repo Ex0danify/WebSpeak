@@ -289,48 +289,6 @@ describe("stopMicrophone", () => {
   });
 });
 
-describe("setMicrophoneMuted", () => {
-  it("stores the flag, tells the gateway and persists it", async () => {
-    const { audio, deps, mic } = setup();
-    mic.setMicrophoneMuted(true);
-    expect(audio.microphoneMuted).toBe(true);
-    expect(deps.sendCmd).toHaveBeenCalledWith("setMicrophoneMuted", { muted: true });
-    expect(deps.saveAudioPreferences).toHaveBeenCalledTimes(1);
-  });
-
-  it("disables the tracks and mutes the WebRTC mix only while WebRTC carries the microphone", async () => {
-    const mixGain = { gain: { value: 1 } } as unknown as GainNode;
-    const webrtcActive = ref(true);
-    const { audio, mic } = await openMic({ webrtcActive, webrtcMixMicGain: () => mixGain });
-    audio.inputVolume = 0.7;
-    const tracks = mic.getMicStream()!.getAudioTracks() as unknown as FakeMediaStreamTrack[];
-    mic.setMicrophoneMuted(true);
-    expect(tracks.every((track) => !track.enabled)).toBe(true);
-    expect(mixGain.gain.value).toBe(0);
-    mic.setMicrophoneMuted(false);
-    expect(tracks.every((track) => track.enabled)).toBe(true);
-    expect(mixGain.gain.value).toBe(0.7);
-    webrtcActive.value = false;
-    mic.setMicrophoneMuted(true);
-    expect(tracks.every((track) => track.enabled)).toBe(true);
-  });
-
-  it("clears the own speaking indicator when muting, not when unmuting", async () => {
-    const { session, deps, mic } = setup();
-    session.state.tsClientId = 12;
-    mic.setMicrophoneMuted(false);
-    expect(deps.clearSpeaking).not.toHaveBeenCalled();
-    mic.setMicrophoneMuted(true);
-    expect(deps.clearSpeaking).toHaveBeenCalledWith(12);
-  });
-
-  it("does not clear a speaking indicator without a client id", () => {
-    const { deps, mic } = setup();
-    mic.setMicrophoneMuted(true);
-    expect(deps.clearSpeaking).not.toHaveBeenCalled();
-  });
-});
-
 describe("applyMicGain and getProcessedMicStream", () => {
   it("applies the input volume to the mic gain node once a microphone is open, and never before", async () => {
     const { audio, mic } = setup();

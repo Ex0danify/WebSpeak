@@ -97,6 +97,7 @@ export function setup(overrides: Partial<WebRtcTransportDeps> = {}) {
     markSpeaking: vi.fn(),
     clearSpeaking: vi.fn(),
     sendCmd: vi.fn(),
+    sendCommand: vi.fn(async () => undefined),
     connectionSequence: vi.fn(() => 3),
     hasLastConnection: vi.fn(() => true),
     webrtcActive: ref(false),

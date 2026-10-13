@@ -39,7 +39,7 @@ export function setup(overrides: Partial<MicrophoneDeps> = {}) {
     releaseAudioCtx: vi.fn(),
     markSpeaking: vi.fn(),
     clearSpeaking: vi.fn(),
-    sendCmd: vi.fn(),
+    sendCommand: vi.fn(async () => undefined),
     webrtcActive: ref(false),
     micLevel: ref(0),
     webrtcMixMicGain: vi.fn((): GainNode | null => null),

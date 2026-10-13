@@ -1,101 +1,7 @@
-import { flushPromises, mount } from "@vue/test-utils";
-import { defineComponent, reactive, ref } from "vue";
+import { flushPromises } from "@vue/test-utils";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useToast } from "@/shared/composables/useToast";
-import type { ChannelInfo, ChannelMember, VoiceState } from "@/features/session";
-
-type Exposed = {
-  memberQuery: string;
-  away: boolean;
-  toggleAway: () => void;
-  channelTree: Array<ChannelInfo & { depth: number; members: ChannelMember[] }>;
-  currentChannel: (ChannelInfo & { depth: number; members: ChannelMember[] }) | undefined;
-  ownChannelId: string;
-  currentChannelName: string;
-  currentChannelDescription: string;
-  currentMembers: ChannelMember[];
-  roomMembers: ChannelMember[];
-  memberChannels: Array<ChannelInfo & { depth: number; members: ChannelMember[] }>;
-  filteredMemberChannels: Array<ChannelInfo & { depth: number; members: ChannelMember[] }>;
-  selectChannel: (item: ChannelInfo & { depth: number; members: ChannelMember[] }) => void;
-  selectChannelById: () => void;
-  channelLabel: (item: ChannelInfo & { depth: number }) => string;
-  channelPasswordDialog: { open: boolean; channelId: string; password: string; error: string; submitting: boolean };
-  submitChannelPassword: () => void;
-  cancelChannelPassword: () => void;
-  draggedMember: ChannelMember | null;
-  dragOverChannelId: string;
-  onMemberDragStart: (member: ChannelMember, event: DragEvent) => void;
-  onMemberDragEnd: () => void;
-  onChannelDragOver: (channelItem: ChannelInfo & { depth: number; members: ChannelMember[] }, event: DragEvent) => void;
-  onChannelDragLeave: (channelItem: ChannelInfo & { depth: number; members: ChannelMember[] }, event: DragEvent) => void;
-  onChannelDrop: (channelItem: ChannelInfo & { depth: number; members: ChannelMember[] }, event: DragEvent) => void;
-  moveMemberDirect: (member: ChannelMember, targetChannelId: string) => Promise<void>;
-  memberMoveMenuCurrentChannel: (ChannelInfo & { depth: number; members: ChannelMember[] }) | null;
-  memberMoveMenuCurrentSameChannel: boolean;
-  memberMoveMenuOtherChannels: Array<ChannelInfo & { depth: number; members: ChannelMember[] }>;
-};
-
-function member(id: number, nickname: string): ChannelMember {
-  return { id, nickname };
-}
-
-function makeVoiceState(overrides: Partial<VoiceState> = {}): VoiceState {
-  return reactive({
-    connected: true,
-    connecting: false,
-    reconnecting: false,
-    reconnectAttempt: 0,
-    reconnectFailed: false,
-    tsClientId: 1,
-    error: "",
-    errorCode: "",
-    microphoneError: "",
-    microphoneErrorCode: "",
-    audioNotice: "",
-    audioNoticeCode: "",
-    channelSwitchedChannelId: "",
-    ...overrides,
-  }) as VoiceState;
-}
-
-async function mountUseChannelTree(overrides: Record<string, unknown> = {}) {
-  const { useChannelTree } = await import("./useChannelTree");
-  const voiceState = makeVoiceState();
-  const channels = reactive<ChannelInfo[]>([
-    { id: "lobby", parentID: "0", name: "Lobby", members: [member(1, "Lucas")] },
-    { id: "raid", parentID: "0", name: "Raid", members: [member(2, "Ana")] },
-  ]);
-  const members = reactive<ChannelMember[]>([member(1, "Lucas"), member(2, "Ana")]);
-  const options = {
-    voiceState,
-    channels,
-    members,
-    channel: ref(""),
-    selectedChannelId: ref(""),
-    chatTab: ref<"channel" | "server" | "private" | "events">("server"),
-    memberMenu: ref<{ member: ChannelMember; x: number; y: number } | null>(null),
-    switchChannel: vi.fn(),
-    moveClient: vi.fn(async () => undefined),
-    clearError: vi.fn(),
-    setAway: vi.fn(),
-    ...overrides,
-  };
-  const wrapper = mount(
-    defineComponent({
-      setup: () =>
-        useChannelTree({
-          ...options,
-          session: { state: options.voiceState, clearError: options.clearError },
-          roster: options,
-          actions: options,
-        }),
-      template: "<div/>",
-    }),
-  );
-  await flushPromises();
-  return { wrapper, vm: wrapper.vm as unknown as Exposed, options, voiceState, channels, members };
-}
+import { member, mountUseChannelTree } from "@/testSupport/channelTreeFixture";
 
 beforeEach(() => {
   useToast().dismiss();
@@ -147,14 +53,64 @@ describe("currentChannel", () => {
 });
 
 describe("selectChannel / selectChannelById / channelLabel", () => {
-  it("selectChannel updates selection, channel name, chat tab and calls switchChannel", async () => {
+  it("selectChannel asks the gateway and leaves the view on the current channel until the join succeeded", async () => {
     const { vm, options } = await mountUseChannelTree();
-    const raid = vm.channelTree.find((item) => item.id === "raid")!;
-    vm.selectChannel(raid);
+    options.selectedChannelId.value = "lobby";
+    vm.selectChannel(vm.channelTree.find((item) => item.id === "raid")!);
+    expect(options.switchChannel).toHaveBeenCalledWith("raid");
+    expect(options.selectedChannelId.value).toBe("lobby");
+    expect(options.channel.value).toBe("");
+    expect(options.chatTab.value).toBe("server");
+  });
+
+  it("selectChannel waits for the member list after the gateway confirmed, so the new channel never shows without you in it", async () => {
+    const { vm, options, voiceState, channels } = await mountUseChannelTree();
+    options.selectedChannelId.value = "lobby";
+    vm.selectChannel(vm.channelTree.find((item) => item.id === "raid")!);
+    voiceState.channelSwitchedChannelId = "raid";
+    await flushPromises();
+    expect(options.selectedChannelId.value).toBe("lobby");
+    const [lobby, raid] = channels;
+    raid.members!.push(lobby.members!.shift()!);
+    await flushPromises();
     expect(options.selectedChannelId.value).toBe("raid");
     expect(options.channel.value).toBe("Raid");
     expect(options.chatTab.value).toBe("channel");
-    expect(options.switchChannel).toHaveBeenCalledWith("raid");
+  });
+
+  it("selectChannel still follows after a short grace when the member list never shows you in the channel", async () => {
+    vi.useFakeTimers();
+    try {
+      const { vm, options, voiceState } = await mountUseChannelTree();
+      options.selectedChannelId.value = "lobby";
+      vm.selectChannel(vm.channelTree.find((item) => item.id === "raid")!);
+      voiceState.channelSwitchedChannelId = "raid";
+      await vi.advanceTimersByTimeAsync(1000);
+      expect(options.selectedChannelId.value).toBe("lobby");
+      await vi.advanceTimersByTimeAsync(1000);
+      expect(options.selectedChannelId.value).toBe("raid");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("selectChannel follows at once when the gateway confirms a channel you are already in", async () => {
+    const { vm, options, voiceState } = await mountUseChannelTree();
+    options.selectedChannelId.value = "raid";
+    vm.selectChannel(vm.channelTree.find((item) => item.id === "lobby")!);
+    voiceState.channelSwitchedChannelId = "lobby";
+    await flushPromises();
+    expect(options.selectedChannelId.value).toBe("lobby");
+  });
+
+  it("selectChannel also follows when the member list shows you in the new channel first", async () => {
+    const { vm, options, channels } = await mountUseChannelTree();
+    vm.selectChannel(vm.channelTree.find((item) => item.id === "raid")!);
+    const [lobby, raid] = channels;
+    raid.members!.push(lobby.members!.shift()!);
+    await flushPromises();
+    expect(options.selectedChannelId.value).toBe("raid");
+    expect(options.chatTab.value).toBe("channel");
   });
 
   it("selectChannelById looks up the selected id and delegates to selectChannel", async () => {
@@ -186,7 +142,7 @@ describe("toggleAway", () => {
     );
     const { vm, options } = await mountUseChannelTree();
     expect(vm.away).toBe(false);
-    vm.toggleAway();
+    await vm.toggleAway();
     expect(vm.away).toBe(true);
     expect(options.setAway).toHaveBeenCalledWith(true, "back in 5");
   });
@@ -197,9 +153,9 @@ describe("toggleAway", () => {
       vi.fn(() => "back in 5"),
     );
     const { vm, options } = await mountUseChannelTree();
-    vm.toggleAway();
+    await vm.toggleAway();
     vi.mocked(window.prompt).mockClear();
-    vm.toggleAway();
+    await vm.toggleAway();
     expect(vm.away).toBe(false);
     expect(window.prompt).not.toHaveBeenCalled();
     expect(options.setAway).toHaveBeenLastCalledWith(false, "");
@@ -211,7 +167,7 @@ describe("toggleAway", () => {
       vi.fn(() => null),
     );
     const { vm, options } = await mountUseChannelTree();
-    vm.toggleAway();
+    await vm.toggleAway();
     expect(options.setAway).toHaveBeenCalledWith(true, "");
   });
 });
@@ -232,8 +188,7 @@ describe("filteredMemberChannels", () => {
 describe("channel password dialog", () => {
   it("opens when the gateway reports CHANNEL_PASSWORD_REQUIRED for the selected channel", async () => {
     const { vm, options, voiceState } = await mountUseChannelTree();
-    options.selectedChannelId.value = "raid";
-    await flushPromises();
+    vm.selectChannel(vm.channelTree.find((item) => item.id === "raid")!);
     voiceState.errorCode = "CHANNEL_PASSWORD_REQUIRED";
     await flushPromises();
     expect(vm.channelPasswordDialog.open).toBe(true);
@@ -251,8 +206,10 @@ describe("channel password dialog", () => {
     expect(options.switchChannel).toHaveBeenCalledWith("raid", "secret");
   });
 
-  it("cancelChannelPassword restores the client's own channel and clears the dialog", async () => {
+  it("cancelChannelPassword leaves the view on the client's own channel and clears the dialog", async () => {
     const { vm, options } = await mountUseChannelTree();
+    options.selectedChannelId.value = "lobby";
+    vm.selectChannel(vm.channelTree.find((item) => item.id === "raid")!);
     vm.channelPasswordDialog.open = true;
     vm.channelPasswordDialog.channelId = "raid";
     await flushPromises();
@@ -270,36 +227,6 @@ describe("channel password dialog", () => {
     voiceState.channelSwitchedChannelId = "raid";
     await flushPromises();
     expect(vm.channelPasswordDialog.open).toBe(false);
-  });
-});
-
-describe("a refused channel switch", () => {
-  it("puts the selection and the channel name back on the channel you are still in", async () => {
-    const { vm, options, voiceState, channels } = await mountUseChannelTree();
-    vm.selectChannel(vm.channelTree.find((item) => item.id === "raid")!);
-    expect(options.selectedChannelId.value).toBe("raid");
-    expect(options.channel.value).toBe("Raid");
-    voiceState.errorCode = "CHANNEL_FULL";
-    await flushPromises();
-    expect(options.selectedChannelId.value).toBe("lobby");
-    expect(options.channel.value).toBe("Lobby");
-    expect(channels).toHaveLength(2);
-  });
-
-  it("leaves the selection alone once the move went through, and for a password request", async () => {
-    const { vm, options, voiceState } = await mountUseChannelTree();
-    vm.selectChannel(vm.channelTree.find((item) => item.id === "raid")!);
-    voiceState.channelSwitchedChannelId = "raid";
-    await flushPromises();
-    voiceState.errorCode = "PERMISSION_DENIED";
-    await flushPromises();
-    expect(options.selectedChannelId.value).toBe("raid");
-    voiceState.errorCode = "";
-    vm.selectChannel(vm.channelTree.find((item) => item.id === "lobby")!);
-    voiceState.errorCode = "CHANNEL_PASSWORD_REQUIRED";
-    await flushPromises();
-    expect(options.selectedChannelId.value).toBe("lobby");
-    expect(vm.channelPasswordDialog.open).toBe(true);
   });
 });
 

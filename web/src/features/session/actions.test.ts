@@ -219,23 +219,23 @@ describe("commands", () => {
 
   it("sendPoke and setAway trim and cap the message at 200 characters", async () => {
     const socket = await connected();
-    harness.voice.chat.sendPoke(9, `  ${"a".repeat(300)}  `);
-    harness.voice.chat.sendPoke(9);
-    harness.voice.actions.setAway(true, " brb ");
-    harness.voice.actions.setAway(false);
+    void harness.voice.chat.sendPoke(9, `  ${"a".repeat(300)}  `).catch(() => undefined);
+    void harness.voice.chat.sendPoke(9).catch(() => undefined);
+    void harness.voice.actions.setAway(true, " brb ").catch(() => undefined);
+    void harness.voice.actions.setAway(false).catch(() => undefined);
     expect(socket.sentJson).toEqual([
-      { type: "poke", payload: { clientId: 9, message: "a".repeat(200) } },
-      { type: "poke", payload: { clientId: 9, message: "" } },
-      { type: "setAway", payload: { away: true, message: "brb" } },
-      { type: "setAway", payload: { away: false, message: "" } },
+      { type: "poke", payload: { clientId: 9, message: "a".repeat(200) }, requestId: expect.stringMatching(/^command-/) },
+      { type: "poke", payload: { clientId: 9, message: "" }, requestId: expect.stringMatching(/^command-/) },
+      { type: "setAway", payload: { away: true, message: "brb" }, requestId: expect.stringMatching(/^command-/) },
+      { type: "setAway", payload: { away: false, message: "" }, requestId: expect.stringMatching(/^command-/) },
     ]);
   });
 
   it("does nothing while the socket is not open", async () => {
     harness = await createVoiceHarness();
     harness.voice.actions.switchChannel("1");
-    harness.voice.chat.sendPoke(9);
-    harness.voice.actions.setAway(true);
+    await expect(harness.voice.chat.sendPoke(9)).rejects.toMatchObject({ code: "VOICE_CONNECTION_NOT_READY" });
+    await expect(harness.voice.actions.setAway(true)).rejects.toMatchObject({ code: "VOICE_CONNECTION_NOT_READY" });
     expect(() => harness.socket()).toThrow();
   });
 });
@@ -285,30 +285,34 @@ describe("chat", () => {
 describe("whisper and mute", () => {
   it("setWhisperTargets dedupes, drops invalid ids and self, caps at 8, and reports the result", async () => {
     const socket = await connected();
-    harness.voice.actions.setWhisperTargets([9, 9, 7, 0, 70000, 1.5, 1, 2, 3, 4, 5, 6, 8, 10]);
-    expect(socket.sentJson).toEqual([{ type: "setWhisperTargets", payload: { targetIds: [9, 1, 2, 3, 4, 5, 6, 8] } }]);
+    void harness.voice.actions.setWhisperTargets([9, 9, 7, 0, 70000, 1.5, 1, 2, 3, 4, 5, 6, 8, 10]).catch(() => undefined);
+    expect(socket.sentJson).toEqual([
+      { type: "setWhisperTargets", payload: { targetIds: [9, 1, 2, 3, 4, 5, 6, 8] }, requestId: expect.stringMatching(/^command-/) },
+    ]);
     expect([...harness.voice.roster.whisperTargetIds]).toEqual([9, 1, 2, 3, 4, 5, 6, 8]);
   });
 
   it("setWhisperTargets with nothing valid also switches whisper off", async () => {
     const socket = await connected({ whisperTargetIds: [9], whisperActive: true });
     socket.sent.length = 0;
-    harness.voice.actions.setWhisperTargets([]);
+    void harness.voice.actions.setWhisperTargets([]).catch(() => undefined);
     expect(harness.voice.roster.whisperActive.value).toBe(false);
-    expect(socket.sentJson).toEqual([{ type: "setWhisperTargets", payload: { targetIds: [] } }]);
+    expect(socket.sentJson).toEqual([
+      { type: "setWhisperTargets", payload: { targetIds: [] }, requestId: expect.stringMatching(/^command-/) },
+    ]);
   });
 
   it("setWhisperActive refuses to activate without targets", async () => {
     const socket = await connected();
-    harness.voice.actions.setWhisperActive(true);
+    await harness.voice.actions.setWhisperActive(true);
     expect(socket.sentJson).toEqual([]);
-    harness.voice.actions.setWhisperTargets([9]);
+    void harness.voice.actions.setWhisperTargets([9]).catch(() => undefined);
     socket.sent.length = 0;
-    harness.voice.actions.setWhisperActive(true);
-    harness.voice.actions.setWhisperActive(false);
+    void harness.voice.actions.setWhisperActive(true).catch(() => undefined);
+    void harness.voice.actions.setWhisperActive(false).catch(() => undefined);
     expect(socket.sentJson).toEqual([
-      { type: "setWhisperActive", payload: { active: true } },
-      { type: "setWhisperActive", payload: { active: false } },
+      { type: "setWhisperActive", payload: { active: true }, requestId: expect.stringMatching(/^command-/) },
+      { type: "setWhisperActive", payload: { active: false }, requestId: expect.stringMatching(/^command-/) },
     ]);
     expect(harness.voice.roster.whisperActive.value).toBe(false);
   });
@@ -317,13 +321,19 @@ describe("whisper and mute", () => {
     const socket = await connected({ members: [{ id: 7, nickname: "Me" }] });
     socket.receive({ type: "voiceActivity", clientIds: [7] });
     expect(harness.voice.roster.speakingIds.has(7)).toBe(true);
-    harness.voice.audio.setMicrophoneMuted(true);
+    void harness.voice.audio.setMicrophoneMuted(true).catch(() => undefined);
     expect(harness.voice.audio.microphoneMuted.value).toBe(true);
-    expect(socket.sentJson).toEqual([{ type: "setMicrophoneMuted", payload: { muted: true } }]);
+    expect(socket.sentJson).toEqual([
+      { type: "setMicrophoneMuted", payload: { muted: true }, requestId: expect.stringMatching(/^command-/) },
+    ]);
     expect(harness.voice.roster.speakingIds.has(7)).toBe(false);
-    harness.voice.audio.setMicrophoneMuted(false);
+    void harness.voice.audio.setMicrophoneMuted(false).catch(() => undefined);
     expect(harness.voice.audio.microphoneMuted.value).toBe(false);
-    expect(socket.sentJson.at(-1)).toEqual({ type: "setMicrophoneMuted", payload: { muted: false } });
+    expect(socket.sentJson.at(-1)).toEqual({
+      type: "setMicrophoneMuted",
+      payload: { muted: false },
+      requestId: expect.stringMatching(/^command-/),
+    });
   });
 });
 

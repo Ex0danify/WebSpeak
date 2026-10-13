@@ -1,13 +1,15 @@
-import { mount } from "@vue/test-utils";
+import { flushPromises, mount } from "@vue/test-utils";
 import { defineComponent, nextTick, reactive } from "vue";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { useToast } from "@/shared/composables/useToast";
+import { LocalizedError, text } from "@/shared/i18n/localizedText";
 import type { ChannelMember } from "@/features/session";
 
 type Exposed = {
   whisperPttActive: boolean;
   whisperTargets: ChannelMember[];
-  toggleWhisperTarget: (member: ChannelMember) => void;
-  clearWhisperTargets: () => void;
+  toggleWhisperTarget: (member: ChannelMember) => Promise<void>;
+  clearWhisperTargets: () => Promise<void>;
   onWhisperPttDown: (event: PointerEvent) => void;
   onWhisperPttUp: (event: PointerEvent) => void;
   stopWhisperTalk: () => void;
@@ -34,7 +36,7 @@ async function mountUseWhisper(overrides: Record<string, unknown> = {}) {
     whisperTargetIds,
     members,
     setWhisperTargets: vi.fn(),
-    setWhisperActive: vi.fn(),
+    setWhisperActive: vi.fn(async () => undefined),
     ...overrides,
   };
   const wrapper = mount(
@@ -50,46 +52,84 @@ async function mountUseWhisper(overrides: Record<string, unknown> = {}) {
   return { wrapper, vm: wrapper.vm as unknown as Exposed, options, whisperTargetIds };
 }
 
+beforeEach(() => {
+  useToast().dismiss();
+});
+
+const refused = async () => {
+  throw new LocalizedError(text("err_CLIENT_NOT_FOUND"), "CLIENT_NOT_FOUND");
+};
+
 describe("toggleWhisperTarget", () => {
+  it("toasts success once the gateway accepted the target", async () => {
+    const { vm } = await mountUseWhisper();
+    await vm.toggleWhisperTarget(member(2, "Ana"));
+    expect(useToast().toasts.value.map((toast) => toast.variant)).toEqual(["success"]);
+  });
+
+  it("toasts the refusal instead of success when the gateway refuses the target", async () => {
+    const { vm } = await mountUseWhisper({ setWhisperTargets: vi.fn(refused) });
+    await vm.toggleWhisperTarget(member(2, "Ana"));
+    expect(useToast().toasts.value.map((toast) => toast.variant)).toEqual(["danger"]);
+  });
+
   it("adds a member not yet targeted", async () => {
     const { vm, options } = await mountUseWhisper();
-    vm.toggleWhisperTarget(member(2, "Ana"));
+    await vm.toggleWhisperTarget(member(2, "Ana"));
     expect(options.setWhisperTargets).toHaveBeenCalledWith([2]);
   });
 
   it("removes a member already targeted", async () => {
     const { vm, options, whisperTargetIds } = await mountUseWhisper();
     whisperTargetIds.add(2);
-    vm.toggleWhisperTarget(member(2, "Ana"));
+    await vm.toggleWhisperTarget(member(2, "Ana"));
     expect(options.setWhisperTargets).toHaveBeenCalledWith([]);
   });
 
   it("ignores the self row", async () => {
     const { vm, options } = await mountUseWhisper();
-    vm.toggleWhisperTarget(member(1, "Lucas", { isSelf: true }));
+    await vm.toggleWhisperTarget(member(1, "Lucas", { isSelf: true }));
     expect(options.setWhisperTargets).not.toHaveBeenCalled();
   });
 
   it("stops adding once 8 targets are selected", async () => {
     const { vm, options, whisperTargetIds } = await mountUseWhisper();
     for (let id = 10; id < 18; id++) whisperTargetIds.add(id);
-    vm.toggleWhisperTarget(member(2, "Ana"));
+    await vm.toggleWhisperTarget(member(2, "Ana"));
     expect(options.setWhisperTargets).toHaveBeenCalledWith([...whisperTargetIds]);
     expect(options.setWhisperTargets).not.toHaveBeenCalledWith(expect.arrayContaining([2]));
   });
 });
 
 describe("clearWhisperTargets", () => {
+  it("toasts the refusal when the gateway refuses to clear the targets", async () => {
+    const { vm } = await mountUseWhisper({ setWhisperTargets: vi.fn(refused) });
+    await vm.clearWhisperTargets();
+    expect(useToast().toasts.value.map((toast) => toast.variant)).toEqual(["danger"]);
+  });
+
   it("stops an active whisper talk and clears the targets", async () => {
     const { vm, options, whisperTargetIds } = await mountUseWhisper();
     whisperTargetIds.add(2);
     vm.onWhisperPttDown(pointerEvent());
     expect(vm.whisperPttActive).toBe(true);
 
-    vm.clearWhisperTargets();
+    await vm.clearWhisperTargets();
     expect(vm.whisperPttActive).toBe(false);
     expect(options.setWhisperActive).toHaveBeenLastCalledWith(false);
     expect(options.setWhisperTargets).toHaveBeenLastCalledWith([]);
+  });
+});
+
+describe("a refused whisper activation", () => {
+  it("releases the held button and toasts the reason", async () => {
+    const { vm, whisperTargetIds } = await mountUseWhisper({ setWhisperActive: vi.fn(refused) });
+    whisperTargetIds.add(2);
+    vm.onWhisperPttDown(pointerEvent());
+    expect(vm.whisperPttActive).toBe(true);
+    await flushPromises();
+    expect(vm.whisperPttActive).toBe(false);
+    expect(useToast().toasts.value.map((toast) => toast.variant)).toEqual(["danger"]);
   });
 });
 

@@ -3,6 +3,7 @@ import { defineComponent, reactive, ref } from "vue";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { VoiceState } from "@/features/session";
 import { LocalizedError, text } from "@/shared/i18n/localizedText";
+import { useToast } from "@/shared/composables/useToast";
 
 // The voice barrel loads the audio engine, whose noise suppressor extends AudioWorkletNode (happy-dom has none).
 vi.hoisted(() => {
@@ -20,7 +21,7 @@ type Exposed = {
   setMicLevelMeter: (element: unknown) => void;
   micMeterBars: number;
   meterBarHeight: (index: number) => number;
-  toggleMicrophone: () => void;
+  toggleMicrophone: () => Promise<void>;
   toggleAccompaniment: () => Promise<void>;
 };
 
@@ -57,7 +58,7 @@ async function mountUseAudioSettingsPanel(overrides: Record<string, unknown> = {
     setOutputDevice: vi.fn(async () => undefined),
     startMicrophoneTest: vi.fn(async () => undefined),
     stopMicrophoneTest: vi.fn(),
-    setMicrophoneMuted: vi.fn(),
+    setMicrophoneMuted: vi.fn(async () => undefined),
     prepareInputDevices: vi.fn(async () => undefined),
     startAccompaniment: vi.fn(async () => undefined),
     stopAccompaniment: vi.fn(async () => undefined),
@@ -273,14 +274,40 @@ describe("meterBarHeight", () => {
 describe("toggleMicrophone", () => {
   it("unmutes when currently muted", async () => {
     const { vm, options } = await mountUseAudioSettingsPanel({ microphoneMuted: ref(true) });
-    vm.toggleMicrophone();
+    await vm.toggleMicrophone();
     expect(options.setMicrophoneMuted).toHaveBeenCalledWith(false);
   });
 
   it("mutes when currently unmuted", async () => {
     const { vm, options } = await mountUseAudioSettingsPanel({ microphoneMuted: ref(false) });
-    vm.toggleMicrophone();
+    await vm.toggleMicrophone();
     expect(options.setMicrophoneMuted).toHaveBeenCalledWith(true);
+  });
+});
+
+describe("toggleMicrophone when the gateway refuses the mute", () => {
+  it("keeps the local state and toasts the reason", async () => {
+    const setMicrophoneMuted = vi.fn(async () => {
+      throw new LocalizedError(text("err_OPERATION_FAILED"), "OPERATION_FAILED");
+    });
+    const { vm } = await mountUseAudioSettingsPanel({ microphoneMuted: ref(false), setMicrophoneMuted });
+    await vm.toggleMicrophone();
+    expect(useToast().toasts.value.at(-1)).toMatchObject({ variant: "danger" });
+  });
+});
+
+describe("toggleAccompaniment when the gateway refuses", () => {
+  it("toasts the reason instead of the permission text", async () => {
+    const startAccompaniment = vi.fn(async () => {
+      throw new LocalizedError(text("err_OPERATION_FAILED"), "OPERATION_FAILED");
+    });
+    const { vm } = await mountUseAudioSettingsPanel({
+      accompanimentActive: ref(false),
+      accompanimentErrorCode: ref("gateway"),
+      startAccompaniment,
+    });
+    await vm.toggleAccompaniment();
+    expect(useToast().toasts.value.at(-1)).toMatchObject({ variant: "danger", title: expect.not.stringMatching(/permission/i) });
   });
 });
 

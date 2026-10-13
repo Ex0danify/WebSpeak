@@ -130,11 +130,11 @@ describe("channel and roster commands", () => {
 
   it("poke and away trim and cap the message at 200 characters", () => {
     const { actions } = setup();
-    actions.sendPoke(2, `  ${"x".repeat(300)}  `);
-    actions.setAway(true, "  brb ");
+    void actions.sendPoke(2, `  ${"x".repeat(300)}  `).catch(() => undefined);
+    void actions.setAway(true, "  brb ").catch(() => undefined);
     expect(socket.sentJson).toEqual([
-      { type: "poke", payload: { clientId: 2, message: "x".repeat(200) } },
-      { type: "setAway", payload: { away: true, message: "brb" } },
+      { type: "poke", payload: { clientId: 2, message: "x".repeat(200) }, requestId: expect.stringMatching(/^command-/) },
+      { type: "setAway", payload: { away: true, message: "brb" }, requestId: expect.stringMatching(/^command-/) },
     ]);
   });
 });
@@ -257,29 +257,63 @@ describe("whisper", () => {
   it("setWhisperTargets de-duplicates, drops invalid ids and the own id, caps at 8, and sends the list", () => {
     const { session, actions } = setup();
     session.state.tsClientId = 5;
-    actions.setWhisperTargets([1, 1, 2, 5, 0, -3, 1.5, 70000, 3, 4, 6, 7, 8, 9, 10, 11]);
+    void actions.setWhisperTargets([1, 1, 2, 5, 0, -3, 1.5, 70000, 3, 4, 6, 7, 8, 9, 10, 11]).catch(() => undefined);
     expect([...session.whisperTargetIds]).toEqual([1, 2, 3, 4, 6, 7, 8, 9]);
-    expect(socket.sentJson).toEqual([{ type: "setWhisperTargets", payload: { targetIds: [1, 2, 3, 4, 6, 7, 8, 9] } }]);
+    expect(socket.sentJson).toEqual([
+      { type: "setWhisperTargets", payload: { targetIds: [1, 2, 3, 4, 6, 7, 8, 9] }, requestId: expect.stringMatching(/^command-/) },
+    ]);
   });
 
   it("an empty target list switches whispering off", () => {
     const { session, actions } = setup();
     session.whisperTargetIds.add(2);
     session.whisperActive = true;
-    actions.setWhisperTargets([]);
+    void actions.setWhisperTargets([]).catch(() => undefined);
     expect(session.whisperActive).toBe(false);
     expect(session.whisperTargetIds.size).toBe(0);
   });
 
+  it("setWhisperTargets puts the previous targets back when the gateway refuses", async () => {
+    const { session, actions } = setup();
+    session.whisperTargetIds.add(2);
+    session.whisperActive = true;
+    const pending = actions.setWhisperTargets([]);
+    expect(session.whisperTargetIds.size).toBe(0);
+    actions.handlers.error!({
+      type: "error",
+      requestId: String(socket.sentJson[0].requestId),
+      error: { code: "CLIENT_NOT_FOUND", message: "gone", recoverable: false },
+    });
+    await expect(pending).rejects.toMatchObject({ code: "CLIENT_NOT_FOUND" });
+    expect([...session.whisperTargetIds]).toEqual([2]);
+    expect(session.whisperActive).toBe(true);
+  });
+
+  it("setWhisperActive goes back to the previous state when the gateway refuses", async () => {
+    const { session, actions } = setup();
+    session.whisperTargetIds.add(2);
+    const pending = actions.setWhisperActive(true);
+    expect(session.whisperActive).toBe(true);
+    actions.handlers.error!({
+      type: "error",
+      requestId: String(socket.sentJson[0].requestId),
+      error: { code: "NO_WHISPER_TARGETS", message: "none", recoverable: false },
+    });
+    await expect(pending).rejects.toMatchObject({ code: "NO_WHISPER_TARGETS" });
+    expect(session.whisperActive).toBe(false);
+  });
+
   it("setWhisperActive(true) is a no-op without targets", () => {
     const { session, actions } = setup();
-    actions.setWhisperActive(true);
+    void actions.setWhisperActive(true);
     expect(session.whisperActive).toBe(false);
     expect(socket.sent).toHaveLength(0);
     session.whisperTargetIds.add(2);
-    actions.setWhisperActive(true);
+    void actions.setWhisperActive(true).catch(() => undefined);
     expect(session.whisperActive).toBe(true);
-    expect(socket.sentJson).toEqual([{ type: "setWhisperActive", payload: { active: true } }]);
+    expect(socket.sentJson).toEqual([
+      { type: "setWhisperActive", payload: { active: true }, requestId: expect.stringMatching(/^command-/) },
+    ]);
   });
 
   it("applyWhisperState filters ids and only stays active with targets", () => {
