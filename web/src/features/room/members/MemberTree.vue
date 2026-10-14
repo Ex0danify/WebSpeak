@@ -21,17 +21,7 @@
         @pointerup="$emit('member-pointer-up', $event)"
         @pointercancel="$emit('member-pointer-cancel', $event)"
       >
-        <Button
-          variant="soft"
-          size="row"
-          :aria-current="isActive(channelItem) ? 'true' : undefined"
-          :title="t('switchChannel')"
-          @click="$emit('select-channel', channelItem)"
-        >
-          <Icon name="volume" :size="16" />
-          <span class="min-w-0 flex-1 truncate text-md font-bold">{{ channelNameText(channelItem, t) }}</span>
-          <small class="text-ui">{{ channelItem.members.length }}</small>
-        </Button>
+        <ChannelRow :channel="channelItem" :active="isActive(channelItem)" @click="$emit('select-channel', channelItem)" />
         <div v-if="channelItem.members.length" class="mt-2.25 mr-1 ml-3.5 flex flex-col gap-3.25">
           <MemberRow
             v-for="member in channelItem.members"
@@ -60,12 +50,11 @@
 </template>
 
 <script setup lang="ts">
-import { Button } from "@/shared/ui/button";
-import { Icon } from "@/shared/ui/icon";
+import ChannelRow from "./ChannelRow.vue";
 import MemberRow from "./MemberRow.vue";
 import { SpacerRow } from "@/shared/ui/spacer";
 import { useI18n } from "@/shared/i18n/useI18n.js";
-import { channelNameText, isSpeaking } from "@/features/session";
+import { isSpeaking } from "@/features/session";
 import type { TreeChannel } from "../roomTypes.js";
 import type { ChannelMember } from "@/features/session";
 
