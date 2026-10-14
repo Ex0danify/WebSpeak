@@ -23,7 +23,8 @@
             <ChannelRails :lines="rails.get(channelItem.id)?.through ?? []" />
             <ChannelRow
               :channel="channelItem"
-              :active="isActive(channelItem)"
+              :active="currentChannelId === channelItem.id"
+              :drag-over="dragOverChannelId === channelItem.id"
               :elbow="rails.get(channelItem.id)?.elbow"
               @click="$emit('select-channel', channelItem)"
             />
@@ -103,7 +104,7 @@ type LayoutItem =
   | { key: string; spacer: NonNullable<TreeChannel["spacer"]>; depth: number; channels?: undefined }
   | { key: string; spacer?: undefined; depth?: undefined; channels: TreeChannel[] };
 
-const rails = computed(() => computeChannelRails(props.channels, undefined));
+const rails = computed(() => computeChannelRails(props.channels, props.currentChannelId));
 
 // A root and its subtree share one block with a single closing hairline; spacers stay between blocks.
 const layout = computed(() => {
@@ -119,7 +120,4 @@ const layout = computed(() => {
   }
   return items;
 });
-
-// The heading is highlighted for the joined channel and for the channel a member is dragged over.
-const isActive = (channel: TreeChannel) => props.currentChannelId === channel.id || props.dragOverChannelId === channel.id;
 </script>

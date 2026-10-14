@@ -12,7 +12,7 @@
         :style="{ width: 'calc(var(--spacing-tree-step) / 2)' }"
       ></span>
     </template>
-    <Button variant="soft" size="row" :aria-current="active ? 'true' : undefined" :title="t('switchChannel')">
+    <Button variant="soft" size="row" :class="buttonClass" :aria-current="active ? 'true' : undefined" :title="t('switchChannel')">
       <Icon name="volume" :size="sub ? 14 : 16" />
       <span :class="['min-w-0 flex-1 truncate', sub ? 'text-ui font-medium' : 'text-md font-bold']">{{ channelNameText(channel, t) }}</span>
       <small class="text-ui">{{ channel.members.length }}</small>
@@ -31,7 +31,10 @@ import type { ChannelRailState, RailTone } from "./channelRails.js";
 
 const props = defineProps<{
   channel: TreeChannel;
+  /** The channel you are in. */
   active: boolean;
+  /** A member is being dragged over this row. */
+  dragOver: boolean;
   /** The upper half of this row's rail and the stub into its name; absent for roots. */
   elbow?: ChannelRailState["elbow"];
 }>();
@@ -39,5 +42,10 @@ const props = defineProps<{
 const { t } = useI18n();
 
 const sub = computed(() => props.channel.rootId !== props.channel.id);
+const buttonClass = computed(() =>
+  props.dragOver
+    ? "border-dashed border-accent bg-accent/7 text-accent aria-[current=true]:shadow-bar-accent"
+    : "aria-[current=true]:shadow-bar-accent",
+);
 const toneClass = (tone: RailTone) => (tone === "accent" ? "bg-accent" : "bg-line");
 </script>

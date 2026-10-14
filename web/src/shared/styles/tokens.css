@@ -128,6 +128,8 @@
   --shadow-speaking: 0 0 0 2px var(--avatar-gap), 0 0 0 4px var(--color-success);
   --shadow-ring-line: inset 0 0 0 1px var(--color-line-strong);
   --shadow-ring-accent: inset 0 0 0 1px var(--color-accent);
+  /* The bar on the left edge of the joined channel row. */
+  --shadow-bar-accent: inset 2px 0 0 var(--color-accent);
 
   /* Short and functional. Add motion-reduce:transition-none where a transition moves things. */
   --default-transition-duration: 120ms;
