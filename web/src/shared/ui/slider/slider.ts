@@ -14,3 +14,11 @@ export const sliderThumbClass =
   "max-compact:after:absolute max-compact:after:top-1/2 max-compact:after:left-1/2 max-compact:after:size-11 max-compact:after:-translate-1/2 max-compact:after:content-[''] " +
   "pointer-coarse:after:absolute pointer-coarse:after:top-1/2 pointer-coarse:after:left-1/2 pointer-coarse:after:size-11 pointer-coarse:after:-translate-1/2 pointer-coarse:after:content-[''] " +
   "focus-visible:shadow-focus data-[disabled]:pointer-events-none";
+
+/** The value label above a pressed thumb. It sits on the thumb, so it follows it along the track. */
+export const sliderBubbleClass =
+  "pointer-events-none absolute bottom-full left-1/2 mb-2 -translate-x-1/2 rounded-md border border-line bg-surface-2 px-2 py-0.5 " +
+  "text-xs font-medium whitespace-nowrap text-fg shadow-sm tabular-nums";
+
+/** The mark for the neutral value, under the track. Decoration only. */
+export const sliderTickClass = "pointer-events-none absolute top-1/2 mt-1.5 h-1.5 w-px -translate-x-1/2 bg-fg-muted";

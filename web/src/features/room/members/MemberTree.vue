@@ -4,7 +4,13 @@
   >
     <template v-for="item in layout" :key="item.key">
       <SpacerRow v-if="item.spacer" :spacer="item.spacer" :depth="item.depth" />
-      <div v-else class="border-b border-line pt-2 pb-2 not-first:mt-2 max-compact:pt-1.75 max-compact:pb-1.5">
+      <div
+        v-else
+        :class="[
+          'border-b border-line not-first:mt-2',
+          isBareChannel(item.channels) ? 'py-1' : 'pt-2 pb-2 max-compact:pt-1.75 max-compact:pb-1.5',
+        ]"
+      >
         <template v-for="channelItem in item.channels" :key="channelItem.id">
           <section
             :class="[
@@ -36,7 +42,6 @@
                   :key="`${channelItem.id}-${member.id}`"
                   :member="member"
                   :speaking="isSpeaking(member, speakingIds)"
-                  :volume="volumes[member.id] ?? 1"
                   :is-mobile-viewport="isMobileViewport"
                   :class="{ dragging: draggedMemberId === member.id }"
                   :draggable="!member.isSelf"
@@ -48,7 +53,6 @@
                   @pointercancel="$emit('member-pointer-cancel', $event)"
                   @contextmenu.prevent="$emit('open-member-menu', member, $event)"
                   @open-actions="$emit('open-member-actions', member)"
-                  @set-volume="$emit('set-volume', member.id, $event)"
                 />
               </div>
               <span v-else class="sr-only">{{ t("noMembersInChannel") }}</span>
@@ -78,7 +82,6 @@ const props = defineProps<{
   dragOverChannelId: string;
   draggedMemberId: number | undefined;
   speakingIds: Set<number>;
-  volumes: Record<number, number>;
   isMobileViewport: boolean;
 }>();
 
@@ -95,7 +98,6 @@ defineEmits<{
   (e: "member-pointer-cancel", event: PointerEvent): void;
   (e: "open-member-menu", member: ChannelMember, event: MouseEvent): void;
   (e: "open-member-actions", member: ChannelMember): void;
-  (e: "set-volume", memberId: number, volume: number): void;
 }>();
 
 const { t } = useI18n();

@@ -1,5 +1,7 @@
 <template>
   <div
+    :data-member-id="member.id"
+    :tabindex="isMobileViewport || member.isSelf ? undefined : 0"
     class="group/row relative -mx-1.5 -my-0.5 flex min-w-0 items-center gap-2 rounded-md px-1.5 py-0.5 transition-[background-color,box-shadow] duration-150 focus-within:bg-accent-soft focus-within:shadow-sm hover:bg-accent-soft hover:shadow-sm max-compact:m-0 max-compact:min-h-14.5 max-compact:gap-2.25 max-compact:rounded-lg max-compact:p-1.75 [&.dragging]:opacity-45 [&[draggable=true]]:cursor-grab [&[draggable=true]]:touch-none [&[draggable=true]:active]:cursor-grabbing"
   >
     <span class="relative shrink-0"
@@ -32,17 +34,6 @@
         ><Icon name="shield" :size="13"
       /></span>
     </div>
-    <div class="member-volume flex w-16 items-center gap-1.25 text-fg-muted max-compact:hidden" :data-member-id="member.id">
-      <Icon :name="volume === 0 ? 'volume-off' : 'volume'" :size="14" /><Slider
-        class="w-11.25"
-        :min="0"
-        :max="400"
-        :model-value="Math.round(volume * 100)"
-        :value-text="`${Math.round(volume * 100)}%`"
-        :aria-label="t('memberVolume')"
-        @update:model-value="$emit('set-volume', $event / 100)"
-      />
-    </div>
     <Tooltip :text="t('moreMemberOptions')"
       ><Button
         v-if="isMobileViewport && !member.isSelf"
@@ -61,7 +52,6 @@ import { Avatar } from "@/shared/ui/avatar";
 import { Button } from "@/shared/ui/button";
 import { Tooltip } from "@/shared/ui/tooltip";
 import { Icon } from "@/shared/ui/icon";
-import { Slider } from "@/shared/ui/slider";
 import { useI18n } from "@/shared/i18n/useI18n.js";
 import { memberDisplayName } from "@/features/session";
 import type { ChannelMember } from "@/features/session";
@@ -69,13 +59,10 @@ import type { ChannelMember } from "@/features/session";
 defineProps<{
   member: ChannelMember;
   speaking: boolean;
-  /** Playback gain as a ratio (1 = 100%). */
-  volume: number;
   isMobileViewport: boolean;
 }>();
 
 defineEmits<{
-  (e: "set-volume", volume: number): void;
   (e: "open-actions"): void;
 }>();
 

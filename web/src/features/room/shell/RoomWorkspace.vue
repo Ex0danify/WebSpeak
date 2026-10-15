@@ -138,7 +138,6 @@
         :drag-over-channel-id="dragOverChannelId"
         :dragged-member-id="draggedMember?.id"
         :speaking-ids="speakingIds"
-        :volumes="volumes"
         :is-mobile-viewport="isMobileViewport"
         @select-channel="selectChannel"
         @channel-drag-over="onChannelDragOver"
@@ -152,7 +151,6 @@
         @member-pointer-cancel="onMemberPointerCancel"
         @open-member-menu="openMemberMenu"
         @open-member-actions="openMemberActions"
-        @set-volume="setVolume"
       />
       <template #footer>
         <DesktopAudioDock
@@ -239,14 +237,13 @@ const props = defineProps<{
 
 const { t } = useI18n();
 const { state: voiceState, reconnectNow } = props.session.session;
-const { members, serverEvents, pokeNotifications, speakingIds, volumes, whisperTargetIds, whisperActive } = props.session.roster;
+const { members, serverEvents, pokeNotifications, speakingIds, whisperTargetIds, whisperActive } = props.session.roster;
 const {
   microphoneMuted,
   noiseSuppressionEnabled,
   inputVolume,
   outputVolume,
   outputMuted,
-  setVolume,
   setInputVolume,
   setNoiseSuppressionEnabled,
   setOutputVolume,

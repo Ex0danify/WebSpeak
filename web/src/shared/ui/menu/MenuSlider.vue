@@ -1,15 +1,17 @@
 <script setup lang="ts">
-import { computed, inject, ref, watch } from "vue";
+import { computed, inject, onBeforeUnmount, ref, watch } from "vue";
 import { DropdownMenuItem } from "reka-ui";
 import { cn } from "../../lib/cn";
 import { Slider } from "../slider";
 import { menuContextKey } from "./menuContext";
 
 // A labelled slider row inside a Menu, for a per-item value such as a member's volume. `label` is the visible caption and the
-// slider's name, `valueText` is for a spoken value such as "120%".
+// slider's name, `valueText` is for a spoken value such as "120%". `bubble` is the label that rides above the thumb while it is
+// dragged or changed by key.
 
 // Reka's menu keeps Tab inside itself, so a bare slider could not be reached by keyboard. On desktop the row is therefore an
-// item: arrows reach it, Left and Right change the value by `keyStep` (default `step`), Home and End jump to the ends.
+// item: arrows reach it, Left and Right change the value by `keyStep` (default `step`), Home and End jump to the ends,
+// Enter or Space restores `neutral` when there is one.
 
 // The thumb is drawn but is not a control there, since reka's thumb would be a second stop in the arrow-key order. It gets
 // `data-disabled` and `tabindex="-1"` set on the element directly because reka recomputes both on every render, and focus goes
@@ -25,6 +27,9 @@ const props = withDefaults(
     /** Change per Left or Right press, defaults to `step`. */
     keyStep?: number;
     valueText?: string;
+    bubble?: string;
+    /** The value that means "unchanged": marked on the slider, snapped to by a drag, and restored by Enter or a double click. */
+    neutral?: number;
     class?: string;
   }>(),
   { min: 0, max: 100, step: 1 },
@@ -49,6 +54,11 @@ watch(
   { flush: "post" },
 );
 
+// Arrow keys change the value with the thumb out of focus, so the bubble is shown for a moment after each press.
+const keying = ref(false);
+let keyingTimer: ReturnType<typeof setTimeout> | undefined;
+onBeforeUnmount(() => clearTimeout(keyingTimer));
+
 function clamp(value: number) {
   return Math.min(props.max, Math.max(props.min, value));
 }
@@ -60,7 +70,11 @@ function onKeydown(event: KeyboardEvent) {
   if (delta) model.value = clamp(model.value + delta);
   else if (event.key === "Home") model.value = props.min;
   else if (event.key === "End") model.value = props.max;
+  else if ((event.key === "Enter" || event.key === " ") && props.neutral !== undefined) model.value = props.neutral;
   else return;
+  keying.value = true;
+  clearTimeout(keyingTimer);
+  keyingTimer = setTimeout(() => (keying.value = false), 900);
   event.preventDefault();
   event.stopPropagation();
 }
@@ -74,7 +88,16 @@ function onFocusin(event: FocusEvent) {
 <template>
   <div v-if="menu?.sheet.value" role="group" :aria-label="label" :class="cn(rowClass, 'pb-0')">
     <span class="text-xs font-medium text-fg-muted">{{ label }}</span>
-    <Slider v-model="model" :min="min" :max="max" :step="step" :value-text="valueText" :aria-label="label" />
+    <Slider
+      v-model="model"
+      :min="min"
+      :max="max"
+      :step="step"
+      :value-text="valueText"
+      :bubble="bubble"
+      :neutral="neutral"
+      :aria-label="label"
+    />
   </div>
   <DropdownMenuItem
     v-else
@@ -91,6 +114,16 @@ function onFocusin(event: FocusEvent) {
     @focusin="onFocusin"
   >
     <span class="text-xs font-medium text-fg-muted">{{ label }}</span>
-    <Slider v-model="model" :min="min" :max="max" :step="step" aria-hidden="true" tabindex="-1" />
+    <Slider
+      v-model="model"
+      :min="min"
+      :max="max"
+      :step="step"
+      :bubble="bubble"
+      :neutral="neutral"
+      :bubble-shown="keying"
+      aria-hidden="true"
+      tabindex="-1"
+    />
   </DropdownMenuItem>
 </template>

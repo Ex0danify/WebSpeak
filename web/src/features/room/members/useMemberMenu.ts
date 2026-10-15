@@ -15,7 +15,7 @@ export function useMemberMenu() {
   });
 
   // The desktop menu's trigger is a hidden zero-size span that cannot take focus back on close, so Reka leaves it on the
-  // document. Remember which member's row opened it and focus that row's volume slider instead (right click or Shift+F10 both
+  // document. Remember which member's row opened it and focus that row instead (right click or Shift+F10 both
   // end up there).
   let memberMenuOpenerId: number | null = null;
 
@@ -36,10 +36,10 @@ export function useMemberMenu() {
     const id = memberMenuOpenerId;
     memberMenuOpenerId = null;
     if (id === null) return;
-    const slider = document.querySelector<HTMLElement>(`.member-volume[data-member-id="${id}"] [role="slider"]`);
-    if (!slider) return;
+    const row = document.querySelector<HTMLElement>(`[data-member-id="${id}"]`);
+    if (!row) return;
     event.preventDefault();
-    slider.focus();
+    row.focus();
   }
 
   return {

@@ -14,12 +14,14 @@
     <template v-if="memberMenu">
       <MenuLabel plain>{{ nicknameText(memberMenu.member.nickname, t, memberMenu.member.unnamed) }}</MenuLabel>
       <MenuSlider
-        :model-value="Math.round((volumes[memberMenu.member.id] ?? 1) * 100)"
+        :model-value="volumePercent(memberMenu.member.id)"
         :label="t('memberVolume')"
         :min="0"
         :max="400"
         :key-step="5"
-        :value-text="`${Math.round((volumes[memberMenu.member.id] ?? 1) * 100)}%`"
+        :value-text="`${volumePercent(memberMenu.member.id)}%`"
+        :bubble="formatVolumeDb(volumePercent(memberMenu.member.id))"
+        :neutral="100"
         @update:model-value="$emit('set-volume', memberMenu.member.id, $event / 100)"
       />
       <MenuSeparator />
@@ -65,8 +67,9 @@ import { Menu, MenuItem, MenuLabel, MenuSeparator, MenuSlider, MenuSub } from "@
 import { useI18n } from "@/shared/i18n/useI18n.js";
 import { channelNameText, nicknameText, type ChannelMember } from "@/features/session";
 import type { TreeChannel } from "../roomTypes.js";
+import { formatVolumeDb } from "./volumeDb.js";
 
-defineProps<{
+const props = defineProps<{
   memberMenu: { member: ChannelMember; x: number; y: number } | null;
   memberMenuStyle: { left?: string; top?: string };
   volumes: Record<number, number>;
@@ -75,6 +78,8 @@ defineProps<{
   moveCurrentSameChannel: boolean;
   moveOtherChannels: TreeChannel[];
 }>();
+
+const volumePercent = (id: number) => Math.round((props.volumes[id] ?? 1) * 100);
 
 defineEmits<{
   (e: "close"): void;

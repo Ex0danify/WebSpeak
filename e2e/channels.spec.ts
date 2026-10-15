@@ -29,7 +29,7 @@ test.describe("channel tree", () => {
     await expect(channelGroup(page, "tree-list").getByText("tree-list-a")).toBeVisible();
     await expect(channelGroup(page, "tree-list").getByText("tree-list-b")).toBeVisible();
     // An empty channel shows no count and no empty-state line; screen readers still get "no members".
-    await expect(channelHeading(page, "tree-list-empty")).not.toContainText("0");
+    await expect(channelHeading(page, "tree-list-empty")).not.toContainText(/\d/);
     await expect(channelGroup(page, "tree-list-empty").getByText("No members in this channel")).toBeAttached();
     // The channels the fake server always has are there too, and you are in the first of them.
     await expect(channelGroup(page, "Lobby").getByText("tree-list-self (You)")).toBeVisible();
@@ -39,19 +39,19 @@ test.describe("channel tree", () => {
     const here = script.channel("tree-count-here");
     const there = script.channel("tree-count-there");
     await join(page, "tree-count-self");
-    await expect(channelHeading(page, "tree-count-here")).toHaveAccessibleName("tree-count-here 0");
+    await expect(channelHeading(page, "tree-count-here")).toHaveAccessibleName("tree-count-here");
 
     const walker = script.member("tree-count-walker", here);
     await expect(channelHeading(page, "tree-count-here")).toHaveAccessibleName("tree-count-here 1");
     await expect(channelGroup(page, "tree-count-here").getByText("tree-count-walker")).toBeVisible();
 
     walker.moveTo(there);
-    await expect(channelHeading(page, "tree-count-here")).toHaveAccessibleName("tree-count-here 0");
+    await expect(channelHeading(page, "tree-count-here")).toHaveAccessibleName("tree-count-here");
     await expect(channelHeading(page, "tree-count-there")).toHaveAccessibleName("tree-count-there 1");
     await expect(channelGroup(page, "tree-count-there").getByText("tree-count-walker")).toBeVisible();
 
     walker.leave();
-    await expect(channelHeading(page, "tree-count-there")).toHaveAccessibleName("tree-count-there 0");
+    await expect(channelHeading(page, "tree-count-there")).toHaveAccessibleName("tree-count-there");
     await expect(memberRow(page, "tree-count-walker")).toBeHidden();
   });
 
