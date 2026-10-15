@@ -17,6 +17,9 @@ import { menuContextKey } from "./menuContext";
 // `data-disabled` and `tabindex="-1"` set on the element directly because reka recomputes both on every render, and focus goes
 // back to the row.
 
+// The `action` slot puts a small control (such as a mute button) at the end of the label line. It is clicked, not tabbed to, in the
+// desktop menu, so give it `tabindex="-1"` there and offer a key on the row instead.
+
 // In the mobile sheet it is a plain Slider, because the sheet is a dialog that tabs normally.
 const props = withDefaults(
   defineProps<{
@@ -87,7 +90,10 @@ function onFocusin(event: FocusEvent) {
 
 <template>
   <div v-if="menu?.sheet.value" role="group" :aria-label="label" :class="cn(rowClass, 'pb-0')">
-    <span class="text-xs font-medium text-fg-muted">{{ label }}</span>
+    <div class="flex items-center justify-between gap-2">
+      <span class="text-xs font-medium text-fg-muted">{{ label }}</span>
+      <slot name="action" />
+    </div>
     <Slider
       v-model="model"
       :min="min"
@@ -113,7 +119,10 @@ function onFocusin(event: FocusEvent) {
     @keydown="onKeydown"
     @focusin="onFocusin"
   >
-    <span class="text-xs font-medium text-fg-muted">{{ label }}</span>
+    <div class="flex items-center justify-between gap-2">
+      <span class="text-xs font-medium text-fg-muted">{{ label }}</span>
+      <slot name="action" />
+    </div>
     <Slider
       v-model="model"
       :min="min"

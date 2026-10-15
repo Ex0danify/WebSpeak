@@ -35,6 +35,8 @@ export const useVoiceAudioStore = defineStore("voiceAudio", () => {
   const microphoneTestActive = ref(false);
   const testAudioUrl = ref("");
   const volumes = reactive<Record<number, number>>({});
+  /** Members muted on this client. Their slider level in `volumes` is kept, only the audible gain drops to 0. */
+  const mutedMembers = reactive<Record<number, boolean>>({});
   const accompanimentActive = ref(false);
   const accompanimentSupported = ref(displayMediaSupported());
   const accompanimentErrorCode = ref<AccompanimentErrorCode>("");
@@ -58,9 +60,15 @@ export const useVoiceAudioStore = defineStore("voiceAudio", () => {
     microphoneTestActive.value = false;
     testAudioUrl.value = "";
     for (const key of Object.keys(volumes)) delete volumes[Number(key)];
+    for (const key of Object.keys(mutedMembers)) delete mutedMembers[Number(key)];
     accompanimentActive.value = false;
     accompanimentSupported.value = displayMediaSupported();
     accompanimentErrorCode.value = "";
+  }
+
+  /** The gain a member is actually heard at: 0 while muted, else the slider level. */
+  function memberGain(clientId: number): number {
+    return mutedMembers[clientId] ? 0 : (volumes[clientId] ?? 1);
   }
 
   return {
@@ -82,6 +90,8 @@ export const useVoiceAudioStore = defineStore("voiceAudio", () => {
     microphoneTestActive,
     testAudioUrl,
     volumes,
+    mutedMembers,
+    memberGain,
     accompanimentActive,
     accompanimentSupported,
     accompanimentErrorCode,

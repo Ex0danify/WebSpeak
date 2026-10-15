@@ -76,7 +76,7 @@ export function useRoomSession() {
     accompanimentSupported,
     accompanimentErrorCode,
   } = storeToRefs(audio);
-  const { inputDevices, outputDevices, microphoneProcessing, volumes } = audio;
+  const { inputDevices, outputDevices, microphoneProcessing, volumes, mutedMembers } = audio;
   const screenShare = useScreenShareStore();
   screenShare.reset();
   const {
@@ -132,6 +132,7 @@ export function useRoomSession() {
     saveAudioPreferences,
     syncKnownMemberVolumes,
     setVolume,
+    setMemberMuted,
     setInputVolume,
     setOutputVolume,
     toggleOutputMute,
@@ -289,6 +290,7 @@ export function useRoomSession() {
       channels,
       speakingIds,
       volumes,
+      mutedMembers,
       whisperTargetIds,
       whisperActive,
       serverEvents,
@@ -324,6 +326,7 @@ export function useRoomSession() {
       accompanimentSupported,
       accompanimentErrorCode,
       setVolume,
+      setMemberMuted,
       setInputVolume,
       setNoiseSuppressionEnabled,
       setOutputVolume,

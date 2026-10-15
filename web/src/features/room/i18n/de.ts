@@ -1,5 +1,7 @@
 export const de: Record<string, string> = {
   memberVolume: "Mitgliedslautstärke",
+  muteMember: "Mitglied stummschalten",
+  unmuteMember: "Stummschaltung aufheben",
   home: "Startseite",
   activity: "Aktivität",
   help: "Hilfe",

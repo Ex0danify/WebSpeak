@@ -18,7 +18,7 @@ export interface PlaybackDeps {
 export function usePlayback(deps: PlaybackDeps) {
   const { getAudioCtx, effectiveOutputVolume, webrtcActive } = deps;
   const { state, members, speakingIds } = useSessionStore();
-  const { volumes } = useVoiceAudioStore();
+  const audio = useVoiceAudioStore();
 
   // Playback is kept per client so frames from multiple speakers cannot
   // interleave into one decoder or one scheduling queue.
@@ -77,7 +77,7 @@ export function usePlayback(deps: PlaybackDeps) {
         gainNode.connect(ctx.destination);
         remoteGains.set(clientId, gainNode);
       }
-      gainNode.gain.value = (volumes[clientId] ?? 1) * effectiveOutputVolume();
+      gainNode.gain.value = audio.memberGain(clientId) * effectiveOutputVolume();
       const speakerGain = gainNode;
       const generation = ++nextRemoteDecoderGeneration;
       const nextDecoder = new AudioDecoder({

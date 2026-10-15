@@ -1,5 +1,7 @@
 export const en = {
   memberVolume: "Member volume",
+  muteMember: "Mute member",
+  unmuteMember: "Unmute member",
   home: "Home",
   activity: "Activity",
   help: "Help",

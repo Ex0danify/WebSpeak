@@ -24,7 +24,7 @@ export function useAudioOutput(deps: AudioOutputDeps) {
   const audio = useVoiceAudioStore();
   const { outputVolume, outputMuted, notificationVolume, selectedOutputDeviceId, outputDeviceSupported, audioContextState } =
     storeToRefs(audio);
-  const { outputDevices, volumes } = audio;
+  const { outputDevices } = audio;
 
   let audioCtx: SinkAudioContext | null = null;
   let webrtcOutputElement: SinkAudioElement | null = null;
@@ -37,7 +37,7 @@ export function useAudioOutput(deps: AudioOutputDeps) {
 
   function applyOutputVolume(): void {
     const level = effectiveOutputVolume();
-    for (const [clientId, gain] of deps.remoteGains()) gain.gain.value = (volumes[clientId] ?? 1) * level;
+    for (const [clientId, gain] of deps.remoteGains()) gain.gain.value = audio.memberGain(clientId) * level;
     if (webrtcOutputElement) webrtcOutputElement.volume = level;
   }
 

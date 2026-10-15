@@ -32,9 +32,10 @@ export function useAudioPreferences(deps: AudioPreferencesDeps) {
     selectedInputDeviceId,
     selectedOutputDeviceId,
   } = storeToRefs(audio);
-  const { volumes } = audio;
+  const { volumes, mutedMembers } = audio;
   const { members } = useSessionStore();
   const storedVolumesByUid = reactive<Record<string, number>>({});
+  const storedMutedByUid = reactive<Record<string, boolean>>({});
 
   async function saveAudioPreferences(): Promise<void> {
     await saveLocalPreferences({
@@ -49,6 +50,7 @@ export function useAudioPreferences(deps: AudioPreferencesDeps) {
       notificationVolume: notificationVolume.value,
       preferredOutputDeviceId: selectedOutputDeviceId.value,
       volumesByUid: { ...storedVolumesByUid },
+      mutedByUid: { ...storedMutedByUid },
     });
   }
 
@@ -57,6 +59,8 @@ export function useAudioPreferences(deps: AudioPreferencesDeps) {
       if (!member.uid) continue;
       const saved = storedVolumesByUid[member.uid];
       if (saved !== undefined) volumes[member.id] = Math.max(0, Math.min(4, saved));
+      const muted = storedMutedByUid[member.uid];
+      if (muted !== undefined) mutedMembers[member.id] = muted;
     }
   }
 
@@ -70,6 +74,7 @@ export function useAudioPreferences(deps: AudioPreferencesDeps) {
     if (!selectedOutputDeviceId.value) selectedOutputDeviceId.value = preferences.preferredOutputDeviceId ?? "";
     if (typeof preferences.notificationVolume === "number") notificationVolume.value = clamp(preferences.notificationVolume, 0, 1);
     Object.assign(storedVolumesByUid, preferences.volumesByUid ?? {});
+    Object.assign(storedMutedByUid, preferences.mutedByUid ?? {});
     syncKnownMemberVolumes();
   });
 
@@ -85,7 +90,18 @@ export function useAudioPreferences(deps: AudioPreferencesDeps) {
       storedVolumesByUid[member.uid] = normalized;
       void saveAudioPreferences();
     }
-    deps.applyMemberVolume(clientId, normalized);
+    deps.applyMemberVolume(clientId, audio.memberGain(clientId));
+  }
+
+  /** Mute or unmute a member without touching their volume level. */
+  function setMemberMuted(clientId: number, muted: boolean): void {
+    mutedMembers[clientId] = muted;
+    const member = members.find((candidate) => candidate.id === clientId);
+    if (member?.uid) {
+      storedMutedByUid[member.uid] = muted;
+      void saveAudioPreferences();
+    }
+    deps.applyMemberVolume(clientId, audio.memberGain(clientId));
   }
 
   function setInputVolume(volume: number): void {
@@ -120,6 +136,7 @@ export function useAudioPreferences(deps: AudioPreferencesDeps) {
     saveAudioPreferences,
     syncKnownMemberVolumes,
     setVolume,
+    setMemberMuted,
     setInputVolume,
     setOutputVolume,
     toggleOutputMute,
