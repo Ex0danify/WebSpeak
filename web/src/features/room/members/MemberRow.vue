@@ -1,6 +1,6 @@
 <template>
   <div
-    class="group/row relative -m-1 -mx-1.5 flex min-w-0 items-center gap-2 rounded-md p-1 px-1.5 transition-[background-color,box-shadow] duration-150 focus-within:bg-accent-soft focus-within:shadow-sm hover:bg-accent-soft hover:shadow-sm max-compact:m-0 max-compact:min-h-14.5 max-compact:gap-2.25 max-compact:rounded-lg max-compact:p-1.75 [&.dragging]:opacity-45 [&[draggable=true]]:cursor-grab [&[draggable=true]]:touch-none [&[draggable=true]:active]:cursor-grabbing"
+    class="group/row relative -mx-1.5 -my-0.5 flex min-w-0 items-center gap-2 rounded-md px-1.5 py-0.5 transition-[background-color,box-shadow] duration-150 focus-within:bg-accent-soft focus-within:shadow-sm hover:bg-accent-soft hover:shadow-sm max-compact:m-0 max-compact:min-h-14.5 max-compact:gap-2.25 max-compact:rounded-lg max-compact:p-1.75 [&.dragging]:opacity-45 [&[draggable=true]]:cursor-grab [&[draggable=true]]:touch-none [&[draggable=true]:active]:cursor-grabbing"
   >
     <span class="relative shrink-0"
       ><Avatar
@@ -11,14 +11,14 @@
         tint
         :self="member.isSelf"
         surface="surface-1"
-        class="group-focus-within/row:[--avatar-gap:var(--color-surface-2)] group-hover/row:[--avatar-gap:var(--color-surface-2)]" /><span
-        class="absolute -right-0.5 -bottom-0.5 size-2.25 rounded-full border-2 border-surface-1 bg-success max-compact:size-2.5"
+        class="size-6.5 max-compact:size-10 group-focus-within/row:[--avatar-gap:var(--color-surface-2)] group-hover/row:[--avatar-gap:var(--color-surface-2)]" /><span
+        class="absolute -right-0.5 -bottom-0.5 size-2 rounded-full border-2 border-surface-1 bg-success max-compact:size-2.5"
         aria-hidden="true"
       ></span
     ></span>
     <div class="min-w-0 flex-1 *:block *:truncate">
       <strong class="text-ui text-fg max-compact:text-sm">{{ memberDisplayName(member, t) }}</strong
-      ><span class="mt-1 text-caption text-fg-muted max-compact:mt-0.75 max-compact:text-xs">{{
+      ><span class="mt-0 text-caption leading-tight text-fg-muted max-compact:mt-0.75 max-compact:text-xs">{{
         member.away ? t("away") : speaking ? t("speaking") : member.isSelf ? t("yourDevice") : t("memberOnline")
       }}</span>
     </div>

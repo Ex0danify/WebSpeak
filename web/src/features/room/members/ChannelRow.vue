@@ -4,7 +4,7 @@
       <span
         aria-hidden="true"
         :class="['pointer-events-none absolute top-0 h-1/2 w-px', toneClass(elbow.vertical)]"
-        :style="{ right: 'calc(100% + var(--spacing-tree-step) / 2)' }"
+        :style="{ left: 'calc(var(--spacing-tree-step) / -2)' }"
       ></span>
       <span
         aria-hidden="true"

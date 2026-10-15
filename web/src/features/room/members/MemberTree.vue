@@ -30,7 +30,7 @@
             />
             <div class="relative pb-1.5">
               <ChannelRails v-if="rails.get(channelItem.id)?.descent" :lines="[{ column: 1, tone: rails.get(channelItem.id)!.descent! }]" />
-              <div v-if="channelItem.members.length" class="mt-2.25 mr-1 ml-3.5 flex flex-col gap-3.25">
+              <div v-if="channelItem.members.length" class="mt-1.5 mr-1 ml-3.5 flex flex-col gap-2">
                 <MemberRow
                   v-for="member in channelItem.members"
                   :key="`${channelItem.id}-${member.id}`"
