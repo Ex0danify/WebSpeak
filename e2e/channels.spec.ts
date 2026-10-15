@@ -28,8 +28,9 @@ test.describe("channel tree", () => {
     await expect(channelHeading(page, "tree-list")).toContainText("2");
     await expect(channelGroup(page, "tree-list").getByText("tree-list-a")).toBeVisible();
     await expect(channelGroup(page, "tree-list").getByText("tree-list-b")).toBeVisible();
-    await expect(channelHeading(page, "tree-list-empty")).toContainText("0");
-    await expect(channelGroup(page, "tree-list-empty").getByText("No members in this channel")).toBeVisible();
+    // An empty channel shows no count and no empty-state line; screen readers still get "no members".
+    await expect(channelHeading(page, "tree-list-empty")).not.toContainText("0");
+    await expect(channelGroup(page, "tree-list-empty").getByText("No members in this channel")).toBeAttached();
     // The channels the fake server always has are there too, and you are in the first of them.
     await expect(channelGroup(page, "Lobby").getByText("tree-list-self (You)")).toBeVisible();
   });

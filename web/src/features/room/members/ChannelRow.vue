@@ -15,13 +15,14 @@
     <Button variant="soft" size="row" :class="buttonClass" :aria-current="active ? 'true' : undefined" :title="t('switchChannel')">
       <Icon name="volume" :size="sub ? 14 : 16" />
       <span :class="['min-w-0 flex-1 truncate', sub ? 'text-ui font-medium' : 'text-md font-bold']">{{ channelNameText(channel, t) }}</span>
-      <small class="text-ui">{{ channel.members.length }}</small>
+      <small v-if="channel.members.length" class="text-ui">{{ channel.members.length }}</small>
     </Button>
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed } from "vue";
+import { cn } from "@/shared/lib/cn";
 import { Button } from "@/shared/ui/button";
 import { Icon } from "@/shared/ui/icon";
 import { useI18n } from "@/shared/i18n/useI18n.js";
@@ -45,7 +46,7 @@ const sub = computed(() => props.channel.rootId !== props.channel.id);
 const buttonClass = computed(() =>
   props.dragOver
     ? "border-dashed border-accent bg-accent/7 text-accent aria-[current=true]:shadow-bar-accent"
-    : "aria-[current=true]:shadow-bar-accent",
+    : cn("aria-[current=true]:shadow-bar-accent", !props.channel.members.length && !props.active && "opacity-65 hover:opacity-100"),
 );
 const toneClass = (tone: RailTone) => (tone === "accent" ? "bg-accent" : "bg-line");
 </script>

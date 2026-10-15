@@ -28,7 +28,7 @@
               :elbow="rails.get(channelItem.id)?.elbow"
               @click="$emit('select-channel', channelItem)"
             />
-            <div class="relative pb-1.5">
+            <div :class="['relative', (channelItem.members.length || rails.get(channelItem.id)?.descent) && 'pb-1.5']">
               <ChannelRails v-if="rails.get(channelItem.id)?.descent" :lines="[{ column: 1, tone: rails.get(channelItem.id)!.descent! }]" />
               <div v-if="channelItem.members.length" class="mt-1.5 mr-1 ml-3.5 flex flex-col gap-2">
                 <MemberRow
@@ -51,7 +51,7 @@
                   @set-volume="$emit('set-volume', member.id, $event)"
                 />
               </div>
-              <div v-else class="mt-1.75 mr-1 ml-7.75 text-caption text-fg-muted">{{ t("noMembersInChannel") }}</div>
+              <span v-else class="sr-only">{{ t("noMembersInChannel") }}</span>
             </div>
           </section>
         </template>
@@ -105,6 +105,9 @@ type LayoutItem =
   | { key: string; spacer?: undefined; depth?: undefined; channels: TreeChannel[] };
 
 const rails = computed(() => computeChannelRails(props.channels, props.currentChannelId));
+
+/** A lone channel with nobody in it: its block needs no breathing room. */
+const isBareChannel = (channels: TreeChannel[]) => channels.length === 1 && channels[0]!.members.length === 0;
 
 // A root and its subtree share one block with a single closing hairline; spacers stay between blocks.
 const layout = computed(() => {

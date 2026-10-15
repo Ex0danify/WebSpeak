@@ -11,7 +11,7 @@
         tint
         :self="member.isSelf"
         surface="surface-1"
-        class="size-6.5 max-compact:size-10 group-focus-within/row:[--avatar-gap:var(--color-surface-2)] group-hover/row:[--avatar-gap:var(--color-surface-2)]" /><span
+        class="size-6.5 group-focus-within/row:[--avatar-gap:var(--color-surface-2)] group-hover/row:[--avatar-gap:var(--color-surface-2)] max-compact:size-10" /><span
         class="absolute -right-0.5 -bottom-0.5 size-2 rounded-full border-2 border-surface-1 bg-success max-compact:size-2.5"
         aria-hidden="true"
       ></span
