@@ -94,6 +94,7 @@ export function setup(overrides: Partial<WebRtcTransportDeps> = {}) {
     attachWebRtcPlayback: vi.fn(),
     syncWebRtcPlayback: vi.fn(async () => undefined),
     setAudioNotice: vi.fn(),
+    clearAudioNotice: vi.fn(),
     markSpeaking: vi.fn(),
     clearSpeaking: vi.fn(),
     sendCmd: vi.fn(),

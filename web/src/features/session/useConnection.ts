@@ -22,7 +22,8 @@ export interface ConnectionDeps {
   rejectPendingCommands: (error: Error) => void;
   stopMicrophone: () => void;
   clearMicrophoneError: () => void;
-  clearAudioNotice: () => void;
+  clearAudioNotice: (code?: string) => void;
+  setAudioNotice: (code: string) => void;
   stopScreenShareTransport: (clearStreams: boolean) => void;
   stopWebRtcTransport: () => void;
   resetDownlink: () => void;
@@ -284,26 +285,26 @@ export function useConnection(deps: ConnectionDeps) {
         deps.identityMaterial.value = msg.identity;
         if (lastConnection) lastConnection.identity = msg.identity;
       }
+      deps.setAudioNotice("VOICE_CONNECTING");
+      // A failed microphone must not look like a failed connection, so it becomes an audio diagnostic and the room stays
+      // visible. The WebRTC transport clears the connecting notice once the peer is up, a finished fallback already replaced it.
+      const voiceFailed = (error: unknown): void => {
+        deps.setMicrophoneError(error);
+        if (state.audioNoticeCode !== "WEBRTC_FALLBACK") deps.setAudioNotice("VOICE_FAILED");
+      };
+      const pcmStarted = (): void => deps.clearAudioNotice("VOICE_CONNECTING");
       if (wasReconnecting) {
-        const start =
-          msg.webrtcAvailable === true && typeof RTCPeerConnection !== "undefined"
-            ? ws.value
-              ? deps.startWebRtcTransport(connectionSequence, ws.value)
-              : Promise.resolve()
-            : deps.ensureMicrophone();
-        // A failed microphone must not look like a failed connection, so it becomes an audio diagnostic and the room stays
-        // visible.
-        start.catch((error: unknown) => {
-          deps.setMicrophoneError(error);
-        });
+        const viaWebRtc = msg.webrtcAvailable === true && typeof RTCPeerConnection !== "undefined";
+        const start = viaWebRtc
+          ? ws.value
+            ? deps.startWebRtcTransport(connectionSequence, ws.value)
+            : Promise.resolve()
+          : deps.ensureMicrophone().then(pcmStarted);
+        start.catch(voiceFailed);
       } else if (msg.webrtcAvailable === true && typeof RTCPeerConnection !== "undefined" && ws.value) {
-        void deps.startWebRtcTransport(connectionSequence, ws.value).catch((error: unknown) => {
-          deps.setMicrophoneError(error);
-        });
+        void deps.startWebRtcTransport(connectionSequence, ws.value).catch(voiceFailed);
       } else {
-        void deps.ensureMicrophone().catch((error: unknown) => {
-          deps.setMicrophoneError(error);
-        });
+        void deps.ensureMicrophone().then(pcmStarted).catch(voiceFailed);
       }
       deps.sendScreenShareMessage({ type: "screenShareList" });
     },
@@ -316,6 +317,7 @@ export function useConnection(deps: ConnectionDeps) {
       deps.stopWebRtcTransport();
       deps.stopScreenShareTransport(false);
       deps.stopMicrophone();
+      deps.clearAudioNotice("VOICE_CONNECTING");
       whisperTargetIds.clear();
       whisperActive.value = false;
     },

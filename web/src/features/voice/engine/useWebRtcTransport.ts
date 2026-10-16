@@ -24,6 +24,7 @@ export interface WebRtcTransportDeps {
   attachWebRtcPlayback(output: SinkAudioElement, stream: MediaStream): void;
   syncWebRtcPlayback(): Promise<void>;
   setAudioNotice(code: string, params?: TextParams): void;
+  clearAudioNotice(code?: string): void;
   markSpeaking(clientId: number): void;
   clearSpeaking(clientId: number): void;
   sendCmd(type: string, payload?: Record<string, unknown>): void;
@@ -157,6 +158,7 @@ export function useWebRtcTransport(deps: WebRtcTransportDeps) {
     };
     startWebRtcMicMonitor(deps.getAudioCtx(), micStream, microphoneTrack);
     peer.onconnectionstatechange = () => {
+      if (peer.connectionState === "connected") deps.clearAudioNotice("VOICE_CONNECTING");
       if (peer.connectionState === "failed") void fallbackFromWebRtc(sequence, socket, "WEBRTC_CONNECTION_FAILED");
     };
 
@@ -244,6 +246,7 @@ export function useWebRtcTransport(deps: WebRtcTransportDeps) {
         await deps.startMicrophone();
       } catch (error: unknown) {
         deps.setMicrophoneError(error);
+        deps.setAudioNotice("VOICE_FAILED");
       }
     }
   }

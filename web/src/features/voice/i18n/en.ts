@@ -18,6 +18,9 @@ export const en = {
   speakerSwitchFailed: "The speaker could not be switched",
   audioNoticeWebrtcFallback:
     "WebRTC realtime voice is unavailable (error code: {{code}}). Compatibility transport is active; latency and audio quality may be lower",
+  audioNoticeVoiceConnecting: "Connecting voice…",
+  audioNoticeVoiceFailed:
+    "Voice could not be connected. You may not hear others and they may not hear you. Check the microphone permission and reload the page",
   audioNoticePlaybackBlocked: "The browser blocked automatic audio playback. Click the page or allow audio playback for this site",
   audioNoticeDeviceList: "Audio devices could not be listed. The browser default devices will be used",
   audioNoticeContextSuspended: "Browser audio processing is paused. Click the page once to resume microphone and speaker audio",
