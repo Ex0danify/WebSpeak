@@ -129,16 +129,16 @@ describe("startWebRtcTransport", () => {
     const answered = await started();
     await answered.transport.applyWebRtcAnswer({ type: "answer", sdp: "x" });
     answered.peer.connectionState = "connected";
-    await vi.advanceTimersByTimeAsync(10_000);
+    await vi.advanceTimersByTimeAsync(6_000);
     expect(sentTypes(answered.socket)).toEqual(["webrtcOffer"]);
   });
 
-  it("falls back when ICE has not connected ten seconds after the answer", async () => {
+  it("falls back when ICE has not connected six seconds after the answer", async () => {
     vi.useFakeTimers();
     const { deps, peer, socket, transport } = await started();
     await transport.applyWebRtcAnswer({ type: "answer", sdp: "x" });
     peer.connectionState = "connecting";
-    await vi.advanceTimersByTimeAsync(9_999);
+    await vi.advanceTimersByTimeAsync(5_999);
     expect(sentTypes(socket)).toEqual(["webrtcOffer"]);
     await vi.advanceTimersByTimeAsync(1);
     expect(sentTypes(socket)).toContain("webrtcStop");

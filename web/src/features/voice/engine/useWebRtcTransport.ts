@@ -8,7 +8,7 @@ import type { SinkAudioContext, SinkAudioElement } from "@/features/voice/voiceT
 import type { MessageHandlers } from "@/features/session";
 import { useWebRtcAccompaniment } from "@/features/voice/engine/useWebRtcAccompaniment";
 
-const ICE_CONNECT_TIMEOUT_MS = 10_000;
+const ICE_CONNECT_TIMEOUT_MS = 6_000;
 
 /** Late-bound pieces owned by other modules, resolved at call time. */
 export interface WebRtcTransportDeps {
