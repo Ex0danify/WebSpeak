@@ -6,7 +6,16 @@ import type { FakeTeamSpeakServer, FakeTSClient } from "./fakeTsClient.js";
 /** Scripting pieces of the fake server: options, default channels and FakeRemoteMember (a member without a bridge session). */
 
 export type FakeOperation =
-  "connect" | "switchChannel" | "moveClient" | "sendTextMessage" | "poke" | "setAway" | "setInputMuted" | "execCommand" | "avatar";
+  | "connect"
+  | "switchChannel"
+  | "moveClient"
+  | "sendTextMessage"
+  | "poke"
+  | "setAway"
+  | "setInputMuted"
+  | "setOutputMuted"
+  | "execCommand"
+  | "avatar";
 
 export interface FakeChannel {
   id: bigint;

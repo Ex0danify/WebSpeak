@@ -42,7 +42,7 @@ export function useWebRtcTransport(deps: WebRtcTransportDeps) {
   const { state } = session;
   const audio = useVoiceAudioStore();
   const { microphoneMuted, inputVolume, voxThreshold, selectedOutputDeviceId, accompanimentActive } = storeToRefs(audio);
-  const { volumes } = audio;
+  const { volumes, mutedMembers } = audio;
   const { webrtcActive, micLevel } = deps;
 
   let webrtcPeer: RTCPeerConnection | null = null;
@@ -304,10 +304,10 @@ export function useWebRtcTransport(deps: WebRtcTransportDeps) {
 
   function syncWebRtcMemberVolumes(): void {
     if (!webrtcActive.value || ws.value?.readyState !== WebSocket.OPEN) return;
-    for (const [rawClientId, volume] of Object.entries(volumes)) {
+    for (const rawClientId of new Set([...Object.keys(volumes), ...Object.keys(mutedMembers)])) {
       const clientId = Number(rawClientId);
       if (!Number.isInteger(clientId) || clientId <= 0) continue;
-      deps.sendCmd("setMemberVolume", { clientId, volume });
+      deps.sendCmd("setMemberVolume", { clientId, volume: audio.memberGain(clientId) });
     }
   }
 

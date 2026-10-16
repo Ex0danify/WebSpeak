@@ -56,6 +56,21 @@ function fixture() {
   return { client, sdk, internals };
 }
 
+describe("TSClient output mute", () => {
+  it("sends the deafened flag once per change", async () => {
+    const { client, sdk } = fixture();
+    await client.setOutputMuted(true);
+    await client.setOutputMuted(true);
+    await client.setOutputMuted(false);
+    expect(sdk.commands).toEqual(["clientupdate client_output_muted=1", "clientupdate client_output_muted=0"]);
+  });
+
+  it("rejects before the session is ready", async () => {
+    const client = new TSClient({ target: { host: "voice.example.invalid", port: 9987 }, nickname: "Test" }, logger);
+    await expect(client.setOutputMuted(true)).rejects.toThrow("not ready");
+  });
+});
+
 describe("TSClient input mute and accompaniment", () => {
   it("sends a plain mute once", async () => {
     const { client, sdk } = fixture();

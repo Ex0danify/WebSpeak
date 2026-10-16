@@ -28,6 +28,7 @@ export interface ConnectionDeps {
   startWebRtcTransport: (sequence: number, socket: WebSocket) => Promise<void>;
   sendScreenShareMessage: (payload: Record<string, unknown>) => void;
   isMicrophoneMuted: () => boolean;
+  isOutputMuted: () => boolean;
   clearMemberVolumes: () => void;
 }
 
@@ -260,6 +261,8 @@ export function useConnection(deps: ConnectionDeps) {
       // The mute preference is local to the browser, TeamSpeak shows the gateway's client_input_muted flag to others.
       // Send it as soon as the session is ready so a muted reconnect shows for native users before WebRTC negotiates.
       deps.sendCmd("setMicrophoneMuted", { muted: deps.isMicrophoneMuted() });
+      // A new gateway session starts undeafened, so only a deafened client has anything to send.
+      if (deps.isOutputMuted()) deps.sendCmd("setOutputMuted", { muted: true });
       setScreenShareIceServers(msg.screenShareIceServers);
       deps.applyWhisperState(msg.whisperTargetIds, msg.whisperActive);
       if (Array.isArray(msg.members)) {

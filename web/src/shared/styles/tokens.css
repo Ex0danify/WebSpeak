@@ -110,6 +110,12 @@
   --breakpoint-demo-wide: 1081px;
   --breakpoint-wide: 1201px;
 
+  /* One level of the channel tree: rail spacing and member indent. Narrower on a phone, see the override below. */
+  --spacing-tree-step: 16px;
+
+  /* Half the slider thumb (18 px, 22 px on a phone), for marks that line up with where the thumb stops. */
+  --spacing-slider-thumb-half: 9px;
+
   /* sm for menu rows and kbd, md for buttons, inputs and tabs, lg for cards, dialogs and menus. */
   --radius-xs: 4px;
   --radius-sm: 6px;
@@ -125,6 +131,8 @@
   --shadow-speaking: 0 0 0 2px var(--avatar-gap), 0 0 0 4px var(--color-success);
   --shadow-ring-line: inset 0 0 0 1px var(--color-line-strong);
   --shadow-ring-accent: inset 0 0 0 1px var(--color-accent);
+  /* The bar on the left edge of the joined channel row. */
+  --shadow-bar-accent: inset 2px 0 0 var(--color-accent);
 
   /* Short and functional. Add motion-reduce:transition-none where a transition moves things. */
   --default-transition-duration: 120ms;
@@ -274,5 +282,12 @@
     --ws-success: #6ddc8b;
     --ws-warning: #e5b567;
     --ws-danger: #f0837c;
+  }
+}
+
+@media (width < theme(--breakpoint-compact)) {
+  :root {
+    --spacing-tree-step: 12px;
+    --spacing-slider-thumb-half: 11px;
   }
 }

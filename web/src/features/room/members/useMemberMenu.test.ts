@@ -59,17 +59,13 @@ describe("useMemberMenu", () => {
     expect(vm.memberMenuStyle).toEqual({});
   });
 
-  it("focuses the opener's volume slider on close, per member id", async () => {
+  it("focuses the opener's row on close, per member id", async () => {
     const { vm } = mountUseMemberMenu();
-    const slider = document.createElement("div");
-    slider.setAttribute("role", "slider");
-    slider.tabIndex = 0;
     const row = document.createElement("div");
-    row.className = "member-volume";
     row.setAttribute("data-member-id", "5");
-    row.appendChild(slider);
+    row.tabIndex = 0;
     document.body.appendChild(row);
-    const focusSpy = vi.spyOn(slider, "focus");
+    const focusSpy = vi.spyOn(row, "focus");
 
     vm.openMemberMenu(member(5, "Cy"), new MouseEvent("contextmenu"));
     await nextTick();

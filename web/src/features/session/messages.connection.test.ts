@@ -93,6 +93,14 @@ describe("connected", () => {
     expect(socket.sentJson.map((frame) => frame.type)).toEqual(["setMicrophoneMuted", "screenShareList"]);
   });
 
+  it("also sends the deafened flag when output was muted before the connect", async () => {
+    harness = await createVoiceHarness();
+    harness.voice.audio.outputMuted.value = true;
+    const socket = await harness.joinAndConnect();
+    expect(socket.sentJson.map((frame) => frame.type)).toEqual(["setMicrophoneMuted", "setOutputMuted", "screenShareList"]);
+    expect(socket.sentOfType("setOutputMuted")).toEqual([{ type: "setOutputMuted", payload: { muted: true } }]);
+  });
+
   it("without WebRTC it tries the microphone and records the failure as an audio diagnostic, not a connection error", async () => {
     await connected();
     expect(harness.voice.session.state.connected).toBe(true);

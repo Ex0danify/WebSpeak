@@ -93,6 +93,7 @@ export const de: Record<string, string> = {
   commandTimeout: "Zeitüberschreitung beim Vorgang. Versuche es gleich erneut",
   joinErr_TARGET_NOT_ALLOWED: "Diese TeamSpeak-Serveradresse ist nicht erlaubt",
   err_INVALID_MICROPHONE_STATE: "Der Mikrofonstatus ist ungültig",
+  err_INVALID_OUTPUT_STATE: "Der Ausgabestatus ist ungültig",
   err_INVALID_ACCOMPANIMENT_STATE: "Der Begleitungsstatus ist ungültig",
   err_INVALID_LATENCY_PROBE: "Die ID der Latenzmessung ist ungültig",
   err_WEBRTC_DISABLED: "Die WebRTC-Audioübertragung ist nicht aktiviert",

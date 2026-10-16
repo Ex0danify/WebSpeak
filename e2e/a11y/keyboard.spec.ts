@@ -119,19 +119,19 @@ test.describe("menus", () => {
     expect(await describeFocus(page), "the focus is lost when the menu closes").not.toBeNull();
   });
 
-  // The desktop menu's trigger is a hidden span at the click point that cannot take the focus back, so it goes to the row's own
-  // volume slider, whether the menu was opened with a right click or, as here, with Shift+F10 on the slider itself.
-  test("Esc after opening the menu with Shift+F10 on a row's slider returns the focus to it", async ({ page }, { project }) => {
+  // The desktop menu's trigger is a hidden span at the click point that cannot take the focus back, so it goes to the member's
+  // row, whether the menu was opened with a right click or, as here, with Shift+F10 on the focused row.
+  test("Esc after opening the menu with Shift+F10 on a member's row returns the focus to it", async ({ page }, { project }) => {
     test.skip(project.name !== "desktop", "the phone's menu belongs to a button that takes the focus back");
     await joinRoom(page);
-    const slider = memberRow(page, "Alex Rivera").getByRole("slider");
-    await slider.focus();
+    const row = memberRow(page, "Alex Rivera");
+    await row.focus();
     await page.keyboard.press("Shift+F10");
     const menu = page.getByRole("menu");
     await expect(menu).toBeVisible();
     await page.keyboard.press("Escape");
     await expect(menu).toBeHidden();
-    await expect(slider).toBeFocused();
+    await expect(row).toBeFocused();
   });
 
   test("Esc closes the language menu and gives the focus back to its button", async ({ page }) => {

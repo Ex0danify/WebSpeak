@@ -12,6 +12,7 @@
     ></Tooltip>
     <div class="relative mx-auto mb-2.75 w-17 max-compact:mb-2.5 max-compact:w-15">
       <Avatar :name="member.nickname" :src="member.avatar || undefined" size="tile" tint :self="member.isSelf" :speaking="speaking" />
+      <AvatarMuteBadge v-if="mutedLocally" size="tile" :label="t('mutedLocally')" />
       <span v-if="stream" :class="liveBadge"
         ><span class="inline-flex h-3.5 items-center gap-px text-accent" aria-hidden="true"
           ><i
@@ -72,7 +73,7 @@
 <script setup lang="ts">
 import { Icon } from "@/shared/ui/icon";
 import { useI18n } from "@/shared/i18n/useI18n.js";
-import { Avatar } from "@/shared/ui/avatar";
+import { Avatar, AvatarMuteBadge } from "@/shared/ui/avatar";
 import { Button } from "@/shared/ui/button";
 import { Tooltip } from "@/shared/ui/tooltip";
 import { VoiceTile, voiceTileNameClass, voiceTileStatusVariants } from "@/shared/ui/voiceTile";
@@ -82,6 +83,8 @@ import type { ScreenShareStream } from "@/features/screenShare";
 defineProps<{
   member: ChannelMember;
   speaking: boolean;
+  /** The local user muted this member on this client. */
+  mutedLocally?: boolean;
   isMobileViewport: boolean;
   stream: ScreenShareStream | null;
   screenShareActive: boolean;

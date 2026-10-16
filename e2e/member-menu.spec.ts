@@ -89,33 +89,113 @@ test.describe("menu", () => {
 });
 
 test.describe("volume", () => {
-  test("the slider in a member's row changes the volume and does not start dragging the member", async ({ page, script, isMobile }) => {
-    test.skip(isMobile, "the row's slider is hidden on a phone");
+  test("dragging a member's row by the nickname picks the member up", async ({ page, script, isMobile }) => {
+    test.skip(isMobile, "a phone moves members through the menu");
     script.member("vol-drag-other");
     await join(page, "vol-drag-self");
     const row = memberRow(page, "vol-drag-other");
     await expect(row).toBeVisible();
-    await page.evaluate(() => {
-      (window as unknown as { dragStarts: number }).dragStarts = 0;
-      document.addEventListener("dragstart", () => ((window as unknown as { dragStarts: number }).dragStarts += 1));
-    });
-    const thumb = row.getByRole("slider", { name: "Member volume" });
-    const box = (await thumb.boundingBox())!;
-    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
-    await page.mouse.down();
-    await page.mouse.move(box.x + box.width / 2 + 12, box.y + box.height / 2 + 2, { steps: 6 });
-    await page.mouse.move(box.x + box.width / 2 + 20, box.y + box.height / 2 + 14, { steps: 6 });
-    await page.mouse.up();
-    expect(await page.evaluate(() => (window as unknown as { dragStarts: number }).dragStarts)).toBe(0);
-    await expect(row).not.toHaveClass(/(^|\s)dragging(\s|$)/);
-    await expect(thumb).not.toHaveAttribute("aria-valuenow", "100");
-    // Control: the same gesture from the nickname does pick the member up, so the class checked above can show a drag.
     const name = (await row.getByText("vol-drag-other", { exact: true }).boundingBox())!;
     await page.mouse.move(name.x + 4, name.y + name.height / 2);
     await page.mouse.down();
     await page.mouse.move(name.x + 40, name.y + 30, { steps: 8 });
     await expect(row).toHaveClass(/(^|\s)dragging(\s|$)/);
     await page.mouse.up();
+  });
+
+  test("the volume bubble shows the decibels while the slider is dragged, and goes away on release", async ({ page, script, isMobile }) => {
+    test.skip(isMobile, "the sheet's slider shows the same bubble; the popup is covered here");
+    script.member("vol-db-other");
+    await join(page, "vol-db-self");
+    const menu = await openMemberMenu(page, "vol-db-other");
+    const bubble = menu.getByText(/ dB$/);
+    await expect(bubble).toBeHidden();
+    const track = (await menu.getByRole("menuitem", { name: /^Member volume/ }).boundingBox())!;
+    await page.mouse.move(track.x + track.width * 0.25, track.y + track.height - 8);
+    await page.mouse.down();
+    await page.mouse.move(track.x + track.width * 0.5, track.y + track.height - 8, { steps: 6 });
+    await expect(bubble).toHaveText(/^[+-]\d+\.\d dB$/);
+    await page.mouse.up();
+    await expect(bubble).toBeHidden();
+  });
+
+  test("the volume bubble also shows for a moment after an arrow key", async ({ page, script, isMobile }) => {
+    test.skip(isMobile, "the sheet's slider is a plain slider with focus of its own");
+    script.member("vol-key-other");
+    await join(page, "vol-key-self");
+    const menu = await openMemberMenu(page, "vol-key-other");
+    await page.keyboard.press("ArrowDown");
+    await page.keyboard.press("ArrowRight");
+    await expect(menu.getByText(/ dB$/)).toHaveText("+0.4 dB");
+    await expect(menu.getByText(/ dB$/)).toBeHidden();
+  });
+
+  test("Enter on the volume row restores 0 dB, and dragging next to 100% lands on it", async ({ page, script, isMobile }) => {
+    test.skip(isMobile, "the sheet's slider resets with Enter on its thumb; the popup is covered here");
+    script.member("vol-neutral-other");
+    await join(page, "vol-neutral-self");
+    const menu = await openMemberMenu(page, "vol-neutral-other");
+    await page.keyboard.press("ArrowDown");
+    const row = menu.getByRole("menuitem", { name: /^Member volume/ });
+    await page.keyboard.press("End");
+    await expect(row).toHaveAccessibleName("Member volume: 400%");
+    await page.keyboard.press("Enter");
+    await expect(row).toHaveAccessibleName("Member volume: 100%");
+    await expect(page.getByRole("menu")).toBeVisible();
+
+    // A drag that ends two pixels off unity still lands on it; without the snap that is about 102%.
+    const thumb = (await row.locator("[role=slider]").boundingBox())!;
+    const y = thumb.y + thumb.height / 2;
+    await page.mouse.move(thumb.x + thumb.width / 2, y);
+    await page.mouse.down();
+    await page.mouse.move(thumb.x + thumb.width / 2 + 2, y, { steps: 3 });
+    await expect(row).toHaveAccessibleName("Member volume: 100%");
+    await page.mouse.up();
+  });
+
+  test("a double click on the volume slider restores 0 dB", async ({ page, script, isMobile }) => {
+    test.skip(isMobile, "a phone has no double click on a slider; the thumb's Enter key covers it");
+    script.member("vol-dbl-other");
+    await join(page, "vol-dbl-self");
+    const menu = await openMemberMenu(page, "vol-dbl-other");
+    await page.keyboard.press("ArrowDown");
+    const row = menu.getByRole("menuitem", { name: /^Member volume/ });
+    await page.keyboard.press("End");
+    await expect(row).toHaveAccessibleName("Member volume: 400%");
+    const box = (await row.boundingBox())!;
+    await page.mouse.dblclick(box.x + box.width * 0.5, box.y + box.height - 8);
+    await expect(row).toHaveAccessibleName("Member volume: 100%");
+  });
+
+  test("the sheet's slider can still be stepped through 100% with the arrow keys, and Enter restores it", async ({
+    page,
+    script,
+    isMobile,
+  }) => {
+    test.skip(!isMobile, "the sheet is the phone's menu");
+    script.member("vol-step-other");
+    await join(page, "vol-step-self");
+    const sheet = await openMemberMenu(page, "vol-step-other");
+    const slider = sheet.getByRole("slider", { name: "Member volume" });
+    await slider.focus();
+    await page.keyboard.press("ArrowRight");
+    await page.keyboard.press("ArrowRight");
+    await expect(slider).toHaveAttribute("aria-valuenow", "102");
+    await page.keyboard.press("ArrowLeft");
+    await page.keyboard.press("ArrowLeft");
+    await page.keyboard.press("ArrowLeft");
+    await expect(slider).toHaveAttribute("aria-valuenow", "99");
+    await page.keyboard.press("Enter");
+    await expect(slider).toHaveAttribute("aria-valuenow", "100");
+  });
+
+  test("closing the menu puts the focus back on the member's row", async ({ page, script, isMobile }) => {
+    test.skip(isMobile, "a phone's sheet returns the focus to its own trigger");
+    script.member("vol-focus-other");
+    await join(page, "vol-focus-self");
+    await openMemberMenu(page, "vol-focus-other");
+    await page.keyboard.press("Escape");
+    await expect(memberRow(page, "vol-focus-other")).toBeFocused();
   });
 
   test("the menu's volume changes by 5 with the arrow keys and jumps with Home and End (popup)", async ({ page, script, isMobile }) => {
@@ -156,22 +236,6 @@ test.describe("volume", () => {
     await expect(slider).toHaveAttribute("aria-valuenow", "400");
     await page.keyboard.press("Home");
     await expect(slider).toHaveAttribute("aria-valuenow", "0");
-  });
-
-  test("the slider in the member's row takes the keyboard, and shares its value with the menu", async ({ page, script, isMobile }) => {
-    test.skip(isMobile, "the row has no volume slider on a phone");
-    script.member("vol-row-other");
-    await join(page, "vol-row-self");
-    const slider = memberRow(page, "vol-row-other").getByRole("slider", { name: "Member volume" });
-    await expect(slider).toHaveAttribute("aria-valuenow", "100");
-    await slider.focus();
-    await page.keyboard.press("ArrowRight");
-    await expect(slider).toHaveAttribute("aria-valuenow", "101");
-    await page.keyboard.press("End");
-    await expect(slider).toHaveAttribute("aria-valuenow", "400");
-
-    await openMemberMenu(page, "vol-row-other");
-    await expect(page.getByRole("menuitem", { name: /^Member volume/ })).toHaveAccessibleName("Member volume: 400%");
   });
 });
 

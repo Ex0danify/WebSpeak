@@ -46,6 +46,8 @@ export interface LocalPreferences {
   lastNickname?: string;
   inputDeviceId?: string;
   volumesByUid?: Record<string, number>;
+  /** Members muted on this client, by uid. A mute keeps the member's slider level in `volumesByUid`. */
+  mutedByUid?: Record<string, boolean>;
 }
 
 let databasePromise: Promise<IDBDatabase> | null = null;
@@ -167,6 +169,7 @@ export async function saveLocalPreferences(preferences: LocalPreferences): Promi
         ...existing,
         ...preferences,
         volumesByUid: { ...existing.volumesByUid, ...preferences.volumesByUid },
+        ...(existing.mutedByUid || preferences.mutedByUid ? { mutedByUid: { ...existing.mutedByUid, ...preferences.mutedByUid } } : {}),
         id: PREFERENCES_KEY,
       });
       put.onsuccess = () => resolve(undefined);

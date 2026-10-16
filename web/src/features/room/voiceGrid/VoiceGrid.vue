@@ -9,6 +9,7 @@
       v-model:screen-share-settings-open="screenShareSettingsOpen"
       :member="member"
       :speaking="isSpeaking(member, speakingIds)"
+      :muted-locally="Boolean(mutedMembers[member.id])"
       :is-mobile-viewport="isMobileViewport"
       :stream="screenShareStreamForMember(member)"
       :screen-share-active="screenShareActive"
@@ -48,6 +49,7 @@ defineProps<{
   currentMembers: ChannelMember[];
   roomMembers: ChannelMember[];
   speakingIds: Set<number>;
+  mutedMembers: Record<number, boolean>;
   isMobileViewport: boolean;
   screenShareStreamForMember: (member: ChannelMember) => ScreenShareStream | null;
   screenShareActive: boolean;

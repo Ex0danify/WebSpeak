@@ -84,6 +84,9 @@ export function useChannelTree(options: UseChannelTreeOptions) {
         description: currentChannelDescription.value,
         members: currentMembers.value,
         depth: 0,
+        rootId: "__current__",
+        isLastChild: true,
+        ancestorLines: [],
       },
     ];
   });
@@ -272,8 +275,7 @@ export function useChannelTree(options: UseChannelTreeOptions) {
   function onMemberPointerDown(member: ChannelMember, event: PointerEvent): void {
     if (member.isSelf || event.button !== 0) return;
     const target = event.target instanceof Element ? event.target : null;
-    // The volume slider is not an input, but a press on it is a volume change and never the start of a move.
-    if (target?.closest("input,button,[role=slider],.member-volume")) return;
+    if (target?.closest("input,button")) return;
     event.preventDefault();
     memberPointerDrag.member = member;
     memberPointerDrag.pointerId = event.pointerId;

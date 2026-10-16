@@ -76,7 +76,7 @@ export function useRoomSession() {
     accompanimentSupported,
     accompanimentErrorCode,
   } = storeToRefs(audio);
-  const { inputDevices, outputDevices, microphoneProcessing, volumes } = audio;
+  const { inputDevices, outputDevices, microphoneProcessing, volumes, mutedMembers } = audio;
   const screenShare = useScreenShareStore();
   screenShare.reset();
   const {
@@ -132,12 +132,18 @@ export function useRoomSession() {
     saveAudioPreferences,
     syncKnownMemberVolumes,
     setVolume,
+    setMemberMuted,
     setInputVolume,
     setOutputVolume,
     toggleOutputMute,
     setVoxThreshold,
     setNotificationVolume,
-  } = useAudioPreferences({ applyMemberVolume, applyInputVolume, applyOutputVolume });
+  } = useAudioPreferences({
+    applyMemberVolume,
+    applyInputVolume,
+    applyOutputVolume,
+    syncOutputMuted: (muted) => sendCommandAndWait("setOutputMuted", { muted }),
+  });
   const webrtcActive = ref(false);
   const identityMaterial = ref("");
   const playback = usePlayback({ getAudioCtx, effectiveOutputVolume, webrtcActive });
@@ -246,6 +252,7 @@ export function useRoomSession() {
     startWebRtcTransport,
     sendScreenShareMessage,
     isMicrophoneMuted: () => microphoneMuted.value,
+    isOutputMuted: () => outputMuted.value,
     clearMemberVolumes: () => {
       for (const key of Object.keys(volumes)) delete volumes[Number(key)];
     },
@@ -289,6 +296,7 @@ export function useRoomSession() {
       channels,
       speakingIds,
       volumes,
+      mutedMembers,
       whisperTargetIds,
       whisperActive,
       serverEvents,
@@ -324,6 +332,7 @@ export function useRoomSession() {
       accompanimentSupported,
       accompanimentErrorCode,
       setVolume,
+      setMemberMuted,
       setInputVolume,
       setNoiseSuppressionEnabled,
       setOutputVolume,

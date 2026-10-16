@@ -324,6 +324,12 @@ export class FakeTSClient extends EventEmitter {
     this.server.updateMember(this.clientId, { inputMuted: muted });
   }
 
+  async setOutputMuted(muted: boolean): Promise<void> {
+    this.ready();
+    await this.server.step("setOutputMuted");
+    this.server.updateMember(this.clientId, { outputMuted: muted });
+  }
+
   async switchChannel(channelId: bigint, password?: string): Promise<void> {
     if (!this.isUp) return;
     await this.server.step("switchChannel");

@@ -14,14 +14,32 @@
     <template v-if="memberMenu">
       <MenuLabel plain>{{ nicknameText(memberMenu.member.nickname, t, memberMenu.member.unnamed) }}</MenuLabel>
       <MenuSlider
-        :model-value="Math.round((volumes[memberMenu.member.id] ?? 1) * 100)"
+        :model-value="volumePercent(memberMenu.member.id)"
         :label="t('memberVolume')"
         :min="0"
         :max="400"
         :key-step="5"
-        :value-text="`${Math.round((volumes[memberMenu.member.id] ?? 1) * 100)}%`"
+        :value-text="`${volumePercent(memberMenu.member.id)}%`"
+        :bubble="formatVolumeDb(volumePercent(memberMenu.member.id))"
+        :neutral="100"
         @update:model-value="$emit('set-volume', memberMenu.member.id, $event / 100)"
-      />
+        @keydown.m="$emit('set-muted', memberMenu.member.id, !isMuted(memberMenu.member.id))"
+      >
+        <template #action>
+          <Button
+            variant="softOutline"
+            size="xs"
+            icon-only
+            class="size-6.25"
+            :pressed="isMuted(memberMenu.member.id)"
+            :title="muteLabel(memberMenu.member.id)"
+            :aria-label="muteLabel(memberMenu.member.id)"
+            tabindex="-1"
+            @click.stop="$emit('set-muted', memberMenu.member.id, !isMuted(memberMenu.member.id))"
+            ><Icon :name="isMuted(memberMenu.member.id) ? 'volume-off' : 'volume'" :size="14"
+          /></Button>
+        </template>
+      </MenuSlider>
       <MenuSeparator />
       <MenuItem @select="$emit('private-message', memberMenu.member.id)"
         ><Icon name="message" :size="15" />{{ t("privateMessage") }}</MenuItem
@@ -60,26 +78,36 @@
 </template>
 
 <script setup lang="ts">
+import { Button } from "@/shared/ui/button";
 import { Icon } from "@/shared/ui/icon";
 import { Menu, MenuItem, MenuLabel, MenuSeparator, MenuSlider, MenuSub } from "@/shared/ui/menu";
 import { useI18n } from "@/shared/i18n/useI18n.js";
 import { channelNameText, nicknameText, type ChannelMember } from "@/features/session";
 import type { TreeChannel } from "../roomTypes.js";
+import { formatVolumeDb } from "./volumeDb.js";
 
-defineProps<{
+const props = defineProps<{
   memberMenu: { member: ChannelMember; x: number; y: number } | null;
   memberMenuStyle: { left?: string; top?: string };
   volumes: Record<number, number>;
+  mutedMembers: Record<number, boolean>;
   whisperTargetIds: Set<number>;
   moveCurrentChannel: TreeChannel | null;
   moveCurrentSameChannel: boolean;
   moveOtherChannels: TreeChannel[];
 }>();
 
+const volumePercent = (id: number) => Math.round((props.volumes[id] ?? 1) * 100);
+
+// Mute is its own state: the slider keeps its level while muted and only the audible gain drops to 0.
+const isMuted = (id: number) => Boolean(props.mutedMembers[id]);
+const muteLabel = (id: number) => (isMuted(id) ? t("unmuteMember") : t("muteMember"));
+
 defineEmits<{
   (e: "close"): void;
   (e: "close-auto-focus", event: Event): void;
   (e: "set-volume", id: number, volume: number): void;
+  (e: "set-muted", id: number, muted: boolean): void;
   (e: "private-message", id: number): void;
   (e: "poke", member: ChannelMember): void;
   (e: "toggle-whisper", member: ChannelMember): void;

@@ -40,9 +40,9 @@ export function memberRow(page: Page, nickname: string): Locator {
 
 const escapeRegExp = (text: string): string => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
-/** The button of one channel in the member tree, named by the channel and the number of people in it. */
+/** The button of one channel in the member tree, named by the channel and, unless it is empty, the number of people in it. */
 export function channelHeading(page: Page, channel: string): Locator {
-  return page.getByRole("button", { name: new RegExp(`^${escapeRegExp(channel)} \\d+$`) });
+  return page.getByRole("button", { name: new RegExp(`^${escapeRegExp(channel)}( \\d+)?$`) });
 }
 
 /** One channel of the member tree with the members listed under it (the block that holds its heading). */

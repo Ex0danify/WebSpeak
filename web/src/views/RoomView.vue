@@ -18,6 +18,7 @@
     :member-menu="memberMenu"
     :member-menu-style="memberMenuStyle"
     :volumes="volumes"
+    :muted-members="mutedMembers"
     :whisper-target-ids="whisperTargetIds"
     :move-current-channel="memberMoveMenuCurrentChannel"
     :move-current-same-channel="memberMoveMenuCurrentSameChannel"
@@ -25,6 +26,7 @@
     @close="memberMenu = null"
     @close-auto-focus="onMemberMenuCloseAutoFocus"
     @set-volume="setVolume"
+    @set-muted="setMemberMuted"
     @private-message="openPrivateChat"
     @poke="pokeMember"
     @toggle-whisper="toggleWhisperTarget"
@@ -111,7 +113,7 @@ import { avatarStyle } from "@/shared/lib/format";
 
 const session = useRoomContext();
 const { state: voiceState, disconnect } = session.session;
-const { pokeNotifications, volumes, whisperTargetIds } = session.roster;
+const { pokeNotifications, volumes, mutedMembers, whisperTargetIds } = session.roster;
 const { sendPoke } = session.chat;
 const {
   microphoneMuted,
@@ -130,6 +132,7 @@ const {
   microphoneTestActive,
   testAudioUrl,
   setVolume,
+  setMemberMuted,
   setInputVolume,
   setNoiseSuppressionEnabled,
   setOutputVolume,

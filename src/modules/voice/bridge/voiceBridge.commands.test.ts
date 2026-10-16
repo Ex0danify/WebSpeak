@@ -211,6 +211,15 @@ describe("away and mute", () => {
     expect(gateway.ts.members.get(session.id)!.inputMuted).toBe(false);
   });
 
+  it("sets and clears the deafened flag on the server", async () => {
+    const gateway = await gateways.start({ ts: newServer() });
+    const session = await alice(gateway);
+    await ask(session, "setOutputMuted", { muted: true }, "o1");
+    expect(gateway.ts.members.get(session.id)!.outputMuted).toBe(true);
+    await ask(session, "setOutputMuted", { muted: false }, "o2");
+    expect(gateway.ts.members.get(session.id)!.outputMuted).toBe(false);
+  });
+
   it("maps a TeamSpeak refusal of an operation to its error code, and anything else to OPERATION_FAILED", async () => {
     const gateway = await gateways.start({ ts: newServer() });
     const session = await alice(gateway);

@@ -21,7 +21,12 @@ beforeEach(async () => {
 afterEach(() => vi.restoreAllMocks());
 
 function setup() {
-  const deps = { applyMemberVolume: vi.fn(), applyInputVolume: vi.fn(), applyOutputVolume: vi.fn() };
+  const deps = {
+    applyMemberVolume: vi.fn(),
+    applyInputVolume: vi.fn(),
+    applyOutputVolume: vi.fn(),
+    syncOutputMuted: vi.fn(async () => undefined),
+  };
   const prefs = useAudioPreferences(deps);
   return { deps, prefs, audio: useVoiceAudioStore(), session: useSessionStore() };
 }
@@ -141,6 +146,7 @@ describe("setters", () => {
     expect(audio.outputMuted).toBe(true);
     prefs.toggleOutputMute();
     expect(audio.outputMuted).toBe(false);
+    expect(deps.syncOutputMuted.mock.calls).toEqual([[true], [false]]);
     expect(deps.applyOutputVolume).toHaveBeenCalledTimes(4);
     expect(save).not.toHaveBeenCalled();
   });

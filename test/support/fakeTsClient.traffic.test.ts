@@ -145,11 +145,13 @@ describe("poke, away and mute", () => {
     const updates = collect<{ id: number; away?: boolean; awayMessage?: string; inputMuted?: boolean }>(bob, "clientUpdated");
     await alice.setAway(true, "lunch");
     await alice.setInputMuted(true);
+    await alice.setOutputMuted(true);
     expect(updates).toMatchObject([
       { id: alice.getClientId(), away: true, awayMessage: "lunch" },
       { id: alice.getClientId(), inputMuted: true },
+      { id: alice.getClientId(), outputMuted: true },
     ]);
-    expect(server.members.get(alice.getClientId())).toMatchObject({ away: true, inputMuted: true });
+    expect(server.members.get(alice.getClientId())).toMatchObject({ away: true, inputMuted: true, outputMuted: true });
   });
 });
 
