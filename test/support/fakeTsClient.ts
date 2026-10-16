@@ -11,7 +11,6 @@ import {
 import { normalizeTeamSpeakKickedReason } from "../../src/shared/errors.js";
 import type { TeamSpeakProtocol } from "../../src/shared/teamSpeakProtocol.js";
 import type {
-  TSChatMessage,
   TSChatScope,
   TSClient,
   TSClientAvatar,
@@ -26,6 +25,7 @@ import {
   type FakeOperation,
   type FakeServerOptions,
 } from "./fakeTsClientScript.js";
+import { deliverChat } from "./fakeTsChat.js";
 
 export { DEFAULT_FAKE_CHANNELS, FakeRemoteMember, type FakeChannel, type FakeOperation, type FakeServerOptions };
 
@@ -154,24 +154,7 @@ export class FakeTeamSpeakServer {
   }
 
   deliverText(from: DirectoryClientInfo, scope: TSChatScope, message: string, targetId = 0n): void {
-    const targetMode = scope === "private" ? 1 : scope === "server" ? 3 : 2;
-    if (scope === "private" && !this.members.has(Number(targetId))) throw new ServerError("512", "invalid clientID");
-    // Channel notifications carry no target; the SDK reports it as 0.
-    const payload: TSChatMessage = {
-      invokerName: from.nickname,
-      invokerId: from.id,
-      invokerUid: from.uid,
-      message,
-      targetMode,
-      targetId: scope === "channel" ? 0n : targetId,
-    };
-    for (const [id, client] of this.connected) {
-      if (id === from.id) continue;
-      const member = this.members.get(id)!;
-      if (scope === "channel" && member.channelID !== from.channelID) continue;
-      if (scope === "private" && id !== Number(targetId)) continue;
-      client.emit("textMessage", payload);
-    }
+    deliverChat(this, from, scope, message, targetId);
   }
 
   /** Voice reaches the sender's channel, or only `toIds` for a whisper. */
