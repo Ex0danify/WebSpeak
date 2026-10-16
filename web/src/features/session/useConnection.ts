@@ -289,6 +289,8 @@ export function useConnection(deps: ConnectionDeps) {
       // A failed microphone must not look like a failed connection, so it becomes an audio diagnostic and the room stays
       // visible. The WebRTC transport clears the connecting notice once the peer is up, a finished fallback already replaced it.
       const voiceFailed = (error: unknown): void => {
+        // A start cut short by a disconnect or reconnect fails on purpose, the next connect starts voice again.
+        if (!state.connected) return;
         deps.setMicrophoneError(error);
         if (state.audioNoticeCode !== "WEBRTC_FALLBACK") deps.setAudioNotice("VOICE_FAILED");
       };
