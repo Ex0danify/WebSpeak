@@ -10,13 +10,7 @@ import {
 } from "@echosixhiya/teamspeak-client";
 import { normalizeTeamSpeakKickedReason } from "../../src/shared/errors.js";
 import type { TeamSpeakProtocol } from "../../src/shared/teamSpeakProtocol.js";
-import type {
-  TSChatScope,
-  TSClient,
-  TSClientAvatar,
-  TSClientOptions,
-  TSVoiceData,
-} from "../../src/modules/teamspeak/teamSpeakClient.js";
+import type { TSChatScope, TSClient, TSClientAvatar, TSClientOptions, TSVoiceData } from "../../src/modules/teamspeak/teamSpeakClient.js";
 import type { VoiceBridgeOptions } from "../../src/modules/voice/voiceBridge.js";
 import {
   DEFAULT_FAKE_CHANNELS,
