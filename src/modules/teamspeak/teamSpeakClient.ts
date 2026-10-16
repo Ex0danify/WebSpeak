@@ -76,6 +76,8 @@ export class TSClient extends EventEmitter {
     this.selfLeaveReasonId = null;
     this.inputMute.reset();
     this.outputMute.reset();
+    // A self-closed tunnel leaves the adapter on a dead local port and reports nothing, so rebuild both.
+    if (this.accelerationClient?.isClosed()) await this.retireTransport();
     if (!this.adapter || !this.client) {
       let transportTarget = this.options.target;
       if (this.options.acceleration && !this.accelerationClient) {
@@ -214,6 +216,7 @@ export class TSClient extends EventEmitter {
     });
 
     client.on("disconnected", (err) => {
+      if (this.client !== client) return; // a retired client's late end must not re-enter the reconnect path
       if (err) {
         const normalized = normalizeTeamSpeakError(err);
         this.logger.warn(
@@ -365,6 +368,18 @@ export class TSClient extends EventEmitter {
   private releaseAcceleration(): void {
     this.accelerationClient?.close();
     this.accelerationClient = null;
+  }
+
+  /** Drops adapter and tunnel so the next connect() builds fresh ones. */
+  private async retireTransport(): Promise<void> {
+    const adapter = this.adapter;
+    this.adapter = null;
+    this.client = null;
+    this.connected = false;
+    this.clientId = 0;
+    this.releaseAcceleration();
+    this.logger.warn("Acceleration tunnel closed on its own, rebuilding");
+    await adapter?.disconnect().catch(() => undefined);
   }
 
   async disconnect(): Promise<void> {
