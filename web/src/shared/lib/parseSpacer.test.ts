@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseSpacer } from "./parseSpacer";
+import { parseSpacer } from "@/shared/lib/parseSpacer";
 
 describe("parseSpacer", () => {
   it.each([

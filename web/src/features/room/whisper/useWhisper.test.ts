@@ -29,7 +29,7 @@ function pointerEvent(pointerId = 1, capture = false): PointerEvent {
 }
 
 async function mountUseWhisper(overrides: Record<string, unknown> = {}) {
-  const { useWhisper } = await import("./useWhisper");
+  const { useWhisper } = await import("@/features/room/whisper/useWhisper");
   const whisperTargetIds = reactive(new Set<number>()) as Set<number>;
   const members = reactive<ChannelMember[]>([member(1, "Lucas", { isSelf: true }), member(2, "Ana"), member(3, "Ben")]);
   const options = {

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { RadioGroupRoot } from "reka-ui";
-import { cn } from "../../lib/cn";
+import { cn } from "@/shared/lib/cn";
 
 // Groups Radio buttons under one v-model, on reka-ui RadioGroup, so arrow keys
 // move between them. Label it with aria-label or aria-labelledby.

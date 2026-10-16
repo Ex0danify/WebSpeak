@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { dismissToast, showToast, toast, useToast } from "./useToast";
+import { dismissToast, showToast, toast, useToast } from "@/shared/composables/useToast";
 
 // The queue is module state, so every test starts from an empty one.
 afterEach(() => dismissToast());

@@ -3,7 +3,7 @@ import { useI18n } from "@/shared/i18n/useI18n.js";
 import { errorText, resolveText, text } from "@/shared/i18n/localizedText.js";
 import { toast as raiseToast } from "@/shared/composables/useToast.js";
 import type { ChannelMember } from "@/features/session";
-import type { RoomSession } from "../roomTypes";
+import type { RoomSession } from "@/features/room/roomTypes";
 
 export interface UseWhisperOptions {
   roster: Pick<RoomSession["roster"], "whisperTargetIds" | "members">;

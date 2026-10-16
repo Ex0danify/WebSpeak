@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { computed, inject, ref } from "vue";
-import { cn } from "../../lib/cn";
-import { controlVariants } from "../input";
-import { fieldContextKey } from "../field";
+import { cn } from "@/shared/lib/cn";
+import { controlVariants } from "@/shared/ui/input";
+import { fieldContextKey } from "@/shared/ui/field";
 
 // Multi-line text with the shared control look. Attributes (rows, maxlength,
 // placeholder, disabled, ...) go to the <textarea>; `class` styles the wrapper,

@@ -1,12 +1,12 @@
 <script setup lang="ts">
 import { Comment, Fragment, cloneVNode, defineComponent, provide, type VNode } from "vue";
 import { DropdownMenuContent, DropdownMenuPortal, DropdownMenuRoot, DropdownMenuTrigger } from "reka-ui";
-import { cn } from "../../lib/cn";
-import { useMediaQuery } from "../../composables/useMediaQuery";
-import { Button } from "../button";
-import { Dialog } from "../dialog";
-import { menuContextKey } from "./menuContext";
-import { menuContentClass } from "./menu";
+import { cn } from "@/shared/lib/cn";
+import { useMediaQuery } from "@/shared/composables/useMediaQuery";
+import { Button } from "@/shared/ui/button";
+import { Dialog } from "@/shared/ui/dialog";
+import { menuContextKey } from "@/shared/ui/menu/menuContext";
+import { menuContentClass } from "@/shared/ui/menu/menu";
 
 // Dropdown menu on reka-ui, which brings anchoring, collision handling, arrow keys, typeahead, Esc and focus return.
 // The trigger slot takes exactly one element. Not modal, the page stays scrollable and an outside click closes it.

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, useAttrs } from "vue";
-import { cn } from "../../lib/cn";
-import { buttonVariants, type ButtonVariants } from "./button";
+import { cn } from "@/shared/lib/cn";
+import { buttonVariants, type ButtonVariants } from "@/shared/ui/button/button";
 
 const props = withDefaults(
   defineProps<{

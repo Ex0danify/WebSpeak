@@ -1,4 +1,4 @@
-import type { TreeChannel } from "../roomTypes.js";
+import type { TreeChannel } from "@/features/room/roomTypes.js";
 
 export type RailTone = "line" | "accent";
 

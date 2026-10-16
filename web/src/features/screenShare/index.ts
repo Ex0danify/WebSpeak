@@ -1,9 +1,9 @@
-export { useScreenSharePeers } from "./useScreenSharePeers";
-export { useScreenShare, type ScreenShareResolutionPreset, type UseScreenShareOptions } from "./useScreenShare";
-export { useScreenShareStore } from "./stores/screenShareStore";
-export { default as ScreenSharePlayer } from "./ScreenSharePlayer.vue";
-export { default as ScreenShareSettingsDialog } from "./ScreenShareSettingsDialog.vue";
-export { default as ScreenShareInlineError } from "./ScreenShareInlineError.vue";
+export { useScreenSharePeers } from "@/features/screenShare/useScreenSharePeers";
+export { useScreenShare, type ScreenShareResolutionPreset, type UseScreenShareOptions } from "@/features/screenShare/useScreenShare";
+export { useScreenShareStore } from "@/features/screenShare/stores/screenShareStore";
+export { default as ScreenSharePlayer } from "@/features/screenShare/ScreenSharePlayer.vue";
+export { default as ScreenShareSettingsDialog } from "@/features/screenShare/ScreenShareSettingsDialog.vue";
+export { default as ScreenShareInlineError } from "@/features/screenShare/ScreenShareInlineError.vue";
 export type {
   ScreenShareCaptureStats,
   ScreenShareOutputSettings,
@@ -12,5 +12,5 @@ export type {
   ScreenShareStream,
   ScreenShareViewer,
   ScreenShareWebRtcStats,
-} from "./screenShareTypes";
-export { translations as screenShareMessages } from "./i18n/index.js";
+} from "@/features/screenShare/screenShareTypes";
+export { translations as screenShareMessages } from "@/features/screenShare/i18n/index.js";

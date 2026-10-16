@@ -1,4 +1,4 @@
-import type { Language } from "../i18n/languages.js";
+import type { Language } from "@/shared/i18n/languages.js";
 const DB_NAME = "webspeak-local";
 const DB_VERSION = 1;
 const CURRENT_IDENTITY_KEY = "current";

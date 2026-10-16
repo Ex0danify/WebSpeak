@@ -1,8 +1,15 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 import { SliderRange, SliderRoot, SliderThumb, SliderTrack } from "reka-ui";
-import { cn } from "../../lib/cn";
-import { sliderBubbleClass, sliderRangeClass, sliderRootClass, sliderThumbClass, sliderTickClass, sliderTrackClass } from "./slider";
+import { cn } from "@/shared/lib/cn";
+import {
+  sliderBubbleClass,
+  sliderRangeClass,
+  sliderRootClass,
+  sliderThumbClass,
+  sliderTickClass,
+  sliderTrackClass,
+} from "@/shared/ui/slider/slider";
 
 // Slider for volume, thresholds and similar, on reka-ui. Emits while dragging. Name it with aria-label or aria-labelledby, or
 // give it an `id` and a <label for> and the label is linked on mount. `valueText` is for a spoken value such as "70%".

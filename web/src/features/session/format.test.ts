@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
-import { isSpeaking, memberDisplayName, messageAvatar } from "./format";
-import type { ChannelMember, ChatMessage } from "./sessionTypes";
+import { isSpeaking, memberDisplayName, messageAvatar } from "@/features/session/format";
+import type { ChannelMember, ChatMessage } from "@/features/session/sessionTypes";
 
 function member(id: number, nickname: string, overrides: Partial<ChannelMember> = {}): ChannelMember {
   return { id, nickname, ...overrides };

@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { inject } from "vue";
 import { DropdownMenuItem } from "reka-ui";
-import { cn } from "../../lib/cn";
-import { menuContextKey } from "./menuContext";
-import { menuItemVariants, menuSheetItemClass, type MenuItemVariants } from "./menu";
+import { cn } from "@/shared/lib/cn";
+import { menuContextKey } from "@/shared/ui/menu/menuContext";
+import { menuItemVariants, menuSheetItemClass, type MenuItemVariants } from "@/shared/ui/menu/menu";
 
 // One action in a Menu, with an <Icon> first in the default slot. `shortcut` is right-aligned text on desktop only. `select`
 // fires on click, Enter and Space and the menu closes after, unless the handler calls event.preventDefault(). `tone="danger"`

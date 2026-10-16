@@ -48,8 +48,8 @@ import { Avatar } from "@/shared/ui/avatar";
 import { Chip } from "@/shared/ui/chip";
 import { Icon } from "@/shared/ui/icon";
 import { useI18n } from "@/shared/i18n/useI18n";
-import { demoKicker } from "./demoPanel";
-import type { DemoChannel } from "./demoTypes";
+import { demoKicker } from "@/features/demo/demoPanel";
+import type { DemoChannel } from "@/features/demo/demoTypes";
 
 defineProps<{ channel: DemoChannel; speakingId: string }>();
 const emit = defineEmits<{ "update:speakingId": [id: string] }>();

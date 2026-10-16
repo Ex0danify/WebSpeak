@@ -8,7 +8,7 @@ import {
   safeClientErrorCode,
   safeClientErrorDetail,
   visibleErrorCode,
-} from "./sessionErrors";
+} from "@/features/session/sessionErrors";
 
 describe("safeClientErrorCode", () => {
   it.each([

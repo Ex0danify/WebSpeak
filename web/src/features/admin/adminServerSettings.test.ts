@@ -1,14 +1,14 @@
 import { nextTick } from "vue";
-import { registerAdminStores } from "./adminStores";
+import { registerAdminStores } from "@/features/admin/adminStores";
 import { createPinia, setActivePinia } from "pinia";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useI18n } from "@/shared/i18n/useI18n";
-import { createAdminFormat } from "./adminFormat";
-import { createRelayNode, DEFAULT_WELCOME_TEXTS, mapRelayNodes, welcomeLanguageOptions } from "./adminServerForm";
-import { useAdminServerSettingsStore } from "./adminServerSettings";
+import { createAdminFormat } from "@/features/admin/adminFormat";
+import { createRelayNode, DEFAULT_WELCOME_TEXTS, mapRelayNodes, welcomeLanguageOptions } from "@/features/admin/adminServerForm";
+import { useAdminServerSettingsStore } from "@/features/admin/adminServerSettings";
 import { LANGUAGES } from "@/shared/i18n/languages";
-import { useAdminOverviewStore } from "./adminOverview";
-import { useAdminSessionStore } from "./adminSession";
+import { useAdminOverviewStore } from "@/features/admin/adminOverview";
+import { useAdminSessionStore } from "@/features/admin/adminSession";
 
 vi.mock("vue-router", () => ({ useRoute: () => ({ path: "/admin" }), useRouter: () => ({ replace: vi.fn() }) }));
 

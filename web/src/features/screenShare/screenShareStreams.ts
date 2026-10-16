@@ -1,4 +1,4 @@
-import type { ScreenShareStream, ScreenShareViewer } from "./screenShareTypes";
+import type { ScreenShareStream, ScreenShareViewer } from "@/features/screenShare/screenShareTypes";
 
 /** Validates and clamps what the gateway sends for a stream or its viewer list. Pure. */
 export function normalizeScreenShareViewers(raw: unknown): ScreenShareViewer[] {

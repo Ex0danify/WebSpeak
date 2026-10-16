@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { cn } from "../../lib/cn";
-import { spinnerVariants, type SpinnerVariants } from "./spinner";
+import { cn } from "@/shared/lib/cn";
+import { spinnerVariants, type SpinnerVariants } from "@/shared/ui/spinner/spinner";
 
 // Indeterminate progress arc in `currentColor`. Decorative unless `label` is given, which makes it a polite live region with
 // that text. Under reduced motion it stops rotating and stays visible as a static arc.

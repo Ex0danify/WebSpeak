@@ -38,7 +38,7 @@
 
 <script setup lang="ts">
 import { Icon } from "@/shared/ui/icon";
-import VoiceCard from "./VoiceCard.vue";
+import VoiceCard from "@/features/room/voiceGrid/VoiceCard.vue";
 import { VoiceTile, voiceTileNameClass, voiceTileStatusVariants } from "@/shared/ui/voiceTile";
 import { useI18n } from "@/shared/i18n/useI18n.js";
 import { isSpeaking } from "@/features/session";

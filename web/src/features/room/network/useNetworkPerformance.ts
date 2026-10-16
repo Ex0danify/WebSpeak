@@ -1,7 +1,7 @@
 import { computed, onUnmounted, ref, watch } from "vue";
 import { median } from "@/shared/lib/format.js";
 import type { LatencyProbeResult } from "@/features/session";
-import type { RoomSession } from "../roomTypes";
+import type { RoomSession } from "@/features/room/roomTypes";
 
 const PERFORMANCE_INTERVAL_MS = 3_000;
 const PERFORMANCE_WINDOW_SIZE = 20;

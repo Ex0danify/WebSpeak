@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { computed, inject } from "vue";
 import { SwitchRoot, SwitchThumb } from "reka-ui";
-import { cn } from "../../lib/cn";
-import { fieldContextKey } from "../field";
+import { cn } from "@/shared/lib/cn";
+import { fieldContextKey } from "@/shared/ui/field";
 
 // On/off toggle for a setting that applies immediately. Name it with an
 // aria-label, or with a <label for> / Field label. State shows in the thumb

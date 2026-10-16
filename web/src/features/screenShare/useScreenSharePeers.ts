@@ -1,14 +1,14 @@
 import { storeToRefs } from "pinia";
 import { text } from "@/shared/i18n/localizedText";
-import { screenShareErrorMessage } from "./screenShareErrors";
-import { useScreenShareStore } from "./stores/screenShareStore";
+import { screenShareErrorMessage } from "@/features/screenShare/screenShareErrors";
+import { useScreenShareStore } from "@/features/screenShare/stores/screenShareStore";
 import { useSessionStore } from "@/features/session";
-import type { ScreenShareOutputSettings, ScreenShareSignal, ScreenShareStream } from "./screenShareTypes";
+import type { ScreenShareOutputSettings, ScreenShareSignal, ScreenShareStream } from "@/features/screenShare/screenShareTypes";
 import type { MessageHandlers } from "@/features/session";
-import { useScreenShareStats } from "./useScreenShareStats";
-import { createScreenSharePeerLifecycle } from "./screenSharePeerLifecycle";
-import { createScreenShareSignalling } from "./screenShareSignalling";
-import { normalizeScreenShareViewers, parseScreenShareStream } from "./screenShareStreams";
+import { useScreenShareStats } from "@/features/screenShare/useScreenShareStats";
+import { createScreenSharePeerLifecycle } from "@/features/screenShare/screenSharePeerLifecycle";
+import { createScreenShareSignalling } from "@/features/screenShare/screenShareSignalling";
+import { normalizeScreenShareViewers, parseScreenShareStream } from "@/features/screenShare/screenShareStreams";
 
 /** Screen share peers: connections and negotiation timers, offer/answer/ICE signalling, per-peer stats (polled every second)
  *  and the session (start, stop, join, leave, stream list). Everything but the refs the UI reads is non-reactive closure state. */

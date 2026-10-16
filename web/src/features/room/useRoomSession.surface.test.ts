@@ -20,7 +20,7 @@ import type {
   ScreenShareWebRtcStats,
   ServerEvent,
   VoiceState,
-} from "./useRoomSession";
+} from "@/features/room/useRoomSession";
 
 type PublicTypes = [
   AudioInputDevice,
@@ -160,12 +160,12 @@ beforeEach(() => setActivePinia(createPinia()));
 
 describe("useRoomSession public surface", () => {
   it("returns exactly the six groups and no flat keys", async () => {
-    const { useRoomSession } = await import("./useRoomSession");
+    const { useRoomSession } = await import("@/features/room/useRoomSession");
     expect(Object.keys(useRoomSession()).sort()).toEqual(Object.keys(EXPECTED_SURFACE).sort());
   });
 
   it("each group has exactly the expected keys, each value the same kind (ref, reactive or function)", async () => {
-    const { useRoomSession } = await import("./useRoomSession");
+    const { useRoomSession } = await import("@/features/room/useRoomSession");
     const api = useRoomSession() as Record<string, Record<string, unknown>>;
     const actual = Object.fromEntries(
       Object.keys(EXPECTED_SURFACE).map((group) => [
@@ -187,7 +187,7 @@ describe("useRoomSession public surface", () => {
   });
 
   it("no key appears in two groups", async () => {
-    const { useRoomSession } = await import("./useRoomSession");
+    const { useRoomSession } = await import("@/features/room/useRoomSession");
     const api = useRoomSession() as Record<string, Record<string, unknown>>;
     const seen = new Set<string>();
     for (const group of Object.keys(EXPECTED_SURFACE)) {
@@ -199,13 +199,13 @@ describe("useRoomSession public surface", () => {
   });
 
   it("exports the same runtime names from the module", async () => {
-    const mod = await import("./useRoomSession");
+    const mod = await import("@/features/room/useRoomSession");
     expect(Object.keys(mod).sort()).toEqual(["normalizeMicrophoneFailure", "useRoomSession"]);
     expect(typeof mod.normalizeMicrophoneFailure).toBe("function");
   });
 
   it("starts every call from empty state", async () => {
-    const { useRoomSession } = await import("./useRoomSession");
+    const { useRoomSession } = await import("@/features/room/useRoomSession");
     const first = useRoomSession();
     first.roster.members.push({ id: 1, nickname: "A" });
     first.session.state.connected = true;

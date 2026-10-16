@@ -6,7 +6,7 @@ const files = import.meta.glob<Record<string, unknown>>(["./*.ts", "!./index.ts"
 export const translations: Record<string, Record<string, string>> = collectTranslations(files);
 
 // The keys of the default language feed `MessageKey` (shared/i18n/messageKeys.ts).
-import type { en } from "./en";
+import type { en } from "@/features/room/i18n/en";
 declare module "@/shared/i18n/messageKeys" {
   interface MessageCatalog extends Record<keyof typeof en, true> {}
 }

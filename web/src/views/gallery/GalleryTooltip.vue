@@ -30,8 +30,8 @@ import { Button } from "@/shared/ui/button";
 import { Dialog } from "@/shared/ui/dialog";
 import { Tooltip } from "@/shared/ui/tooltip";
 import { Icon } from "@/shared/ui/icon";
-import GallerySection from "./GallerySection.vue";
-import { type Lang, useGalleryLang, closeLabel } from "./galleryLang";
+import GallerySection from "@/views/gallery/GallerySection.vue";
+import { type Lang, useGalleryLang, closeLabel } from "@/views/gallery/galleryLang";
 
 const lang = useGalleryLang();
 

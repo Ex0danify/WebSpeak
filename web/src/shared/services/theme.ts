@@ -1,4 +1,4 @@
-import { readStorage, writeStorage } from "./safeStorage.js";
+import { readStorage, writeStorage } from "@/shared/services/safeStorage.js";
 
 export type ThemeMode = "system" | "light" | "dark";
 

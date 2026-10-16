@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { computed, inject, ref } from "vue";
-import { cn } from "../../lib/cn";
-import { controlVariants } from "./input";
-import { fieldContextKey } from "../field";
+import { cn } from "@/shared/lib/cn";
+import { controlVariants } from "@/shared/ui/input/input";
+import { fieldContextKey } from "@/shared/ui/field";
 
 // Attributes (placeholder, autocomplete, disabled, ...) go to the <input>.
 // `class` styles the wrapper; use `inputClass` for the input itself.

@@ -1,10 +1,10 @@
 import { reactive, ref } from "vue";
 import { defineStore } from "pinia";
-import type { ApiError } from "./adminApi.js";
-import type { AdminConnectionRecord, AdminLog, AdminSession, ManagedInvite } from "./adminTypes.js";
+import type { ApiError } from "@/features/admin/adminApi.js";
+import type { AdminConnectionRecord, AdminLog, AdminSession, ManagedInvite } from "@/features/admin/adminTypes.js";
 import { useI18n } from "@/shared/i18n/useI18n.js";
-import { adminSiblings } from "./adminSiblings.js";
-import { useAdminSessionStore } from "./adminSession.js";
+import { adminSiblings } from "@/features/admin/adminSiblings.js";
+import { useAdminSessionStore } from "@/features/admin/adminSession.js";
 
 function initialInviteForm() {
   return { channel: "", expiresInHours: 24, maxUses: 0 };

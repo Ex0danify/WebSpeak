@@ -2,7 +2,7 @@
 // The wire messages (webrtcOffer, webrtcAnswer, webrtcError) are also pinned by messages.connection.test.ts.
 // The accompaniment lives in useWebRtcAccompaniment.test.ts, the microphone monitor in useWebRtcTransport.micMonitor.test.ts.
 import { describe, expect, it, vi } from "vitest";
-import { useVoiceAudioStore } from "../stores/voiceAudioStore";
+import { useVoiceAudioStore } from "@/features/voice/stores/voiceAudioStore";
 import { FakeMediaStream, FakeMediaStreamTrack, FakeRTCPeerConnection } from "@/testSupport/browserStubs";
 import {
   looseSrcObject,

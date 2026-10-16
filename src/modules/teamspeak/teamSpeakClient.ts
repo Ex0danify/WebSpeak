@@ -19,6 +19,7 @@ import { escapeTeamSpeakValue } from "./teamSpeakCommand.js";
 import { toTSChatMessage, type TSChatScope, type TSVoiceData } from "./teamSpeakMessages.js";
 import { InputMuteSync } from "./inputMuteSync.js";
 import { OutputMuteSync } from "./outputMuteSync.js";
+import { sendStreamCommand } from "./teamSpeakStreamCommand.js";
 import { listClientsWithStatus } from "./teamSpeakClientList.js";
 import { loadClientAvatarOnConnection, type TSClientAvatar } from "./teamSpeakAvatar.js";
 import type { TeamSpeakProtocol } from "../../shared/teamSpeakProtocol.js";
@@ -41,8 +42,6 @@ export type { TSChatMessage, TSChatScope, TSVoiceData } from "./teamSpeakMessage
 export type TSDirectorySnapshot = DirectorySnapshot;
 export type TSDirectoryClient = DirectoryClientInfo;
 export type TSRawNotification = RawNotification;
-
-const ACKNOWLEDGED_STREAM_COMMANDS = new Set(["stopstream", "removeclientfromstream"]);
 
 export class TSClient extends EventEmitter {
   private client: TS3FullClient | null = null;
@@ -343,28 +342,10 @@ export class TSClient extends EventEmitter {
     return this.client.execCommandWithResponse(command, timeoutMs);
   }
 
-  /**
-   * Send a protocol command whose answer arrives later as a notification (setupstream etc).
-   * Only the trusted stream adapter builds these, never the browser. Stream cleanup is the exception:
-   * it waits for the server's acknowledgement and is retried after a flood refusal, so a failed
-   * cleanup shows up in the log instead of leaving a ghost stream or viewer behind.
-   */
+  /** Only the trusted stream adapter builds these commands, never the browser. */
   async sendProtocolCommand(command: string): Promise<void> {
     if (!this.client || !this.connected) throw new Error("TeamSpeak session is not ready");
-    const client = this.client;
-    if (!ACKNOWLEDGED_STREAM_COMMANDS.has(command.split(" ", 1)[0] ?? "")) {
-      await client.sendCommandNoWait(command);
-      return;
-    }
-    try {
-      await this.pacer.run(() => client.execCommand(command, 5000));
-    } catch (error: unknown) {
-      this.logger.warn(
-        { command: command.split(" ", 1)[0], err: error instanceof Error ? error.message : String(error) },
-        "TeamSpeak stream cleanup command failed",
-      );
-      throw error;
-    }
+    await sendStreamCommand(this.client, this.pacer, this.logger, command);
   }
 
   getIdentityString(): string {

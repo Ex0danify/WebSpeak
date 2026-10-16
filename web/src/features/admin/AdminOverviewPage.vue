@@ -83,15 +83,15 @@
 </template>
 
 <script setup lang="ts">
-import { adminPage } from "./adminPage";
+import { adminPage } from "@/features/admin/adminPage";
 import { computed } from "vue";
 import { RouterLink } from "vue-router";
 import { Card } from "@/shared/ui/card";
 import { Chip } from "@/shared/ui/chip";
 import { Icon } from "@/shared/ui/icon";
 import { cn } from "@/shared/lib/cn";
-import { createAdminFormat } from "./adminFormat";
-import { useAdminOverviewStore } from "./adminOverview";
+import { createAdminFormat } from "@/features/admin/adminFormat";
+import { useAdminOverviewStore } from "@/features/admin/adminOverview";
 import { useI18n } from "@/shared/i18n/useI18n";
 
 const { language, t } = useI18n();

@@ -1,7 +1,7 @@
 import { storeToRefs } from "pinia";
 import { useI18n } from "@/shared/i18n/useI18n.js";
 import { toast as raiseToast } from "@/shared/composables/useToast.js";
-import { useJoinFormStore } from "./stores/joinFormStore";
+import { useJoinFormStore } from "@/features/join/stores/joinFormStore";
 
 /** The room's "copy invite link" action. It reads the join fields from `joinFormStore`, which
  *  outlive the join page, so it works after the join form is gone. */

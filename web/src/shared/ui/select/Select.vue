@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { computed, inject, ref } from "vue";
-import { cn } from "../../lib/cn";
-import { Icon } from "../icon";
-import { controlVariants } from "../input";
-import { fieldContextKey } from "../field";
+import { cn } from "@/shared/lib/cn";
+import { Icon } from "@/shared/ui/icon";
+import { controlVariants } from "@/shared/ui/input";
+import { fieldContextKey } from "@/shared/ui/field";
 
 // A native <select> with the shared control look and a chevron, so the
 // platform picker, keyboard handling and mobile wheel all keep working.

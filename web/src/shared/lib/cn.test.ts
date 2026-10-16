@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { cn } from "./cn";
+import { cn } from "@/shared/lib/cn";
 
 describe("cn", () => {
   it("joins strings and drops falsy values (clsx)", () => {

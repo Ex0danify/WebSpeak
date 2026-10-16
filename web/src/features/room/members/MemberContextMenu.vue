@@ -83,8 +83,8 @@ import { Icon } from "@/shared/ui/icon";
 import { Menu, MenuItem, MenuLabel, MenuSeparator, MenuSlider, MenuSub } from "@/shared/ui/menu";
 import { useI18n } from "@/shared/i18n/useI18n.js";
 import { channelNameText, nicknameText, type ChannelMember } from "@/features/session";
-import type { TreeChannel } from "../roomTypes.js";
-import { formatVolumeDb } from "./volumeDb.js";
+import type { TreeChannel } from "@/features/room/roomTypes.js";
+import { formatVolumeDb } from "@/features/room/members/volumeDb.js";
 
 const props = defineProps<{
   memberMenu: { member: ChannelMember; x: number; y: number } | null;

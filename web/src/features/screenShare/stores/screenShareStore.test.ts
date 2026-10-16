@@ -1,7 +1,7 @@
 import { createPinia, setActivePinia } from "pinia";
 import { isReactive } from "vue";
 import { beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { useScreenShareStore } from "./screenShareStore";
+import { useScreenShareStore } from "@/features/screenShare/stores/screenShareStore";
 
 beforeAll(() => {
   // The RNNoise worklet package extends AudioWorkletNode at import time; happy-dom has none.

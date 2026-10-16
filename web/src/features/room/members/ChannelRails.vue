@@ -10,7 +10,7 @@
 </template>
 
 <script setup lang="ts">
-import type { ChannelRailState } from "./channelRails.js";
+import type { ChannelRailState } from "@/features/room/members/channelRails.js";
 
 defineProps<{
   /** Full-height verticals, positioned from the left edge of the positioned parent. */

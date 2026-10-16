@@ -1,12 +1,12 @@
 import { createApp } from "vue";
-import { registerAdminStores } from "./adminStores";
+import { registerAdminStores } from "@/features/admin/adminStores";
 import { createPinia } from "pinia";
 import { routeLocationKey, routerKey } from "vue-router";
 import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from "vitest";
-import { useAdminOperationsStore } from "./adminOperations";
-import { useAdminOverviewStore } from "./adminOverview";
-import { useAdminServerSettingsStore } from "./adminServerSettings";
-import { useAdminSessionStore } from "./adminSession";
+import { useAdminOperationsStore } from "@/features/admin/adminOperations";
+import { useAdminOverviewStore } from "@/features/admin/adminOverview";
+import { useAdminServerSettingsStore } from "@/features/admin/adminServerSettings";
+import { useAdminSessionStore } from "@/features/admin/adminSession";
 
 function respond(status: number, body: unknown) {
   return new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } });

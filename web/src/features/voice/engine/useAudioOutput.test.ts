@@ -1,10 +1,10 @@
 // useAudioOutput on its own: stores and browser stubs, no composable around it.
 import { createPinia, setActivePinia } from "pinia";
 import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from "vitest";
-import { useVoiceAudioStore } from "../stores/voiceAudioStore";
+import { useVoiceAudioStore } from "@/features/voice/stores/voiceAudioStore";
 import { useSessionStore } from "@/features/session";
 import { FakeAudioContext, installBrowserStubs, type BrowserStubs } from "@/testSupport/browserStubs";
-import { useAudioOutput } from "./useAudioOutput";
+import { useAudioOutput } from "@/features/voice/engine/useAudioOutput";
 
 let stubs: BrowserStubs;
 let remoteGains: Map<number, GainNode>;

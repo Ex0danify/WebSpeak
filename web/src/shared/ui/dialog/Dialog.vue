@@ -1,10 +1,16 @@
 <script setup lang="ts">
 import { computed, useSlots } from "vue";
 import { DialogContent, DialogDescription, DialogOverlay, DialogPortal, DialogRoot, DialogTitle } from "reka-ui";
-import { cn } from "../../lib/cn";
-import { Button } from "../button";
-import { Icon } from "../icon";
-import { dialogOverlayClass, dialogPanelVariants, dialogSheetOverlayClass, dialogSheetPanelClass, type DialogVariants } from "./dialog";
+import { cn } from "@/shared/lib/cn";
+import { Button } from "@/shared/ui/button";
+import { Icon } from "@/shared/ui/icon";
+import {
+  dialogOverlayClass,
+  dialogPanelVariants,
+  dialogSheetOverlayClass,
+  dialogSheetPanelClass,
+  type DialogVariants,
+} from "@/shared/ui/dialog/dialog";
 
 // Modal dialog on reka-ui, which brings the focus trap, Esc, outside press, scroll lock, aria-hidden behind it and focus
 // return. Content renders only while open, so a form inside starts fresh each time.

@@ -1,7 +1,7 @@
 import { defineStore } from "pinia";
 import { reactive, ref } from "vue";
 import { readStorage } from "@/shared/services/safeStorage";
-import type { AudioInputDevice, AudioOutputDevice, AudioPermission, MicrophoneProcessingSettings } from "../voiceTypes";
+import type { AudioInputDevice, AudioOutputDevice, AudioPermission, MicrophoneProcessingSettings } from "@/features/voice/voiceTypes";
 
 export type AccompanimentErrorCode = "" | "unsupported" | "needsWebRtc" | "noAudio" | "permission" | "gateway";
 

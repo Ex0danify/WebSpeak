@@ -1,6 +1,6 @@
-import { useI18n } from "../i18n/useI18n.js";
-import { saveLocalPreferences } from "../services/localPersistence.js";
-import { useTheme } from "./useTheme.js";
+import { useI18n } from "@/shared/i18n/useI18n.js";
+import { saveLocalPreferences } from "@/shared/services/localPersistence.js";
+import { useTheme } from "@/shared/composables/useTheme.js";
 
 /** Theme cycle and language persistence for the headers of the join page and the room. Wraps `useTheme` and `useI18n` and
  *  mirrors each change into the cross-device local preferences (`saveLocalPreferences`), which `useTheme` deliberately doesn't

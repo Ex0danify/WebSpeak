@@ -3,7 +3,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
-import { translations } from "./i18n";
+import { translations } from "@/features/session/i18n";
 import {
   GATEWAY_CLOSE_CODE_CODES,
   JOIN_TICKET_CODES,
@@ -12,8 +12,8 @@ import {
   connectionFailureMessage,
   joinTicketReason,
   protocolErrorMessage,
-} from "./connectionMessages";
-import { CONNECTION_FAILURE_CODES, errorKey } from "./sessionErrors";
+} from "@/features/session/connectionMessages";
+import { CONNECTION_FAILURE_CODES, errorKey } from "@/features/session/sessionErrors";
 import { resolveText } from "@/shared/i18n/localizedText";
 import { useI18n } from "@/shared/i18n/useI18n";
 

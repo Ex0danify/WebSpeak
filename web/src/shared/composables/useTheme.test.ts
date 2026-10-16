@@ -27,9 +27,9 @@ function fakeQuery(initial: boolean) {
  *  through the real Vue lifecycle (onMounted/onUnmounted) rather than calling it bare. */
 async function mountUseTheme() {
   // resetModules() gave this graph a fresh, empty i18n registry.
-  const [{ registerMessages }, { translations }] = await Promise.all([import("../i18n/useI18n"), import("../i18n/common")]);
+  const [{ registerMessages }, { translations }] = await Promise.all([import("@/shared/i18n/useI18n"), import("@/shared/i18n/common")]);
   registerMessages(translations);
-  const { useTheme } = await import("./useTheme");
+  const { useTheme } = await import("@/shared/composables/useTheme");
   const wrapper = mount(defineComponent({ setup: () => useTheme(), template: "<div/>" }));
   type Exposed = {
     themeMode: "system" | "light" | "dark";

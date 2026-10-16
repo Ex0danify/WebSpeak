@@ -9,7 +9,7 @@
       </div>
       <div class="flex flex-col gap-3">
         <div class="flex items-center gap-3">
-          <Meter :model-value="0.55" size="sm" :label="meterSamples[lang].input" class="flex-1" />
+          <Meter :model-value="0.55" size="sm" :label="meterSamples[lang].input" class="flex-1" value="" />
           <span class="w-16 shrink-0 font-mono text-xs text-fg-muted">sm</span>
         </div>
         <div class="flex items-center gap-3">
@@ -46,8 +46,8 @@
 import { onBeforeUnmount, ref } from "vue";
 import { Button } from "@/shared/ui/button";
 import { Meter } from "@/shared/ui/meter";
-import GallerySection from "./GallerySection.vue";
-import { type Lang, useGalleryLang } from "./galleryLang";
+import GallerySection from "@/views/gallery/GallerySection.vue";
+import { type Lang, useGalleryLang } from "@/views/gallery/galleryLang";
 
 const lang = useGalleryLang();
 

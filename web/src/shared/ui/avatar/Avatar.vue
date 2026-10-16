@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import { AvatarFallback, AvatarImage, AvatarRoot } from "reka-ui";
-import { cn } from "../../lib/cn";
-import { avatarStyle } from "../../lib/format";
-import { avatarVariants, type AvatarVariants } from "./avatar";
+import { cn } from "@/shared/lib/cn";
+import { avatarStyle } from "@/shared/lib/format";
+import { avatarVariants, type AvatarVariants } from "@/shared/ui/avatar/avatar";
 
 // A member picture, or the first letter of their name when there is none. `tint` paints the fallback with a name-derived color
 // (`self` gives your own the accent gradient), `stack` overlaps on media. `speaking` draws a ring, set `surface` to what the

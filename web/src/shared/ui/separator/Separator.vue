@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import { Separator as RekaSeparator } from "reka-ui";
-import { cn } from "../../lib/cn";
+import { cn } from "@/shared/lib/cn";
 
 // A 1 px rule in the decorative `line` color. Decorative by default (hidden
 // from assistive tech); pass `decorative: false` when it divides content

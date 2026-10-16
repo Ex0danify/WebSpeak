@@ -1,1 +1,1 @@
-export { default as SpacerRow } from "./SpacerRow.vue";
+export { default as SpacerRow } from "@/shared/ui/spacer/SpacerRow.vue";

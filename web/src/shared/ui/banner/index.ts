@@ -1,2 +1,2 @@
-export { default as Banner } from "./Banner.vue";
-export { bannerVariants, type BannerVariants } from "./banner";
+export { default as Banner } from "@/shared/ui/banner/Banner.vue";
+export { bannerVariants, type BannerVariants } from "@/shared/ui/banner/banner";

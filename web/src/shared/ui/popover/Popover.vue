@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, watch } from "vue";
 import { PopoverAnchor, PopoverContent, PopoverPortal, PopoverRoot, PopoverTrigger } from "reka-ui";
-import { cn } from "../../lib/cn";
-import { popoverContentClass } from "./popover";
+import { cn } from "@/shared/lib/cn";
+import { popoverContentClass } from "@/shared/ui/popover/popover";
 
 // A floating panel anchored to its trigger, for content rather than actions (use Menu for those). Not modal, focus
 // moves into the panel on open, Tab can leave it, Esc or an outside click closes it and focus returns to the trigger.

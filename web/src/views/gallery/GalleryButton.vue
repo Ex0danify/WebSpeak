@@ -57,8 +57,8 @@
 import { ref } from "vue";
 import { Button } from "@/shared/ui/button";
 import { Icon } from "@/shared/ui/icon";
-import GallerySection from "./GallerySection.vue";
-import { type Lang, useGalleryLang } from "./galleryLang";
+import GallerySection from "@/views/gallery/GallerySection.vue";
+import { type Lang, useGalleryLang } from "@/views/gallery/galleryLang";
 
 const lang = useGalleryLang();
 

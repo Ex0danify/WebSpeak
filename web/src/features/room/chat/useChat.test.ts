@@ -2,7 +2,7 @@ import { flushPromises, mount } from "@vue/test-utils";
 import { defineComponent, reactive, ref } from "vue";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { ChannelMember, ChatMessage, ServerEvent, VoiceState } from "@/features/session";
-import type { TreeChannel } from "../roomTypes";
+import type { TreeChannel } from "@/features/room/roomTypes";
 
 type Exposed = {
   messageDraft: string;
@@ -50,7 +50,7 @@ function channel(id: string, name: string): TreeChannel {
 }
 
 async function mountUseChat(overrides: Record<string, unknown> = {}) {
-  const { useChat } = await import("./useChat");
+  const { useChat } = await import("@/features/room/chat/useChat");
   const voiceState = makeVoiceState();
   const members = reactive<ChannelMember[]>([member(1, "Lucas"), member(2, "Ana")]);
   const chatMessages = reactive<ChatMessage[]>([]);

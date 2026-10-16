@@ -6,7 +6,7 @@ import {
   normalizedClientErrorCode,
   safeClientErrorCode,
   safeClientErrorDetail,
-} from "./sessionErrors";
+} from "@/features/session/sessionErrors";
 
 /** Codes `/api/join-ticket` answers with. Each has its own text (`joinErr_<CODE>`) or falls through
  *  to the connection-failure text of the same code. */

@@ -49,8 +49,8 @@ import { ref } from "vue";
 import { Count } from "@/shared/ui/chip";
 import { Tabs, TabList, Tab, TabPanel, Segmented, Segment } from "@/shared/ui/tabs";
 import { Icon } from "@/shared/ui/icon";
-import GallerySection from "./GallerySection.vue";
-import { type Lang, useGalleryLang } from "./galleryLang";
+import GallerySection from "@/views/gallery/GallerySection.vue";
+import { type Lang, useGalleryLang } from "@/views/gallery/galleryLang";
 
 const lang = useGalleryLang();
 

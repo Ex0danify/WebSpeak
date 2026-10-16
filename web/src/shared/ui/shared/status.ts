@@ -1,4 +1,4 @@
-import { type IconName } from "../icon";
+import { type IconName } from "@/shared/ui/icon";
 
 // Shared by Toast and Banner. Every variant has its own glyph, so status is
 // never carried by color alone.

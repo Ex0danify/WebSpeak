@@ -2,8 +2,8 @@ import rnnoiseSimdWasmUrl from "@sapphi-red/web-noise-suppressor/rnnoise_simd.wa
 import rnnoiseWasmUrl from "@sapphi-red/web-noise-suppressor/rnnoise.wasm?url";
 import rnnoiseWorkletUrl from "@sapphi-red/web-noise-suppressor/rnnoiseWorklet.js?url";
 import { storeToRefs } from "pinia";
-import { useVoiceAudioStore } from "../stores/voiceAudioStore";
-import { VOX_ATTACK_FRAMES, VOX_HOLD } from "../audioConstants";
+import { useVoiceAudioStore } from "@/features/voice/stores/voiceAudioStore";
+import { VOX_ATTACK_FRAMES, VOX_HOLD } from "@/features/voice/audioConstants";
 
 type RnnoiseModule = typeof import("@sapphi-red/web-noise-suppressor");
 type RnnoiseNode = InstanceType<RnnoiseModule["RnnoiseWorkletNode"]>;

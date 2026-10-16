@@ -1,7 +1,7 @@
 import type { Ref } from "vue";
 import { text } from "@/shared/i18n/localizedText";
-import type { ScreenShareSignal, ScreenShareStream } from "./screenShareTypes";
-import type { ScreenSharePeerContext, createScreenSharePeerLifecycle } from "./screenSharePeerLifecycle";
+import type { ScreenShareSignal, ScreenShareStream } from "@/features/screenShare/screenShareTypes";
+import type { ScreenSharePeerContext, createScreenSharePeerLifecycle } from "@/features/screenShare/screenSharePeerLifecycle";
 
 export interface ScreenShareSignallingContext extends ScreenSharePeerContext {
   lifecycle: ReturnType<typeof createScreenSharePeerLifecycle>;

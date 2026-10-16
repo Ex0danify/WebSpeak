@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { createApp, defineComponent, h } from "vue";
-import { provideRoomSession, useRoomContext } from "./useRoomContext";
-import type { RoomSession } from "./roomTypes";
+import { provideRoomSession, useRoomContext } from "@/features/room/useRoomContext";
+import type { RoomSession } from "@/features/room/roomTypes";
 
 function mountTree(provided: RoomSession | null) {
   let injected: RoomSession | undefined;

@@ -118,7 +118,7 @@ import { Tooltip } from "@/shared/ui/tooltip";
 import { Popover } from "@/shared/ui/popover";
 import { useI18n } from "@/shared/i18n/useI18n.js";
 import { useFormat } from "@/shared/i18n/useFormat.js";
-import type { NetworkPerformanceStats } from "./useNetworkPerformance.js";
+import type { NetworkPerformanceStats } from "@/features/room/network/useNetworkPerformance.js";
 import type { ScreenShareWebRtcStats } from "@/features/screenShare";
 
 const props = defineProps<{

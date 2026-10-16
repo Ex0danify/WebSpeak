@@ -1,6 +1,6 @@
 import { mount } from "@vue/test-utils";
 import { describe, expect, it } from "vitest";
-import MemberRow from "./MemberRow.vue";
+import MemberRow from "@/features/room/members/MemberRow.vue";
 import type { ChannelMember } from "@/features/session";
 
 const member: ChannelMember = { id: 2, nickname: "Ana" };

@@ -4,8 +4,8 @@ import { createPinia, setActivePinia } from "pinia";
 import { reactive, ref } from "vue";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { clearLocalData, listRecentServers } from "@/shared/services/localPersistence";
-import { useJoinFormStore } from "./stores/joinFormStore";
-import { useServerVisit } from "./useServerVisit";
+import { useJoinFormStore } from "@/features/join/stores/joinFormStore";
+import { useServerVisit } from "@/features/join/useServerVisit";
 
 function setup() {
   const voiceState = reactive({ connected: false });

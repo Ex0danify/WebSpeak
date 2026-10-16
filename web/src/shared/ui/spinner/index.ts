@@ -1,2 +1,2 @@
-export { default as Spinner } from "./Spinner.vue";
-export { spinnerVariants, type SpinnerVariants } from "./spinner";
+export { default as Spinner } from "@/shared/ui/spinner/Spinner.vue";
+export { spinnerVariants, type SpinnerVariants } from "@/shared/ui/spinner/spinner";

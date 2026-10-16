@@ -1,2 +1,2 @@
-export { default as Meter } from "./Meter.vue";
-export { meterVariants, type MeterVariants } from "./meter";
+export { default as Meter } from "@/shared/ui/meter/Meter.vue";
+export { meterVariants, type MeterVariants } from "@/shared/ui/meter/meter";

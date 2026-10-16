@@ -1,4 +1,4 @@
-import type { ScreenShareOutputSettings } from "./screenShareTypes";
+import type { ScreenShareOutputSettings } from "@/features/screenShare/screenShareTypes";
 
 /** Encoder limits and codec preference for a screen-share peer. Pure, the output settings come in as an argument. */
 export async function configureScreenShareVideoSender(

@@ -1,6 +1,6 @@
 import { storeToRefs } from "pinia";
 import type { Ref } from "vue";
-import { useVoiceAudioStore } from "../stores/voiceAudioStore";
+import { useVoiceAudioStore } from "@/features/voice/stores/voiceAudioStore";
 
 /** What the accompaniment needs from the transport that owns the peer and the mix. */
 export interface WebRtcAccompanimentDeps {

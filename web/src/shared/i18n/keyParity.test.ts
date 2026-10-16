@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { isCjkLanguage } from "./cjkLanguages";
-import { LANGUAGES as DISCOVERED, MODULE_LANGUAGES, languageCodesFound } from "./languages";
+import { isCjkLanguage } from "@/shared/i18n/cjkLanguages";
+import { LANGUAGES as DISCOVERED, MODULE_LANGUAGES, languageCodesFound } from "@/shared/i18n/languages";
 
 // Test version of `npm run check:i18n`, scanning the language files as text because `join`, `room` and `admin` start from
 // `...en`, so only the text shows what they translate themselves. Modules are found by glob (a folder under src/ with an

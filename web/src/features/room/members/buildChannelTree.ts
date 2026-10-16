@@ -1,5 +1,5 @@
 import type { ChannelInfo } from "@/features/session";
-import type { TreeChannel } from "../roomTypes.js";
+import type { TreeChannel } from "@/features/room/roomTypes.js";
 import { parseSpacer } from "@/shared/lib/parseSpacer";
 
 type Placed = Omit<TreeChannel, "rootId" | "isLastChild" | "ancestorLines">;

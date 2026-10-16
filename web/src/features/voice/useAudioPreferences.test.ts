@@ -3,9 +3,9 @@ import { IDBFactory } from "fake-indexeddb";
 import { createPinia, setActivePinia } from "pinia";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type * as Persistence from "@/shared/services/localPersistence";
-import { useVoiceAudioStore } from "./stores/voiceAudioStore";
+import { useVoiceAudioStore } from "@/features/voice/stores/voiceAudioStore";
 import { useSessionStore } from "@/features/session";
-import { useAudioPreferences } from "./useAudioPreferences";
+import { useAudioPreferences } from "@/features/voice/useAudioPreferences";
 
 let persistence: typeof Persistence;
 

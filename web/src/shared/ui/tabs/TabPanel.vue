@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { TabsContent } from "reka-ui";
-import { cn } from "../../lib/cn";
-import type { TabValue } from "./tabsContext";
+import { cn } from "@/shared/lib/cn";
+import type { TabValue } from "@/shared/ui/tabs/tabsContext";
 
 // Content for one tab. Stays mounted and is hidden while inactive (see Tabs).
 // Use inside Tabs.

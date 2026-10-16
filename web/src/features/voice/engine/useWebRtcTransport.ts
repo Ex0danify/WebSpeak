@@ -1,12 +1,12 @@
 import type { Ref } from "vue";
 import { storeToRefs } from "pinia";
-import { useVoiceAudioStore } from "../stores/voiceAudioStore";
+import { useVoiceAudioStore } from "@/features/voice/stores/voiceAudioStore";
 import { useSessionStore } from "@/features/session";
 import { safeClientErrorCode } from "@/features/session";
 import type { LocalizedText, TextParams } from "@/shared/i18n/localizedText";
-import type { SinkAudioContext, SinkAudioElement } from "../voiceTypes";
+import type { SinkAudioContext, SinkAudioElement } from "@/features/voice/voiceTypes";
 import type { MessageHandlers } from "@/features/session";
-import { useWebRtcAccompaniment } from "./useWebRtcAccompaniment";
+import { useWebRtcAccompaniment } from "@/features/voice/engine/useWebRtcAccompaniment";
 
 /** Late-bound pieces owned by other modules, resolved at call time. */
 export interface WebRtcTransportDeps {

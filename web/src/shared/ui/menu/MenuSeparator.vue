@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { inject } from "vue";
 import { DropdownMenuSeparator } from "reka-ui";
-import { cn } from "../../lib/cn";
-import { menuContextKey } from "./menuContext";
-import { menuSeparatorClass } from "./menu";
+import { cn } from "@/shared/lib/cn";
+import { menuContextKey } from "@/shared/ui/menu/menuContext";
+import { menuSeparatorClass } from "@/shared/ui/menu/menu";
 
 const props = defineProps<{ class?: string }>();
 const menu = inject(menuContextKey, null);

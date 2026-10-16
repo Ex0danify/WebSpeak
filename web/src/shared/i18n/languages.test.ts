@@ -1,18 +1,17 @@
 import { mount } from "@vue/test-utils";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { buildLanguages, languageCodesFound, type LanguageMeta } from "./languages";
+import { buildLanguages, languageCodesFound, type LanguageMeta } from "@/shared/i18n/languages";
 
 // The acceptance test for "a language is a file": a throwaway `fr` is added to the real folder set as
 // nothing but paths plus its `meta`, and must show up everywhere without another edit.
 const FR: LanguageMeta = { endonym: "Français", tag: "fr-FR", intl: "fr-FR", flag: "🇫🇷" };
 
-const realModules = (await vi.importActual<typeof import("./languages")>("./languages")).MODULE_LANGUAGES;
+const realModules = (await vi.importActual<typeof import("@/shared/i18n/languages")>("./languages")).MODULE_LANGUAGES;
 const withFrench = Object.fromEntries(Object.entries(realModules).map(([dir, codes]) => [dir, [...codes, "fr"]]));
 
-const realMetas = (await vi.importActual<typeof import("./languages")>("./languages")).LANGUAGES.reduce<Record<string, LanguageMeta>>(
-  (all, { code, ...meta }) => ({ ...all, [code]: meta }),
-  {},
-);
+const realMetas = (await vi.importActual<typeof import("@/shared/i18n/languages")>("./languages")).LANGUAGES.reduce<
+  Record<string, LanguageMeta>
+>((all, { code, ...meta }) => ({ ...all, [code]: meta }), {});
 
 describe("buildLanguages", () => {
   it("lists the shipped languages, default first, then alphabetical", () => {
@@ -42,8 +41,8 @@ describe("a language added by files only", () => {
   beforeEach(() => {
     localStorage.clear();
     vi.resetModules();
-    vi.doMock("./languages", async () => {
-      const actual = await vi.importActual<typeof import("./languages")>("./languages");
+    vi.doMock("@/shared/i18n/languages", async () => {
+      const actual = await vi.importActual<typeof import("@/shared/i18n/languages")>("./languages");
       const list = actual.buildLanguages(withFrench, { ...realMetas, fr: FR });
       return {
         ...actual,
@@ -61,14 +60,14 @@ describe("a language added by files only", () => {
 
   it("is accepted, detected, and sets <html lang>", async () => {
     vi.spyOn(navigator, "languages", "get").mockReturnValue(["fr-CA"]);
-    const { useI18n, isLanguage } = await import("./useI18n");
+    const { useI18n, isLanguage } = await import("@/shared/i18n/useI18n");
     expect(isLanguage("fr")).toBe(true);
     expect(useI18n().language.value).toBe("fr");
     expect(document.documentElement.lang).toBe("fr-FR");
   });
 
   it("appears in the switcher", async () => {
-    const { default: LanguageSwitcher } = await import("../components/LanguageSwitcher.vue");
+    const { default: LanguageSwitcher } = await import("@/shared/components/LanguageSwitcher.vue");
     const wrapper = mount(LanguageSwitcher, { props: { modelValue: "fr" }, attachTo: document.body });
     expect(wrapper.text()).toContain("FR");
     await wrapper.find("button").trigger("click");

@@ -67,14 +67,14 @@
 
 <script setup lang="ts">
 import { computed } from "vue";
-import ChannelRails from "./ChannelRails.vue";
-import ChannelRow from "./ChannelRow.vue";
-import { computeChannelRails } from "./channelRails.js";
-import MemberRow from "./MemberRow.vue";
+import ChannelRails from "@/features/room/members/ChannelRails.vue";
+import ChannelRow from "@/features/room/members/ChannelRow.vue";
+import { computeChannelRails } from "@/features/room/members/channelRails.js";
+import MemberRow from "@/features/room/members/MemberRow.vue";
 import { SpacerRow } from "@/shared/ui/spacer";
 import { useI18n } from "@/shared/i18n/useI18n.js";
 import { isSpeaking } from "@/features/session";
-import type { TreeChannel } from "../roomTypes.js";
+import type { TreeChannel } from "@/features/room/roomTypes.js";
 import type { ChannelMember } from "@/features/session";
 
 const props = defineProps<{

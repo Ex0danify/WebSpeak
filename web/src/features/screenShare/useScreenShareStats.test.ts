@@ -3,7 +3,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { BrowserStubs } from "@/testSupport/browserStubs";
 import { displayStream, installPeerEnvironment, makeStream, queueStats, setupPeers, type Stat } from "@/testSupport/screenSharePeers";
-import { screenShareStatsNumber, screenShareStatsRecord, screenShareStatsString, screenShareVideoStatsKind } from "./useScreenShareStats";
+import {
+  screenShareStatsNumber,
+  screenShareStatsRecord,
+  screenShareStatsString,
+  screenShareVideoStatsKind,
+} from "@/features/screenShare/useScreenShareStats";
 
 let stubs: BrowserStubs;
 

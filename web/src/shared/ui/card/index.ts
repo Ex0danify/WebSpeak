@@ -1,2 +1,2 @@
-export { default as Card } from "./Card.vue";
-export * from "./card";
+export { default as Card } from "@/shared/ui/card/Card.vue";
+export * from "@/shared/ui/card/card";

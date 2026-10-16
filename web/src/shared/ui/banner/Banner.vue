@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import { cn } from "../../lib/cn";
-import { Button } from "../button";
-import { Icon, type IconName } from "../icon";
-import { bannerVariants, type BannerVariants } from "./banner";
-import { statusIconName, statusTextClass } from "../shared/status";
+import { cn } from "@/shared/lib/cn";
+import { Button } from "@/shared/ui/button";
+import { Icon, type IconName } from "@/shared/ui/icon";
+import { bannerVariants, type BannerVariants } from "@/shared/ui/banner/banner";
+import { statusIconName, statusTextClass } from "@/shared/ui/shared/status";
 
 // A message that stays in the layout until the situation changes (reconnecting, degraded audio, a poke). Something that
 // happened and can be forgotten is a Toast. It is a block, not floating, and takes the width of its container.

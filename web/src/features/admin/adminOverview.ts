@@ -1,8 +1,8 @@
 import { reactive } from "vue";
 import { defineStore } from "pinia";
-import type { ApiError } from "./adminApi.js";
-import { adminSiblings } from "./adminSiblings.js";
-import { useAdminSessionStore } from "./adminSession.js";
+import type { ApiError } from "@/features/admin/adminApi.js";
+import { adminSiblings } from "@/features/admin/adminSiblings.js";
+import { useAdminSessionStore } from "@/features/admin/adminSession.js";
 
 function initialOverview() {
   return {

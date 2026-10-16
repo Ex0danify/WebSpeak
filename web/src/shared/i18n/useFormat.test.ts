@@ -1,8 +1,8 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { defineComponent, h, nextTick } from "vue";
 import { mount } from "@vue/test-utils";
-import { createFormat, useFormat } from "./useFormat";
-import { useI18n } from "./useI18n";
+import { createFormat, useFormat } from "@/shared/i18n/useFormat";
+import { useI18n } from "@/shared/i18n/useI18n";
 
 const en = createFormat("en-US");
 const de = createFormat("de-DE");

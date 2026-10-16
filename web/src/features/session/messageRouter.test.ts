@@ -2,8 +2,8 @@
 // modules' tests and by messages.*.test.ts, which drive every type through the whole composable.
 import { createPinia, setActivePinia } from "pinia";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { useSessionStore } from "./sessionStore";
-import { createMessageRouter, createRosterHandlers, type MessageHandlers } from "./messageRouter";
+import { useSessionStore } from "@/features/session/sessionStore";
+import { createMessageRouter, createRosterHandlers, type MessageHandlers } from "@/features/session/messageRouter";
 
 beforeEach(() => setActivePinia(createPinia()));
 

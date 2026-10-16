@@ -1,2 +1,2 @@
-export { default as Radio } from "./Radio.vue";
-export { default as RadioGroup } from "./RadioGroup.vue";
+export { default as Radio } from "@/shared/ui/radio/Radio.vue";
+export { default as RadioGroup } from "@/shared/ui/radio/RadioGroup.vue";

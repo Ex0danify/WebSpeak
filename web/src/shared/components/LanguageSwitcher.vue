@@ -31,10 +31,10 @@
 
 <script setup lang="ts">
 import { computed } from "vue";
-import { Button } from "../ui/button";
-import { Icon } from "../ui/icon";
-import { Menu, MenuItem } from "../ui/menu";
-import { LANGUAGES, type Language } from "../i18n/languages";
+import { Button } from "@/shared/ui/button";
+import { Icon } from "@/shared/ui/icon";
+import { Menu, MenuItem } from "@/shared/ui/menu";
+import { LANGUAGES, type Language } from "@/shared/i18n/languages";
 
 const props = withDefaults(
   defineProps<{

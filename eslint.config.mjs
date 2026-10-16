@@ -44,6 +44,16 @@ export default tseslint.config(
     },
   },
   {
+    // Same rule as `check:imports` (web/scripts/check-import-style.mjs), flagged while editing.
+    files: ["web/src/**"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        { patterns: [{ regex: "^\\.{1,2}(/|$)", message: "Import through the @/ alias, not a ./ or ../ path." }] },
+      ],
+    },
+  },
+  {
     // `interface MessageCatalog extends Record<...> {}` is the module augmentation shape, a type alias cannot merge.
     files: ["web/src/**/i18n/index.ts", "web/src/shared/i18n/*/index.ts"],
     rules: { "@typescript-eslint/no-empty-object-type": "off" },

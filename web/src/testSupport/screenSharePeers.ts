@@ -3,7 +3,13 @@
 import { createPinia, setActivePinia } from "pinia";
 import { useSessionStore } from "@/features/session";
 import { useScreenSharePeers, useScreenShareStore, type ScreenShareOutputSettings, type ScreenShareStream } from "@/features/screenShare";
-import { FakeMediaStream, FakeMediaStreamTrack, FakeRTCPeerConnection, installBrowserStubs, type BrowserStubs } from "./browserStubs";
+import {
+  FakeMediaStream,
+  FakeMediaStreamTrack,
+  FakeRTCPeerConnection,
+  installBrowserStubs,
+  type BrowserStubs,
+} from "@/testSupport/browserStubs";
 
 export type Stat = Record<string, unknown>;
 

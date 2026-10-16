@@ -3,9 +3,9 @@
 import { createPinia, setActivePinia } from "pinia";
 import { ref } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { useSessionStore } from "./sessionStore";
+import { useSessionStore } from "@/features/session/sessionStore";
 import { FakeWebSocket } from "@/testSupport/fakeWebsocket";
-import { useConnection } from "./useConnection";
+import { useConnection } from "@/features/session/useConnection";
 
 function setup() {
   const volumes: Record<number, number> = {};

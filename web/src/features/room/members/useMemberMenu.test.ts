@@ -1,7 +1,7 @@
 import { mount } from "@vue/test-utils";
 import { defineComponent, nextTick } from "vue";
 import { describe, expect, it, vi } from "vitest";
-import { useMemberMenu } from "./useMemberMenu";
+import { useMemberMenu } from "@/features/room/members/useMemberMenu";
 import type { ChannelMember } from "@/features/session";
 
 type Exposed = {

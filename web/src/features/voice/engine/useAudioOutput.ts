@@ -1,11 +1,11 @@
 import { storeToRefs } from "pinia";
 import { writeStorage } from "@/shared/services/safeStorage";
-import { useVoiceAudioStore } from "../stores/voiceAudioStore";
+import { useVoiceAudioStore } from "@/features/voice/stores/voiceAudioStore";
 import { useSessionStore } from "@/features/session";
 import { safeClientErrorCode, safeClientErrorDetail } from "@/features/session";
 import { LocalizedError, text, type TextParams } from "@/shared/i18n/localizedText";
-import { audioNoticeText } from "../voiceErrors";
-import type { SinkAudioContext, SinkAudioElement } from "../voiceTypes";
+import { audioNoticeText } from "@/features/voice/voiceErrors";
+import type { SinkAudioContext, SinkAudioElement } from "@/features/voice/voiceTypes";
 import type { MessageHandlers } from "@/features/session";
 
 /** Late-bound pieces owned by other modules: the assembler passes them in, this module never imports them. */

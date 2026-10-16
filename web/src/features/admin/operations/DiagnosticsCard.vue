@@ -26,8 +26,8 @@ import { VERSION_PREFIX } from "@/shared/lib/brand";
 import { Button } from "@/shared/ui/button";
 import { Card } from "@/shared/ui/card";
 import { useI18n } from "@/shared/i18n/useI18n";
-import { useAdminOperationsStore } from "../adminOperations";
-import { useAdminOverviewStore } from "../adminOverview";
+import { useAdminOperationsStore } from "@/features/admin/adminOperations";
+import { useAdminOverviewStore } from "@/features/admin/adminOverview";
 
 const { operations } = storeToRefs(useAdminOperationsStore());
 const { downloadBackup } = useAdminOverviewStore();

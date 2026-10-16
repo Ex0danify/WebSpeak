@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { cn } from "../../lib/cn";
-import { Icon } from "../icon";
+import { cn } from "@/shared/lib/cn";
+import { Icon } from "@/shared/ui/icon";
 
 // `invalid` is an error message: danger color plus an icon, never color alone.
 defineProps<{ id?: string; invalid?: boolean; class?: string }>();

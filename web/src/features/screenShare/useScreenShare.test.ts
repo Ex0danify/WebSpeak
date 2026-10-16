@@ -2,8 +2,8 @@ import { flushPromises, mount } from "@vue/test-utils";
 import { defineComponent, reactive, ref } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ChannelMember } from "@/features/session";
-import type { ScreenShareOutputSettings, ScreenShareStream, ScreenShareViewer } from "./screenShareTypes";
-import type { ScreenShareResolutionPreset } from "./useScreenShare";
+import type { ScreenShareOutputSettings, ScreenShareStream, ScreenShareViewer } from "@/features/screenShare/screenShareTypes";
+import type { ScreenShareResolutionPreset } from "@/features/screenShare/useScreenShare";
 
 type Exposed = {
   screenVideoEl: HTMLVideoElement | null;
@@ -50,7 +50,7 @@ function stream(overrides: Partial<ScreenShareStream> = {}): ScreenShareStream {
 }
 
 async function mountUseScreenShare(overrides: Record<string, unknown> = {}) {
-  const { useScreenShare } = await import("./useScreenShare");
+  const { useScreenShare } = await import("@/features/screenShare/useScreenShare");
   const screenShareStreams = reactive<ScreenShareStream[]>([]);
   const options = {
     screenShareStreams,

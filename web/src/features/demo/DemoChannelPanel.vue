@@ -39,8 +39,8 @@ import { Icon } from "@/shared/ui/icon";
 import { useI18n } from "@/shared/i18n/useI18n";
 import { SpacerRow } from "@/shared/ui/spacer";
 import { parseSpacer } from "@/shared/lib/parseSpacer";
-import { demoKicker, demoPanel } from "./demoPanel";
-import type { DemoChannel } from "./demoTypes";
+import { demoKicker, demoPanel } from "@/features/demo/demoPanel";
+import type { DemoChannel } from "@/features/demo/demoTypes";
 
 defineProps<{ channels: DemoChannel[]; selectedChannelId: string; selectedChannelName: string; speakingId: string }>();
 const emit = defineEmits<{ select: [id: string] }>();

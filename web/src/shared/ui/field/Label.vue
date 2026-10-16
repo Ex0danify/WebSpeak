@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Label as RekaLabel } from "reka-ui";
-import { cn } from "../../lib/cn";
+import { cn } from "@/shared/lib/cn";
 
 defineProps<{ for?: string; class?: string }>();
 </script>

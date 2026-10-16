@@ -1,10 +1,10 @@
 // useSessionActions on its own: a FakeWebSocket in the session store, no composable around it.
 import { createPinia, setActivePinia } from "pinia";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { useSessionStore } from "./sessionStore";
+import { useSessionStore } from "@/features/session/sessionStore";
 import { text } from "@/shared/i18n/localizedText";
 import { FakeWebSocket } from "@/testSupport/fakeWebsocket";
-import { useSessionActions } from "./useSessionActions";
+import { useSessionActions } from "@/features/session/useSessionActions";
 
 let socket: FakeWebSocket;
 

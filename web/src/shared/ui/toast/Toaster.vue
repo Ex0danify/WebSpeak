@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import { ToastAction, ToastClose, ToastDescription, ToastProvider, ToastRoot, ToastTitle, ToastViewport } from "reka-ui";
-import { cn } from "../../lib/cn";
-import { useToast } from "../../composables/useToast";
-import { Button } from "../button";
-import { Icon } from "../icon";
-import { statusIconName } from "../shared/status";
-import { toastIconVariants, toastRootClass, toastViewportClass } from "./toast";
+import { cn } from "@/shared/lib/cn";
+import { useToast } from "@/shared/composables/useToast";
+import { Button } from "@/shared/ui/button";
+import { Icon } from "@/shared/ui/icon";
+import { statusIconName } from "@/shared/ui/shared/status";
+import { toastIconVariants, toastRootClass, toastViewportClass } from "@/shared/ui/toast/toast";
 
 // Renders the toasts raised through useToast(), mount it once near the app root. A toast pauses its timer while hovered or
 // focused, can be swiped away, and F8 moves focus to the stack. Danger toasts are announced assertively, the rest politely.

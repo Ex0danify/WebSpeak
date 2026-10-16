@@ -135,7 +135,7 @@
 
 <script setup lang="ts">
 import { computed } from "vue";
-import { iconSizes, type IconName, type IconSize } from "./icon";
+import { iconSizes, type IconName, type IconSize } from "@/shared/ui/icon/icon";
 
 const props = withDefaults(defineProps<{ name: IconName; size?: IconSize }>(), { size: "md" });
 const px = computed(() => (typeof props.size === "number" ? props.size : iconSizes[props.size]));

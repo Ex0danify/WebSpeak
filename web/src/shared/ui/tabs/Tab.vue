@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { TabsTrigger } from "reka-ui";
-import { cn } from "../../lib/cn";
-import { useTabs, type TabValue } from "./tabsContext";
-import { tabItemVariants } from "./tabs";
+import { cn } from "@/shared/lib/cn";
+import { useTabs, type TabValue } from "@/shared/ui/tabs/tabsContext";
+import { tabItemVariants } from "@/shared/ui/tabs/tabs";
 
 // One tab inside TabList. Put a <Count> or an icon in the slot next to the
 // label as needed.

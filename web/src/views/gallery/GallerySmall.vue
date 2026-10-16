@@ -30,8 +30,8 @@
 import { Button } from "@/shared/ui/button";
 import { Separator } from "@/shared/ui/separator";
 import { Spinner } from "@/shared/ui/spinner";
-import GallerySection from "./GallerySection.vue";
-import { type Lang, useGalleryLang } from "./galleryLang";
+import GallerySection from "@/views/gallery/GallerySection.vue";
+import { type Lang, useGalleryLang } from "@/views/gallery/galleryLang";
 
 const lang = useGalleryLang();
 

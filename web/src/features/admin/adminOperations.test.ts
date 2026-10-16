@@ -1,10 +1,10 @@
-import { registerAdminStores } from "./adminStores";
+import { registerAdminStores } from "@/features/admin/adminStores";
 import { createPinia, setActivePinia } from "pinia";
 import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from "vitest";
 import { useI18n } from "@/shared/i18n/useI18n";
-import { useAdminOperationsStore } from "./adminOperations";
-import { useAdminOverviewStore } from "./adminOverview";
-import { useAdminSessionStore } from "./adminSession";
+import { useAdminOperationsStore } from "@/features/admin/adminOperations";
+import { useAdminOverviewStore } from "@/features/admin/adminOverview";
+import { useAdminSessionStore } from "@/features/admin/adminSession";
 
 vi.mock("vue-router", () => ({ useRoute: () => ({ path: "/admin" }), useRouter: () => ({ replace: vi.fn() }) }));
 
