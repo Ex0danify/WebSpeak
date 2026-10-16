@@ -31,7 +31,8 @@ export function registerVoiceConnection(ctx: VoiceConnection, hooks: VoiceConnec
   ctx.tsClient.on("kicked", (kick: WebSpeakError) => {
     const state = ctx.session.state;
     const settling = isSettling(state);
-    if (!settling && (!ctx.state.hasConnectedOnce || (state !== "connected" && state !== "interrupted" && state !== "reconnecting"))) return;
+    if (!settling && (!ctx.state.hasConnectedOnce || (state !== "connected" && state !== "interrupted" && state !== "reconnecting")))
+      return;
     ctx.state.pendingKickReason = kick;
     if (settling) {
       // A connect() that rejects because of the same kick must not report it a second time.

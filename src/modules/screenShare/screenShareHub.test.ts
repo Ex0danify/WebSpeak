@@ -20,7 +20,12 @@ function participant(id: string, clientId: number): ScreenShareParticipant {
 
 function setup(entries: ScreenShareParticipant[]) {
   const byId = new Map(entries.map((entry) => [entry.id, entry]));
-  const hub = new ScreenShareHub({ getParticipant: (id) => byId.get(id), participants: () => byId.values(), getIceServers: () => [], logger });
+  const hub = new ScreenShareHub({
+    getParticipant: (id) => byId.get(id),
+    participants: () => byId.values(),
+    getIceServers: () => [],
+    logger,
+  });
   const stream = {
     streamId: "s1",
     viewerEntryIds: new Set(entries.map((entry) => entry.id)),
