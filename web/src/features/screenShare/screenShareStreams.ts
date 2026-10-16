@@ -15,7 +15,7 @@ export function normalizeScreenShareViewers(raw: unknown): ScreenShareViewer[] {
     .map((viewer) => ({
       peerId: viewer.peerId.slice(0, 128),
       nickname: viewer.nickname.slice(0, 120),
-      ...(typeof viewer.avatar === "string" && viewer.avatar.length <= 128 * 1024 ? { avatar: viewer.avatar } : {}),
+      ...(Number.isSafeInteger(viewer.clientId) && (viewer.clientId as number) > 0 ? { clientId: viewer.clientId as number } : {}),
     }));
 }
 

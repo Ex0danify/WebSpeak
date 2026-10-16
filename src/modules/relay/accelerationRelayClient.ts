@@ -26,6 +26,8 @@ export interface AccelerationRelayClient {
   readonly localHost: string;
   readonly localPort: number;
   readonly sessionId: number;
+  /** True once the tunnel tore itself down (socket error, relay CLOSE/OPEN_ERR, timeout) or was closed. */
+  isClosed(): boolean;
   close(): void;
 }
 
@@ -136,6 +138,7 @@ export async function createAccelerationRelayClient(
     localHost: "127.0.0.1",
     localPort: typeof address === "object" ? address.port : 0,
     sessionId,
+    isClosed: () => closed,
     close(): void {
       if (!closed && ready) {
         try {

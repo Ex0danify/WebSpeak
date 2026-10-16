@@ -27,10 +27,18 @@ export interface VoiceConnectionDeps {
 export function registerVoiceConnection(ctx: VoiceConnection, hooks: VoiceConnectionDeps): void {
   // A kick or ban is terminal, replay the server's reason instead of reconnecting into it.
   // The kick can follow the transport drop, so it also acts while a reconnect is pending.
+  // That includes the settling states: a kick between authenticating and the first directory snapshot is just as final.
   ctx.tsClient.on("kicked", (kick: WebSpeakError) => {
     const state = ctx.session.state;
-    if (!ctx.state.hasConnectedOnce || (state !== "connected" && state !== "interrupted" && state !== "reconnecting")) return;
+    const settling = isSettling(state);
+    if (!settling && (!ctx.state.hasConnectedOnce || (state !== "connected" && state !== "interrupted" && state !== "reconnecting")))
+      return;
     ctx.state.pendingKickReason = kick;
+    if (settling) {
+      // A connect() that rejects because of the same kick must not report it a second time.
+      clearDirectoryTimer(ctx);
+      ctx.session.transition("failed");
+    }
     resetDirectoryForReconnect(ctx);
     const failureCode = clientConnectionFailureCode(kick, ctx.serverPassword);
     const failureDetail = publicFailureDetail(kick);
@@ -44,6 +52,10 @@ export function registerVoiceConnection(ctx: VoiceConnection, hooks: VoiceConnec
   });
 
   ctx.tsClient.on("disconnected", (error?: Error) => {
+    if (isSettling(ctx.session.state)) {
+      handleSettlingDrop(ctx, hooks, error);
+      return;
+    }
     if (!ctx.state.hasConnectedOnce || ctx.session.state !== "connected") return;
     resetDirectoryForReconnect(ctx);
     // Prefer a kick reason over the generic transport error, whichever event comes first.
@@ -52,6 +64,37 @@ export function registerVoiceConnection(ctx: VoiceConnection, hooks: VoiceConnec
     ctx.sendJson({ type: "disconnected", recoverable: isRecoverable(normalized) });
     scheduleReconnect(ctx, hooks, normalized);
   });
+}
+
+/** Between authenticating and the first directory snapshot the session is not yet "connected" but already depends on the transport. */
+function isSettling(state: string): boolean {
+  return state === "authenticating" || state === "syncing";
+}
+
+function clearDirectoryTimer(ctx: VoiceConnection) {
+  if (ctx.state.directoryTimer) clearTimeout(ctx.state.directoryTimer);
+  ctx.state.directoryTimer = null;
+}
+
+/**
+ * The transport dropped before the session finished settling. Ignoring it would leave the browser on
+ * "connecting" forever with nothing left to recover it, because connect() can resolve even when the
+ * directory snapshot never arrives.
+ */
+function handleSettlingDrop(ctx: VoiceConnection, hooks: VoiceConnectionDeps, error?: Error) {
+  clearDirectoryTimer(ctx);
+  resetDirectoryForReconnect(ctx);
+  // Same as an established session: a drop without an error is a plain transport loss and stays recoverable.
+  const normalized = ctx.state.pendingKickReason ?? (error ? normalizeTeamSpeakError(error) : null);
+  ctx.state.pendingKickReason = null;
+  if (!ctx.state.hasConnectedOnce) {
+    // A drop during the very first connect is a connect failure, not an interruption.
+    handleConnectFailure(ctx, hooks, normalized ?? new Error("TeamSpeak connection lost"), false);
+    return;
+  }
+  // A drop during a reconnect handshake goes back to waiting for the next attempt.
+  ctx.session.transition("reconnecting");
+  scheduleReconnect(ctx, hooks, normalized);
 }
 
 function scheduleReconnect(
@@ -92,6 +135,9 @@ function scheduleReconnect(
 }
 
 function handleConnectFailure(ctx: VoiceConnection, hooks: VoiceConnectionDeps, error: unknown, isReconnect: boolean): void {
+  // A transport that reports itself twice (a "disconnected" event plus a rejected connect()) fails once.
+  const state = ctx.session.state;
+  if (state === "failed" || state === "disconnecting" || state === "idle") return;
   const normalized = normalizeTeamSpeakError(error);
   const failureCode = clientConnectionFailureCode(normalized, ctx.serverPassword);
   const failureDetail = publicFailureDetail(normalized);

@@ -52,3 +52,31 @@ describe("the WebRTC answer", () => {
     await expect(newSession().createAnswer({ type: "offer", sdp: "invalid sdp" })).rejects.toThrow();
   });
 });
+
+describe("a session whose mixer codec is unavailable", () => {
+  it("closes the peer it already built before it throws", async () => {
+    const closed = new Set<unknown>();
+    const originalClose = RTCPeerConnection.prototype.close;
+    RTCPeerConnection.prototype.close = function (this: RTCPeerConnection) {
+      closed.add(this);
+      return originalClose.call(this);
+    };
+    try {
+      expect(
+        () =>
+          new WebRtcAudioSession({
+            connectionId: "no-codec",
+            logger,
+            onVoiceFrame() {},
+            onVoiceActivity() {},
+            createEncoder: () => {
+              throw new Error("native Opus missing");
+            },
+          }),
+      ).toThrow("WebRTC Opus codec is unavailable");
+      expect(closed.size).toBe(1);
+    } finally {
+      RTCPeerConnection.prototype.close = originalClose;
+    }
+  });
+});

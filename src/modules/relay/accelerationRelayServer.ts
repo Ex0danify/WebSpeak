@@ -1,6 +1,7 @@
 import { createSocket } from "node:dgram";
 import { isIP } from "node:net";
 import { lookup } from "node:dns/promises";
+import { isRestrictedAddress } from "../../infra/security/openTargetPolicy.js";
 import {
   asError,
   decodeFrame,
@@ -18,12 +19,18 @@ export async function createAccelerationRelayServer({
   token,
   allowPrivate = false,
   idleTimeoutMs = 30_000,
+  lookupAddresses = defaultLookupAddresses,
+  onError,
 }: {
   host?: string;
   port?: number;
   token: string;
   allowPrivate?: boolean;
   idleTimeoutMs?: number;
+  /** Injectable for tests, resolves every address of a hostname. */
+  lookupAddresses?: LookupAddresses;
+  /** Called when the socket fails after startup, the relay has already shut down by then. */
+  onError?: (error: Error) => void;
 }): Promise<{ host: string; port: number; close(): void }> {
   if (!token || token.length < 16) throw new Error("Acceleration relay token must contain at least 16 characters");
   const socket = createSocket(isIP(host) === 6 ? "udp6" : "udp4");
@@ -50,7 +57,7 @@ export async function createAccelerationRelayServer({
     if (!frame || !verifyFrame(frame, token)) return;
     const client = { address: rinfo.address, port: rinfo.port };
     if (frame.type === FrameType.OPEN) {
-      void openRelaySession(frame, client, socket, sessions, token, allowPrivate, send, cleanup);
+      void openRelaySession(frame, client, socket, sessions, token, allowPrivate, lookupAddresses, send, cleanup);
       return;
     }
     const session = sessions.get(frame.sessionId);
@@ -63,11 +70,6 @@ export async function createAccelerationRelayServer({
       cleanup(session);
     }
   });
-  socket.on("error", (error) => {
-    for (const session of sessions.values()) cleanup(session);
-    if (!closed) throw error;
-  });
-
   const sweep = setInterval(
     () => {
       const now = Date.now();
@@ -77,30 +79,46 @@ export async function createAccelerationRelayServer({
   );
   sweep.unref?.();
 
+  const shutdown = (): void => {
+    if (closed) return;
+    closed = true;
+    clearInterval(sweep);
+    for (const session of sessions.values()) cleanup(session);
+    try {
+      socket.close();
+    } catch {
+      /* never bound or already closed */
+    }
+  };
+
+  // A throwing listener escapes emit() as an uncaught exception and would take the whole process down.
+  let listening = false;
+  let rejectStartup: (error: Error) => void = () => undefined;
+  socket.on("error", (error) => {
+    shutdown();
+    if (listening) onError?.(error);
+    else rejectStartup(error);
+  });
+
   await new Promise<void>((resolve, reject) => {
-    const onError = (error: Error) => {
-      socket.off("listening", onListening);
-      reject(error);
-    };
-    const onListening = () => {
-      socket.off("error", onError);
+    rejectStartup = reject;
+    socket.once("listening", () => {
+      listening = true;
       resolve();
-    };
-    socket.once("error", onError);
-    socket.once("listening", onListening);
-    socket.bind({ address: host, port });
+    });
+    try {
+      socket.bind({ address: host, port });
+    } catch (error) {
+      // A synchronous bind failure never emits "error".
+      shutdown();
+      reject(asError(error));
+    }
   });
   const address = socket.address();
   return {
     host,
     port: typeof address === "object" ? address.port : port,
-    close(): void {
-      if (closed) return;
-      closed = true;
-      clearInterval(sweep);
-      for (const session of sessions.values()) cleanup(session);
-      socket.close();
-    },
+    close: shutdown,
   };
 }
 
@@ -120,18 +138,28 @@ async function openRelaySession(
   sessions: Map<number, RelaySession>,
   token: string,
   allowPrivate: boolean,
+  lookupAddresses: LookupAddresses,
   send: (session: RelaySession, type: FrameType, payload?: Buffer) => void,
   cleanup: (session: RelaySession) => void,
 ): Promise<void> {
   const request = parseJson(frame.payload);
   if (!request || typeof request.targetHost !== "string" || !Number.isInteger(request.targetPort)) return;
   const targetPort = request.targetPort as number;
-  if (!allowPrivate && isPrivateAddress(request.targetHost)) {
-    socket.send(
-      encodeFrame(FrameType.OPEN_ERR, frame.sessionId, 0, jsonPayload({ code: "PRIVATE_TARGET_BLOCKED" }), token),
-      client.port,
-      client.address,
-    );
+  const reply = (type: FrameType, payload: Buffer): void => {
+    socket.send(encodeFrame(type, frame.sessionId, 0, payload, token), client.port, client.address);
+  };
+  // Judge what we will actually dial: a hostname can resolve to loopback or an internal host, and one DNS
+  // answer can mix public and private records. The validated address is also the one we connect to, so a second
+  // lookup cannot rebind us.
+  let target: ResolvedTarget;
+  try {
+    target = await resolveTarget(request.targetHost, lookupAddresses);
+  } catch (error) {
+    reply(FrameType.OPEN_ERR, jsonPayload({ code: "TARGET_OPEN_FAILED", message: asError(error).message }));
+    return;
+  }
+  if (!allowPrivate && target.addresses.some((address) => isRestrictedAddress(address.address))) {
+    reply(FrameType.OPEN_ERR, jsonPayload({ code: "PRIVATE_TARGET_BLOCKED" }));
     return;
   }
   const previous = sessions.get(frame.sessionId);
@@ -146,7 +174,6 @@ async function openRelaySession(
   };
   sessions.set(session.id, session);
   try {
-    const target = await resolveTarget(request.targetHost);
     const targetSocket = createSocket(target.family === 6 ? "udp6" : "udp4");
     session.targetSocket = targetSocket;
     targetSocket.on("message", (payload) => {
@@ -177,40 +204,21 @@ async function openRelaySession(
   }
 }
 
-function isPrivateAddress(host: string): boolean {
-  const family = isIP(host);
-  if (family === 4) {
-    const parts = host.split(".").map(Number);
-    return (
-      parts[0] === 10 ||
-      (parts[0] === 172 && parts[1] >= 16 && parts[1] <= 31) ||
-      (parts[0] === 192 && parts[1] === 168) ||
-      parts[0] === 127 ||
-      (parts[0] === 169 && parts[1] === 254) ||
-      parts[0] === 0
-    );
-  }
-  if (family === 6) {
-    const normalized = host.toLocaleLowerCase();
-    return (
-      normalized === "::" ||
-      normalized === "::1" ||
-      normalized.startsWith("fc") ||
-      normalized.startsWith("fd") ||
-      normalized.startsWith("fe8") ||
-      normalized.startsWith("fe9") ||
-      normalized.startsWith("fea") ||
-      normalized.startsWith("feb")
-    );
-  }
-  return host === "localhost" || host.endsWith(".localhost");
+type LookupAddresses = (host: string) => Promise<Array<{ address: string; family: number }>>;
+
+interface ResolvedTarget {
+  host: string;
+  family: number;
+  /** Every address the name resolved to, all of them must pass the target policy. */
+  addresses: Array<{ address: string; family: number }>;
 }
 
-async function resolveTarget(host: string): Promise<{ host: string; family: number }> {
-  const family = isIP(host);
-  if (family) return { host, family };
-  const records = await lookup(host, { all: true, verbatim: true });
-  const record = records.find((item) => item.family === 4) ?? records[0];
+const defaultLookupAddresses: LookupAddresses = (host) => lookup(host, { all: true, verbatim: true });
+
+async function resolveTarget(host: string, lookupAddresses: LookupAddresses): Promise<ResolvedTarget> {
+  const literal = isIP(host);
+  const addresses = literal ? [{ address: host, family: literal }] : await lookupAddresses(host);
+  const record = addresses.find((item) => item.family === 4) ?? addresses[0];
   if (!record) throw new Error("TARGET_DNS_EMPTY");
-  return { host: record.address, family: record.family };
+  return { host: record.address, family: record.family, addresses };
 }

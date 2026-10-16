@@ -29,13 +29,15 @@ export interface UseScreenShareOptions {
   avatarStyle: (name: string, isSelf?: boolean, avatar?: string) => Record<string, string>;
   /** Owned by useJoinForm: whose viewer avatar (if any) is "self" in the player's viewer list. */
   nickname: Ref<string>;
+  /** The member directory, viewers carry only a client id and their avatar is looked up here. */
+  members?: ReadonlyArray<ChannelMember>;
 }
 
 /** The screen-share player (video element, fullscreen, remote volume), the start-screen-share
  *  settings dialog, and the per-member share/watch derivations built on top of the streams
  *  useRoomSession() already tracks. */
 export function useScreenShare(options: UseScreenShareOptions) {
-  const { avatarStyle, nickname } = options;
+  const { avatarStyle, nickname, members = [] } = options;
   const {
     screenShareStreams,
     screenShareViewing,
@@ -90,7 +92,14 @@ export function useScreenShare(options: UseScreenShareOptions) {
   const activeScreenShareStream = computed<ScreenShareStream | null>(
     () => screenShareStreams.find((stream) => stream.streamId === screenShareViewingStreamId.value) ?? null,
   );
-  const screenSharePlayerViewers = computed(() => activeScreenShareStream.value?.viewers.slice(-5) ?? []);
+  // The player shows at most five, so only those are resolved. A viewer missing from the directory keeps the initial fallback.
+  const screenSharePlayerViewers = computed(() =>
+    (activeScreenShareStream.value?.viewers.slice(-5) ?? []).map((viewer) => {
+      if (viewer.clientId === undefined) return viewer;
+      const avatar = members.find((member) => member.id === viewer.clientId)?.avatar;
+      return avatar ? { ...viewer, avatar } : viewer;
+    }),
+  );
   const screenSharePlayerViewerCount = computed(
     () => activeScreenShareStream.value?.viewerCount ?? activeScreenShareStream.value?.viewers.length ?? 0,
   );

@@ -16,6 +16,8 @@ export interface ScreenShareStream {
 export interface ScreenShareViewer {
   peerId: string;
   nickname: string;
+  clientId?: number;
+  /** Resolved from the member directory before display, never sent by the gateway. */
   avatar?: string;
 }
 
