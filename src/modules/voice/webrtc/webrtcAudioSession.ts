@@ -26,6 +26,8 @@ export interface WebRtcAudioSessionOptions {
   accompanimentActive?: boolean;
   onVoiceFrame: (data: Buffer, codec: 4 | 5) => void;
   onVoiceActivity: (clientIds: number[]) => void;
+  /** Seam for the mixer's Opus encoder, production uses the native one. */
+  createEncoder?: () => { encode(data: Buffer): Buffer };
 }
 
 export interface WebRtcAudioStats {
@@ -147,10 +149,12 @@ export class WebRtcAudioSession {
 
     let encoder: { encode(data: Buffer): Buffer };
     try {
-      encoder = new OpusEncoder(AUDIO_SAMPLE_RATE, 1);
+      encoder = options.createEncoder?.() ?? new OpusEncoder(AUDIO_SAMPLE_RATE, 1);
     } catch (error: unknown) {
       this.logger.error({ err: error instanceof Error ? error.message : String(error) }, "Could not create WebRTC mixer encoder");
       this.outgoingTrack.stop();
+      // The caller never receives this instance, so nothing else can close the peer built above.
+      void this.peer.close().catch(() => undefined);
       throw new Error("WebRTC Opus codec is unavailable", { cause: error });
     }
     this.mixer = new WebRtcMixer(encoder, this.stats, this.logger);
