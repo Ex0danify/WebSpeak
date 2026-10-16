@@ -165,23 +165,23 @@ describe("stream list helpers", () => {
     });
   });
 
-  it("normalizeScreenShareViewers keeps well-formed viewers, at most 64, with clipped text and light avatars", () => {
+  it("normalizeScreenShareViewers keeps well-formed viewers, at most 64, with clipped text and a valid client id only", () => {
     const context = setupPeers();
     expect(context.module.normalizeScreenShareViewers("no")).toEqual([]);
     const many = Array.from({ length: 70 }, (_, index) => ({ peerId: `p${index}`, nickname: "n" }));
     expect(context.module.normalizeScreenShareViewers(many)).toHaveLength(64);
-    const [viewer, small, big] = context.module.normalizeScreenShareViewers([
+    const [viewer, withId, badId] = context.module.normalizeScreenShareViewers([
       { peerId: "p".repeat(200), nickname: "n".repeat(200) },
-      { peerId: "a", nickname: "b", avatar: "x".repeat(128 * 1024) },
-      { peerId: "c", nickname: "d", avatar: "x".repeat(128 * 1024 + 1) },
+      { peerId: "a", nickname: "b", clientId: 7, avatar: "ignored" },
+      { peerId: "c", nickname: "d", clientId: -1 },
       { peerId: 1, nickname: "e" },
       { peerId: "f" },
       null,
       "g",
     ]);
     expect(viewer).toEqual({ peerId: "p".repeat(128), nickname: "n".repeat(120) });
-    expect(small.avatar).toHaveLength(128 * 1024);
-    expect(big).toEqual({ peerId: "c", nickname: "d" });
+    expect(withId).toEqual({ peerId: "a", nickname: "b", clientId: 7 });
+    expect(badId).toEqual({ peerId: "c", nickname: "d" });
   });
 });
 
