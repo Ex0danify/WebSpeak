@@ -47,6 +47,7 @@ export class ScreenShareHub {
   }
 
   describeScreenStream(stream: ScreenStreamRecord): ScreenShareStreamDescription {
+    const viewers = this.describeScreenViewers(stream);
     return {
       streamId: stream.streamId,
       source: stream.source,
@@ -57,37 +58,46 @@ export class ScreenShareHub {
       ...(stream.nameKind ? { nameKind: stream.nameKind } : {}),
       audio: stream.audio,
       createdAt: stream.createdAt,
+      // The roster above prunes viewers that vanished, so the count can never disagree with it.
       viewerCount: stream.viewerCount,
-      viewers: this.describeScreenViewers(stream),
+      viewers,
     };
   }
 
+  /**
+   * Who is watching, for the player's avatar stack. Carries the TeamSpeak client id.
+   */
   describeScreenViewers(stream: ScreenStreamRecord): ScreenShareViewerDescription[] {
+    this.pruneVanishedViewers(stream);
     return [...stream.viewerEntryIds]
       .map((entryId) => this.host.getParticipant(entryId))
       .filter((entry): entry is ScreenShareParticipant => Boolean(entry))
       .slice(0, 64)
       .map((entry) => {
-        const avatar = entry.members.get(entry.tsClient.getClientId())?.avatar;
-        return {
-          peerId: entry.screenPeerId,
-          nickname: entry.nickname,
-          ...(avatar && avatar.length <= 128 * 1024 ? { avatar } : {}),
-        };
+        const clientId = entry.tsClient.getClientId();
+        return { peerId: entry.screenPeerId, nickname: entry.nickname, ...(clientId > 0 ? { clientId } : {}) };
       });
   }
 
+  /** A participant that disappeared without passing through the leave path would otherwise inflate the count for the stream's lifetime. */
+  private pruneVanishedViewers(stream: ScreenStreamRecord): void {
+    for (const entryId of stream.viewerEntryIds) if (!this.host.getParticipant(entryId)) stream.viewerEntryIds.delete(entryId);
+    stream.viewerCount = stream.viewerEntryIds.size + stream.nativeViewerClids.size;
+  }
+
   screenShareViewerCountMessage(stream: ScreenStreamRecord): Record<string, unknown> {
+    const viewers = this.describeScreenViewers(stream);
     return {
       type: "screenShareViewerCount",
       streamId: stream.streamId,
       viewerCount: stream.viewerCount,
-      viewers: this.describeScreenViewers(stream),
+      viewers,
     };
   }
 
   screenShareViewerCount(stream: ScreenStreamRecord): number {
-    return stream.viewerEntryIds.size + stream.nativeViewerClids.size;
+    this.pruneVanishedViewers(stream);
+    return stream.viewerCount;
   }
 
   broadcastScreenMessage(stream: ScreenStreamRecord, message: Record<string, unknown>, excludeEntryId?: string): void {

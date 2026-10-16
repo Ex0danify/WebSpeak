@@ -76,7 +76,7 @@ export type ScreenSharePeerSignal =
 export interface ScreenShareViewerDescription {
   peerId: string;
   nickname: string;
-  avatar?: string;
+  clientId?: number;
 }
 
 export interface ScreenShareStreamDescription {

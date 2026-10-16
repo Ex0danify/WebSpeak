@@ -204,7 +204,7 @@ const chat = useChat({
 const { openPrivateChat } = chat;
 const roomChat = { ...chat, chatTab };
 
-const screenShare = useScreenShare({ screenShare: session.screenShare, avatarStyle, nickname });
+const screenShare = useScreenShare({ screenShare: session.screenShare, avatarStyle, nickname, members: session.roster.members });
 
 const audioPanel = useAudioSettingsPanel({ session: session.session, audio: session.audio });
 const {

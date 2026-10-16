@@ -20,7 +20,6 @@ export {
 export { handleScreenShareMessage } from "./screenSharePublish.js";
 export type {
   ScreenShareHost,
-  ScreenShareMember,
   ScreenShareParticipant,
   ScreenShareSendJson,
   ScreenShareSocket,

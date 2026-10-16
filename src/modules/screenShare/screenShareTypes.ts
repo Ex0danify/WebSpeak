@@ -10,10 +10,6 @@ export interface ScreenShareTeamSpeakClient {
   sendProtocolCommand(command: string): Promise<void>;
 }
 
-export interface ScreenShareMember {
-  avatar?: string;
-}
-
 export interface ScreenShareSocket {
   readonly readyState: number;
   send(data: string): void;
@@ -27,7 +23,8 @@ export interface ScreenShareParticipant {
   readonly target: TeamSpeakTarget;
   readonly tsClient: ScreenShareTeamSpeakClient;
   readonly ws: ScreenShareSocket;
-  readonly members: ReadonlyMap<number, ScreenShareMember>;
+  /** Only the client ids are read, the values are the session's own member records. */
+  readonly members: ReadonlyMap<number, unknown>;
   /** The channel of any client this session knows of, undefined when it does not know the client. */
   clientChannelId?(clientId: number): bigint | undefined;
 }

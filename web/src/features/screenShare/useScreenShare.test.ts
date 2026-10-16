@@ -254,6 +254,27 @@ describe("screenShareStreamForMember / toggleScreenShareForMember", () => {
   });
 });
 
+describe("viewer avatars", () => {
+  it("are looked up by client id in the member directory, and a viewer nobody knows keeps the initials", async () => {
+    const members = reactive<ChannelMember[]>([{ id: 7, nickname: "Ana", avatar: "data:image/png;base64,QQ==" }]);
+    const { vm, screenShareStreams } = await mountUseScreenShare({
+      screenShareViewingStreamId: ref("s1"),
+      members,
+    });
+    screenShareStreams.push(
+      stream({
+        viewers: [
+          { peerId: "p1", nickname: "Ana", clientId: 7 },
+          { peerId: "p2", nickname: "Ghost", clientId: 99 },
+          { peerId: "p3", nickname: "NoId" },
+        ],
+      }),
+    );
+    await flushPromises();
+    expect(vm.screenSharePlayerViewers.map((viewer) => viewer.avatar)).toEqual(["data:image/png;base64,QQ==", undefined, undefined]);
+  });
+});
+
 describe("screenShareViewerStyle", () => {
   it("marks the viewer as self only when the nickname matches the local nickname", async () => {
     const { vm, options } = await mountUseScreenShare({ nickname: ref("Lucas") });
