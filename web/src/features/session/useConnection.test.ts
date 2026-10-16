@@ -39,6 +39,7 @@ function setup() {
     startWebRtcTransport: vi.fn(async () => {}),
     sendScreenShareMessage: vi.fn(),
     isMicrophoneMuted: vi.fn(() => false),
+    isOutputMuted: vi.fn(() => false),
     clearMemberVolumes: vi.fn(() => {
       for (const key of Object.keys(volumes)) delete volumes[Number(key)];
     }),

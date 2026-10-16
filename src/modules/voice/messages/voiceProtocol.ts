@@ -13,6 +13,7 @@ export interface ClientCommand {
     | "setWhisperTargets"
     | "setWhisperActive"
     | "setMicrophoneMuted"
+    | "setOutputMuted"
     | "setAccompanimentActive"
     | "setMemberVolume"
     | "latencyProbe";
@@ -46,6 +47,7 @@ export function parseClientCommand(raw: string): ClientCommandResult {
     "setWhisperTargets",
     "setWhisperActive",
     "setMicrophoneMuted",
+    "setOutputMuted",
     "setAccompanimentActive",
     "setMemberVolume",
     "latencyProbe",
@@ -129,6 +131,9 @@ export function parseClientCommand(raw: string): ClientCommandResult {
   }
   if (value.type === "setMicrophoneMuted" && typeof value.payload.muted !== "boolean") {
     return { error: { code: "INVALID_MICROPHONE_STATE", message: "Microphone state is invalid" } };
+  }
+  if (value.type === "setOutputMuted" && typeof value.payload.muted !== "boolean") {
+    return { error: { code: "INVALID_OUTPUT_STATE", message: "Output state is invalid" } };
   }
   if (value.type === "setAccompanimentActive" && typeof value.payload.active !== "boolean") {
     return { error: { code: "INVALID_ACCOMPANIMENT_STATE", message: "Accompaniment state is invalid" } };

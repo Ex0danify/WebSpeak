@@ -138,7 +138,12 @@ export function useRoomSession() {
     toggleOutputMute,
     setVoxThreshold,
     setNotificationVolume,
-  } = useAudioPreferences({ applyMemberVolume, applyInputVolume, applyOutputVolume });
+  } = useAudioPreferences({
+    applyMemberVolume,
+    applyInputVolume,
+    applyOutputVolume,
+    syncOutputMuted: (muted) => sendCommandAndWait("setOutputMuted", { muted }),
+  });
   const webrtcActive = ref(false);
   const identityMaterial = ref("");
   const playback = usePlayback({ getAudioCtx, effectiveOutputVolume, webrtcActive });
@@ -247,6 +252,7 @@ export function useRoomSession() {
     startWebRtcTransport,
     sendScreenShareMessage,
     isMicrophoneMuted: () => microphoneMuted.value,
+    isOutputMuted: () => outputMuted.value,
     clearMemberVolumes: () => {
       for (const key of Object.keys(volumes)) delete volumes[Number(key)];
     },

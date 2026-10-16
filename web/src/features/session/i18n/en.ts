@@ -81,6 +81,7 @@ export const en = {
   commandTimeout: "The operation timed out. Try again shortly",
   joinErr_TARGET_NOT_ALLOWED: "This TeamSpeak server address is not allowed",
   err_INVALID_MICROPHONE_STATE: "The microphone state is invalid",
+  err_INVALID_OUTPUT_STATE: "The audio output state is invalid",
   err_INVALID_ACCOMPANIMENT_STATE: "The accompaniment state is invalid",
   err_INVALID_LATENCY_PROBE: "The latency probe id is invalid",
   err_WEBRTC_DISABLED: "WebRTC audio transport is not enabled",

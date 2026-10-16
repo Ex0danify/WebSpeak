@@ -18,6 +18,7 @@ import { createCommandPacer } from "./commandPacer.js";
 import { escapeTeamSpeakValue } from "./teamSpeakCommand.js";
 import { toTSChatMessage, type TSChatScope, type TSVoiceData } from "./teamSpeakMessages.js";
 import { InputMuteSync } from "./inputMuteSync.js";
+import { OutputMuteSync } from "./outputMuteSync.js";
 import { listClientsWithStatus } from "./teamSpeakClientList.js";
 import { loadClientAvatarOnConnection, type TSClientAvatar } from "./teamSpeakAvatar.js";
 import type { TeamSpeakProtocol } from "../../shared/teamSpeakProtocol.js";
@@ -59,6 +60,7 @@ export class TSClient extends EventEmitter {
   // Bumped by disconnect(), a connect() already in flight gives up when it sees the change.
   private connectGeneration = 0;
   private readonly inputMute = new InputMuteSync(this.pacer);
+  private readonly outputMute = new OutputMuteSync(this.pacer);
 
   constructor(
     private options: TSClientOptions,
@@ -74,6 +76,7 @@ export class TSClient extends EventEmitter {
     const generation = this.connectGeneration;
     this.selfLeaveReasonId = null;
     this.inputMute.reset();
+    this.outputMute.reset();
     if (!this.adapter || !this.client) {
       let transportTarget = this.options.target;
       if (this.options.acceleration && !this.accelerationClient) {
@@ -298,6 +301,13 @@ export class TSClient extends EventEmitter {
     await this.inputMute.setMicMuted(muted, client, () => this.client === client);
   }
 
+  /** Marks this client as deafened (or not) for everyone on the TeamSpeak server. */
+  async setOutputMuted(muted: boolean): Promise<void> {
+    if (!this.client || !this.connected) throw new Error("TeamSpeak session is not ready");
+    const client = this.client;
+    await this.outputMute.setOutputMuted(muted, client, () => this.client === client);
+  }
+
   /** Accompaniment keeps the TeamSpeak input unmuted so a muted mic does not silence the shared audio. */
   async setAccompanimentActive(active: boolean): Promise<void> {
     if (!this.client || !this.connected) throw new Error("TeamSpeak session is not ready");
@@ -379,6 +389,7 @@ export class TSClient extends EventEmitter {
   async disconnect(): Promise<void> {
     this.connectGeneration++;
     this.inputMute.reset();
+    this.outputMute.reset();
     this.connected = false;
     this.selfLeaveReasonId = null;
     try {

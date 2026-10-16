@@ -105,6 +105,12 @@ describe("command validation errors (voiceProtocol)", () => {
       "Microphone state is invalid",
     ],
     [
+      "setOutputMuted with a bad flag",
+      json({ type: "setOutputMuted", payload: { muted: 1 } }),
+      "INVALID_OUTPUT_STATE",
+      "Output state is invalid",
+    ],
+    [
       "setAccompanimentActive with a bad flag",
       json({ type: "setAccompanimentActive", payload: { active: 1 } }),
       "INVALID_ACCOMPANIMENT_STATE",
