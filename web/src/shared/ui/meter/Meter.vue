@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
-import { cn } from "../../lib/cn";
-import { meterFillClass, meterThresholdClass, meterVariants, type MeterVariants } from "./meter";
+import { cn } from "@/shared/lib/cn";
+import { meterFillClass, meterThresholdClass, meterVariants, type MeterVariants } from "@/shared/ui/meter/meter";
 
 // Input-level bar, 0 to 1. `modelValue` is for values that change rarely, `setLevel()` is for a live level and writes the
 // --level custom property on the element directly, so a 50 Hz audio callback never re-renders Vue. Use one or the other per

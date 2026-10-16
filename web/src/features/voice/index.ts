@@ -1,11 +1,11 @@
-export { useAudioOutput, type AudioOutputDeps } from "./engine/useAudioOutput";
-export { usePlayback, type PlaybackDeps } from "./engine/usePlayback";
-export { useMicrophone, type MicrophoneDeps } from "./engine/useMicrophone";
-export { useWebRtcTransport, type WebRtcTransportDeps } from "./engine/useWebRtcTransport";
-export { useAudioPreferences, type AudioPreferencesDeps } from "./useAudioPreferences";
-export { useVoiceAudioStore, type AccompanimentErrorCode } from "./stores/voiceAudioStore";
-export { normalizeMicrophoneFailure, microphoneErrorText } from "./voiceErrors";
-export { translations as voiceMessages } from "./i18n/index.js";
+export { useAudioOutput, type AudioOutputDeps } from "@/features/voice/engine/useAudioOutput";
+export { usePlayback, type PlaybackDeps } from "@/features/voice/engine/usePlayback";
+export { useMicrophone, type MicrophoneDeps } from "@/features/voice/engine/useMicrophone";
+export { useWebRtcTransport, type WebRtcTransportDeps } from "@/features/voice/engine/useWebRtcTransport";
+export { useAudioPreferences, type AudioPreferencesDeps } from "@/features/voice/useAudioPreferences";
+export { useVoiceAudioStore, type AccompanimentErrorCode } from "@/features/voice/stores/voiceAudioStore";
+export { normalizeMicrophoneFailure, microphoneErrorText } from "@/features/voice/voiceErrors";
+export { translations as voiceMessages } from "@/features/voice/i18n/index.js";
 export type {
   AudioInputDevice,
   AudioOutputDevice,
@@ -13,4 +13,4 @@ export type {
   MicrophoneProcessingSettings,
   SinkAudioContext,
   SinkAudioElement,
-} from "./voiceTypes";
+} from "@/features/voice/voiceTypes";

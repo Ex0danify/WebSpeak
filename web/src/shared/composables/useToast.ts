@@ -1,5 +1,5 @@
 import { readonly, ref } from "vue";
-import type { StatusVariant } from "../ui/shared/status";
+import type { StatusVariant } from "@/shared/ui/shared/status";
 
 // Toast queue. State lives at module level so any component or service can raise a toast without providing anything, one
 // <Toaster /> near the app root renders it. A toast confirms something that already happened and may offer one action.

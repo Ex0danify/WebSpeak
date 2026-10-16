@@ -1,7 +1,7 @@
 import { createPinia, setActivePinia } from "pinia";
 import { isReactive } from "vue";
 import { afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { useVoiceAudioStore } from "./voiceAudioStore";
+import { useVoiceAudioStore } from "@/features/voice/stores/voiceAudioStore";
 
 beforeAll(() => {
   // The RNNoise worklet package extends AudioWorkletNode at import time; happy-dom has none.

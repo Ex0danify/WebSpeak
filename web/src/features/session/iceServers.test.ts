@@ -1,6 +1,6 @@
 // ICE server normalization and the module-level shared config.
 import { afterEach, describe, expect, it } from "vitest";
-import { getScreenShareIceServers, normalizeScreenShareIceServers, setScreenShareIceServers } from "./iceServers";
+import { getScreenShareIceServers, normalizeScreenShareIceServers, setScreenShareIceServers } from "@/features/session/iceServers";
 
 const DEFAULTS = [{ urls: "stun:turn.teamspeak.com:3478" }, { urls: "stun:turn2.teamspeak.com:3478" }];
 

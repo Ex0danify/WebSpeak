@@ -1,15 +1,15 @@
 import type { Ref } from "vue";
 import { storeToRefs } from "pinia";
 import type { RnnoiseWorkletNode } from "@sapphi-red/web-noise-suppressor";
-import { useVoiceAudioStore } from "../stores/voiceAudioStore";
+import { useVoiceAudioStore } from "@/features/voice/stores/voiceAudioStore";
 import { useSessionStore } from "@/features/session";
-import { AUDIO_FRAME_SAMPLES, MAX_AUDIO_BUFFERED_BYTES, micCaptureWorkletUrl } from "../audioConstants";
+import { AUDIO_FRAME_SAMPLES, MAX_AUDIO_BUFFERED_BYTES, micCaptureWorkletUrl } from "@/features/voice/audioConstants";
 import { text, type LocalizedText, type TextParams } from "@/shared/i18n/localizedText";
-import { normalizeMicrophoneFailure } from "../voiceErrors";
-import type { SinkAudioContext } from "../voiceTypes";
-import { useAudioInputDevices } from "./useAudioInputDevices";
-import { createMicrophoneProcessing } from "./microphoneProcessing";
-import { useMicrophoneTest } from "./useMicrophoneTest";
+import { normalizeMicrophoneFailure } from "@/features/voice/voiceErrors";
+import type { SinkAudioContext } from "@/features/voice/voiceTypes";
+import { useAudioInputDevices } from "@/features/voice/engine/useAudioInputDevices";
+import { createMicrophoneProcessing } from "@/features/voice/engine/microphoneProcessing";
+import { useMicrophoneTest } from "@/features/voice/engine/useMicrophoneTest";
 
 /** Late-bound pieces owned by other modules, resolved at call time. */
 export interface MicrophoneDeps {

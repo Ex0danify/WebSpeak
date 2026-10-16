@@ -1,5 +1,5 @@
 import type { MessageKey } from "@/shared/i18n/messageKeys";
-import type { ChannelMember, ChatMessage } from "./sessionTypes.js";
+import type { ChannelMember, ChatMessage } from "@/features/session/sessionTypes.js";
 
 export function messageAvatar(message: ChatMessage, members: ChannelMember[]): string {
   const member = members.find(

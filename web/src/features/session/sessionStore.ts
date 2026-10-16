@@ -1,6 +1,6 @@
 import { defineStore } from "pinia";
 import { reactive, ref, shallowRef } from "vue";
-import type { ChannelInfo, ChannelMember, ChatMessage, ServerEvent, VoiceState } from "./sessionTypes";
+import type { ChannelInfo, ChannelMember, ChatMessage, ServerEvent, VoiceState } from "@/features/session/sessionTypes";
 
 export type PokeNotification = {
   id: string;

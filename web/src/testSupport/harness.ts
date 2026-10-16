@@ -2,8 +2,8 @@
 // connect/join round trip against `FakeWebSocket`. Import it from voice tests only.
 import { flushPromises } from "@vue/test-utils";
 import { createPinia, setActivePinia } from "pinia";
-import { installBrowserStubs, type BrowserStubOptions, type BrowserStubs } from "./browserStubs";
-import { FakeWebSocket } from "./fakeWebsocket";
+import { installBrowserStubs, type BrowserStubOptions, type BrowserStubs } from "@/testSupport/browserStubs";
+import { FakeWebSocket } from "@/testSupport/fakeWebsocket";
 
 export interface VoiceHarness {
   /** The object `useRoomSession()` returned. */

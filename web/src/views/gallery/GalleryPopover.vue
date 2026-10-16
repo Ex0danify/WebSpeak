@@ -42,8 +42,8 @@ import { Slider } from "@/shared/ui/slider";
 import { Dialog } from "@/shared/ui/dialog";
 import { Popover } from "@/shared/ui/popover";
 import { Icon } from "@/shared/ui/icon";
-import GallerySection from "./GallerySection.vue";
-import { type Lang, useGalleryLang, closeLabel } from "./galleryLang";
+import GallerySection from "@/views/gallery/GallerySection.vue";
+import { type Lang, useGalleryLang, closeLabel } from "@/views/gallery/galleryLang";
 
 const lang = useGalleryLang();
 

@@ -12,5 +12,5 @@
 
 <script setup lang="ts">
 import { Icon, iconNames } from "@/shared/ui/icon";
-import GallerySection from "./GallerySection.vue";
+import GallerySection from "@/views/gallery/GallerySection.vue";
 </script>

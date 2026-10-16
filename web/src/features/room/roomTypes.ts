@@ -1,4 +1,4 @@
-import type { useRoomSession } from "./useRoomSession";
+import type { useRoomSession } from "@/features/room/useRoomSession";
 import type { ChannelInfo, ChannelMember } from "@/features/session";
 import type { Spacer } from "@/shared/lib/parseSpacer";
 

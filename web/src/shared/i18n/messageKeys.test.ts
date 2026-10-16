@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import type { MessageKey } from "./messageKeys";
-import { useI18n } from "./useI18n";
+import type { MessageKey } from "@/shared/i18n/messageKeys";
+import { useI18n } from "@/shared/i18n/useI18n";
 
 // Compile-time (vue-tsc checks test files): MessageKey is a literal union fed by every module's `en`.
 type IsLiteralUnion = string extends MessageKey ? false : true;

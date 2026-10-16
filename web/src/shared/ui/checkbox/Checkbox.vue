@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
 import { CheckboxIndicator, CheckboxRoot } from "reka-ui";
-import { cn } from "../../lib/cn";
-import { Icon } from "../icon";
-import { checkBoxClass, checkRowClass } from "../shared/checkControl";
+import { cn } from "@/shared/lib/cn";
+import { Icon } from "@/shared/ui/icon";
+import { checkBoxClass, checkRowClass } from "@/shared/ui/shared/checkControl";
 
 // Checkbox on reka-ui, in a label. Bind a boolean, or an array together with
 // `value` to collect several. Attributes (disabled, name, ...) go to the

@@ -47,7 +47,7 @@ import { Icon } from "@/shared/ui/icon";
 import { Input } from "@/shared/ui/input";
 import { Segment, Segmented } from "@/shared/ui/tabs";
 import { storeToRefs } from "pinia";
-import { useAdminServerSettingsStore } from "./adminServerSettings";
+import { useAdminServerSettingsStore } from "@/features/admin/adminServerSettings";
 import { useI18n } from "@/shared/i18n/useI18n";
 
 const settings = useAdminServerSettingsStore();

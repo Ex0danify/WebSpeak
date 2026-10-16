@@ -4,7 +4,7 @@ import { resolveText, type MaybeLocalizedText } from "@/shared/i18n/localizedTex
 import { useI18n } from "@/shared/i18n/useI18n.js";
 import { readStorage, writeStorage } from "@/shared/services/safeStorage.js";
 import type { ChannelMember } from "@/features/session";
-import type { ScreenShareOutputSettings, ScreenShareStream } from "./screenShareTypes";
+import type { ScreenShareOutputSettings, ScreenShareStream } from "@/features/screenShare/screenShareTypes";
 
 export type ScreenShareResolutionPreset = "source" | "720p" | "1080p";
 

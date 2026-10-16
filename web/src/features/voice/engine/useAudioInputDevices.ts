@@ -1,9 +1,9 @@
 import { storeToRefs } from "pinia";
 import { writeStorage } from "@/shared/services/safeStorage";
-import { useVoiceAudioStore } from "../stores/voiceAudioStore";
+import { useVoiceAudioStore } from "@/features/voice/stores/voiceAudioStore";
 import { useSessionStore } from "@/features/session";
 import type { TextParams } from "@/shared/i18n/localizedText";
-import type { SinkAudioContext } from "../voiceTypes";
+import type { SinkAudioContext } from "@/features/voice/voiceTypes";
 
 export interface AudioInputDevicesDeps {
   saveAudioPreferences(): Promise<void>;

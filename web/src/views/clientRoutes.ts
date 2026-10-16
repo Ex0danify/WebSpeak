@@ -1,7 +1,7 @@
 import type { RouteRecordRaw } from "vue-router";
 import { useSessionStore } from "@/features/session";
-import ClientLayout from "./ClientLayout.vue";
-import JoinView from "./JoinView.vue";
+import ClientLayout from "@/views/ClientLayout.vue";
+import JoinView from "@/views/JoinView.vue";
 
 /** The client. `ClientLayout` owns the session for both pages, `/` is the join page and `/room` the connected room, and the
  *  layout moves between them as the session connects and ends. Layout and join page are in the entry chunk (every visit starts
@@ -15,7 +15,7 @@ export const clientRoutes: RouteRecordRaw[] = [
       {
         path: "room",
         name: "room",
-        component: () => import("./RoomView.vue"),
+        component: () => import("@/views/RoomView.vue"),
         // A reload or a pasted link has no live session behind it, so there is nothing to show.
         beforeEnter: () => {
           const { state } = useSessionStore();

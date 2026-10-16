@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { avatarInitial, avatarStyle, formatTime, median, serverKey } from "./format";
+import { avatarInitial, avatarStyle, formatTime, median, serverKey } from "@/shared/lib/format";
 
 describe("median", () => {
   it("returns null for an empty list", () => {

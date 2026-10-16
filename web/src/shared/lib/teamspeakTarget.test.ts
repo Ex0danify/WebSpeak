@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { formatTeamSpeakTarget, parseTeamSpeakTarget, teamSpeakTargetKey } from "@/../../src/shared/teamSpeakTarget";
 import { ACCEPTED_TARGETS, PORT_FIELD_CASES } from "@/../../test/support/teamSpeakTargetCases";
-import { DEFAULT_TEAM_SPEAK_PORT, combineTeamSpeakTarget, isValidTeamSpeakPort, splitTeamSpeakTarget } from "./teamspeakTarget";
+import { DEFAULT_TEAM_SPEAK_PORT, combineTeamSpeakTarget, isValidTeamSpeakPort, splitTeamSpeakTarget } from "@/shared/lib/teamspeakTarget";
 
 // The gateway validates a target, the form only splits and joins it. Both are run
 // against the table of test/support/teamSpeakTargetCases.ts, so a change to one

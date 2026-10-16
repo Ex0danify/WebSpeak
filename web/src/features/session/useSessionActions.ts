@@ -1,11 +1,11 @@
 import { storeToRefs } from "pinia";
-import { useSessionStore } from "./sessionStore";
-import { MAX_CHAT_MESSAGES, pushBounded } from "./sessionLimits";
+import { useSessionStore } from "@/features/session/sessionStore";
+import { MAX_CHAT_MESSAGES, pushBounded } from "@/features/session/sessionLimits";
 import { LocalizedError, text, type LocalizedText } from "@/shared/i18n/localizedText";
-import { normalizedClientErrorCode } from "./sessionErrors";
-import { privateConversationKey } from "./format";
-import type { ChatMessage, LatencyProbeResult } from "./sessionTypes";
-import type { MessageHandlers } from "./messageRouter";
+import { normalizedClientErrorCode } from "@/features/session/sessionErrors";
+import { privateConversationKey } from "@/features/session/format";
+import type { ChatMessage, LatencyProbeResult } from "@/features/session/sessionTypes";
+import type { MessageHandlers } from "@/features/session/messageRouter";
 
 /** Outgoing commands and everything that waits on a reply: command completion, latency probes, chat,
  *  poke, away and whisper. Reads the session store directly. The pending maps are returned so the

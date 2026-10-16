@@ -8,10 +8,10 @@ import {
   FakeEncodedAudioChunk,
   FakeMediaStream,
   FakeMediaStreamTrack,
-} from "./fakeAudio";
-import { FakeWebSocket } from "./fakeWebsocket";
+} from "@/testSupport/fakeAudio";
+import { FakeWebSocket } from "@/testSupport/fakeWebsocket";
 
-export * from "./fakeAudio";
+export * from "@/testSupport/fakeAudio";
 
 export class FakeRTCPeerConnection {
   static instances: FakeRTCPeerConnection[] = [];

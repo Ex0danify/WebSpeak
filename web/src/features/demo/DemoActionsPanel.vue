@@ -37,7 +37,7 @@ import { Button } from "@/shared/ui/button";
 import { Icon } from "@/shared/ui/icon";
 import { Separator } from "@/shared/ui/separator";
 import { useI18n } from "@/shared/i18n/useI18n";
-import { demoKicker, demoPanel } from "./demoPanel";
+import { demoKicker, demoPanel } from "@/features/demo/demoPanel";
 
 defineProps<{ speakingId: string }>();
 const emit = defineEmits<{ toggleSpeaking: []; poke: []; reconnect: [] }>();

@@ -11,7 +11,7 @@ async function load(options: { stored?: string; browser?: string; languages?: st
   vi.spyOn(navigator, "language", "get").mockReturnValue(browser);
   vi.spyOn(navigator, "languages", "get").mockReturnValue(options.languages ?? (browser ? [browser] : []));
   vi.resetModules();
-  const [i18n, { translations }] = await Promise.all([import("./useI18n"), import("./common/index")]);
+  const [i18n, { translations }] = await Promise.all([import("@/shared/i18n/useI18n"), import("@/shared/i18n/common/index")]);
   i18n.registerMessages(translations);
   return { ...i18n, translations };
 }
@@ -83,7 +83,7 @@ describe("setLanguage and loadLanguage", () => {
     const first = await load();
     first.useI18n().setLanguage("de");
     vi.resetModules();
-    const second = await import("./useI18n");
+    const second = await import("@/shared/i18n/useI18n");
     expect(second.useI18n().language.value).toBe("de");
   });
 

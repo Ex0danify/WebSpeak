@@ -1,11 +1,17 @@
 import { storeToRefs } from "pinia";
-import { useSessionStore } from "./sessionStore";
+import { useSessionStore } from "@/features/session/sessionStore";
 import { LocalizedError, text, type LocalizedText } from "@/shared/i18n/localizedText";
-import { normalizedClientErrorCode } from "./sessionErrors";
-import { closeErrorCode, closeReason, connectionFailureMessage, joinTicketReason, protocolErrorMessage } from "./connectionMessages";
-import { MAX_SERVER_EVENTS, pushBounded, readAvatar } from "./sessionLimits";
-import { setScreenShareIceServers } from "./iceServers";
-import type { MessageHandlers } from "./messageRouter";
+import { normalizedClientErrorCode } from "@/features/session/sessionErrors";
+import {
+  closeErrorCode,
+  closeReason,
+  connectionFailureMessage,
+  joinTicketReason,
+  protocolErrorMessage,
+} from "@/features/session/connectionMessages";
+import { MAX_SERVER_EVENTS, pushBounded, readAvatar } from "@/features/session/sessionLimits";
+import { setScreenShareIceServers } from "@/features/session/iceServers";
+import type { MessageHandlers } from "@/features/session/messageRouter";
 
 export interface ConnectionDeps {
   audioPreferencesReady: Promise<void>;

@@ -74,8 +74,8 @@ import { Field } from "@/shared/ui/field";
 import { Input } from "@/shared/ui/input";
 import { Select } from "@/shared/ui/select";
 import { Dialog } from "@/shared/ui/dialog";
-import GallerySection from "./GallerySection.vue";
-import { type Lang, useGalleryLang, closeLabel } from "./galleryLang";
+import GallerySection from "@/views/gallery/GallerySection.vue";
+import { type Lang, useGalleryLang, closeLabel } from "@/views/gallery/galleryLang";
 
 const lang = useGalleryLang();
 

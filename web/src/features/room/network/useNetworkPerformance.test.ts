@@ -52,7 +52,7 @@ function sample(overrides: Partial<LatencyProbeResult> = {}): LatencyProbeResult
 async function mountUseNetworkPerformance(
   overrides: { voiceState?: VoiceState; measureLatency?: () => Promise<LatencyProbeResult | null> } = {},
 ) {
-  const { useNetworkPerformance } = await import("./useNetworkPerformance");
+  const { useNetworkPerformance } = await import("@/features/room/network/useNetworkPerformance");
   const options = {
     voiceState: makeVoiceState({ connected: true }),
     measureLatency: vi.fn(async () => sample()),

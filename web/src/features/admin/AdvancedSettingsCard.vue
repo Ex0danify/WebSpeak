@@ -44,7 +44,7 @@ import { Checkbox } from "@/shared/ui/checkbox";
 import { Field } from "@/shared/ui/field";
 import { Input } from "@/shared/ui/input";
 import { storeToRefs } from "pinia";
-import { useAdminServerSettingsStore } from "./adminServerSettings";
+import { useAdminServerSettingsStore } from "@/features/admin/adminServerSettings";
 import { useI18n } from "@/shared/i18n/useI18n";
 
 const settings = useAdminServerSettingsStore();

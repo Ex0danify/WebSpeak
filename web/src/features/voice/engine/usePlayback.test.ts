@@ -4,10 +4,10 @@ import { createPinia, setActivePinia } from "pinia";
 import { ref, type Ref } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useSessionStore } from "@/features/session";
-import { SPEAKING_HOLD_MS } from "../audioConstants";
+import { SPEAKING_HOLD_MS } from "@/features/voice/audioConstants";
 import { FakeAudioContext, FakeAudioDecoder, installBrowserStubs, type BrowserStubs } from "@/testSupport/browserStubs";
-import type { SinkAudioContext } from "../voiceTypes";
-import { usePlayback } from "./usePlayback";
+import type { SinkAudioContext } from "@/features/voice/voiceTypes";
+import { usePlayback } from "@/features/voice/engine/usePlayback";
 
 let stubs: BrowserStubs;
 let ctx: FakeAudioContext;

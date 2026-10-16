@@ -1,5 +1,5 @@
-import { useSessionStore } from "./sessionStore";
-import { privateConversationKey } from "./format";
+import { useSessionStore } from "@/features/session/sessionStore";
+import { privateConversationKey } from "@/features/session/format";
 import {
   MAX_CHAT_MESSAGES,
   MAX_CHAT_TEXT_LENGTH,
@@ -9,8 +9,8 @@ import {
   clampText,
   pushBounded,
   readAvatar,
-} from "./sessionLimits";
-import type { ServerEvent, ServerMessage, ServerMessageType } from "./sessionTypes";
+} from "@/features/session/sessionLimits";
+import type { ServerEvent, ServerMessage, ServerMessageType } from "@/features/session/sessionTypes";
 
 /** Gateway control frame handlers, keyed by `type`; each one receives the matching `ServerMessage` variant.
  *  The JSON is parsed but not validated at runtime, so handlers still guard fields the gateway may omit. */

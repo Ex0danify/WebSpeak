@@ -1,7 +1,7 @@
 import type { MessageKey } from "@/shared/i18n/messageKeys";
 import { intlLocale, type Language } from "@/shared/i18n/languages";
 import { createFormat } from "@/shared/i18n/useFormat";
-import type { AdminConnectionRecord, ManagedInvite } from "./adminTypes.js";
+import type { AdminConnectionRecord, ManagedInvite } from "@/features/admin/adminTypes.js";
 
 const CONNECTION_FAILED: MessageKey = "connectionFailed";
 

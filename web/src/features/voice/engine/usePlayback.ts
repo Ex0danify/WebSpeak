@@ -1,8 +1,8 @@
 import type { Ref } from "vue";
-import { useVoiceAudioStore } from "../stores/voiceAudioStore";
+import { useVoiceAudioStore } from "@/features/voice/stores/voiceAudioStore";
 import { useSessionStore } from "@/features/session";
-import { MAX_REMOTE_DECODE_QUEUE_FRAMES, MAX_REMOTE_PLAY_AHEAD_SECONDS, SPEAKING_HOLD_MS } from "../audioConstants";
-import type { SinkAudioContext } from "../voiceTypes";
+import { MAX_REMOTE_DECODE_QUEUE_FRAMES, MAX_REMOTE_PLAY_AHEAD_SECONDS, SPEAKING_HOLD_MS } from "@/features/voice/audioConstants";
+import type { SinkAudioContext } from "@/features/voice/voiceTypes";
 import type { MessageHandlers } from "@/features/session";
 
 /** Late-bound pieces owned by other modules. */

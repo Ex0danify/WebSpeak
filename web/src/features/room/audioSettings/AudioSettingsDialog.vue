@@ -52,8 +52,8 @@ import { Separator } from "@/shared/ui/separator";
 import { useI18n } from "@/shared/i18n/useI18n.js";
 import type { MaybeLocalizedText } from "@/shared/i18n/localizedText.js";
 import type { AudioInputDevice, AudioOutputDevice, AudioPermission } from "@/features/voice";
-import InputDevicePanel from "./InputDevicePanel.vue";
-import OutputVolumePanel from "./OutputVolumePanel.vue";
+import InputDevicePanel from "@/features/room/audioSettings/InputDevicePanel.vue";
+import OutputVolumePanel from "@/features/room/audioSettings/OutputVolumePanel.vue";
 
 const open = defineModel<boolean>({ required: true });
 

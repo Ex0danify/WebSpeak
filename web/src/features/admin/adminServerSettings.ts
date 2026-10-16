@@ -1,8 +1,8 @@
 import type { MessageKey } from "@/shared/i18n/messageKeys";
 import { computed, reactive, ref, watch } from "vue";
 import { defineStore } from "pinia";
-import type { ApiError } from "./adminApi.js";
-import { createAdminFormat } from "./adminFormat.js";
+import type { ApiError } from "@/features/admin/adminApi.js";
+import { createAdminFormat } from "@/features/admin/adminFormat.js";
 import { combineTeamSpeakTarget } from "@/shared/lib/teamspeakTarget.js";
 import { DEFAULT_LANGUAGE } from "@/shared/i18n/languages.js";
 import { useI18n } from "@/shared/i18n/useI18n.js";
@@ -14,9 +14,9 @@ import {
   type ProbeState,
   type WelcomeLanguage,
   welcomeLanguageOptions,
-} from "./adminServerForm.js";
-import { adminSiblings } from "./adminSiblings.js";
-import { useAdminSessionStore } from "./adminSession.js";
+} from "@/features/admin/adminServerForm.js";
+import { adminSiblings } from "@/features/admin/adminSiblings.js";
+import { useAdminSessionStore } from "@/features/admin/adminSession.js";
 
 /** The server page's state: the TeamSpeak target, access mode, welcome texts, WebRTC port range and
  *  relay nodes, plus loading, saving and the connection test. */

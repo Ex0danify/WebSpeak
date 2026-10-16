@@ -45,18 +45,18 @@
 </template>
 
 <script setup lang="ts">
-import { adminPageScroll } from "./adminPage";
+import { adminPageScroll } from "@/features/admin/adminPage";
 import { storeToRefs } from "pinia";
 import { Button } from "@/shared/ui/button";
 import { Dialog } from "@/shared/ui/dialog";
-import { createAdminFormat } from "./adminFormat";
+import { createAdminFormat } from "@/features/admin/adminFormat";
 import { useI18n } from "@/shared/i18n/useI18n";
-import { useAdminServerSettingsStore } from "./adminServerSettings";
-import { useAdminSessionStore } from "./adminSession";
-import AccessIdentityCard from "./AccessIdentityCard.vue";
-import AdvancedSettingsCard from "./AdvancedSettingsCard.vue";
-import RelayNodesCard from "./RelayNodesCard.vue";
-import TeamSpeakTargetCard from "./TeamSpeakTargetCard.vue";
+import { useAdminServerSettingsStore } from "@/features/admin/adminServerSettings";
+import { useAdminSessionStore } from "@/features/admin/adminSession";
+import AccessIdentityCard from "@/features/admin/AccessIdentityCard.vue";
+import AdvancedSettingsCard from "@/features/admin/AdvancedSettingsCard.vue";
+import RelayNodesCard from "@/features/admin/RelayNodesCard.vue";
+import TeamSpeakTargetCard from "@/features/admin/TeamSpeakTargetCard.vue";
 
 const settings = useAdminServerSettingsStore();
 const { serverForm, webrtcPortNoticeOpen, webrtcPortRangeText } = storeToRefs(settings);

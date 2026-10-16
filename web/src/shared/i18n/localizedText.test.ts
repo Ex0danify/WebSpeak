@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { defineComponent, h, nextTick } from "vue";
 import { mount } from "@vue/test-utils";
-import { registerMessages, useI18n } from "./useI18n";
-import { LocalizedError, errorText, isLocalizedText, resolveText, text } from "./localizedText";
+import { registerMessages, useI18n } from "@/shared/i18n/useI18n";
+import { LocalizedError, errorText, isLocalizedText, resolveText, text } from "@/shared/i18n/localizedText";
 import { testKey } from "@/testSupport/testKey";
 
 const messages = {

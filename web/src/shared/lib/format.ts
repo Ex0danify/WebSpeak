@@ -1,5 +1,5 @@
-import { intlLocale, type Language } from "../i18n/languages.js";
-import { createFormat } from "../i18n/useFormat.js";
+import { intlLocale, type Language } from "@/shared/i18n/languages.js";
+import { createFormat } from "@/shared/i18n/useFormat.js";
 
 export function median(values: number[]): number | null {
   const sorted = [...values].sort((left, right) => left - right);

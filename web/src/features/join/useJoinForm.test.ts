@@ -53,8 +53,8 @@ function makeVoiceState(): VoiceState {
 
 /** Mounts a bare component whose setup is `useJoinForm(options)`, so onMounted (loadPublicConfig,
  *  checkSupport, the favorites/recents load) runs through the real Vue lifecycle. */
-async function mountUseJoinForm(overrides: Partial<Parameters<typeof import("./useJoinForm").useJoinForm>[0]> = {}) {
-  const { useJoinForm } = await import("./useJoinForm");
+async function mountUseJoinForm(overrides: Partial<Parameters<typeof import("@/features/join/useJoinForm").useJoinForm>[0]> = {}) {
+  const { useJoinForm } = await import("@/features/join/useJoinForm");
   const voiceState = makeVoiceState();
   const options = {
     voiceState,
@@ -293,7 +293,7 @@ describe("loadPublicConfig (run on mount)", () => {
         throw new TypeError("Failed to fetch");
       }),
     );
-    const { useJoinForm } = await import("./useJoinForm");
+    const { useJoinForm } = await import("@/features/join/useJoinForm");
     const wrapper = mount(
       defineComponent({
         setup: () =>

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { ChannelInfo } from "@/features/session";
-import { buildChannelTree } from "./buildChannelTree";
+import { buildChannelTree } from "@/features/room/members/buildChannelTree";
 
 const ch = (id: string, parentID = "0", extra: Partial<ChannelInfo> = {}): ChannelInfo => ({ id, parentID, name: id, ...extra });
 const byId = (tree: ReturnType<typeof buildChannelTree>) => new Map(tree.map((item) => [item.id, item]));

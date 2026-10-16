@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { computed, provide, useId } from "vue";
-import { cn } from "../../lib/cn";
-import { fieldContextKey } from "./fieldContext";
-import Label from "./Label.vue";
-import Hint from "./Hint.vue";
+import { cn } from "@/shared/lib/cn";
+import { fieldContextKey } from "@/shared/ui/field/fieldContext";
+import Label from "@/shared/ui/field/Label.vue";
+import Hint from "@/shared/ui/field/Hint.vue";
 
 // Wraps one control (Input, Select, ...) with a label, a hint and an error.
 // The control reads its id, aria-describedby and invalid state from here.

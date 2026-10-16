@@ -1,7 +1,7 @@
 import { ref, watch } from "vue";
-import { DEFAULT_LANGUAGE, LANGUAGES, isLanguage, languageInfo, type Language } from "./languages.js";
-import type { MessageKey } from "./messageKeys.js";
-import { readStorage, writeStorage } from "../services/safeStorage.js";
+import { DEFAULT_LANGUAGE, LANGUAGES, isLanguage, languageInfo, type Language } from "@/shared/i18n/languages.js";
+import type { MessageKey } from "@/shared/i18n/messageKeys.js";
+import { readStorage, writeStorage } from "@/shared/services/safeStorage.js";
 
 const STORAGE_KEY = "webspeak:language";
 

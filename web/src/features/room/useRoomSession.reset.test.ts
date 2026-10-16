@@ -10,7 +10,7 @@ afterEach(() => localStorage.clear());
 
 describe("useRoomSession reset", () => {
   it("a second useRoomSession() call starts from empty state", async () => {
-    const { useRoomSession } = await import("./useRoomSession");
+    const { useRoomSession } = await import("@/features/room/useRoomSession");
     const first = useRoomSession();
     first.roster.members.push({ id: 1, nickname: "A" });
     first.session.state.connected = true;
@@ -24,7 +24,7 @@ describe("useRoomSession reset", () => {
   });
 
   it("a second useRoomSession() call starts from default audio state", async () => {
-    const { useRoomSession } = await import("./useRoomSession");
+    const { useRoomSession } = await import("@/features/room/useRoomSession");
     const first = useRoomSession();
     first.audio.microphoneMuted.value = true;
     first.roster.volumes[3] = 2;
@@ -36,7 +36,7 @@ describe("useRoomSession reset", () => {
   });
 
   it("a second useRoomSession() call starts with no screen share", async () => {
-    const { useRoomSession } = await import("./useRoomSession");
+    const { useRoomSession } = await import("@/features/room/useRoomSession");
     const first = useRoomSession();
     first.screenShare.screenShareActive.value = true;
     first.screenShare.screenShareStreams.push({ id: "x" } as never);

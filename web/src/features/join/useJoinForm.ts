@@ -18,7 +18,7 @@ import {
 import { isValidTeamSpeakPort, splitTeamSpeakTarget } from "@/shared/lib/teamspeakTarget.js";
 import type { ThemeMode } from "@/shared/services/theme.js";
 import type { VoiceState } from "@/features/session";
-import { useJoinFormStore } from "./stores/joinFormStore";
+import { useJoinFormStore } from "@/features/join/stores/joinFormStore";
 
 export interface UseJoinFormOptions {
   voiceState: VoiceState;

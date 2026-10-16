@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { RadioGroupRoot } from "reka-ui";
-import { cn } from "../../lib/cn";
-import type { TabValue } from "./tabsContext";
-import { tabListVariants } from "./tabs";
+import { cn } from "@/shared/lib/cn";
+import type { TabValue } from "@/shared/ui/tabs/tabsContext";
+import { tabListVariants } from "@/shared/ui/tabs/tabs";
 
 // Pill-shaped single choice, on reka-ui RadioGroup. Children: <Segment value>.
 // Label it with aria-label or aria-labelledby. To switch between views with

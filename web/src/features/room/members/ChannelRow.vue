@@ -28,8 +28,8 @@ import { Button } from "@/shared/ui/button";
 import { Icon } from "@/shared/ui/icon";
 import { useI18n } from "@/shared/i18n/useI18n.js";
 import { channelNameText } from "@/features/session";
-import type { TreeChannel } from "../roomTypes.js";
-import type { ChannelRailState, RailTone } from "./channelRails.js";
+import type { TreeChannel } from "@/features/room/roomTypes.js";
+import type { ChannelRailState, RailTone } from "@/features/room/members/channelRails.js";
 
 const props = defineProps<{
   channel: TreeChannel;

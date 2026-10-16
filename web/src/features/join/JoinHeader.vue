@@ -47,7 +47,7 @@ import { Chip } from "@/shared/ui/chip";
 import { Icon } from "@/shared/ui/icon";
 import LanguageSwitcher from "@/shared/components/LanguageSwitcher.vue";
 import { useI18n } from "@/shared/i18n/useI18n.js";
-import HeaderLinkButton from "./HeaderLinkButton.vue";
+import HeaderLinkButton from "@/features/join/HeaderLinkButton.vue";
 
 const props = defineProps<{
   siteName: string;

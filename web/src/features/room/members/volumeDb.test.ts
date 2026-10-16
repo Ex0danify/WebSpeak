@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatVolumeDb } from "./volumeDb.js";
+import { formatVolumeDb } from "@/features/room/members/volumeDb.js";
 
 describe("formatVolumeDb", () => {
   it("shows unity gain as 0 dB", () => expect(formatVolumeDb(100)).toBe("0 dB"));

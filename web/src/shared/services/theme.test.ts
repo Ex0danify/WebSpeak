@@ -7,7 +7,7 @@ async function load(stored?: string) {
   localStorage.clear();
   if (stored !== undefined) localStorage.setItem(KEY, stored);
   vi.resetModules();
-  return import("./theme");
+  return import("@/shared/services/theme");
 }
 
 /** Stand-in for the OS setting, read through matchMedia at call time. */
@@ -109,7 +109,7 @@ describe("saveTheme", () => {
     first.saveTheme("dark");
     delete document.documentElement.dataset.theme;
     vi.resetModules();
-    await import("./theme");
+    await import("@/shared/services/theme");
     expect(document.documentElement.dataset.theme).toBe("dark");
   });
 
@@ -133,7 +133,7 @@ describe("saveTheme", () => {
       throw new DOMException("blocked", "SecurityError");
     });
     vi.resetModules();
-    const { getStoredTheme } = await import("./theme");
+    const { getStoredTheme } = await import("@/shared/services/theme");
     expect(getStoredTheme()).toBe("system");
     expect(document.documentElement.dataset.theme).toBe("system");
   });

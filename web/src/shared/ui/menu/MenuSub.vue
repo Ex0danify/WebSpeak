@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { inject, ref } from "vue";
 import { DropdownMenuPortal, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger } from "reka-ui";
-import { cn } from "../../lib/cn";
-import { Icon } from "../icon";
-import { menuContextKey } from "./menuContext";
-import { menuContentClass, menuItemVariants, menuSheetItemClass } from "./menu";
+import { cn } from "@/shared/lib/cn";
+import { Icon } from "@/shared/ui/icon";
+import { menuContextKey } from "@/shared/ui/menu/menuContext";
+import { menuContentClass, menuItemVariants, menuSheetItemClass } from "@/shared/ui/menu/menu";
 
 // A submenu ("Move to channel"): an item that opens a second menu beside it,
 // with Right and Left arrow keys. In the mobile sheet it expands in place

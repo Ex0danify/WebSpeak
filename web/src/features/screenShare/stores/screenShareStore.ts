@@ -1,7 +1,7 @@
 import { defineStore } from "pinia";
 import type { MaybeLocalizedText } from "@/shared/i18n/localizedText";
 import { reactive, ref, shallowRef } from "vue";
-import type { ScreenShareStream, ScreenShareWebRtcStats } from "../screenShareTypes";
+import type { ScreenShareStream, ScreenShareWebRtcStats } from "@/features/screenShare/screenShareTypes";
 
 function initialStats(): ScreenShareWebRtcStats {
   return { updatedAt: null, capture: null, peers: [] };

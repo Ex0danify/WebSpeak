@@ -45,7 +45,7 @@ function makeVoiceState(overrides: Partial<VoiceState> = {}): VoiceState {
 }
 
 async function mountUseAudioSettingsPanel(overrides: Record<string, unknown> = {}) {
-  const { useAudioSettingsPanel } = await import("./useAudioSettingsPanel");
+  const { useAudioSettingsPanel } = await import("@/features/room/audioSettings/useAudioSettingsPanel");
   const options = {
     voiceState: makeVoiceState(),
     microphoneMuted: ref(false),

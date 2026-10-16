@@ -1,6 +1,6 @@
 // The microphone failure mapping.
 import { describe, expect, it } from "vitest";
-import { audioNoticeText, microphoneErrorText, normalizeMicrophoneFailure } from "./voiceErrors";
+import { audioNoticeText, microphoneErrorText, normalizeMicrophoneFailure } from "@/features/voice/voiceErrors";
 
 describe("normalizeMicrophoneFailure", () => {
   function domError(name: string): Error {

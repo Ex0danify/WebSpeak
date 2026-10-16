@@ -5,7 +5,7 @@ import { useI18n } from "@/shared/i18n/useI18n.js";
 import { toast as raiseToast } from "@/shared/composables/useToast.js";
 import { errorText, resolveText, text, type MaybeLocalizedText } from "@/shared/i18n/localizedText.js";
 import { microphoneErrorText } from "@/features/voice";
-import type { RoomSession } from "../roomTypes";
+import type { RoomSession } from "@/features/room/roomTypes";
 
 export interface UseAudioSettingsPanelOptions {
   session: Pick<RoomSession["session"], "state">;

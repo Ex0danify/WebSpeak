@@ -1,5 +1,5 @@
-import { intlLocale } from "./languages.js";
-import { useI18n } from "./useI18n.js";
+import { intlLocale } from "@/shared/i18n/languages.js";
+import { useI18n } from "@/shared/i18n/useI18n.js";
 
 export type UnitStyle = "long" | "short" | "narrow";
 

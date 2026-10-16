@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, useId, useSlots } from "vue";
-import { cn } from "../../lib/cn";
-import { cardBodyVariants, cardVariants, type CardVariants } from "./card";
+import { cn } from "@/shared/lib/cn";
+import { cardBodyVariants, cardVariants, type CardVariants } from "@/shared/ui/card/card";
 
 // A surface with a 1 px border and no shadow. The optional header holds a title (or the `header` slot) and an `actions` slot,
 // `footer` sits below the body. Use `as="section"` for a landmark, it is then labelled by the title.

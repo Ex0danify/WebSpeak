@@ -5,10 +5,10 @@ import "@/shared/styles/main.css";
 import { createApp } from "vue";
 import { createPinia } from "pinia";
 import { createRouter, createWebHistory, type RouteRecordRaw } from "vue-router";
-import App from "./App.vue";
-import { clientRoutes } from "./views/clientRoutes";
-import AdminView from "./views/AdminView.vue";
-import DemoView from "./views/DemoView.vue";
+import App from "@/App.vue";
+import { clientRoutes } from "@/views/clientRoutes";
+import AdminView from "@/views/AdminView.vue";
+import DemoView from "@/views/DemoView.vue";
 import "@/shared/services/theme.js";
 import { registerMessages } from "@/shared/i18n/useI18n.js";
 import { translations as commonMessages } from "@/shared/i18n/common/index.js";
@@ -56,7 +56,7 @@ const routes: RouteRecordRaw[] = [
 
 // Dev-only component gallery, the branch is removed from production builds.
 if (import.meta.env.DEV) {
-  routes.push({ path: "/__ui", name: "ui-gallery", component: () => import("./views/UiGallery.vue") });
+  routes.push({ path: "/__ui", name: "ui-gallery", component: () => import("@/views/UiGallery.vue") });
 }
 
 const router = createRouter({

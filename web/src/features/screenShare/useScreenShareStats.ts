@@ -1,5 +1,5 @@
-import { useScreenShareStore } from "./stores/screenShareStore";
-import type { ScreenShareCaptureStats, ScreenSharePeerStats } from "./screenShareTypes";
+import { useScreenShareStore } from "@/features/screenShare/stores/screenShareStore";
+import type { ScreenShareCaptureStats, ScreenSharePeerStats } from "@/features/screenShare/screenShareTypes";
 
 export type ScreenShareStatsRecord = Record<string, unknown>;
 

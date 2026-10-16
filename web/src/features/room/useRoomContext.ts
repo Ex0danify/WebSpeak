@@ -1,5 +1,5 @@
 import { inject, provide, type InjectionKey } from "vue";
-import type { RoomSession } from "./roomTypes";
+import type { RoomSession } from "@/features/room/roomTypes";
 
 const roomSessionKey: InjectionKey<RoomSession> = Symbol("room-session");
 

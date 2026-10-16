@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { ChannelInfo } from "@/features/session";
-import { buildChannelTree } from "./buildChannelTree";
-import { computeChannelRails } from "./channelRails";
+import { buildChannelTree } from "@/features/room/members/buildChannelTree";
+import { computeChannelRails } from "@/features/room/members/channelRails";
 
 const ch = (id: string, parentID = "0", extra: Partial<ChannelInfo> = {}): ChannelInfo => ({ id, parentID, name: id, ...extra });
 const railsFor = (channels: ChannelInfo[], current?: string) => computeChannelRails(buildChannelTree(channels, null), current);

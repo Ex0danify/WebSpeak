@@ -1,9 +1,9 @@
 import { computed, nextTick, ref, watch, type Ref } from "vue";
 import { useI18n } from "@/shared/i18n/useI18n.js";
 import { formatTime as formatTimestamp } from "@/shared/lib/format.js";
-import type { TreeChannel } from "../roomTypes.js";
+import type { TreeChannel } from "@/features/room/roomTypes.js";
 import { nicknameText, privateConversationKey, type ChannelMember, type ServerEvent } from "@/features/session";
-import type { RoomSession } from "../roomTypes.js";
+import type { RoomSession } from "@/features/room/roomTypes.js";
 
 export interface UseChatOptions {
   session: Pick<RoomSession["session"], "state">;

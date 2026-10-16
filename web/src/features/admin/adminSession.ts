@@ -1,11 +1,11 @@
 import { computed, ref } from "vue";
 import { defineStore } from "pinia";
 import { useRoute, useRouter } from "vue-router";
-import { createAdminApi, type ApiError } from "./adminApi.js";
-import { createAdminFormat } from "./adminFormat.js";
+import { createAdminApi, type ApiError } from "@/features/admin/adminApi.js";
+import { createAdminFormat } from "@/features/admin/adminFormat.js";
 import { toast } from "@/shared/composables/useToast";
 import { useI18n } from "@/shared/i18n/useI18n.js";
-import { adminSiblings } from "./adminSiblings.js";
+import { adminSiblings } from "@/features/admin/adminSiblings.js";
 
 export type AdminScreen = "login" | "change-password" | "admin";
 

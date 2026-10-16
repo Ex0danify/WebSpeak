@@ -3,8 +3,8 @@ import { useI18n } from "@/shared/i18n/useI18n.js";
 import { errorText, resolveText, text } from "@/shared/i18n/localizedText.js";
 import { toast as raiseToast } from "@/shared/composables/useToast.js";
 import { channelNameText, type ChannelMember } from "@/features/session";
-import type { RoomSession, TreeChannel } from "../roomTypes.js";
-import { buildChannelTree } from "./buildChannelTree.js";
+import type { RoomSession, TreeChannel } from "@/features/room/roomTypes.js";
+import { buildChannelTree } from "@/features/room/members/buildChannelTree.js";
 
 /** How long the view waits for the member list to show you in the new channel after the gateway confirmed the join. */
 const MEMBER_LIST_GRACE_MS = 1500;

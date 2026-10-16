@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { RadioGroupIndicator, RadioGroupItem } from "reka-ui";
-import { cn } from "../../lib/cn";
-import { checkBoxClass, checkRowClass } from "../shared/checkControl";
+import { cn } from "@/shared/lib/cn";
+import { checkBoxClass, checkRowClass } from "@/shared/ui/shared/checkControl";
 
 // One option of a RadioGroup; it does not work outside one.
 // Attributes (disabled, ...) go to the control; `class` styles the label.

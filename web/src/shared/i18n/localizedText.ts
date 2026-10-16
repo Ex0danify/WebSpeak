@@ -1,5 +1,5 @@
-import type { MessageKey } from "./messageKeys.js";
-import { useI18n } from "./useI18n.js";
+import type { MessageKey } from "@/shared/i18n/messageKeys.js";
+import { useI18n } from "@/shared/i18n/useI18n.js";
 
 /** Values a `{{placeholder}}` can take. Wire `params` (booleans included) are accepted and stringified. */
 export type TextParams = Record<string, string | number | boolean>;

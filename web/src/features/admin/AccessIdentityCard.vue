@@ -39,8 +39,8 @@ import { Radio, RadioGroup } from "@/shared/ui/radio";
 import { Select } from "@/shared/ui/select";
 import { Textarea } from "@/shared/ui/textarea";
 import { storeToRefs } from "pinia";
-import { welcomeLanguageOptions } from "./adminServerForm";
-import { useAdminServerSettingsStore } from "./adminServerSettings";
+import { welcomeLanguageOptions } from "@/features/admin/adminServerForm";
+import { useAdminServerSettingsStore } from "@/features/admin/adminServerSettings";
 import { useI18n } from "@/shared/i18n/useI18n";
 
 const { serverForm, welcomeLanguage, selectedWelcomeText, selectedWelcomeLanguageLabel, selectedWelcomeDefault } =

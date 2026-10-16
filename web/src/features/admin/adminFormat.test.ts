@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { ref } from "vue";
 import type { Language } from "@/shared/i18n/common";
 import { useI18n } from "@/shared/i18n/useI18n";
-import { createAdminFormat } from "./adminFormat";
+import { createAdminFormat } from "@/features/admin/adminFormat";
 
 function setup(initial: Language = "en") {
   const language = ref<Language>(initial);

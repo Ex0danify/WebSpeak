@@ -1,7 +1,7 @@
 import { reactive } from "vue";
 import { storeToRefs } from "pinia";
 import { loadLocalPreferences, saveLocalPreferences } from "@/shared/services/localPersistence.js";
-import { useVoiceAudioStore } from "./stores/voiceAudioStore";
+import { useVoiceAudioStore } from "@/features/voice/stores/voiceAudioStore";
 import { useSessionStore } from "@/features/session";
 
 /**

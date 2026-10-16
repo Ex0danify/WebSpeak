@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { TabsRoot } from "reka-ui";
-import { cn } from "../../lib/cn";
-import { provideTabs, type TabValue } from "./tabsContext";
+import { cn } from "@/shared/lib/cn";
+import { provideTabs, type TabValue } from "@/shared/ui/tabs/tabsContext";
 
 // Root of a tabbed area, on reka-ui Tabs, with <TabList> holding <Tab value> and then a <TabPanel value> per tab. `variant`
 // picks underline tabs, a segmented pill list or separate `pills`, and is read once. The model must match a Tab value or no tab

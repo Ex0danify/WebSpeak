@@ -1,9 +1,9 @@
 import type { Ref } from "vue";
 import { text, type LocalizedText, type MaybeLocalizedText } from "@/shared/i18n/localizedText";
 import { SCREEN_SHARE_NEGOTIATION_TIMEOUT_MS, getScreenShareIceServers } from "@/features/session";
-import type { ScreenShareOutputSettings, ScreenShareStream } from "./screenShareTypes";
-import { configureScreenShareVideoSender, preferScreenShareCodecs } from "./screenShareSender";
-import type { useScreenShareStats } from "./useScreenShareStats";
+import type { ScreenShareOutputSettings, ScreenShareStream } from "@/features/screenShare/screenShareTypes";
+import { configureScreenShareVideoSender, preferScreenShareCodecs } from "@/features/screenShare/screenShareSender";
+import type { useScreenShareStats } from "@/features/screenShare/useScreenShareStats";
 
 /** Closure state and store refs the peer lifecycle works on. The maps are owned by `useScreenSharePeers`
  *  (the stats poll reads the same ones); the two getters read the capture state that stays there. */

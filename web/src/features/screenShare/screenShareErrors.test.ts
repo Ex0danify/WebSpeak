@@ -4,8 +4,8 @@ import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import { resolveText } from "@/shared/i18n/localizedText";
 import { useI18n } from "@/shared/i18n/useI18n";
-import { translations } from "./i18n";
-import { SCREEN_SHARE_ERROR_CODES, screenShareErrorMessage } from "./screenShareErrors";
+import { translations } from "@/features/screenShare/i18n";
+import { SCREEN_SHARE_ERROR_CODES, screenShareErrorMessage } from "@/features/screenShare/screenShareErrors";
 
 const repoRoot = existsSync(resolve(process.cwd(), "src/shared/messageCodes.ts")) ? process.cwd() : resolve(process.cwd(), "..");
 const catalog = readFileSync(resolve(repoRoot, "src/shared/messageCodes.ts"), "utf8");

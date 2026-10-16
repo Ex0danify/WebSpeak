@@ -48,8 +48,8 @@ import { Input } from "@/shared/ui/input";
 import { Select } from "@/shared/ui/select";
 import { Textarea } from "@/shared/ui/textarea";
 import { Icon } from "@/shared/ui/icon";
-import GallerySection from "./GallerySection.vue";
-import { type Lang, useGalleryLang } from "./galleryLang";
+import GallerySection from "@/views/gallery/GallerySection.vue";
+import { type Lang, useGalleryLang } from "@/views/gallery/galleryLang";
 
 const lang = useGalleryLang();
 

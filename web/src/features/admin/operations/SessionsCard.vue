@@ -57,8 +57,8 @@ import { Card } from "@/shared/ui/card";
 import { Chip } from "@/shared/ui/chip";
 import { Icon } from "@/shared/ui/icon";
 import { useI18n } from "@/shared/i18n/useI18n";
-import { createAdminFormat } from "../adminFormat";
-import { useAdminOperationsStore } from "../adminOperations";
+import { createAdminFormat } from "@/features/admin/adminFormat";
+import { useAdminOperationsStore } from "@/features/admin/adminOperations";
 
 const operationsStore = useAdminOperationsStore();
 const { operations, terminatingSession } = storeToRefs(operationsStore);

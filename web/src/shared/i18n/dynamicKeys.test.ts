@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
+// The registry lives in web/scripts, outside src/, so the @/ alias cannot reach it.
+// eslint-disable-next-line no-restricted-imports
 import registry from "../../../scripts/i18n-dynamic-keys.json";
-import { useI18n } from "./useI18n";
+import { useI18n } from "@/shared/i18n/useI18n";
 import { testKey } from "@/testSupport/testKey";
 
 // Pins the keys behind the dynamic t(variable) call sites listed in scripts/i18n-dynamic-keys.json

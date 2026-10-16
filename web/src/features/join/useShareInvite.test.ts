@@ -2,8 +2,8 @@ import { flushPromises, mount } from "@vue/test-utils";
 import { createPinia, setActivePinia } from "pinia";
 import { defineComponent } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { useJoinFormStore } from "./stores/joinFormStore";
-import { useShareInvite } from "./useShareInvite";
+import { useJoinFormStore } from "@/features/join/stores/joinFormStore";
+import { useShareInvite } from "@/features/join/useShareInvite";
 
 beforeEach(() => {
   setActivePinia(createPinia());

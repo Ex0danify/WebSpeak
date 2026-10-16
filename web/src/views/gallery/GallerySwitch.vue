@@ -27,8 +27,8 @@
 <script setup lang="ts">
 import { ref } from "vue";
 import { Switch } from "@/shared/ui/switch";
-import GallerySection from "./GallerySection.vue";
-import { type Lang, useGalleryLang } from "./galleryLang";
+import GallerySection from "@/views/gallery/GallerySection.vue";
+import { type Lang, useGalleryLang } from "@/views/gallery/galleryLang";
 
 const lang = useGalleryLang();
 

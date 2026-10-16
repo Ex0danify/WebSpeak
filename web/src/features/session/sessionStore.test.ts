@@ -1,7 +1,7 @@
 import { createPinia, setActivePinia } from "pinia";
 import { isReactive, isRef } from "vue";
 import { beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { useSessionStore } from "./sessionStore";
+import { useSessionStore } from "@/features/session/sessionStore";
 
 beforeAll(() => {
   // The RNNoise worklet package extends AudioWorkletNode at import time; happy-dom has none.

@@ -31,7 +31,7 @@ import { Select } from "@/shared/ui/select";
 import { useI18n } from "@/shared/i18n/useI18n.js";
 import { useFormat } from "@/shared/i18n/useFormat.js";
 import type { MessageKey } from "@/shared/i18n/messageKeys";
-import type { ScreenShareResolutionPreset } from "./useScreenShare.js";
+import type { ScreenShareResolutionPreset } from "@/features/screenShare/useScreenShare.js";
 
 const open = defineModel<boolean>({ required: true });
 const resolutionPreset = defineModel<ScreenShareResolutionPreset>("resolutionPreset", { required: true });

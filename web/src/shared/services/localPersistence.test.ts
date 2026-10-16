@@ -1,6 +1,6 @@
 import { IDBFactory } from "fake-indexeddb";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type * as Persistence from "./localPersistence";
+import type * as Persistence from "@/shared/services/localPersistence";
 
 // The module keeps one open database in module state, so every test gets a new
 // in-memory IndexedDB and a fresh copy of the module.
@@ -9,7 +9,7 @@ let store: typeof Persistence;
 async function fresh(factory: IDBFactory | null = new IDBFactory()) {
   vi.stubGlobal("indexedDB", factory ?? undefined);
   vi.resetModules();
-  store = await import("./localPersistence");
+  store = await import("@/shared/services/localPersistence");
 }
 
 beforeEach(() => fresh());

@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { RadioGroupItem } from "reka-ui";
-import { cn } from "../../lib/cn";
-import type { TabValue } from "./tabsContext";
-import { tabItemVariants } from "./tabs";
+import { cn } from "@/shared/lib/cn";
+import type { TabValue } from "@/shared/ui/tabs/tabsContext";
+import { tabItemVariants } from "@/shared/ui/tabs/tabs";
 
 // One option of a Segmented control.
 const props = defineProps<{ value: TabValue; disabled?: boolean; class?: string }>();

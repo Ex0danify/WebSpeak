@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useToast } from "@/shared/composables/useToast";
 import { LocalizedError, text } from "@/shared/i18n/localizedText";
 import type { ChannelMember } from "@/features/session";
-import { useRoomShell } from "./useRoomShell";
+import { useRoomShell } from "@/features/room/shell/useRoomShell";
 
 const member = { id: 2, nickname: "Ana", isSelf: false } as ChannelMember;
 

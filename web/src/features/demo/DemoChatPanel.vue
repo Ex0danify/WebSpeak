@@ -52,8 +52,8 @@ import { Input } from "@/shared/ui/input";
 import { Separator } from "@/shared/ui/separator";
 import { Segment, Segmented } from "@/shared/ui/tabs";
 import { useI18n } from "@/shared/i18n/useI18n";
-import { demoKicker } from "./demoPanel";
-import type { DemoMessage, DemoTab } from "./demoTypes";
+import { demoKicker } from "@/features/demo/demoPanel";
+import type { DemoMessage, DemoTab } from "@/features/demo/demoTypes";
 
 defineProps<{ channelName: string; tabs: { id: DemoTab; label: string }[]; visibleMessages: DemoMessage[] }>();
 const activeTab = defineModel<DemoTab>("activeTab", { required: true });

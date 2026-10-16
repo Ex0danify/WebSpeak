@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { computed, inject, onBeforeUnmount, ref, watch } from "vue";
 import { DropdownMenuItem } from "reka-ui";
-import { cn } from "../../lib/cn";
-import { Slider } from "../slider";
-import { menuContextKey } from "./menuContext";
+import { cn } from "@/shared/lib/cn";
+import { Slider } from "@/shared/ui/slider";
+import { menuContextKey } from "@/shared/ui/menu/menuContext";
 
 // A labelled slider row inside a Menu, for a per-item value such as a member's volume. `label` is the visible caption and the
 // slider's name, `valueText` is for a spoken value such as "120%". `bubble` is the label that rides above the thumb while it is

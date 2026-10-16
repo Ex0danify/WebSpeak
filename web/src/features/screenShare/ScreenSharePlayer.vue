@@ -95,7 +95,7 @@ import { Button } from "@/shared/ui/button";
 import { Tooltip } from "@/shared/ui/tooltip";
 import { Avatar } from "@/shared/ui/avatar";
 import type { MaybeLocalizedText } from "@/shared/i18n/localizedText";
-import type { ScreenShareViewer } from "./screenShareTypes";
+import type { ScreenShareViewer } from "@/features/screenShare/screenShareTypes";
 
 defineProps<{
   viewing: boolean;

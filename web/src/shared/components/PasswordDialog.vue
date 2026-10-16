@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { useId } from "vue";
-import { Button } from "../ui/button";
-import { Dialog } from "../ui/dialog";
-import { Field } from "../ui/field";
-import { Icon } from "../ui/icon";
-import { Input } from "../ui/input";
+import { Button } from "@/shared/ui/button";
+import { Dialog } from "@/shared/ui/dialog";
+import { Field } from "@/shared/ui/field";
+import { Icon } from "@/shared/ui/icon";
+import { Input } from "@/shared/ui/input";
 
 // Asks for a password, the TeamSpeak server password on a retry or the password of a protected channel. The owner keeps the
 // state and this only renders it. `cancel` fires for the Cancel button, the X, Esc and a backdrop click, and closing after a

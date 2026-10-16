@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { createAdminApi } from "./adminApi";
+import { createAdminApi } from "@/features/admin/adminApi";
 
 function respond(status: number, body: unknown) {
   return new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } });

@@ -14,8 +14,8 @@
 </template>
 
 <script setup lang="ts">
-import { Icon } from "../icon";
-import { cn } from "../../lib/cn";
+import { Icon } from "@/shared/ui/icon";
+import { cn } from "@/shared/lib/cn";
 
 // A red speaker mark on the bottom-right corner of an avatar, for "muted on this side". Place it inside the avatar's `relative`
 // wrapper; `label` is the accessible name, for example "Muted by you".

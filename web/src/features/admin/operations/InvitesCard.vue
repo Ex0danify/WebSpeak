@@ -68,9 +68,9 @@ import { Chip } from "@/shared/ui/chip";
 import { Field } from "@/shared/ui/field";
 import { Input } from "@/shared/ui/input";
 import { useI18n } from "@/shared/i18n/useI18n";
-import { createAdminFormat } from "../adminFormat";
-import { useAdminOperationsStore } from "../adminOperations";
-import { useAdminSessionStore } from "../adminSession";
+import { createAdminFormat } from "@/features/admin/adminFormat";
+import { useAdminOperationsStore } from "@/features/admin/adminOperations";
+import { useAdminSessionStore } from "@/features/admin/adminSession";
 
 const { submitting } = storeToRefs(useAdminSessionStore());
 const operationsStore = useAdminOperationsStore();

@@ -2,7 +2,7 @@ import { watch, type Ref } from "vue";
 import { serverKey } from "@/shared/lib/format";
 import { recordRecentServer, type RecentServer } from "@/shared/services/localPersistence";
 import type { VoiceState } from "@/features/session";
-import { useJoinFormStore } from "./stores/joinFormStore";
+import { useJoinFormStore } from "@/features/join/stores/joinFormStore";
 
 export interface UseServerVisitOptions {
   voiceState: Pick<VoiceState, "connected">;

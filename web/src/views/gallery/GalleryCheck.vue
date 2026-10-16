@@ -35,8 +35,8 @@
 import { ref } from "vue";
 import { Checkbox } from "@/shared/ui/checkbox";
 import { RadioGroup, Radio } from "@/shared/ui/radio";
-import GallerySection from "./GallerySection.vue";
-import { type Lang, useGalleryLang } from "./galleryLang";
+import GallerySection from "@/views/gallery/GallerySection.vue";
+import { type Lang, useGalleryLang } from "@/views/gallery/galleryLang";
 
 const lang = useGalleryLang();
 

@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { TabsList } from "reka-ui";
-import { cn } from "../../lib/cn";
-import { useTabs } from "./tabsContext";
-import { tabListVariants } from "./tabs";
+import { cn } from "@/shared/lib/cn";
+import { useTabs } from "@/shared/ui/tabs/tabsContext";
+import { tabListVariants } from "@/shared/ui/tabs/tabs";
 
 // The tablist. Label it with aria-label or aria-labelledby.
 // `fill` stretches segmented tabs across the container.

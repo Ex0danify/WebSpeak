@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { computed } from "vue";
-import { cn } from "../../lib/cn";
-import { Icon } from "../icon";
-import { chipVariants, type ChipVariants } from "./chip";
+import { cn } from "@/shared/lib/cn";
+import { Icon } from "@/shared/ui/icon";
+import { chipVariants, type ChipVariants } from "@/shared/ui/chip/chip";
 
 const props = withDefaults(
   defineProps<{

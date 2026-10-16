@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { readStorage, removeStorage, writeStorage } from "./safeStorage";
+import { readStorage, removeStorage, writeStorage } from "@/shared/services/safeStorage";
 
 afterEach(() => {
   vi.unstubAllGlobals();
