@@ -73,6 +73,7 @@
               :current-members="currentMembers"
               :room-members="roomMembers"
               :speaking-ids="speakingIds"
+              :muted-members="mutedMembers"
               :is-mobile-viewport="isMobileViewport"
               :screen-share-stream-for-member="screenShareStreamForMember"
               :screen-share-active="screenShareActive"
@@ -138,6 +139,7 @@
         :drag-over-channel-id="dragOverChannelId"
         :dragged-member-id="draggedMember?.id"
         :speaking-ids="speakingIds"
+        :muted-members="mutedMembers"
         :is-mobile-viewport="isMobileViewport"
         @select-channel="selectChannel"
         @channel-drag-over="onChannelDragOver"
@@ -237,7 +239,7 @@ const props = defineProps<{
 
 const { t } = useI18n();
 const { state: voiceState, reconnectNow } = props.session.session;
-const { members, serverEvents, pokeNotifications, speakingIds, whisperTargetIds, whisperActive } = props.session.roster;
+const { members, serverEvents, pokeNotifications, speakingIds, mutedMembers, whisperTargetIds, whisperActive } = props.session.roster;
 const {
   microphoneMuted,
   noiseSuppressionEnabled,

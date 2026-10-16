@@ -15,6 +15,9 @@ export const buttonVariants = cva(
         danger: "border-transparent bg-danger text-surface-1 hover:bg-danger/90",
         // Quiet control that lights up on hover (icon buttons in bars and rows); `aria-current="true"` keeps it lit.
         soft: "border-transparent bg-transparent text-fg-muted hover:bg-accent-soft hover:text-accent aria-[current=true]:bg-accent-soft aria-[current=true]:text-accent",
+        // `soft` with a faint outline, for an icon button that would otherwise sit bare on its container (mute in a menu row).
+        softOutline:
+          "border-line bg-transparent text-fg-muted hover:bg-accent-soft hover:text-accent aria-[current=true]:bg-accent-soft aria-[current=true]:text-accent",
         // Accent-tinted pill button in a toolbar (theme, language, network).
         accentSoft: "border-line bg-accent-soft text-accent hover:border-accent/35 hover:bg-accent-soft aria-expanded:border-accent/35",
         // Dark-on-light call to action that lights up on hover (the repository link).

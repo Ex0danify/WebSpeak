@@ -2,6 +2,7 @@ export const en = {
   memberVolume: "Member volume",
   muteMember: "Mute member",
   unmuteMember: "Unmute member",
+  mutedLocally: "Muted by you",
   home: "Home",
   activity: "Activity",
   help: "Help",

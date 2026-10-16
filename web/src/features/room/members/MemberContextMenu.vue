@@ -27,7 +27,7 @@
       >
         <template #action>
           <Button
-            variant="soft"
+            variant="softOutline"
             size="xs"
             icon-only
             class="size-6.25"

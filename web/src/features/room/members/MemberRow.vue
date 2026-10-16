@@ -13,7 +13,10 @@
         tint
         :self="member.isSelf"
         surface="surface-1"
-        class="size-6.5 group-focus-within/row:[--avatar-gap:var(--color-surface-2)] group-hover/row:[--avatar-gap:var(--color-surface-2)] max-compact:size-10" /><span
+        class="size-6.5 group-focus-within/row:[--avatar-gap:var(--color-surface-2)] group-hover/row:[--avatar-gap:var(--color-surface-2)] max-compact:size-10" /><AvatarMuteBadge
+        v-if="mutedLocally"
+        :label="t('mutedLocally')" /><span
+        v-else
         class="absolute -right-0.5 -bottom-0.5 size-2 rounded-full border-2 border-surface-1 bg-success max-compact:size-2.5"
         aria-hidden="true"
       ></span
@@ -48,7 +51,7 @@
 </template>
 
 <script setup lang="ts">
-import { Avatar } from "@/shared/ui/avatar";
+import { Avatar, AvatarMuteBadge } from "@/shared/ui/avatar";
 import { Button } from "@/shared/ui/button";
 import { Tooltip } from "@/shared/ui/tooltip";
 import { Icon } from "@/shared/ui/icon";
@@ -59,6 +62,8 @@ import type { ChannelMember } from "@/features/session";
 defineProps<{
   member: ChannelMember;
   speaking: boolean;
+  /** The local user muted this member on this client. */
+  mutedLocally?: boolean;
   isMobileViewport: boolean;
 }>();
 

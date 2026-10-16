@@ -42,6 +42,7 @@
                   :key="`${channelItem.id}-${member.id}`"
                   :member="member"
                   :speaking="isSpeaking(member, speakingIds)"
+                  :muted-locally="Boolean(mutedMembers[member.id])"
                   :is-mobile-viewport="isMobileViewport"
                   :class="{ dragging: draggedMemberId === member.id }"
                   :draggable="!member.isSelf"
@@ -82,6 +83,7 @@ const props = defineProps<{
   dragOverChannelId: string;
   draggedMemberId: number | undefined;
   speakingIds: Set<number>;
+  mutedMembers: Record<number, boolean>;
   isMobileViewport: boolean;
 }>();
 
