@@ -8,6 +8,8 @@ import type { SinkAudioContext, SinkAudioElement } from "@/features/voice/voiceT
 import type { MessageHandlers } from "@/features/session";
 import { useWebRtcAccompaniment } from "@/features/voice/engine/useWebRtcAccompaniment";
 
+const ICE_CONNECT_TIMEOUT_MS = 6_000;
+
 /** Late-bound pieces owned by other modules, resolved at call time. */
 export interface WebRtcTransportDeps {
   getMicStream(): MediaStream | null;
@@ -22,6 +24,7 @@ export interface WebRtcTransportDeps {
   attachWebRtcPlayback(output: SinkAudioElement, stream: MediaStream): void;
   syncWebRtcPlayback(): Promise<void>;
   setAudioNotice(code: string, params?: TextParams): void;
+  clearAudioNotice(code?: string): void;
   markSpeaking(clientId: number): void;
   clearSpeaking(clientId: number): void;
   sendCmd(type: string, payload?: Record<string, unknown>): void;
@@ -155,6 +158,7 @@ export function useWebRtcTransport(deps: WebRtcTransportDeps) {
     };
     startWebRtcMicMonitor(deps.getAudioCtx(), micStream, microphoneTrack);
     peer.onconnectionstatechange = () => {
+      if (peer.connectionState === "connected") deps.clearAudioNotice("VOICE_CONNECTING");
       if (peer.connectionState === "failed") void fallbackFromWebRtc(sequence, socket, "WEBRTC_CONNECTION_FAILED");
     };
 
@@ -213,9 +217,16 @@ export function useWebRtcTransport(deps: WebRtcTransportDeps) {
   async function applyWebRtcAnswer(description: unknown): Promise<void> {
     if (!webrtcPeer || !isSessionDescription(description, "answer")) return;
     try {
-      await webrtcPeer.setRemoteDescription(description);
+      const peer = webrtcPeer;
+      await peer.setRemoteDescription(description);
       webrtcActive.value = true;
       syncWebRtcMemberVolumes();
+      // Hardened browsers can block the UDP path without the peer ever reporting "failed", which would leave both directions silent.
+      const sequence = deps.connectionSequence();
+      window.setTimeout(() => {
+        if (webrtcPeer === peer && peer.connectionState !== "connected" && ws.value)
+          void fallbackFromWebRtc(sequence, ws.value, "WEBRTC_CONNECT_TIMEOUT");
+      }, ICE_CONNECT_TIMEOUT_MS);
     } catch {
       if (deps.hasLastConnection() && ws.value) await fallbackFromWebRtc(deps.connectionSequence(), ws.value, "WEBRTC_ANSWER_REJECTED");
     }
@@ -235,6 +246,7 @@ export function useWebRtcTransport(deps: WebRtcTransportDeps) {
         await deps.startMicrophone();
       } catch (error: unknown) {
         deps.setMicrophoneError(error);
+        deps.setAudioNotice("VOICE_FAILED");
       }
     }
   }

@@ -44,7 +44,7 @@
         @reconnect-now="reconnectNow"
         @disconnect="doDisconnect"
       />
-      <AudioNoticeBanner :audio-notice="voiceState.audioNotice" />
+      <AudioNoticeBanner :audio-notice="voiceState.audioNotice" :audio-notice-code="voiceState.audioNoticeCode" />
       <PokeStack :pokes="pokeNotifications" @dismiss="dismissPoke" />
 
       <div :class="[scrollClass, mobileSection === 'chat' && 'max-compact:overflow-hidden']">

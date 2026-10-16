@@ -51,6 +51,8 @@ export function microphoneErrorText(error: unknown, fallback: MessageKey = "micF
 
 const AUDIO_NOTICE_KEYS: Record<string, MessageKey> = {
   WEBRTC_FALLBACK: "audioNoticeWebrtcFallback",
+  VOICE_CONNECTING: "audioNoticeVoiceConnecting",
+  VOICE_FAILED: "audioNoticeVoiceFailed",
   PLAYBACK_BLOCKED: "audioNoticePlaybackBlocked",
   DEVICE_LIST_UNAVAILABLE: "audioNoticeDeviceList",
   AUDIO_CONTEXT_SUSPENDED: "audioNoticeContextSuspended",

@@ -4,6 +4,9 @@ export const de: Record<string, string> = {
   webAudioUnsupported: "Dieser Browser unterstützt keine Web-Audio-Verarbeitung",
   audioNoticeWebrtcFallback:
     "Echtzeitstimme über WebRTC ist nicht verfügbar (Fehlercode: {{code}}). Der Kompatibilitätstransport ist aktiv; Latenz und Audioqualität können schlechter sein",
+  audioNoticeVoiceConnecting: "Audio wird verbunden…",
+  audioNoticeVoiceFailed:
+    "Die Audioverbindung konnte nicht hergestellt werden. Du hörst andere- und sie dich möglicherweise -nicht. Prüfe die Mikrofonberechtigung und lade die Seite neu",
   audioNoticePlaybackBlocked:
     "Der Browser hat die automatische Audiowiedergabe blockiert. Klicke auf die Seite oder erlaube die Audiowiedergabe für diese Website",
   audioNoticeDeviceList: "Audiogeräte konnten nicht aufgelistet werden. Die Standardgeräte des Browsers werden verwendet",

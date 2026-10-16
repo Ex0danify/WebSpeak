@@ -106,6 +106,7 @@ describe("connected", () => {
     expect(harness.voice.session.state.connected).toBe(true);
     expect(harness.voice.session.state.error).toBe("");
     expect(harness.voice.session.state.microphoneErrorCode).not.toBe("");
+    expect(harness.voice.session.state.audioNoticeCode).toBe("VOICE_FAILED");
   });
 
   it("negotiates a WebRTC voice peer instead when the gateway advertises WebRTC", async () => {
@@ -119,6 +120,20 @@ describe("connected", () => {
       { payload: { sdp: { type: "offer" }, muted: false, accompanimentActive: false } },
     ]);
     expect(socket.sentBinary).toHaveLength(0);
+    expect(harness.voice.session.state.audioNoticeCode).toBe("VOICE_CONNECTING");
+    const peer = FakeRTCPeerConnection.instances[0]!;
+    peer.connectionState = "connected";
+    peer.onconnectionstatechange?.();
+    expect(harness.voice.session.state.audioNoticeCode).toBe("");
+  });
+
+  it("clears the connecting notice once the PCM microphone is running", async () => {
+    const { FakeMediaStream, FakeMediaStreamTrack } = await import("@/testSupport/browserStubs");
+    harness = await createVoiceHarness({ getUserMedia: async () => new FakeMediaStream([new FakeMediaStreamTrack("audio")]) });
+    harness.voice.audio.noiseSuppressionEnabled.value = false;
+    await harness.joinAndConnect();
+    await flushPromises();
+    expect(harness.voice.session.state.audioNoticeCode).toBe("");
   });
 });
 

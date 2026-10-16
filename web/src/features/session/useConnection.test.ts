@@ -26,6 +26,7 @@ function setup() {
     stopMicrophone: spy("stopMicrophone"),
     clearMicrophoneError: spy("clearMicrophoneError"),
     clearAudioNotice: spy("clearAudioNotice"),
+    setAudioNotice: vi.fn(),
     stopScreenShareTransport: vi.fn((clear: boolean) => {
       calls.push(`stopScreenShareTransport:${clear}`);
     }),
