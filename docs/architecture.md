@@ -92,6 +92,8 @@ A feature folder past about ten files gets sub-folders by sub-feature, or by rol
 ```
 src/
   index.ts  relay.ts          # composition roots (dist/index.js and dist/relay.js are the deploy paths)
+  lib/
+    teamspeak/                # own TeamSpeak client, public API in index.ts
   shared/                     # logger, errors, constants, messageCodes, teamSpeakTarget, teamSpeakProtocol, typeGuards, tokenBucket, http/
   config/                     # env (all settings from .env), webrtcConfig
   infra/
@@ -113,8 +115,11 @@ src/
 
 ```
 index/relay  ->  transport  ->  modules  ->  infra  ->  config  ->  shared
+                                  modules/teamspeak  ->  lib
 ```
 
+- `lib/` holds self-contained libraries that could become npm packages. A `lib/` folder imports nothing else from `src/`. `lib/teamspeak` uses `node:*` and `@noble/curves` only, and only `modules/teamspeak` imports it, through its `index.ts`.
+- Inside `lib/teamspeak/` the order is `data < errors < wire < crypto < transport < handshake < command < session < client`: a folder imports only folders to its left. `discovery/` and `fileTransfer/` import `data`, `errors` and `wire` only, and only `client/` imports them.
 - Inside `modules/` the order is `relay < teamspeak < join < screenShare < voice < admin`: a module imports only modules to its left, through their `index.ts`.
 - `screenShare` never imports `voice`. `voice/audio/` and `voice/webrtc/` never import each other. `voice/session/` never imports `voice/messages/`.
 - `voice/directory/` is a leaf: it imports no other voice subfolder. No voice subfolder imports `voiceBridge.ts`; the bridge assembles them, not the reverse.
