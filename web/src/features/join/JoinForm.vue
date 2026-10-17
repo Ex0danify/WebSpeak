@@ -12,13 +12,16 @@
       ></Banner
     >
     <Banner v-if="browserError" variant="warning" class="mb-2.5">{{ resolveText(browserError) }}</Banner>
-    <Banner v-if="!serverConfigLoading && serverConfigFailed" variant="danger" class="mb-2.5">
+    <Banner v-if="gatewayStatus === 'online' && !serverConfigLoading && serverConfigFailed" variant="danger" class="mb-2.5">
       {{ t("configLoadFailed") }}
       <template #actions
         ><Button size="sm" variant="outline" @click="$emit('retry-config')">{{ t("retry") }}</Button></template
       >
     </Banner>
-    <Banner v-else-if="!serverConfigLoading && !initialized" variant="warning" class="mb-2.5"
+    <Banner
+      v-else-if="gatewayStatus === 'online' && !serverConfigLoading && !serverConfigFailed && !initialized"
+      variant="warning"
+      class="mb-2.5"
       >{{ t("notConfigured") }} <a href="/admin">{{ t("configureNow") }}</a></Banner
     >
     <Banner v-if="!localPersistenceAvailable" variant="warning" class="mb-2.5">{{ t("localPersistenceUnavailable") }}</Banner>
@@ -117,6 +120,8 @@
       </details>
       <p v-if="rememberIdentity" class="mt-2 mb-0 text-2xs leading-normal text-warning">{{ t("rememberIdentityConcurrentWarning") }}</p>
 
+      <GatewayStatus :status="gatewayStatus" :retry-in="gatewayRetryIn" />
+
       <Button
         type="submit"
         size="lg"
@@ -137,6 +142,8 @@
 
 <script setup lang="ts">
 import { Banner } from "@/shared/ui/banner";
+import GatewayStatus from "@/features/join/GatewayStatus.vue";
+import type { GatewayStatus as GatewayStatusValue } from "@/features/join/useGatewayStatus";
 import { Button } from "@/shared/ui/button";
 import { Checkbox } from "@/shared/ui/checkbox";
 import { Field } from "@/shared/ui/field";
@@ -159,6 +166,8 @@ defineProps<{
   initialized: boolean;
   serverConfigLoading: boolean;
   serverConfigFailed: boolean;
+  gatewayStatus: GatewayStatusValue;
+  gatewayRetryIn: number;
   browserError: MaybeLocalizedText;
   error: MaybeLocalizedText;
   errorCode: string;

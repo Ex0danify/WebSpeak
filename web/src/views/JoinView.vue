@@ -34,6 +34,8 @@
         :initialized="initialized"
         :server-config-loading="serverConfigLoading"
         :server-config-failed="serverConfigFailed"
+        :gateway-status="gatewayStatus"
+        :gateway-retry-in="gatewayRetryIn"
         :browser-error="browserError"
         :error="voiceState.error"
         :error-code="voiceState.errorCode"
@@ -102,6 +104,8 @@ const {
   browserError,
   serverConfigLoading,
   serverConfigFailed,
+  gatewayStatus,
+  gatewayRetryIn,
   loadPublicConfig,
   serverPasswordDialog,
   canJoin,
