@@ -22,7 +22,7 @@ async function guestPage(page: Page) {
 }
 
 const screens = {
-  join: { open: guestPage, minStops: 10 },
+  join: { open: guestPage, minStops: 7 },
   room: { open: joinRoom, minStops: 10 },
 };
 
@@ -66,11 +66,12 @@ async function expectFocusTrapped(page: Page) {
 }
 
 test.describe("dialogs", () => {
-  test("the QQ dialog keeps the focus, and Esc gives it back to its button", async ({ page }) => {
+  test("the About sheet keeps the focus, and Esc gives it back to its button", async ({ page }, { project }) => {
+    test.skip(project.name !== "mobile", "desktop shows a dropdown menu, not a sheet");
     await guestPage(page);
-    const opener = page.getByRole("button", { name: "QQ group" });
+    const opener = page.getByRole("button", { name: "About" });
     await opener.click();
-    await expect(page.getByRole("dialog", { name: "QQ group" })).toBeVisible();
+    await expect(page.getByRole("dialog", { name: "About" })).toBeVisible();
     await expectFocusTrapped(page);
     await page.keyboard.press("Escape");
     await expect(page.getByRole("dialog")).toBeHidden();

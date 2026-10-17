@@ -23,8 +23,8 @@ export const knownViolations: KnownViolation[] = [
     rule: "region",
     source: "reka-ui menu portal",
     reason:
-      "The member menu's popup is a reka-ui portal that renders outside the app-shell's landmarks; kept as library markup. The join page's header and footer are fixed.",
-    at: { desktop: ["room-member-menu"] },
+      "The member and About menus' popups is a reka-ui portal that renders outside the app-shell's landmarks; kept as library markup. The join page's header and footer are fixed.",
+    at: { desktop: ["room-member-menu", "join-about-menu"] },
   },
 ];
 

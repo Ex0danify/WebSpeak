@@ -47,7 +47,6 @@ export const iconNames = [
   "fullscreen",
   "fullscreen-exit",
   "github",
-  "qq",
 ] as const;
 
 export type IconName = (typeof iconNames)[number];

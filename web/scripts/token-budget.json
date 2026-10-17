@@ -27,9 +27,6 @@
     "src/features/demo/DemoVoiceSection.vue": {
       "arbitrary": 1
     },
-    "src/features/join/HeaderLinkButton.vue": {
-      "arbitrary": 2
-    },
     "src/features/join/JoinFooter.vue": {
       "arbitrary": 2
     },
@@ -41,9 +38,6 @@
     },
     "src/features/join/JoinHero.vue": {
       "arbitrary": 3
-    },
-    "src/features/join/QqDialog.vue": {
-      "arbitrary": 2
     },
     "src/features/room/audioSettings/AudioSettingsDialog.vue": {
       "arbitrary": 2

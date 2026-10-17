@@ -188,17 +188,19 @@ test.describe("channel password dialog", () => {
   });
 });
 
-test.describe("QQ group dialog", () => {
-  test("opens from the header, shows the code and the link, and Esc returns focus to the button", async ({ page }) => {
+test.describe("About menu", () => {
+  test("lists version and project links, and Esc returns focus to the trigger", async ({ page }) => {
     await page.goto("/");
-    const opener = page.getByRole("button", { name: "QQ group" });
-    await opener.click();
-    const dialog = page.getByRole("dialog", { name: "QQ group" });
-    await expect(dialog).toBeVisible();
-    await expect(dialog.getByRole("img", { name: "QQ group QR code" })).toBeVisible();
-    await expect(dialog.getByRole("link", { name: "Join the QQ group" })).toHaveAttribute("href", /qm\.qq\.com/);
+    const trigger = page.getByRole("button", { name: "About" });
+    await trigger.click();
+    // Desktop renders a menu, the phone sheet a dialog with plain buttons.
+    const menu = page.getByRole("menu", { name: "About" }).or(page.getByRole("dialog", { name: "About" }));
+    await expect(menu).toBeVisible();
+    await expect(menu.getByText(/^WebSpeak v\d/)).toBeVisible();
+    await expect(menu.getByText("GitHub repository")).toBeVisible();
+    await expect(menu.getByText("Admin console")).toBeVisible();
     await page.keyboard.press("Escape");
-    await expect(dialog).toBeHidden();
-    await expect(opener).toBeFocused();
+    await expect(menu).toBeHidden();
+    await expect(trigger).toBeFocused();
   });
 });

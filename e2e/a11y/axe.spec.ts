@@ -45,11 +45,11 @@ const bannerText: Partial<Record<ScriptedScenario, string>> = {
 const states: State[] = [
   { id: "join", prepare: visit("/") },
   {
-    id: "join-qq-dialog",
+    id: "join-about-menu",
     async prepare(page) {
       await page.goto("/");
-      await page.getByRole("button", { name: "QQ group" }).click();
-      await expect(page.getByRole("dialog", { name: "QQ group" })).toBeVisible();
+      await page.getByRole("button", { name: "About" }).click();
+      await expect(page.getByRole("menu", { name: "About" }).or(page.getByRole("dialog", { name: "About" }))).toBeVisible();
     },
   },
   {

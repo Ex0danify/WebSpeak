@@ -17,37 +17,40 @@
     </div>
     <nav
       class="flex items-center gap-4.25 max-compact:gap-1.75 max-phone-lg:min-w-0 max-phone-lg:flex-none max-phone-lg:gap-0.5"
-      :aria-label="t('headerLinks')"
+      :aria-label="t('headerNav')"
     >
-      <div class="flex items-center gap-2 text-caption text-fg-muted max-compact:hidden">
-        <span class="inline-block size-1.75 rounded-full bg-success ring-4 ring-success/14" aria-hidden="true"></span>
-        {{ t("secureGateway") }}
-      </div>
-      <HeaderLinkButton v-for="link in leadingLinks" :key="link.key" v-bind="link.props" @click="link.onClick" />
-      <Chip variant="accent" class="h-[30px] max-phone-lg:hidden" :title="versionLabel" :aria-label="versionLabel"
-        >{{ VERSION_PREFIX }}{{ appVersion }}</Chip
-      >
-      <HeaderLinkButton v-for="link in trailingLinks" :key="link.key" v-bind="link.props" />
       <Tooltip :text="themeLabel">
         <Button variant="ghost" size="sm" icon-only class="max-phone-lg:hidden" :aria-label="themeLabel" @click="$emit('cycle-theme')">
           <Icon :name="themeIcon" />
         </Button>
       </Tooltip>
       <LanguageSwitcher v-model="language" :menu-label="t('languageMenu')" :close-label="t('close')" @change="$emit('language-change')" />
+      <Menu align="end" :label="t('about')" :close-label="t('close')">
+        <template #trigger>
+          <Button variant="accentSoft" size="sm" class="max-compact:min-h-11 max-compact:min-w-11" :aria-label="t('about')">
+            <Icon name="info" :size="16" />
+            <span class="max-compact:hidden">{{ t("about") }}</span>
+          </Button>
+        </template>
+        <MenuLabel plain>{{ APP_NAME }} {{ versionLabel }}</MenuLabel>
+        <MenuItem v-for="item in items" :key="item.key" @select="openLink(item.href)">
+          <Icon :name="item.icon" :size="16" />
+          {{ item.label }}
+        </MenuItem>
+      </Menu>
     </nav>
   </header>
 </template>
 
 <script setup lang="ts">
 import { computed } from "vue";
-import { APP_NAME, BILIBILI_URL, BRAND_GLYPH, CHANGELOG_URL, GITHUB_URL, VERSION_PREFIX } from "@/shared/lib/brand";
+import { APP_NAME, CHANGELOG_URL, GITHUB_URL, VERSION_PREFIX } from "@/shared/lib/brand";
 import { Button } from "@/shared/ui/button";
 import { Tooltip } from "@/shared/ui/tooltip";
-import { Chip } from "@/shared/ui/chip";
-import { Icon } from "@/shared/ui/icon";
+import { Icon, type IconName } from "@/shared/ui/icon";
+import { Menu, MenuItem, MenuLabel } from "@/shared/ui/menu";
 import LanguageSwitcher from "@/shared/components/LanguageSwitcher.vue";
 import { useI18n } from "@/shared/i18n/useI18n.js";
-import HeaderLinkButton from "@/features/join/HeaderLinkButton.vue";
 
 const props = defineProps<{
   siteName: string;
@@ -56,41 +59,23 @@ const props = defineProps<{
   themeLabel: string;
 }>();
 
-const emit = defineEmits<{
-  (e: "qq-open"): void;
+defineEmits<{
   (e: "cycle-theme"): void;
   (e: "language-change"): void;
 }>();
 
 const { language, t } = useI18n();
 
-type HeaderLink = {
-  key: string;
-  props: InstanceType<typeof HeaderLinkButton>["$props"];
-  onClick?: () => void;
-};
+const versionLabel = computed(() => `${VERSION_PREFIX}${props.appVersion}`);
 
-// Left of the version chip. QQ is a button that opens the dialog, the rest are links.
-const leadingLinks = computed<HeaderLink[]>(() => [
-  { key: "github", props: { label: t("githubRepository"), variant: "inverse", href: GITHUB_URL, icon: "github" } },
-  { key: "qq", props: { label: t("qqGroup"), variant: "tinted", icon: "qq", popup: true }, onClick: () => emit("qq-open") },
-  {
-    key: "bilibili",
-    props: { label: t("bilibiliProfile"), variant: "dangerSoft", href: BILIBILI_URL, glyph: BRAND_GLYPH, secondary: true },
-  },
+const items = computed<{ key: string; label: string; icon: IconName; href: string }[]>(() => [
+  { key: "github", label: t("githubRepository"), icon: "github", href: GITHUB_URL },
+  { key: "changelog", label: t("viewChangelog"), icon: "clock", href: CHANGELOG_URL },
+  { key: "admin", label: t("adminConsole"), icon: "settings", href: "/admin" },
 ]);
 
-// Right of the version chip. Secondary links: on a phone they sit in the footer, where text links are 44 px tall without crowding the bar.
-const trailingLinks = computed<HeaderLink[]>(() => [
-  {
-    key: "changelog",
-    props: { label: t("viewChangelog"), variant: "tinted", href: CHANGELOG_URL, icon: "clock", iconSize: "sm", secondary: true },
-  },
-  {
-    key: "admin",
-    props: { label: t("adminConsole"), variant: "tinted", href: "/admin", icon: "settings", iconSize: "sm", secondary: true },
-  },
-]);
-
-const versionLabel = computed(() => `${t("currentVersion")}: v${props.appVersion}`);
+function openLink(href: string) {
+  if (href.startsWith("http")) window.open(href, "_blank", "noopener,noreferrer");
+  else window.location.assign(href);
+}
 </script>
