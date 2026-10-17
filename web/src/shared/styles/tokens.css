@@ -184,43 +184,6 @@
       transform: translateY(0);
     }
   }
-
-  /* Visitor counter on the join page: sheen sweep, orbit ring, spark. */
-  --animate-visitor-shimmer: visitor-shimmer 3.6s 1.5s ease-in-out infinite;
-  @keyframes visitor-shimmer {
-    0%,
-    42% {
-      left: -45%;
-    }
-    72%,
-    100% {
-      left: 130%;
-    }
-  }
-  --animate-visitor-orbit: visitor-orbit 4s ease-in-out infinite;
-  @keyframes visitor-orbit {
-    0%,
-    100% {
-      transform: rotate(-8deg) scale(0.96);
-      opacity: 0.48;
-    }
-    50% {
-      transform: rotate(12deg) scale(1.04);
-      opacity: 0.9;
-    }
-  }
-  --animate-visitor-spark: visitor-spark 2.1s ease-in-out infinite;
-  @keyframes visitor-spark {
-    0%,
-    100% {
-      opacity: 0.58;
-      transform: scale(0.88) rotate(0deg);
-    }
-    50% {
-      opacity: 1;
-      transform: scale(1.14) rotate(12deg);
-    }
-  }
 }
 
 /* Light (default) */
