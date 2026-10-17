@@ -68,6 +68,14 @@ export class CommandTimeoutError extends TeamSpeakError {
   }
 }
 
+/** An identity string that does not hold a usable P-256 key and offset. */
+export class InvalidIdentityError extends TeamSpeakError {
+  constructor(reason: string, options?: ErrorOptions) {
+    super(`Invalid TeamSpeak identity: ${reason}`, options);
+    this.name = "InvalidIdentityError";
+  }
+}
+
 /** A failed connection setup. A refusal by the server keeps the TeamSpeakServerError as `cause`. */
 export class HandshakeError extends TeamSpeakError {
   readonly step: string;

@@ -3,12 +3,16 @@ export { TeamSpeakErrorId, teamSpeakErrorIdName, type TeamSpeakErrorIdName } fro
 export {
   CommandTimeoutError,
   HandshakeError,
+  InvalidIdentityError,
   TeamSpeakError,
   TeamSpeakServerError,
   TeamSpeakTransportError,
   type TeamSpeakServerErrorFields,
   type TeamSpeakTransportErrorCode,
 } from "./errors/teamSpeakErrors.js";
+export { generateIdentity, Identity, identityFromString } from "./crypto/identity.js";
+export { generateIdentityAsync, upgradeIdentity, type IdentitySearchOptions } from "./crypto/identityWorker.js";
+export { ts3Uid, ts6Uid } from "./crypto/uid.js";
 export { escapeCommandValue, unescapeCommandValue } from "./wire/commandEscape.js";
 export { type CommandRow } from "./wire/commandRows.js";
 export {
