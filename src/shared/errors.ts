@@ -151,6 +151,17 @@ const NON_RETRYABLE_CODES: ReadonlySet<WebSpeakErrorCode> = new Set<WebSpeakErro
   "unknown",
 ]);
 
+// TeamSpeakTransportError codes of lib/teamspeak, by name because shared/ does not import the lib.
+// socketError is left out, the socket error in its cause tells more.
+const LIB_TRANSPORT_ERROR_CODES: Readonly<Record<string, WebSpeakErrorCode>> = {
+  timeout: "timeout",
+  ackTimeout: "timeout",
+  handshakeFailed: "protocol_negotiation_failed",
+  cryptoInit: "protocol_negotiation_failed",
+  malformedData: "protocol_negotiation_failed",
+  closedByServer: "connection_reset",
+};
+
 function createTeamSpeakError(code: WebSpeakErrorCode, cause: unknown, diagnostics: TeamSpeakErrorDiagnostics): WebSpeakError {
   return new WebSpeakError(code, WEBSPEAK_ERROR_MESSAGES[code], !NON_RETRYABLE_CODES.has(code), cause, diagnostics);
 }
@@ -233,6 +244,8 @@ export function normalizeTeamSpeakError(error: unknown): WebSpeakError {
 
   // Handshake and crypto errors have no numeric id, so match the class name before the text.
   const errorName = (diagnostics.name ?? "").toLocaleLowerCase();
+  const transportCode = errorName === "teamspeaktransporterror" ? LIB_TRANSPORT_ERROR_CODES[diagnostics.code ?? ""] : undefined;
+  if (transportCode) return createTeamSpeakError(transportCode, error, diagnostics);
   if (/eaxtagmismatch|fakesignaturemismatch|cryptoinit|invalididentity|license/.test(errorName)) {
     return createTeamSpeakError("protocol_negotiation_failed", error, diagnostics);
   }

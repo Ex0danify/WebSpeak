@@ -1,2 +1,23 @@
 // Public API of the own TeamSpeak client. Only modules/teamspeak imports it.
-export {};
+export { TeamSpeakErrorId, teamSpeakErrorIdName, type TeamSpeakErrorIdName } from "./errors/errorIds.js";
+export {
+  CommandTimeoutError,
+  HandshakeError,
+  TeamSpeakError,
+  TeamSpeakServerError,
+  TeamSpeakTransportError,
+  type TeamSpeakServerErrorFields,
+  type TeamSpeakTransportErrorCode,
+} from "./errors/teamSpeakErrors.js";
+export { escapeCommandValue, unescapeCommandValue } from "./wire/commandEscape.js";
+export { type CommandRow } from "./wire/commandRows.js";
+export {
+  buildCommand,
+  parseCommand,
+  type BuildCommandOptions,
+  type CommandParams,
+  type CommandValue,
+  type ParseCommandOptions,
+  type ParsedCommand,
+} from "./wire/commandText.js";
+export { parseBool, parseI32, parseList, parseU16, parseU32, parseU64, parseU8 } from "./wire/commandValues.js";
