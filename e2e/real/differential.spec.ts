@@ -154,6 +154,13 @@ async function session(kind: Kind, server: RealServer, query: WebQuery, channel:
 
   await step("A switches channel", () => a.client.switchChannel(BigInt(channel.id)));
   await until(b, "B sees A move", "clientMoved", "A", channel.name, 0);
+  // Before the mutes: the server drops all voice, whispers included, of a client whose input is muted.
+  for (let frame = 0; frame < 5; frame++) {
+    a.client.sendWhisper(OPUS_SILENCE, [idB]);
+    await wait(20);
+  }
+  await wait(500);
+  checks.whisperFramesAtB = b.entries.filter((e) => e[0] === "voiceData").length;
   await step("A setAway", () => a.client.setAway(true, "brb | tab\there"));
   await step("A setInputMuted", () => a.client.setInputMuted(true));
   await step("A setOutputMuted", () => a.client.setOutputMuted(true));
@@ -168,12 +175,6 @@ async function session(kind: Kind, server: RealServer, query: WebQuery, channel:
   await until(b, "B gets the server message", "textMessage", "A", 3, "to everyone");
   await step("A poke", () => a.client.poke(idB, "wake up"));
   await until(b, "B gets the poke", "poked", "A", "wake up");
-  for (let frame = 0; frame < 5; frame++) {
-    a.client.sendWhisper(OPUS_SILENCE, [idB]);
-    await wait(20);
-  }
-  await wait(500);
-  checks.whisperFramesAtB = b.entries.filter((e) => e[0] === "voiceData").length;
 
   // Channel edits by an admin identity: create two, put the second on top, rename and delete. The session has to keep the
   // sibling order like the server does.
@@ -245,6 +246,8 @@ test.describe.serial("old SDK and own client side by side", () => {
     const native = logs.get("native")!;
     console.log(JSON.stringify({ sdk: sdk.checks, native: native.checks }, null, 1));
 
+    expect(sdk.checks.whisperFramesAtB).toBe(5);
+    expect(native.checks.whisperFramesAtB).toBe(5);
     // A came second, and its welcome already lists B on both: the second snapshot pull was not needed.
     expect(sdk.checks.welcomeOfA).toEqual(["diff-sdk-a", "diff-sdk-b", "serveradmin"]);
     expect(native.checks.welcomeOfA).toEqual(["diff-native-a", "diff-native-b", "serveradmin"]);
