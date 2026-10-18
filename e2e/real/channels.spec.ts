@@ -47,7 +47,7 @@ test("switching by click moves the member on the server, and the counts follow i
   }
   await expect(channelGroup(bob.page, away.name).getByText(alice.nickname, { exact: true })).toBeVisible();
 
-  await alice.page.getByRole("button", { name: `${home.name} 0`, exact: true }).click();
+  await channelWith(alice.page, home.name, 0).click();
   await poll(
     () => channelIdOf(query, alice.nickname),
     (cid) => cid === home.id,
