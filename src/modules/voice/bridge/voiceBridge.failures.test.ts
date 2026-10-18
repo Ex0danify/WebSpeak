@@ -154,8 +154,8 @@ describe("a join the gateway refuses before TeamSpeak", () => {
 
 describe("a session that TeamSpeak ends", () => {
   it.each([
-    { what: "kick", ban: false, code: "KICKED", detail: "server error id=4" },
-    { what: "ban", ban: true, code: "BANNED", detail: "server error id=5" },
+    { what: "kick", ban: false, code: "KICKED", detail: "server error id=5" },
+    { what: "ban", ban: true, code: "BANNED", detail: "server error id=6" },
   ])(
     "replays the reason of a $what as `connectionFailed` $code, then closes with 1000 and does not reconnect",
     async ({ ban, code, detail }) => {

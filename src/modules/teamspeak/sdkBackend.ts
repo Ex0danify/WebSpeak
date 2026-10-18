@@ -36,7 +36,7 @@ export function toTSChatMessage(msg: TextMessage): TSChatMessage {
 export class SdkBackend extends EventEmitter<TeamSpeakBackendEvents> implements TeamSpeakBackend {
   private readonly adapter: TeamSpeakAdapter;
   private readonly client: TS3FullClient;
-  // The SDK hands only the reason message to kicked and drops the id, so this is how we tell a kick (4) from a ban (5).
+  // The SDK hands only the reason message to kicked and drops the id, which tells a server kick from a ban.
   private selfLeaveReasonId: number | null = null;
 
   constructor(
