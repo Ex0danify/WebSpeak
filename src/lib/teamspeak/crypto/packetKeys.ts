@@ -1,5 +1,4 @@
 import { createHash } from "node:crypto";
-import { TeamSpeakTransportError } from "../errors/teamSpeakErrors.js";
 
 export type PacketDirection = "c2s" | "s2c";
 
@@ -45,13 +44,19 @@ export function legacyFakeMac(ivStruct: Uint8Array): Buffer {
 // A generation lasts 65536 packets, so a handful of entries covers every live (direction, type, generation).
 const CACHE_LIMIT = 64;
 
-/** `SHA256(dir ‖ type ‖ generation u32be ‖ ivStruct)`, then the packet id XORed into the first two key bytes. */
-export class LegacyPacketKeys implements PacketKeySchedule {
-  readonly #ivStruct: Buffer;
+/**
+ * `hash(dir ‖ type ‖ generation u32be ‖ iv)` split into a key and a nonce, then the packet id XORed
+ * into the first two key bytes. The hash and the key length pick the AES variant: SHA-256 → AES-128,
+ * SHA-512 → AES-256.
+ */
+abstract class HashPacketKeys implements PacketKeySchedule {
+  protected abstract readonly algorithm: "sha256" | "sha512";
+  protected abstract readonly keyBytes: number;
+  readonly #iv: Buffer;
   readonly #cache = new Map<number, PacketKey>();
 
-  constructor(ivStruct: Uint8Array) {
-    this.#ivStruct = Buffer.from(ivStruct);
+  constructor(iv: Uint8Array) {
+    this.#iv = Buffer.from(iv);
   }
 
   keyFor(direction: PacketDirection, packetType: number, generation: number, packetId: number): PacketKey {
@@ -66,20 +71,47 @@ export class LegacyPacketKeys implements PacketKeySchedule {
     const id = ((direction === "s2c" ? 0x10 : 0) | packetType) * 0x1_0000_0000 + generation;
     const cached = this.#cache.get(id);
     if (cached) return cached;
-    const input = Buffer.allocUnsafe(6 + this.#ivStruct.length);
+    const input = Buffer.allocUnsafe(6 + this.#iv.length);
     input[0] = direction === "s2c" ? 0x30 : 0x31;
     input[1] = packetType;
     input.writeUInt32BE(generation, 2);
-    this.#ivStruct.copy(input, 6);
-    const hash = createHash("sha256").update(input).digest();
-    const entry = { key: hash.subarray(0, 16), nonce: hash.subarray(16, 32) };
+    this.#iv.copy(input, 6);
+    const hash = createHash(this.algorithm).update(input).digest();
+    const entry = { key: hash.subarray(0, this.keyBytes), nonce: hash.subarray(this.keyBytes, this.keyBytes * 2) };
     if (this.#cache.size >= CACHE_LIMIT) this.#cache.clear();
     this.#cache.set(id, entry);
     return entry;
   }
 }
 
-/** TS6 alpha schedule, comes with the alpha handshake once the sharedIV derivation is known. */
-export function alphaPacketKeys(_sharedIv: Uint8Array): PacketKeySchedule {
-  throw new TeamSpeakTransportError("cryptoInit", "the TeamSpeak 6 alpha key schedule is not implemented yet");
+/** Legacy schedule: SHA-256 over the `ivStruct`, AES-128 keys. */
+export class LegacyPacketKeys extends HashPacketKeys {
+  protected readonly algorithm = "sha256";
+  protected readonly keyBytes = 16;
+}
+
+/** TS6 alpha schedule: SHA-512 over the `sharedIv`, AES-256 keys. */
+export class AlphaPacketKeys extends HashPacketKeys {
+  protected readonly algorithm = "sha512";
+  protected readonly keyBytes = 32;
+}
+
+export interface AlphaSecrets {
+  /** The 64-byte IV that feeds the per-packet schedule. */
+  sharedIv: Buffer;
+  /** MAC of unencrypted packets once the alpha handshake is through. */
+  fakeMac: Buffer;
+}
+
+/**
+ * Derives the connection secrets of the TS6 alpha handshake from the X25519 secret and the two
+ * handshake nonces. `h = SHA512(SHA256(ecdh))` splits into two halves that key the IV and the MAC;
+ * `SHA256(alpha)` and `beta` mix in the per-session nonces.
+ */
+export function alphaSecrets(ecdh: Uint8Array, alpha: Uint8Array, beta: Uint8Array): AlphaSecrets {
+  const h = createHash("sha512").update(createHash("sha256").update(ecdh).digest()).digest();
+  const y = createHash("sha256").update(alpha).digest();
+  const sharedIv = createHash("sha512").update(Buffer.concat([h.subarray(0, 32), y, beta])).digest();
+  const aux = createHash("sha256").update(Buffer.concat([h.subarray(32, 64), y, beta])).digest();
+  return { sharedIv, fakeMac: aux.subarray(0, FAKE_MAC_BYTES) };
 }

@@ -1,8 +1,12 @@
 import { Crypt, identityFromString as sdkIdentityFromString } from "@echosixhiya/teamspeak-client/crypto";
 import { createHash, randomBytes } from "node:crypto";
+import { existsSync, readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import { TeamSpeakTransportError } from "../errors/teamSpeakErrors.js";
-import { alphaPacketKeys, deriveIvStruct, LegacyPacketKeys, legacyFakeMac } from "./packetKeys.js";
+import { AlphaPacketKeys, alphaSecrets, deriveIvStruct, LegacyPacketKeys, legacyFakeMac } from "./packetKeys.js";
+
+const fixtureDir = fileURLToPath(new URL("../../../../teamspeak-client-plan/fixtures/", import.meta.url));
+const hasFixtures = existsSync(`${fixtureDir}handshakeVectors.json`);
 
 const ivStruct = Buffer.from("0102030405060708090a0b0c0d0e0f10111213141516171819", "hex");
 
@@ -69,8 +73,73 @@ describe("deriveIvStruct", () => {
   });
 });
 
-describe("alphaPacketKeys", () => {
-  it("is not implemented yet", () => {
-    expect(() => alphaPacketKeys(Buffer.alloc(64))).toThrow(TeamSpeakTransportError);
+describe("AlphaPacketKeys", () => {
+  const sharedIv = randomBytes(64);
+
+  it("hashes direction, type, generation and sharedIv with SHA-512 and XORs the packet id into the key", () => {
+    const hash = createHash("sha512")
+      .update(Buffer.concat([Buffer.from([0x30, 0x08, 0, 0, 0, 0]), sharedIv]))
+      .digest();
+    const { key, nonce } = new AlphaPacketKeys(sharedIv).keyFor("s2c", 8, 0, 0xabcd);
+    expect(key.length).toBe(32);
+    expect(nonce.equals(hash.subarray(32, 64))).toBe(true);
+    expect(key[0]).toBe(hash[0] ^ 0xab);
+    expect(key[1]).toBe(hash[1] ^ 0xcd);
+    expect(key.subarray(2).equals(hash.subarray(2, 32))).toBe(true);
+  });
+
+  describe.skipIf(!existsSync(`${fixtureDir}ts6AlphaKeySchedule.json`))("against the recorded schedule", () => {
+    const entries = () =>
+      (
+        JSON.parse(readFileSync(`${fixtureDir}ts6AlphaKeySchedule.json`, "utf8")) as {
+          entries: { output: string; direction: "c2s" | "s2c"; packetType: number; generation: number; sharedIV: string }[];
+        }
+      ).entries;
+
+    it("derives the key and nonce of every recorded packet", () => {
+      for (const entry of entries()) {
+        const keys = new AlphaPacketKeys(Buffer.from(entry.sharedIV, "hex"));
+        const { key, nonce } = keys.keyFor(entry.direction, entry.packetType, entry.generation, 0);
+        const out = Buffer.from(entry.output, "hex");
+        expect(key.equals(out.subarray(0, 32))).toBe(true);
+        expect(nonce.equals(out.subarray(32, 64))).toBe(true);
+      }
+    });
+  });
+});
+
+describe("alphaSecrets", () => {
+  it("is deterministic and mixes each input", () => {
+    const ecdh = randomBytes(32);
+    const alpha = randomBytes(10);
+    const beta = randomBytes(32);
+    const base = alphaSecrets(ecdh, alpha, beta);
+    expect(base.sharedIv.length).toBe(64);
+    expect(base.fakeMac.length).toBe(8);
+    expect(alphaSecrets(ecdh, alpha, beta).sharedIv.equals(base.sharedIv)).toBe(true);
+    expect(alphaSecrets(randomBytes(32), alpha, beta).sharedIv.equals(base.sharedIv)).toBe(false);
+    expect(alphaSecrets(ecdh, randomBytes(10), beta).sharedIv.equals(base.sharedIv)).toBe(false);
+    expect(alphaSecrets(ecdh, alpha, randomBytes(32)).sharedIv.equals(base.sharedIv)).toBe(false);
+    expect(alphaSecrets(ecdh, alpha, randomBytes(32)).fakeMac.equals(base.fakeMac)).toBe(false);
+  });
+
+  describe.skipIf(!hasFixtures)("against the recorded vector", () => {
+    const vector = () =>
+      (
+        JSON.parse(readFileSync(`${fixtureDir}handshakeVectors.json`, "utf8")) as {
+          alpha: { sharedIvVector?: { ecdh: string; alpha: string; beta: string; sharedIV: string; fakeMac: string } };
+        }
+      ).alpha.sharedIvVector;
+
+    it.skipIf(!vector())("reproduces the sharedIv and fake MAC", () => {
+      const v = vector()!;
+      const { sharedIv, fakeMac } = alphaSecrets(
+        Buffer.from(v.ecdh, "hex"),
+        Buffer.from(v.alpha, "hex"),
+        Buffer.from(v.beta, "hex"),
+      );
+      expect(sharedIv.toString("hex")).toBe(v.sharedIV);
+      expect(fakeMac.toString("hex")).toBe(v.fakeMac);
+    });
   });
 });
