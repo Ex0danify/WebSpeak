@@ -83,11 +83,13 @@ export {
   type WhisperTargets,
 } from "./client/clientVoice.js";
 export {
+  type ClientAvatar,
   type ConnectionState,
   type DownloadFileOptions,
   TeamSpeakConnection,
   type TeamSpeakConnectionOptions,
 } from "./client/teamSpeakConnection.js";
+export { avatarDeletePath, avatarDownloadPath, avatarFileKey } from "./fileTransfer/avatarFiles.js";
 export { type TcpConnect } from "./fileTransfer/fileDownload.js";
 export { type DownloadRequest } from "./fileTransfer/fileTransferTickets.js";
 export {

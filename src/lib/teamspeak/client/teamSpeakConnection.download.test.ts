@@ -33,6 +33,9 @@ async function settle<T>(promise: Promise<T>, clock: ManualClock): Promise<T> {
   return promise;
 }
 
+/** Lets what the server sent cross the simulated link. */
+const deliver = (clock: ManualClock) => settle(new Promise((resolve) => setTimeout(resolve, 20)), clock);
+
 type FtReply = (command: ParsedCommand, ok: string) => string[];
 
 async function connected(reply: FtReply, serverOptions: LoopbackServerOptions = {}) {
@@ -122,5 +125,50 @@ describe("downloadFile", () => {
     const error = await waiting;
     expect(error).toBeInstanceOf(TeamSpeakTransportError);
     await expect(connection.downloadFile(request, { maxBytes: 1000 })).rejects.toThrow("not connected");
+  });
+});
+
+describe("downloadAvatar", () => {
+  const UID = Buffer.alloc(20, 0xfb).toString("base64");
+  const enter = (clid: number, avatar: string) =>
+    cmd("notifycliententerview", {
+      cfid: 0,
+      ctid: 1,
+      reasonid: 0,
+      clid,
+      client_nickname: "Peer",
+      client_unique_identifier: UID,
+      client_flag_avatar: avatar,
+    });
+
+  it("downloads by the session's UID and avatar flag, without clientinfo", async () => {
+    fileServer = await startFileServer(sendFile(AVATAR));
+    const port = fileServer.port;
+    const { clock, connection, server } = await connected((command, ok) => [ok, startDownload(command, port)]);
+    server.handler.sendCommand(Buffer.from(enter(9, "957a5bf1626328596e72a93e8ca010ad")));
+    await deliver(clock);
+    const avatar = await settle(connection.downloadAvatar(9, { maxBytes: AVATAR.length }), clock);
+    expect(avatar?.cacheKey).toBe("957a5bf1626328596e72a93e8ca010ad");
+    expect(avatar?.data.equals(AVATAR)).toBe(true);
+    expect(server.received.filter((text) => !text.startsWith("ftinitdownload"))).toEqual([]);
+    expect(server.received.at(-1)).toContain(`name=\\/avatar_${"pl".repeat(20)} `);
+  });
+
+  it("follows a changed avatar flag and has nothing for a client without one", async () => {
+    const { clock, connection, server } = await connected(() => []);
+    server.handler.sendCommand(Buffer.from(enter(9, "")));
+    await deliver(clock);
+    expect(await connection.downloadAvatar(9, { maxBytes: 1000 })).toBeUndefined();
+    server.handler.sendCommand(Buffer.from(cmd("notifyclientupdated", { clid: 9, client_flag_avatar: "abc" })));
+    await deliver(clock);
+    expect(connection.session.client(9)?.avatar).toBe("abc");
+    expect(server.received).toEqual([]);
+  });
+
+  it("refuses clients out of view and works only while connected", async () => {
+    const { clock, connection } = await connected(() => []);
+    await expect(connection.downloadAvatar(42, { maxBytes: 1000 })).rejects.toThrow("not in view");
+    await settle(connection.disconnect(), clock);
+    await expect(connection.downloadAvatar(42, { maxBytes: 1000 })).rejects.toThrow("not connected");
   });
 });

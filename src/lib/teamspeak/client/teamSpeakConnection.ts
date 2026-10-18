@@ -3,6 +3,7 @@ import { clientDisconnect } from "../command/clientCommands.js";
 import { CommandScheduler, type CommandSchedulerOptions, type ScheduledCommandOptions } from "../command/commandScheduler.js";
 import { type CommandInput, CommandTracker, type CommandTrackerOptions, type ServerCommand } from "../command/commandTracker.js";
 import { TeamSpeakError, TeamSpeakTransportError } from "../errors/teamSpeakErrors.js";
+import { avatarDownloadPath } from "../fileTransfer/avatarFiles.js";
 import { readDownload, type TcpConnect } from "../fileTransfer/fileDownload.js";
 import { type DownloadRequest, FileTransferTickets, ftInitDownload } from "../fileTransfer/fileTransferTickets.js";
 import { connectLegacy, type LegacyConnection, type LegacyHandshakeOptions } from "../handshake/legacyHandshake.js";
@@ -45,6 +46,12 @@ export interface DownloadFileOptions extends Pick<ScheduledCommandOptions, "prio
   host?: string;
   /** For each step: the command, the ticket, the transfer. Default 10 s. */
   timeoutMs?: number;
+}
+
+export interface ClientAvatar {
+  /** `client_flag_avatar` when the download started. A new value means a new picture. */
+  cacheKey: string;
+  data: Buffer;
 }
 
 export type ConnectionState = "idle" | "connecting" | "connected" | "closed";
@@ -133,6 +140,20 @@ export class TeamSpeakConnection extends EventEmitter<ConnectionEventMap> {
     } finally {
       transfer.release();
     }
+  }
+
+  /**
+   * The avatar of a client in view, undefined when it has none. Name and cache key come from the
+   * session, so it costs no clientinfo.
+   */
+  async downloadAvatar(clientId: number, options: DownloadFileOptions): Promise<ClientAvatar | undefined> {
+    if (this.#state !== "connected") throw this.#notConnected();
+    const client = this.#session.client(clientId);
+    if (!client) throw new TeamSpeakError(`TeamSpeak client ${clientId} is not in view`);
+    if (!client.avatar) return undefined;
+    const cacheKey = client.avatar;
+    const data = await this.downloadFile({ channelId: 0n, path: avatarDownloadPath(client.uid) }, options);
+    return { cacheKey, data };
   }
 
   /** Opus frame to our channel. Dropped while not connected, like any lost voice packet. */
