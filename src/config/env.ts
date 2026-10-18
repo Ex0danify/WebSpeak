@@ -111,7 +111,7 @@ export type TeamSpeakClientKind = "sdk" | "native";
 
 /** Which TeamSpeak client runs under TSClient. Temporary, it goes away together with the old SDK, so it may stay unset. */
 export function readTeamSpeakClientKind(env: NodeJS.ProcessEnv = process.env): TeamSpeakClientKind {
-  const kind = text(env, "WEBSPEAK_TS_CLIENT").toLowerCase() || "sdk";
+  const kind = text(env, "WEBSPEAK_TS_CLIENT").toLowerCase() || "native";
   if (kind !== "sdk" && kind !== "native") throw new EnvError("WEBSPEAK_TS_CLIENT must be sdk or native");
   return kind;
 }
