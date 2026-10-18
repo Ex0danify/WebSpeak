@@ -1,12 +1,16 @@
 // Server side of the legacy TeamSpeak handshake for the own client's tests: Init1 with a small
 // puzzle, initivexpand2 → clientek, then initserver and a short welcome. The server's Ed25519 key
 // has no license chain from TeamSpeak's root, so the client has to take it through its test seam.
+import { generateKeyPairSync, sign as edSign } from "node:crypto";
 import { createEphemeralKey, legacySharedSecret } from "../../src/lib/teamspeak/crypto/edwards.js";
 import { generateIdentity, importTsPublicKey, verifyTsSignature } from "../../src/lib/teamspeak/crypto/identity.js";
-import { deriveIvStruct, LegacyPacketKeys, legacyFakeMac } from "../../src/lib/teamspeak/crypto/packetKeys.js";
+import { AlphaPacketKeys, alphaSecrets, deriveIvStruct, DUMMY_PACKET_KEY_256, LegacyPacketKeys, legacyFakeMac } from "../../src/lib/teamspeak/crypto/packetKeys.js";
 import { solveRsaPuzzle } from "../../src/lib/teamspeak/crypto/rsaPuzzle.js";
+import { createX25519Key, x25519SharedSecret } from "../../src/lib/teamspeak/crypto/x25519.js";
+import { alphaProofData } from "../../src/lib/teamspeak/handshake/alphaExpand.js";
 import { INIT1_LAYOUT, INIT_VERSION, Init1Step } from "../../src/lib/teamspeak/handshake/init1.js";
 import { clientEkProofData } from "../../src/lib/teamspeak/handshake/legacyExpand.js";
+import { FixedPacketKeys } from "../../src/lib/teamspeak/transport/packetProtection.js";
 import { PacketHandler, type PacketHandlerOptions, type VoicePacket } from "../../src/lib/teamspeak/transport/packetHandler.js";
 import type { DatagramChannel } from "../../src/lib/teamspeak/transport/udpChannel.js";
 import type { CommandRow } from "../../src/lib/teamspeak/wire/commandRows.js";
@@ -19,6 +23,8 @@ export interface LoopbackServerOptions {
   /** Default 64 squarings, enough to check the solution without slowing tests down. */
   puzzleLevel?: number;
   clientId?: number;
+  /** Drives the TS6 alpha handshake instead of the legacy one. */
+  alpha?: boolean;
   /** Signs something other than the license, the client must refuse it. */
   forgeProof?: boolean;
   /** Answers clientinit with this error instead of initserver. */
@@ -57,6 +63,11 @@ export interface LoopbackServer {
 
 const serverEd25519 = createEphemeralKey(Buffer.alloc(32, 0x5e));
 const serverIdentity = generateIdentity(0);
+// Alpha: a real Ed25519 key for the server proof and an X25519 key for the ECDH.
+const serverProofKey = generateKeyPairSync("ed25519");
+const serverProofPublic = Buffer.from((serverProofKey.publicKey.export({ format: "jwk" }) as { x: string }).x, "base64url");
+const serverX25519 = createX25519Key(Buffer.alloc(32, 0x2e));
+const ALPHA_TIME = 1_792_222_195n;
 // Times count from 2013, an ephemeral block valid over the whole u32 range.
 const LICENSE = Buffer.concat([Buffer.from([1, 0]), serverEd25519.publicKey, Buffer.from([32, 0, 0, 0, 0, 0xff, 0xff, 0xff, 0xff])]);
 const PUZZLE_N = Buffer.alloc(NUMBER_BYTES, 0xa7);
@@ -77,6 +88,7 @@ export function createLoopbackServer(channel: DatagramChannel, options: Loopback
   puzzle.writeUInt32BE(level, 2 * NUMBER_BYTES);
   const solution = solveRsaPuzzle(PUZZLE_X, PUZZLE_N, level);
   const beta = Buffer.alloc(54, 0xbe);
+  const betaAlpha = Buffer.alloc(32, 0xbe);
   let alpha: Buffer | undefined;
   let clientOmega = "";
   let nickname = "";
@@ -102,6 +114,24 @@ export function createLoopbackServer(channel: DatagramChannel, options: Loopback
       alpha = Buffer.from(initIv.alpha, "base64");
       clientOmega = initIv.omega;
       if (options.expandAnswer) return send(options.expandAnswer);
+      if (options.alpha) {
+        // From the server's answer on, the dummy key is 256-bit, like on the client.
+        server.handler.switchKeys({ keys: new FixedPacketKeys(DUMMY_PACKET_KEY_256) });
+        const signed = options.forgeProof ? Buffer.from("not the proof") : alphaProofData(serverX25519.publicKey, ALPHA_TIME);
+        send(
+          buildCommand("initivxalpha", [
+            ["l", LICENSE.toString("base64")],
+            ["beta", betaAlpha.toString("base64")],
+            ["omega", serverIdentity.publicKeyBase64],
+            ["ot", 1],
+            ["tvd", ""],
+            ["time", ALPHA_TIME.toString()],
+            ["epsilon", serverX25519.publicKey.toString("base64")],
+            ["proof", edSign(null, signed, serverProofKey.privateKey).toString("base64")],
+          ]),
+        );
+        return;
+      }
       const proof = serverIdentity.sign(options.forgeProof ? Buffer.from("not the license") : LICENSE);
       send(
         buildCommand("initivexpand2", [
@@ -124,6 +154,15 @@ export function createLoopbackServer(channel: DatagramChannel, options: Loopback
     const ivStruct = deriveIvStruct(alpha!, beta, legacySharedSecret(ek, serverEd25519.privateKey));
     server.ivStruct = ivStruct;
     server.handler.switchKeys({ keys: new LegacyPacketKeys(ivStruct), fakeMac: legacyFakeMac(ivStruct) });
+  };
+
+  const onClientivxAlpha = (row: CommandRow) => {
+    const clientEps = Buffer.from(row.epsilon, "base64");
+    const key = importTsPublicKey(clientOmega);
+    if (!key || !verifyTsSignature(key, alphaProofData(clientEps, ALPHA_TIME), Buffer.from(row.proof, "base64"))) return server.handler.close();
+    const { sharedIv, fakeMac } = alphaSecrets(x25519SharedSecret(serverX25519.privateKey, clientEps), alpha!, betaAlpha);
+    server.ivStruct = sharedIv;
+    server.handler.switchKeys({ keys: new AlphaPacketKeys(sharedIv), fakeMac });
   };
 
   const onClientInit = (row: CommandRow) => {
@@ -161,6 +200,7 @@ export function createLoopbackServer(channel: DatagramChannel, options: Loopback
     const command = parseCommand(text);
     const row = command.rows[0];
     if (command.name === "clientek") return onClientEk(row);
+    if (command.name === "clientivxalpha") return onClientivxAlpha(row);
     if (command.name === "clientinit") return onClientInit(row);
     server.received.push(text);
     for (const reply of options.answer?.(command, text) ?? []) send(reply);
@@ -182,7 +222,7 @@ export function createLoopbackServer(channel: DatagramChannel, options: Loopback
       },
       { ...options.transport, role: "server" },
     ),
-    deriveServerKey: () => serverEd25519.publicKey,
+    deriveServerKey: () => (options.alpha ? serverProofPublic : serverEd25519.publicKey),
     received: [],
     voice: [],
     ivStruct: undefined,

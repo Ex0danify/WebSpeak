@@ -72,4 +72,10 @@ describe("clientinitiv", () => {
     expect(command.name).toBe("clientinitiv");
     expect(command.rows[0]).toEqual({ alpha: Buffer.alloc(10, 7).toString("base64"), omega: identity.publicKeyBase64, ot: "1", ip: "" });
   });
+
+  it("adds a=1 before ip to ask for the alpha handshake", () => {
+    const text = buildClientInitIv(Buffer.alloc(10, 7), identity, true);
+    expect(keys(text)).toEqual(["alpha", "omega", "ot", "a", "ip"]);
+    expect(parseCommand(text).rows[0].a).toBe("1");
+  });
 });

@@ -18,11 +18,13 @@ export function hashPassword(password: string): string {
   return password === "" ? "" : createHash("sha1").update(password).digest("base64");
 }
 
-export function buildClientInitIv(alpha: Uint8Array, identity: Identity): string {
+/** `withAlpha` adds `a=1`, which asks a TS6 server for the alpha handshake. A TS3 server ignores it. */
+export function buildClientInitIv(alpha: Uint8Array, identity: Identity, withAlpha = false): string {
   return buildCommand("clientinitiv", [
     ["alpha", Buffer.from(alpha).toString("base64")],
     ["omega", identity.publicKeyBase64],
     ["ot", 1],
+    ...(withAlpha ? ([["a", 1]] as [string, CommandValue][]) : []),
     ["ip", ""],
   ]);
 }
