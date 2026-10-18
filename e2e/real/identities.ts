@@ -1,8 +1,7 @@
-import { createHash } from "node:crypto";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import type { BrowserContextOptions } from "@playwright/test";
-import { generateIdentity, identityFromString } from "@echosixhiya/teamspeak-client";
+import { generateIdentity, identityFromString, ts6Uid } from "../../src/lib/teamspeak/index.js";
 
 /**
  * Seeded, not persisted by a browser profile, because the client only restores an identity when `webspeak:remember-identity` is
@@ -16,12 +15,9 @@ export interface SeededIdentity {
   uid: string;
 }
 
-/**
- * TeamSpeak 6 identifies a client by the SHA-256 of its base64 public key. The SDK's `getUidFromPublicKey` still returns
- * the TeamSpeak 3 SHA-1 form, so it isn't used. Global setup checks this value against the server.
- */
+/** TeamSpeak 6 identifies a client by the SHA-256 of its base64 public key. Global setup checks this value against the server. */
 export function serverUidOf(publicKeyBase64: string): string {
-  return createHash("sha256").update(publicKeyBase64).digest("base64");
+  return ts6Uid(publicKeyBase64);
 }
 
 const defaultFile = fileURLToPath(new URL("./.identities.json", import.meta.url));
@@ -53,7 +49,7 @@ export class IdentityStore {
     }
     if (changed) writeFileSync(this.file, JSON.stringify(stored, null, 2) + "\n", { mode: 0o600 });
     const privateMaterial = stored[index];
-    return { index, privateMaterial, uid: serverUidOf(identityFromString(privateMaterial).publicKeyBase64()) };
+    return { index, privateMaterial, uid: serverUidOf(identityFromString(privateMaterial).publicKeyBase64) };
   }
 }
 
