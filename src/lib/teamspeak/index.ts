@@ -2,11 +2,13 @@
 export { TeamSpeakErrorId, teamSpeakErrorIdName, type TeamSpeakErrorIdName } from "./errors/errorIds.js";
 export {
   CommandTimeoutError,
+  FileTransferError,
   HandshakeError,
   InvalidIdentityError,
   TeamSpeakError,
   TeamSpeakServerError,
   TeamSpeakTransportError,
+  type FileTransferErrorCode,
   type TeamSpeakServerErrorFields,
   type TeamSpeakTransportErrorCode,
 } from "./errors/teamSpeakErrors.js";
@@ -80,5 +82,22 @@ export {
   type VoiceEvent,
   type WhisperTargets,
 } from "./client/clientVoice.js";
-export { type ConnectionState, TeamSpeakConnection, type TeamSpeakConnectionOptions } from "./client/teamSpeakConnection.js";
+export {
+  type ConnectionState,
+  type DownloadFileOptions,
+  TeamSpeakConnection,
+  type TeamSpeakConnectionOptions,
+} from "./client/teamSpeakConnection.js";
+export { type TcpConnect } from "./fileTransfer/fileDownload.js";
+export { type DownloadRequest } from "./fileTransfer/fileTransferTickets.js";
+export {
+  type AddressSource,
+  DEFAULT_SERVER_PORT,
+  resolveAddress,
+  type ResolveAddressOptions,
+  type ResolvedAddress,
+  type SrvLookup,
+  type SrvRecord,
+} from "./discovery/addressResolver.js";
+export { type TsdnsQuery } from "./discovery/tsdns.js";
 export { type DatagramChannel, type DatagramChannelFactory, type UdpAddress } from "./transport/udpChannel.js";

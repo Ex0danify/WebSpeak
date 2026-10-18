@@ -3,6 +3,8 @@ import { clientDisconnect } from "../command/clientCommands.js";
 import { CommandScheduler, type CommandSchedulerOptions, type ScheduledCommandOptions } from "../command/commandScheduler.js";
 import { type CommandInput, CommandTracker, type CommandTrackerOptions, type ServerCommand } from "../command/commandTracker.js";
 import { TeamSpeakError, TeamSpeakTransportError } from "../errors/teamSpeakErrors.js";
+import { readDownload, type TcpConnect } from "../fileTransfer/fileDownload.js";
+import { type DownloadRequest, FileTransferTickets, ftInitDownload } from "../fileTransfer/fileTransferTickets.js";
 import { connectLegacy, type LegacyConnection, type LegacyHandshakeOptions } from "../handshake/legacyHandshake.js";
 import { type SessionView, SessionState } from "../session/sessionState.js";
 import { type PacketHandler, systemClock, type VoicePacket, type VoiceType } from "../transport/packetHandler.js";
@@ -32,6 +34,17 @@ export interface TeamSpeakConnectionOptions extends Omit<LegacyHandshakeOptions,
   scheduler?: Omit<CommandSchedulerOptions, "clock">;
   /** Default `auto`, see VoiceEncryption. */
   voiceEncryption?: VoiceEncryption;
+  /** Opens the TCP connection to the file transfer port. */
+  fileTransferConnect?: TcpConnect;
+}
+
+export interface DownloadFileOptions extends Pick<ScheduledCommandOptions, "priority" | "signal"> {
+  /** Larger files are refused before the transfer starts. */
+  maxBytes: number;
+  /** Of the file server, default the connection's host. Behind a relay, pass the server's real host. */
+  host?: string;
+  /** For each step: the command, the ticket, the transfer. Default 10 s. */
+  timeoutMs?: number;
 }
 
 export type ConnectionState = "idle" | "connecting" | "connected" | "closed";
@@ -50,6 +63,7 @@ export class TeamSpeakConnection extends EventEmitter<ConnectionEventMap> {
   readonly #session = new SessionState();
   readonly #tracker: CommandTracker;
   readonly #scheduler: CommandScheduler;
+  readonly #transfers: FileTransferTickets;
   #state: ConnectionState = "idle";
   #handler: PacketHandler | undefined;
   #connecting: Promise<void> | undefined;
@@ -70,6 +84,7 @@ export class TeamSpeakConnection extends EventEmitter<ConnectionEventMap> {
       { clock: this.#clock, logger: this.#logger, ...options.tracker },
     );
     this.#scheduler = new CommandScheduler(this.#tracker, { ...options.scheduler, clock: this.#clock });
+    this.#transfers = new FileTransferTickets(this.#clock);
   }
 
   get state(): ConnectionState {
@@ -102,6 +117,22 @@ export class TeamSpeakConnection extends EventEmitter<ConnectionEventMap> {
   send(input: CommandInput, options?: Pick<ScheduledCommandOptions, "priority" | "signal">): void {
     if (this.#state === "idle" || this.#state === "connecting") throw this.#notConnected();
     this.#scheduler.send(input, options);
+  }
+
+  /** A whole file from the server's file transfer port, such as an avatar. */
+  async downloadFile(request: DownloadRequest, options: DownloadFileOptions): Promise<Buffer> {
+    if (this.#state !== "connected") throw this.#notConnected();
+    const { maxBytes, signal, priority } = options;
+    const timeoutMs = options.timeoutMs ?? 10_000;
+    const transfer = this.#transfers.open();
+    try {
+      await this.command(ftInitDownload(transfer.clientTransferId, request), { signal, priority, timeoutMs });
+      const ticket = await transfer.ticket(timeoutMs, signal);
+      const host = options.host ?? this.#options.address.host;
+      return await readDownload({ host, ticket, maxBytes, timeoutMs, signal, connect: this.#options.fileTransferConnect });
+    } finally {
+      transfer.release();
+    }
   }
 
   /** Opus frame to our channel. Dropped while not connected, like any lost voice packet. */
@@ -214,6 +245,7 @@ export class TeamSpeakConnection extends EventEmitter<ConnectionEventMap> {
   }
 
   #onNotification(command: ServerCommand): void {
+    if (this.#transfers.receive(command.name, command.rows[0])) return;
     let selfLeft = false;
     for (const event of this.#session.apply(command)) {
       this.#emit(event);
@@ -235,6 +267,7 @@ export class TeamSpeakConnection extends EventEmitter<ConnectionEventMap> {
     const wasConnected = this.#state === "connected";
     this.#state = "closed";
     this.#scheduler.close(error);
+    this.#transfers.close(error ?? new TeamSpeakTransportError("closed", "TeamSpeak connection closed"));
     if (!this.#session.welcomeComplete) {
       this.#welcomeFailure = error ?? new TeamSpeakTransportError("closedByServer", "TeamSpeak closed the connection during the welcome");
       this.#welcomeDone?.(this.#welcomeFailure);

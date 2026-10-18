@@ -69,6 +69,22 @@ export class CommandTimeoutError extends TeamSpeakError {
   }
 }
 
+/**
+ * A download that failed outside the command channel. A refusal by the server comes as a
+ * TeamSpeakServerError with the transfer status as id instead.
+ */
+export type FileTransferErrorCode = "tooLarge" | "sizeMismatch" | "malformedTicket" | "socketError" | "timeout";
+
+export class FileTransferError extends TeamSpeakError {
+  readonly code: FileTransferErrorCode;
+
+  constructor(code: FileTransferErrorCode, message: string, options?: ErrorOptions) {
+    super(message, options);
+    this.name = "FileTransferError";
+    this.code = code;
+  }
+}
+
 /** An identity string that does not hold a usable P-256 key and offset. */
 export class InvalidIdentityError extends TeamSpeakError {
   constructor(reason: string, options?: ErrorOptions) {
