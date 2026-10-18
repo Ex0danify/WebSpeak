@@ -44,8 +44,8 @@ export interface LegacyHandshakeOptions extends ClientInitOptions {
 }
 
 function resolveHandshake(options: LegacyHandshakeOptions): "legacy" | "alpha" {
-  if (options.handshake === "alpha" || options.handshake === "legacy") return options.handshake;
-  return options.versionProfile === "ts6" ? "alpha" : "legacy";
+  if (options.handshake === "auto") return options.versionProfile === "ts6" ? "alpha" : "legacy";
+  return options.handshake ?? "legacy";
 }
 
 /** Where the connection's traffic goes once the handshake is through. */
