@@ -32,6 +32,8 @@ export interface LoopbackServerOptions {
   restartOnce?: boolean;
   /** Bytes of filler in a channel description, to make the welcome span several packets. */
   welcomePadding?: number;
+  /** Sent after initserver instead of the default welcome. */
+  welcome?: (clientId: number, nickname: string) => string[];
   /** Replies to a command after the handshake, sent in order. */
   answer?: (command: ParsedCommand, text: string) => string[];
 }
@@ -137,6 +139,10 @@ export function createLoopbackServer(channel: DatagramChannel, options: Loopback
         ...options.initServerFields,
       }),
     );
+    if (options.welcome) {
+      for (const text of options.welcome(clientId, nickname)) send(text);
+      return;
+    }
     const padding = "x".repeat(options.welcomePadding ?? 0);
     send(
       buildCommand(

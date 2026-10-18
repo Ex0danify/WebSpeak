@@ -72,3 +72,16 @@ export function serverCommandParts(packets: CapturedPacket[]): Map<number, Captu
     if (packet.direction === "s2c" && packet.type === 2 && packet.plain && !parts.has(packet.packetId)) parts.set(packet.packetId, packet);
   return parts;
 }
+
+export const SESSION_FILES = ["ts3ServerSession.json", "ts6ServerSession.json"] as const;
+export type SessionFile = (typeof SESSION_FILES)[number];
+
+export const hasSessions = SESSION_FILES.every((file) => existsSync(`${fixtureDir}${file}`));
+
+/** Decrypted command texts of a native client session, server side only, in arrival order. */
+export function loadServerCommands(file: SessionFile): string[] {
+  const session = JSON.parse(readFileSync(`${fixtureDir}${file}`, "utf8")) as {
+    commands: { direction: "c2s" | "s2c"; text: string }[];
+  };
+  return session.commands.filter((command) => command.direction === "s2c").map((command) => command.text);
+}

@@ -37,6 +37,8 @@ export interface LegacyHandshakeOptions extends ClientInitOptions {
 
 /** Where the connection's traffic goes once the handshake is through. */
 export interface ConnectionEvents {
+  /** Right on `initserver`, before any command that follows it. */
+  established?(connection: LegacyConnection): void;
   command(message: CommandMessage): void;
   voice?(packet: VoicePacket): void;
   closed(error: TeamSpeakTransportError | undefined): void;
@@ -133,7 +135,9 @@ export function connectLegacy(
       state = "connected";
       cleanup();
       logger?.debug({ step: "initserver", clientId }, "TeamSpeak handshake done");
-      resolve({ handler, clientId, initServer: row });
+      const connection = { handler, clientId, initServer: row };
+      events.established?.(connection);
+      resolve(connection);
     };
 
     const onHandshakeCommand = (message: CommandMessage) => {

@@ -1,6 +1,6 @@
 /**
- * Dev check for the own TeamSpeak client: connects with the legacy handshake, prints the welcome,
- * runs a few commands through the scheduler, stays for a while and leaves with reason "leaving".
+ * Dev check for the own TeamSpeak client: connects, prints the session after the welcome, runs a
+ * few commands through the scheduler, stays for a while and leaves with reason "leaving".
  * Not shipped, not part of CI.
  *
  *   npx tsx scripts/ts-lib-connect.ts <host> [port] [--nickname n] [--stay seconds] [--profile ts3|ts6]
@@ -10,19 +10,16 @@
  */
 import {
   channelList,
-  clientDisconnect,
+  channelSubscribeAll,
   clientInfo,
   clientList,
-  CommandScheduler,
-  CommandTracker,
-  connectLegacy,
   generateIdentity,
   identityFromString,
+  type SessionView,
+  TeamSpeakConnection,
   version,
   type VersionProfileName,
 } from "../src/lib/teamspeak/index.js";
-import type { PacketHandler } from "../src/lib/teamspeak/transport/packetHandler.js";
-import { openUdpChannel } from "../src/lib/teamspeak/transport/udpChannel.js";
 
 function option(name: string): string | undefined {
   const index = process.argv.indexOf(`--${name}`);
@@ -41,67 +38,67 @@ const identity = identityText ? identityFromString(identityText) : generateIdent
 const started = performance.now();
 const elapsed = () => `${((performance.now() - started) / 1000).toFixed(1)}s`;
 const log = (message: string) => console.log(`[${elapsed()}] ${message}`);
-
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
-let clientId = 0;
+
+// Ids and counts only, the remote server has real people on it.
+function printSession(session: SessionView) {
+  const { self, server } = session;
+  log(`server "${server.name}" ${server.version}, codec encryption mode ${server.codecEncryptionMode}`);
+  log(`self clid=${self.clientId} in cid=${self.channelId}`);
+  const tree = (parentId: bigint): string =>
+    session
+      .children(parentId)
+      .map((channel) => {
+        const below = tree(channel.id);
+        return below ? `${channel.id}(${below})` : String(channel.id);
+      })
+      .join(" ");
+  log(`channels (${session.channels().length}, display order): ${tree(0n)}`);
+  const clients = session.clients().map((client) => `${client.id}@${client.channelId}`);
+  log(`clients (${clients.length}): ${clients.join(" ")}`);
+  log(`groups: ${session.serverGroups.size} server, ${session.channelGroups.size} channel`);
+}
+
+const connection = new TeamSpeakConnection({
+  address: { host, port },
+  identity,
+  nickname: option("nickname") ?? "WebSpeak lib check",
+  serverPassword: option("password"),
+  versionProfile: profile,
+  transport: { logger: { debug: (fields, message) => verbose && console.error(`  debug ${message}`, fields) } },
+});
 let leftCleanly = false;
-let closedError: unknown;
+connection.on("selfLeft", (event) => {
+  leftCleanly = event.reasonId === 8;
+  log(`<- own leave reasonid=${event.reasonId} reasonmsg=${event.reasonMessage}`);
+});
+connection.on("closed", (event) => log(`connection closed${event.error ? `: ${event.error.code} ${event.error.message}` : ""}`));
+for (const type of ["clientEnter", "clientLeave", "clientMoved", "clientUpdated", "channelsSubscribed", "channelsUnsubscribed"] as const)
+  connection.on(type, () => verbose && log(`<- ${type}`));
+connection.on("notification", (event) => log(`<- ${event.command.name} rows=${event.command.rows.length} (not applied)`));
 
-const transport: { handler?: PacketHandler } = {};
-const tracker = new CommandTracker(
-  { sendCommand: (payload) => transport.handler!.sendCommand(payload) },
-  {
-    notification: (command) => {
-      const self = command.rows.find((row) => row.clid === String(clientId));
-      if (command.name === "notifyclientleftview" && self) leftCleanly = self.reasonid === "8";
-      const selfNote = self ? ` (self: ${["ctid", "reasonid", "reasonmsg"].map((key) => `${key}=${self[key] ?? ""}`).join(" ")})` : "";
-      log(`<- ${command.name}${command.low ? " (low)" : ""} rows=${command.rows.length}${selfNote}`);
-    },
-  },
-);
-const channel = await openUdpChannel({ host, port });
-const connection = await connectLegacy(
-  channel,
-  {
-    identity,
-    nickname: option("nickname") ?? "WebSpeak lib check",
-    serverPassword: option("password"),
-    versionProfile: profile,
-    transport: { logger: { debug: (fields, message) => verbose && console.error(`  debug ${message}`, fields) } },
-  },
-  {
-    command: (message) => tracker.receive(message),
-    closed: (error) => {
-      tracker.close(error);
-      closedError = error ?? "closed";
-      log(`connection closed${error ? `: ${error.code} ${error.message}` : ""}`);
-    },
-  },
-);
-transport.handler = connection.handler;
-clientId = connection.clientId;
-const server = connection.initServer;
-log(`connected as clid=${clientId} to "${server.virtualserver_name}" pv=${server.pv} profile=${profile} uid-offset=${identity.offset}`);
+await connection.connect();
+log(`connected and welcome complete, uid-offset=${identity.offset} profile=${profile} pv=${connection.session.server.properties.pv}`);
+printSession(connection.session);
 
-const scheduler = new CommandScheduler(tracker);
-const requests = { version: version(), clientinfo: clientInfo(clientId), clientlist: clientList(), channellist: channelList() };
-const answers = await Promise.allSettled(Object.values(requests).map((request) => scheduler.command(request, { timeoutMs: 5_000 })));
+await connection.command(channelSubscribeAll()).catch((error: Error) => log(`channelsubscribeall refused: ${error.message}`));
+const requests = { version: version(), clientinfo: clientInfo(connection.clientId), clientlist: clientList(), channellist: channelList() };
+const answers = await Promise.allSettled(Object.values(requests).map((request) => connection.command(request, { timeoutMs: 5_000 })));
 Object.keys(requests).forEach((name, i) => {
   const answer = answers[i];
   log(`-> ${name}: ${answer.status === "fulfilled" ? `${answer.value.length} row(s)` : `refused, ${(answer.reason as Error).message}`}`);
 });
+const listed = answers[3].status === "fulfilled" ? answers[3].value.length : undefined;
+if (listed !== undefined)
+  log(`channellist answer ${listed === connection.session.channels().length ? "matches" : "differs from"} the session`);
 
-for (let left = staySeconds; left > 0 && !closedError; left -= 60) {
+for (let left = staySeconds; left > 0 && connection.state === "connected"; left -= 60) {
   await sleep(Math.min(left, 60) * 1000);
-  const rtt = connection.handler.smoothedRttMs?.toFixed(1) ?? "?";
-  log(`still connected: srtt=${rtt} ms pending=${connection.handler.pendingCommands}`);
+  if (connection.state === "connected") log("still connected");
 }
-
-if (!closedError) {
-  scheduler.send(clientDisconnect());
-  for (let waited = 0; waited < 3_000 && (connection.handler.pendingCommands > 0 || !leftCleanly) && !closedError; waited += 50)
-    await sleep(50);
-  log(`disconnect ${connection.handler.pendingCommands === 0 ? "acknowledged" : "not acknowledged"}, left view: ${leftCleanly}`);
-  connection.handler.close();
+if (connection.state === "connected") {
+  printSession(connection.session);
+  await connection.disconnect();
 }
-process.exitCode = closedError && !leftCleanly ? 1 : 0;
+log(`left view cleanly: ${leftCleanly}`);
+process.exitCode = leftCleanly ? 0 : 1;

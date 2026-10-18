@@ -62,3 +62,13 @@ export {
   type ClientUpdateProperties,
   type TextMessageTargetMode,
 } from "./command/clientCommands.js";
+export { type ChannelFields, type SessionChannel } from "./session/channelTree.js";
+export { type ClientFields, type SessionClient } from "./session/clientRegistry.js";
+export { type DirectoryChannel, type DirectoryClient, type DirectorySnapshot } from "./session/directorySnapshot.js";
+export { type Invoker } from "./session/propertyFields.js";
+export { type ServerFields, type SessionGroup, type SessionServer } from "./session/serverInfo.js";
+export { ReasonId, type SessionEvent, type SessionEventType } from "./session/sessionEvents.js";
+export { type SessionSelf, type SessionView } from "./session/sessionState.js";
+export { type ClosedEvent, type ConnectionEvent, type ConnectionEventMap } from "./client/clientEvents.js";
+export { type ConnectionState, TeamSpeakConnection, type TeamSpeakConnectionOptions } from "./client/teamSpeakConnection.js";
+export { type DatagramChannel, type DatagramChannelFactory, type UdpAddress } from "./transport/udpChannel.js";
