@@ -1,8 +1,8 @@
 import { WebSocket } from "ws";
 import type { IncomingMessage } from "node:http";
-import { identityFromString } from "@echosixhiya/teamspeak-client";
 import {
   DirectorySynchronizer,
+  identityFromString,
   TSClient,
   type IdentityLeaseStore,
   type TSClientOptions,

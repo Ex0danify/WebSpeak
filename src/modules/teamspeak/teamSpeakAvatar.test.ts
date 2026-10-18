@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import type { Writable } from "node:stream";
-import { MAX_CLIENT_AVATAR_BYTES, loadClientAvatar, type TeamSpeakAvatarClient } from "./teamSpeakAvatar.js";
+import { loadClientAvatar, type TeamSpeakAvatarClient } from "./teamSpeakAvatar.js";
+import { MAX_CLIENT_AVATAR_BYTES } from "./teamSpeakBackend.js";
 
 const FILE_KEY = "abcdEFGH12345678";
 

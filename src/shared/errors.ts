@@ -311,14 +311,14 @@ export function clientConnectionFailureCode(error: WebSpeakError, serverPassword
 }
 
 /**
- * A kick or ban arrives as clientleftview with reason id 4 or 5 plus the admin's message.
- * The server text decides kick vs ban, reason id 5 is the fallback.
+ * A kick or ban arrives as clientleftview with reason id 4, 5 or 6 plus the admin's message.
+ * The server text decides kick vs ban, reason ids 5 and 6 are the fallback.
  */
 export function normalizeTeamSpeakKickedReason(reasonMsg: unknown, reasonId?: unknown): WebSpeakError {
   const text = typeof reasonMsg === "string" ? reasonMsg.trim() : "";
   const hasReasonId = reasonId !== null && reasonId !== undefined && reasonId !== "";
   const numericReasonId = !hasReasonId ? Number.NaN : typeof reasonId === "number" ? reasonId : Number(reasonId);
-  const isBan = /\bban(ned)?\b|blacklist|you may retry in/i.test(text) || numericReasonId === 5;
+  const isBan = /\bban(ned)?\b|blacklist|you may retry in/i.test(text) || numericReasonId === 5 || numericReasonId === 6;
   const diagnostics: TeamSpeakErrorDiagnostics = { name: isBan ? "TeamSpeakBan" : "TeamSpeakKick" };
   if (text) diagnostics.serverMessage = text;
   if (Number.isFinite(numericReasonId)) diagnostics.id = String(numericReasonId);

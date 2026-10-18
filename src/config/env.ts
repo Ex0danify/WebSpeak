@@ -82,6 +82,7 @@ export interface GatewayEnv {
   /** The raw bootstrap credentials, checked where the account is created. Only used on a fresh database. */
   adminUsername: string;
   adminPassword: string | undefined;
+  teamSpeakClient: TeamSpeakClientKind;
 }
 
 export function readGatewayEnv(env: NodeJS.ProcessEnv = process.env): GatewayEnv {
@@ -102,7 +103,17 @@ export function readGatewayEnv(env: NodeJS.ProcessEnv = process.env): GatewayEnv
     screenShareIceServers: text(env, "WEBSPEAK_SCREEN_SHARE_ICE_SERVERS") || undefined,
     adminUsername: text(env, "WEBSPEAK_ADMIN_USERNAME"),
     adminPassword: env.WEBSPEAK_ADMIN_PASSWORD || undefined,
+    teamSpeakClient: readTeamSpeakClientKind(env),
   };
+}
+
+export type TeamSpeakClientKind = "sdk" | "native";
+
+/** Which TeamSpeak client runs under TSClient. Temporary, it goes away together with the old SDK, so it may stay unset. */
+export function readTeamSpeakClientKind(env: NodeJS.ProcessEnv = process.env): TeamSpeakClientKind {
+  const kind = text(env, "WEBSPEAK_TS_CLIENT").toLowerCase() || "sdk";
+  if (kind !== "sdk" && kind !== "native") throw new EnvError("WEBSPEAK_TS_CLIENT must be sdk or native");
+  return kind;
 }
 
 export interface RelayEnv {

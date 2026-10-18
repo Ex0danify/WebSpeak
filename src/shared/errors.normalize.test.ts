@@ -194,13 +194,14 @@ describe("normalizeTeamSpeakError: odd inputs and diagnostics", () => {
 });
 
 describe("normalizeTeamSpeakKickedReason", () => {
-  it("treats reason id 4 as a kick and 5 as a ban", () => {
+  it("treats reason id 4 as a kick and 5 and 6 as a ban", () => {
     const kick = normalizeTeamSpeakKickedReason("Slow down!", 4);
     expect(kick).toMatchObject({ code: "kicked", retryable: false, message: WEBSPEAK_ERROR_MESSAGES.kicked });
     expect(kick.diagnostics).toEqual({ name: "TeamSpeakKick", serverMessage: "Slow down!", id: "4" });
     const ban = normalizeTeamSpeakKickedReason("bye", 5);
     expect(ban).toMatchObject({ code: "banned", retryable: false });
     expect(ban.diagnostics.name).toBe("TeamSpeakBan");
+    expect(normalizeTeamSpeakKickedReason("bye", 6).code).toBe("banned");
   });
 
   it("lets the server text decide a ban even when the reason id says kick", () => {

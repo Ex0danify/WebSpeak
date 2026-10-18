@@ -1,17 +1,8 @@
 import { Writable } from "node:stream";
 import type { Client as TS3FullClient } from "@echosixhiya/teamspeak-client";
-
-export interface TSClientAvatar {
-  /** TeamSpeak's avatar content marker, used to invalidate a cached avatar. */
-  cacheKey: string;
-  data: Buffer;
-}
+import { MAX_CLIENT_AVATAR_BYTES, type TSClientAvatar } from "./teamSpeakBackend.js";
 
 export type TeamSpeakAvatarClient = Pick<TS3FullClient, "execCommandWithResponse" | "fileTransferInitDownload" | "downloadFileData">;
-
-// Room for avatars from the native client. The old 120 KiB limit rejected a 134 KiB PNG,
-// so every avatar silently fell back to its initial letter.
-export const MAX_CLIENT_AVATAR_BYTES = 256 * 1024;
 
 /**
  * Avatars are not in directory notifications. clientinfo gives the marker and filename, the file comes over

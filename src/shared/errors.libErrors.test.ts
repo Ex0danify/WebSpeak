@@ -69,4 +69,14 @@ describe("normalizeTeamSpeakError with the lib error classes", () => {
     expect(normalizeTeamSpeakError(refused).code).toBe("server_full");
     expect(normalizeTeamSpeakError(new HandshakeError("initivexpand2", "server proof invalid")).code).toBe("protocol_negotiation_failed");
   });
+
+  it.each<[number, string, WebSpeakErrorCode]>([
+    [1028, "invalid server password", "authentication_failed"],
+    [3329, "connection failed, you are banned", "banned"],
+    [513, "nickname is already in use", "nickname_in_use"],
+    [781, "invalid channel password", "channel_password_required"],
+  ])("tells a refused clientinit with id %i apart from a protocol failure", (id, serverMessage, code) => {
+    const refused = new HandshakeError("clientinit", "server refused", { cause: new TeamSpeakServerError({ id, serverMessage }) });
+    expect(normalizeTeamSpeakError(refused).code).toBe(code);
+  });
 });

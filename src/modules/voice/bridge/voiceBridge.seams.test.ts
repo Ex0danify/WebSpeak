@@ -1,4 +1,4 @@
-import { generateIdentity } from "@echosixhiya/teamspeak-client";
+import { generateIdentity } from "../../../lib/teamspeak/index.js";
 import { createServer } from "node:http";
 import type { AddressInfo } from "node:net";
 import { afterEach, describe, expect, it, vi } from "vitest";

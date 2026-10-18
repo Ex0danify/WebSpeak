@@ -1,6 +1,6 @@
 {
   "limit": 400,
   "files": {
-    "test/support/fakeTsClient.ts": 406
+    "test/support/fakeTsClient.ts": 404
   }
 }

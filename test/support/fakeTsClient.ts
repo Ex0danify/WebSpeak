@@ -1,16 +1,18 @@
 import { EventEmitter } from "node:events";
 import { createHash } from "node:crypto";
-import {
-  generateIdentity,
-  ServerError,
-  type ChannelInfo,
-  type ClientInfo,
-  type DirectoryClientInfo,
-  type Identity,
-} from "@echosixhiya/teamspeak-client";
+import { generateIdentity, TeamSpeakServerError, type Identity } from "../../src/lib/teamspeak/index.js";
 import { normalizeTeamSpeakKickedReason } from "../../src/shared/errors.js";
 import type { TeamSpeakProtocol } from "../../src/shared/teamSpeakProtocol.js";
-import type { TSChatScope, TSClient, TSClientAvatar, TSClientOptions, TSVoiceData } from "../../src/modules/teamspeak/teamSpeakClient.js";
+import type {
+  TSChatScope,
+  TSClient,
+  TSClientAvatar,
+  TSClientInfo as ClientInfo,
+  TSClientOptions,
+  TSDirectoryChannel as ChannelInfo,
+  TSDirectoryClient as DirectoryClientInfo,
+  TSVoiceData,
+} from "../../src/modules/teamspeak/teamSpeakClient.js";
 import type { VoiceBridgeOptions } from "../../src/modules/voice/voiceBridge.js";
 import {
   DEFAULT_FAKE_CHANNELS,
@@ -21,10 +23,12 @@ import {
 } from "./fakeTsClientScript.js";
 import { deliverChat } from "./fakeTsChat.js";
 
+const refused = (id: number, serverMessage: string) => new TeamSpeakServerError({ id, serverMessage });
+
 export { DEFAULT_FAKE_CHANNELS, FakeRemoteMember, type FakeChannel, type FakeOperation, type FakeServerOptions };
 
 /**
- * In-memory TS server and clients for voice bridge tests, with the real event order and the SDK's ServerError.
+ * In-memory TS server and clients for voice bridge tests, with the real event order and the server's errors.
  * Models passwords, bans, kicks and guest permissions. Unchecked against a real server (layer 5): senders get no copy of their own text.
  */
 
@@ -121,7 +125,7 @@ export class FakeTeamSpeakServer {
 
   moveMember(id: number, channelId: bigint, invoker?: DirectoryClientInfo): void {
     const member = this.members.get(id);
-    if (!member) throw new ServerError("512", "invalid clientID");
+    if (!member) throw refused(512, "invalid clientID");
     member.channelID = channelId;
     this.broadcast("clientMoved", {
       id,
@@ -220,14 +224,14 @@ export class FakeTSClient extends EventEmitter {
   ) {
     super();
     this.identity = options.identity ?? generateIdentity(8);
-    this.uid = createHash("sha1").update(this.identity.publicKeyBase64()).digest("base64");
+    this.uid = createHash("sha1").update(this.identity.publicKeyBase64).digest("base64");
   }
 
   async connect(): Promise<void> {
     const { server, options } = this;
     await server.step("connect");
-    if (server.bannedUids.has(this.uid)) throw new ServerError("3329", "you are banned");
-    if (server.serverPassword && options.serverPassword !== server.serverPassword) throw new ServerError("520", "invalid password");
+    if (server.bannedUids.has(this.uid)) throw refused(3329, "you are banned");
+    if (server.serverPassword && options.serverPassword !== server.serverPassword) throw refused(520, "invalid password");
     const channel = this.joinChannel();
     this.clientId = server.allocateClientId();
     const member = server.register({
@@ -255,7 +259,7 @@ export class FakeTSClient extends EventEmitter {
     if (remembered && !remembered.password) return remembered;
     const wanted = [...server.channels.values()].find((channel) => channel.name === options.defaultChannel);
     const channel = wanted ?? server.channels.get(server.defaultChannelId)!;
-    if (channel.password && channel.password !== options.channelPassword) throw new ServerError("781", "invalid password for channel");
+    if (channel.password && channel.password !== options.channelPassword) throw refused(781, "invalid password for channel");
     return channel;
   }
 
@@ -283,7 +287,7 @@ export class FakeTSClient extends EventEmitter {
   async poke(clientId: number, message: string): Promise<void> {
     this.ready();
     await this.server.step("poke");
-    if (!this.server.members.has(clientId)) throw new ServerError("512", "invalid clientID");
+    if (!this.server.members.has(clientId)) throw refused(512, "invalid clientID");
     this.pokes.push({ clientId, message });
     const self = this.self();
     this.server.connected.get(clientId)?.emit("poked", { invokerName: self.nickname, invokerUID: self.uid, invokerID: self.id, message });
@@ -311,9 +315,9 @@ export class FakeTSClient extends EventEmitter {
     if (!this.isUp) return;
     await this.server.step("switchChannel");
     const channel = this.server.channels.get(channelId);
-    if (!channel) throw new ServerError("768", "invalid channelID");
-    if (this.self().channelID === channelId) throw new ServerError("770", "already member of channel");
-    if (channel.password && channel.password !== password) throw new ServerError("781", "invalid password for channel");
+    if (!channel) throw refused(768, "invalid channelID");
+    if (this.self().channelID === channelId) throw refused(770, "already member of channel");
+    if (channel.password && channel.password !== password) throw refused(781, "invalid password for channel");
     this.server.moveMember(this.clientId, channelId);
     this.preferredChannelId = channelId;
   }
@@ -323,9 +327,9 @@ export class FakeTSClient extends EventEmitter {
     this.ready();
     if (!Number.isInteger(clientId) || clientId <= 0 || clientId > 65535) throw new Error("Invalid TeamSpeak client id");
     await this.server.step("moveClient");
-    if (!this.server.canMove(this.uid)) throw new ServerError("2568", "insufficient client permissions");
-    if (!this.server.members.has(clientId)) throw new ServerError("512", "invalid clientID");
-    if (!this.server.channels.has(channelId)) throw new ServerError("768", "invalid channelID");
+    if (!this.server.canMove(this.uid)) throw refused(2568, "insufficient client permissions");
+    if (!this.server.members.has(clientId)) throw refused(512, "invalid clientID");
+    if (!this.server.channels.has(channelId)) throw refused(768, "invalid channelID");
     this.server.moveMember(clientId, channelId, this.self());
     const moved = this.server.connected.get(clientId);
     if (moved) moved.preferredChannelId = channelId;

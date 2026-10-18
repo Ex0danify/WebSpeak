@@ -1,5 +1,4 @@
-import type { ClientInfo, DirectoryClientInfo } from "@echosixhiya/teamspeak-client";
-import type { TSDirectorySnapshot } from "./teamSpeakClient.js";
+import type { TSClientInfo as ClientInfo, TSDirectoryClient as DirectoryClientInfo, TSDirectorySnapshot } from "./teamSpeakMessages.js";
 
 type DirectoryDelta =
   | { type: "clientEnter"; info: ClientInfo }

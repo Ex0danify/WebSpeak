@@ -1,28 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { Logger } from "../../shared/logger.js";
+import { fakeBackends, silentLogger, type FakeBackend } from "../../../test/support/fakeTsBackend.js";
 
-type Listener = (...args: unknown[]) => void;
-const adapters: FakeAdapter[] = [];
 const tunnels: FakeTunnel[] = [];
-
-class FakeAdapter {
-  readonly listeners = new Map<string, Listener>();
-  readonly client = Object.assign(new (class {})(), {
-    on: (event: string, listener: Listener) => {
-      this.listeners.set(event, listener);
-    },
-    clientID: () => 56,
-    channelID: () => 1n,
-    execCommand: async () => undefined,
-    execCommandWithResponse: async () => [],
-  });
-  readonly disconnect = vi.fn(async () => undefined);
-  readonly connect = vi.fn(async () => undefined);
-
-  constructor(readonly config: { target: { host: string; port: number } }) {
-    adapters.push(this);
-  }
-}
 
 class FakeTunnel {
   closed = false;
@@ -37,22 +16,11 @@ class FakeTunnel {
   isClosed = () => this.closed;
 }
 
-vi.mock("./teamSpeakAdapter.js", () => ({ TeamSpeakAdapter: FakeAdapter }));
 vi.mock("../relay/index.js", () => ({
   createAccelerationRelayClient: vi.fn(async () => new FakeTunnel(40_000 + tunnels.length)),
 }));
 
 const { TSClient } = await import("./teamSpeakClient.js");
-
-const logger: Logger = {
-  debug() {},
-  info() {},
-  warn() {},
-  error() {},
-  child() {
-    return logger;
-  },
-};
 
 const options = {
   target: { host: "ts.example", port: 9987 },
@@ -61,45 +29,46 @@ const options = {
 };
 
 describe("an accelerated TeamSpeak client reconnecting", () => {
+  let backends: FakeBackend[];
+  let client: InstanceType<typeof TSClient>;
   beforeEach(() => {
-    adapters.length = 0;
     tunnels.length = 0;
+    const fakes = fakeBackends();
+    backends = fakes.backends;
+    client = new TSClient(options, silentLogger, fakes.factory);
   });
 
-  it("keeps the live tunnel and adapter across a reconnect", async () => {
-    const client = new TSClient(options, logger);
+  it("keeps the live tunnel and backend across a reconnect", async () => {
     await client.connect();
     await client.connect();
-    expect(adapters).toHaveLength(1);
+    expect(backends).toHaveLength(1);
     expect(tunnels).toHaveLength(1);
   });
 
   it("rebuilds both when the tunnel closed itself, so the retry does not dial a dead local port", async () => {
-    const client = new TSClient(options, logger);
     await client.connect();
     tunnels[0]!.closed = true;
 
     await client.connect();
 
-    expect(adapters).toHaveLength(2);
+    expect(backends).toHaveLength(2);
     expect(tunnels).toHaveLength(2);
-    expect(adapters[0]!.disconnect).toHaveBeenCalledTimes(1);
-    expect(adapters[1]!.config.target.port).toBe(tunnels[1]!.localPort);
-    expect(adapters[1]!.config.target.port).not.toBe(tunnels[0]!.localPort);
+    expect(backends[0]!.disconnects).toBe(1);
+    expect(backends[1]!.options.transportTarget.port).toBe(tunnels[1]!.localPort);
+    expect(backends[1]!.options.transportTarget.port).not.toBe(tunnels[0]!.localPort);
   });
 
-  it("ignores a late disconnect from the retired client", async () => {
-    const client = new TSClient(options, logger);
+  it("ignores a late disconnect from the retired backend", async () => {
     const disconnected = vi.fn();
     client.on("disconnected", disconnected);
     await client.connect();
     tunnels[0]!.closed = true;
     await client.connect();
 
-    adapters[0]!.listeners.get("disconnected")!(undefined);
+    backends[0]!.emit("disconnected", undefined);
     expect(disconnected).not.toHaveBeenCalled();
 
-    adapters[1]!.listeners.get("disconnected")!(undefined);
+    backends[1]!.emit("disconnected", undefined);
     expect(disconnected).toHaveBeenCalledTimes(1);
   });
 });

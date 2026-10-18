@@ -1,6 +1,6 @@
 import { createServer, type Server } from "node:http";
 import type { AddressInfo } from "node:net";
-import { generateIdentity } from "@echosixhiya/teamspeak-client";
+import { generateIdentity } from "../../../lib/teamspeak/index.js";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { stubLogger } from "../../../../test/support/adminService.js";
 import { FakeTeamSpeakServer } from "../../../../test/support/fakeTsClient.js";
