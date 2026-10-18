@@ -1,17 +1,16 @@
-import { existsSync, readFileSync } from "node:fs";
-import { fileURLToPath } from "node:url";
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
+import { fixtureFile, hasFixture } from "../../../../test/support/tsCaptureFixtures.js";
 import { parseCommand } from "../wire/commandText.js";
 import { importTsPublicKey, verifyTsSignature } from "./identity.js";
 import { ts3Uid, ts6Uid } from "./uid.js";
 
 // Capture fixtures stay local, CI skips these tests.
-const fixtureDir = fileURLToPath(new URL("../../../../teamspeak-client-plan/fixtures/", import.meta.url));
-const hasFixtures = existsSync(`${fixtureDir}ts3LegacyPackets.json`);
+const hasFixtures = hasFixture("ts3LegacyPackets.json");
 
 /** The uncompressed single-packet commands of a capture, as text. */
 function plainCommands(file: string): string[] {
-  const capture = JSON.parse(readFileSync(`${fixtureDir}${file}`, "utf8")) as {
+  const capture = JSON.parse(readFileSync(fixtureFile(file)!, "utf8")) as {
     packets: { type: number; flags: number; plain?: string }[];
   };
   return capture.packets

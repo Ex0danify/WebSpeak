@@ -1,15 +1,14 @@
-import { existsSync, readFileSync } from "node:fs";
-import { fileURLToPath } from "node:url";
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
+import { fixtureFile, hasFixture } from "../../../../test/support/tsCaptureFixtures.js";
 import { shareFirstRowFields, splitCommandRows } from "./commandRows.js";
 import { parseCommand } from "./commandText.js";
 
-// Capture fixtures stay local (PLAN.md section 8), CI skips the capture tests.
-const fixtureDir = fileURLToPath(new URL("../../../../teamspeak-client-plan/fixtures/", import.meta.url));
-const hasFixtures = existsSync(`${fixtureDir}ts6ServerSession.json`);
+// Capture fixtures stay local, CI skips the capture tests.
+const hasFixtures = hasFixture("ts6ServerSession.json");
 
 function capturedCommands(file: string): string[] {
-  const session = JSON.parse(readFileSync(`${fixtureDir}${file}`, "utf8")) as { commands: { direction: string; text: string }[] };
+  const session = JSON.parse(readFileSync(fixtureFile(file)!, "utf8")) as { commands: { direction: string; text: string }[] };
   return session.commands.filter((command) => command.direction === "s2c").map((command) => command.text);
 }
 

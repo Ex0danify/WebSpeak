@@ -1,12 +1,11 @@
 import { Crypt, identityFromString as sdkIdentityFromString } from "@echosixhiya/teamspeak-client/crypto";
 import { createHash, randomBytes } from "node:crypto";
-import { existsSync, readFileSync } from "node:fs";
-import { fileURLToPath } from "node:url";
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
+import { fixtureFile, hasFixture } from "../../../../test/support/tsCaptureFixtures.js";
 import { AlphaPacketKeys, alphaSecrets, deriveIvStruct, LegacyPacketKeys, legacyFakeMac } from "./packetKeys.js";
 
-const fixtureDir = fileURLToPath(new URL("../../../../teamspeak-client-plan/fixtures/", import.meta.url));
-const hasFixtures = existsSync(`${fixtureDir}handshakeVectors.json`);
+const hasFixtures = hasFixture("handshakeVectors.json");
 
 const ivStruct = Buffer.from("0102030405060708090a0b0c0d0e0f10111213141516171819", "hex");
 
@@ -88,10 +87,10 @@ describe("AlphaPacketKeys", () => {
     expect(key.subarray(2).equals(hash.subarray(2, 32))).toBe(true);
   });
 
-  describe.skipIf(!existsSync(`${fixtureDir}ts6AlphaKeySchedule.json`))("against the recorded schedule", () => {
+  describe.skipIf(!hasFixture("ts6AlphaKeySchedule.json"))("against the recorded schedule", () => {
     const entries = () =>
       (
-        JSON.parse(readFileSync(`${fixtureDir}ts6AlphaKeySchedule.json`, "utf8")) as {
+        JSON.parse(readFileSync(fixtureFile("ts6AlphaKeySchedule.json")!, "utf8")) as {
           entries: { output: string; direction: "c2s" | "s2c"; packetType: number; generation: number; sharedIV: string }[];
         }
       ).entries;
@@ -126,7 +125,7 @@ describe("alphaSecrets", () => {
   describe.skipIf(!hasFixtures)("against the recorded vector", () => {
     const vector = () =>
       (
-        JSON.parse(readFileSync(`${fixtureDir}handshakeVectors.json`, "utf8")) as {
+        JSON.parse(readFileSync(fixtureFile("handshakeVectors.json")!, "utf8")) as {
           alpha: { sharedIvVector?: { ecdh: string; alpha: string; beta: string; sharedIV: string; fakeMac: string } };
         }
       ).alpha.sharedIvVector;

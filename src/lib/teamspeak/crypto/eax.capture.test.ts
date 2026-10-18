@@ -1,12 +1,11 @@
-import { existsSync, readFileSync } from "node:fs";
-import { fileURLToPath } from "node:url";
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
+import { fixtureFile, hasFixture } from "../../../../test/support/tsCaptureFixtures.js";
 import { eaxDecrypt, eaxEncrypt } from "./eax.js";
 import { DUMMY_PACKET_KEY, DUMMY_PACKET_KEY_256 } from "./packetKeys.js";
 
 // Capture fixtures stay local, CI skips these tests.
-const fixtureDir = fileURLToPath(new URL("../../../../teamspeak-client-plan/fixtures/", import.meta.url));
-const hasFixtures = existsSync(`${fixtureDir}ts6AlphaPackets.json`);
+const hasFixtures = hasFixture("ts6AlphaPackets.json");
 
 interface CapturedPacket {
   direction: "c2s" | "s2c";
@@ -18,7 +17,7 @@ interface CapturedPacket {
 }
 
 function encryptedPackets(file: string): Required<CapturedPacket>[] {
-  const capture = JSON.parse(readFileSync(`${fixtureDir}${file}`, "utf8")) as { packets: CapturedPacket[] };
+  const capture = JSON.parse(readFileSync(fixtureFile(file)!, "utf8")) as { packets: CapturedPacket[] };
   return capture.packets.filter((packet): packet is Required<CapturedPacket> => packet.key !== undefined);
 }
 

@@ -1,20 +1,17 @@
 import { readFileSync } from "node:fs";
-import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import { hasCaptures, loadCapture } from "../../../../test/support/tsCaptureFixtures.js";
+import { fixtureFile, hasCaptures, hasFixture, loadCapture } from "../../../../test/support/tsCaptureFixtures.js";
 import { openPacket, parsePacket } from "../transport/packetCodec.js";
 import { generationOf, idOf } from "../transport/generationWindow.js";
 import { PacketFlag } from "../transport/packetTypes.js";
 import { AlphaPacketKeys, DUMMY_PACKET_KEY, DUMMY_PACKET_KEY_256 } from "./packetKeys.js";
 
-const fixtureDir = fileURLToPath(new URL("../../../../teamspeak-client-plan/fixtures/", import.meta.url));
-
 const isDummy = (key: Buffer) => key.equals(DUMMY_PACKET_KEY.key) || key.equals(DUMMY_PACKET_KEY_256.key);
 
-describe.skipIf(!hasCaptures)("alpha key schedule against the recorded packets", () => {
+describe.skipIf(!hasCaptures || !hasFixture("ts6AlphaKeySchedule.json"))("alpha key schedule against the recorded packets", () => {
   it("reproduces the session key and nonce and decrypts every session packet", () => {
     const sharedIv = Buffer.from(
-      (JSON.parse(readFileSync(`${fixtureDir}ts6AlphaKeySchedule.json`, "utf8")) as { entries: { sharedIV: string }[] }).entries[0].sharedIV,
+      (JSON.parse(readFileSync(fixtureFile("ts6AlphaKeySchedule.json")!, "utf8")) as { entries: { sharedIV: string }[] }).entries[0].sharedIV,
       "hex",
     );
     const keys = new AlphaPacketKeys(sharedIv);

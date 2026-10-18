@@ -1,14 +1,43 @@
-// Raw packet captures of the native client. They stay local (teamspeak-client-plan/fixtures/), so
-// tests that use them skip in CI.
+// Local capture fixtures of the native client, never committed. Their folder comes from
+// TEST_FIXTURE_FOLDER (env or .env); without it every fixture-backed test skips.
 import { existsSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
-const fixtureDir = fileURLToPath(new URL("../../teamspeak-client-plan/fixtures/", import.meta.url));
+function readDotEnvFolder(): string | undefined {
+  try {
+    for (const raw of readFileSync(fileURLToPath(new URL("../../.env", import.meta.url)), "utf8").split("\n")) {
+      const line = raw.trim();
+      if (line.startsWith("TEST_FIXTURE_FOLDER=")) return line.slice("TEST_FIXTURE_FOLDER=".length).trim().replace(/^["']|["']$/g, "") || undefined;
+    }
+  } catch {
+    // no .env
+  }
+  return undefined;
+}
+
+function resolveFixtureFolder(): string | undefined {
+  const folder = process.env.TEST_FIXTURE_FOLDER?.trim() || readDotEnvFolder();
+  if (!folder) return undefined;
+  return folder.endsWith("/") ? folder : `${folder}/`;
+}
+
+/** The fixture folder with a trailing slash, or undefined when TEST_FIXTURE_FOLDER is not set. */
+export const fixtureFolder = resolveFixtureFolder();
+export const hasFixtureFolder = fixtureFolder !== undefined;
+
+/** Full path of a fixture, or undefined without a folder. */
+export const fixtureFile = (name: string): string | undefined => (fixtureFolder === undefined ? undefined : `${fixtureFolder}${name}`);
+
+/** Whether a named fixture is present in the configured folder. */
+export function hasFixture(name: string): boolean {
+  const path = fixtureFile(name);
+  return path !== undefined && existsSync(path);
+}
 
 export const CAPTURE_FILES = ["ts3LegacyPackets.json", "ts6AlphaPackets.json"] as const;
 export type CaptureFile = (typeof CAPTURE_FILES)[number];
 
-export const hasCaptures = CAPTURE_FILES.every((file) => existsSync(`${fixtureDir}${file}`));
+export const hasCaptures = CAPTURE_FILES.every((file) => hasFixture(file));
 
 export interface CapturedPacket {
   direction: "c2s" | "s2c";
@@ -45,7 +74,7 @@ interface RawPacket {
 const hex = (value: string | undefined) => (value === undefined ? undefined : Buffer.from(value, "hex"));
 
 export function loadCapture(file: CaptureFile): { packets: CapturedPacket[]; messages: CapturedMessage[] } {
-  const capture = JSON.parse(readFileSync(`${fixtureDir}${file}`, "utf8")) as {
+  const capture = JSON.parse(readFileSync(fixtureFile(file)!, "utf8")) as {
     packets: RawPacket[];
     messages: (CapturedMessage & { dropped: boolean })[];
   };
@@ -76,11 +105,11 @@ export function serverCommandParts(packets: CapturedPacket[]): Map<number, Captu
 export const SESSION_FILES = ["ts3ServerSession.json", "ts6ServerSession.json"] as const;
 export type SessionFile = (typeof SESSION_FILES)[number];
 
-export const hasSessions = SESSION_FILES.every((file) => existsSync(`${fixtureDir}${file}`));
+export const hasSessions = SESSION_FILES.every((file) => hasFixture(file));
 
 /** Decrypted command texts of a native client session, server side only, in arrival order. */
 export function loadServerCommands(file: SessionFile): string[] {
-  const session = JSON.parse(readFileSync(`${fixtureDir}${file}`, "utf8")) as {
+  const session = JSON.parse(readFileSync(fixtureFile(file)!, "utf8")) as {
     commands: { direction: "c2s" | "s2c"; text: string }[];
   };
   return session.commands.filter((command) => command.direction === "s2c").map((command) => command.text);
