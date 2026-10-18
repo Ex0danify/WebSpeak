@@ -43,8 +43,9 @@ export class TeamSpeakServerError extends TeamSpeakError {
   }
 }
 
+/** `closed` is a close we asked for, with commands still waiting for their answer. */
 export type TeamSpeakTransportErrorCode =
-  "timeout" | "ackTimeout" | "socketError" | "handshakeFailed" | "cryptoInit" | "closedByServer" | "malformedData";
+  "timeout" | "ackTimeout" | "socketError" | "handshakeFailed" | "cryptoInit" | "closedByServer" | "closed" | "malformedData";
 
 export class TeamSpeakTransportError extends TeamSpeakError {
   readonly code: TeamSpeakTransportErrorCode;

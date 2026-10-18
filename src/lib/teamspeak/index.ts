@@ -29,3 +29,36 @@ export { INIT_VERSION } from "./handshake/init1.js";
 export { type ClientInitOptions } from "./handshake/clientInit.js";
 export { type VersionProfileName } from "./handshake/versionProfiles.js";
 export { connectLegacy, type ConnectionEvents, type LegacyConnection, type LegacyHandshakeOptions } from "./handshake/legacyHandshake.js";
+export {
+  CommandTracker,
+  type CommandInput,
+  type CommandOptions,
+  type CommandRequest,
+  type CommandSink,
+  type CommandTrackerEvents,
+  type CommandTrackerOptions,
+  type ServerCommand,
+} from "./command/commandTracker.js";
+export {
+  CommandScheduler,
+  type CommandPriority,
+  type CommandSchedulerOptions,
+  type ScheduledCommandOptions,
+} from "./command/commandScheduler.js";
+export { FloodBudget, type FloodBudgetOptions } from "./command/floodBudget.js";
+export {
+  channelList,
+  channelSubscribeAll,
+  clientDisconnect,
+  clientInfo,
+  clientList,
+  clientMove,
+  clientPoke,
+  clientUpdate,
+  sendTextMessage,
+  TextMessageTarget,
+  version,
+  type ClientMoveOptions,
+  type ClientUpdateProperties,
+  type TextMessageTargetMode,
+} from "./command/clientCommands.js";

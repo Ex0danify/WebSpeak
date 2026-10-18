@@ -160,6 +160,7 @@ const LIB_TRANSPORT_ERROR_CODES: Readonly<Record<string, WebSpeakErrorCode>> = {
   cryptoInit: "protocol_negotiation_failed",
   malformedData: "protocol_negotiation_failed",
   closedByServer: "connection_reset",
+  closed: "connection_reset",
 };
 
 function createTeamSpeakError(code: WebSpeakErrorCode, cause: unknown, diagnostics: TeamSpeakErrorDiagnostics): WebSpeakError {

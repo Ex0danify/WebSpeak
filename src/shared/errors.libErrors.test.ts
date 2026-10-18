@@ -48,6 +48,7 @@ describe("normalizeTeamSpeakError with the lib error classes", () => {
     ["cryptoInit", "protocol_negotiation_failed"],
     ["malformedData", "protocol_negotiation_failed"],
     ["closedByServer", "connection_reset"],
+    ["closed", "connection_reset"],
   ])("maps transport code %s to %s", (transportCode, code) => {
     expect(normalizeTeamSpeakError(new TeamSpeakTransportError(transportCode, "x")).code).toBe(code);
   });

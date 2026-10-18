@@ -1,13 +1,27 @@
 /**
  * Dev check for the own TeamSpeak client: connects with the legacy handshake, prints the welcome,
- * stays for a while and leaves with reason "leaving". Not shipped, not part of CI.
+ * runs a few commands through the scheduler, stays for a while and leaves with reason "leaving".
+ * Not shipped, not part of CI.
  *
  *   npx tsx scripts/ts-lib-connect.ts <host> [port] [--nickname n] [--stay seconds] [--profile ts3|ts6]
  *                                     [--password pw] [--identity base64:offset] [--verbose]
  *
  * Mind the flood ban: about 10 joins in 3 minutes ban the address for a while.
  */
-import { connectLegacy, generateIdentity, identityFromString, parseCommand, type VersionProfileName } from "../src/lib/teamspeak/index.js";
+import {
+  channelList,
+  clientDisconnect,
+  clientInfo,
+  clientList,
+  CommandScheduler,
+  CommandTracker,
+  connectLegacy,
+  generateIdentity,
+  identityFromString,
+  version,
+  type VersionProfileName,
+} from "../src/lib/teamspeak/index.js";
+import type { PacketHandler } from "../src/lib/teamspeak/transport/packetHandler.js";
 import { openUdpChannel } from "../src/lib/teamspeak/transport/udpChannel.js";
 
 function option(name: string): string | undefined {
@@ -33,6 +47,18 @@ let clientId = 0;
 let leftCleanly = false;
 let closedError: unknown;
 
+const transport: { handler?: PacketHandler } = {};
+const tracker = new CommandTracker(
+  { sendCommand: (payload) => transport.handler!.sendCommand(payload) },
+  {
+    notification: (command) => {
+      const self = command.rows.find((row) => row.clid === String(clientId));
+      if (command.name === "notifyclientleftview" && self) leftCleanly = self.reasonid === "8";
+      const selfNote = self ? ` (self: ${["ctid", "reasonid", "reasonmsg"].map((key) => `${key}=${self[key] ?? ""}`).join(" ")})` : "";
+      log(`<- ${command.name}${command.low ? " (low)" : ""} rows=${command.rows.length}${selfNote}`);
+    },
+  },
+);
 const channel = await openUdpChannel({ host, port });
 const connection = await connectLegacy(
   channel,
@@ -44,22 +70,26 @@ const connection = await connectLegacy(
     transport: { logger: { debug: (fields, message) => verbose && console.error(`  debug ${message}`, fields) } },
   },
   {
-    command: ({ payload }) => {
-      const command = parseCommand(payload.toString("utf8"));
-      const self = command.rows.find((row) => row.clid === String(clientId));
-      if (command.name === "notifyclientleftview" && self) leftCleanly = self.reasonid === "8";
-      const selfNote = self ? ` (self: ${["ctid", "reasonid", "reasonmsg"].map((key) => `${key}=${self[key] ?? ""}`).join(" ")})` : "";
-      log(`<- ${command.name ?? "(answer)"} rows=${command.rows.length}${selfNote}`);
-    },
+    command: (message) => tracker.receive(message),
     closed: (error) => {
+      tracker.close(error);
       closedError = error ?? "closed";
       log(`connection closed${error ? `: ${error.code} ${error.message}` : ""}`);
     },
   },
 );
+transport.handler = connection.handler;
 clientId = connection.clientId;
 const server = connection.initServer;
 log(`connected as clid=${clientId} to "${server.virtualserver_name}" pv=${server.pv} profile=${profile} uid-offset=${identity.offset}`);
+
+const scheduler = new CommandScheduler(tracker);
+const requests = { version: version(), clientinfo: clientInfo(clientId), clientlist: clientList(), channellist: channelList() };
+const answers = await Promise.allSettled(Object.values(requests).map((request) => scheduler.command(request, { timeoutMs: 5_000 })));
+Object.keys(requests).forEach((name, i) => {
+  const answer = answers[i];
+  log(`-> ${name}: ${answer.status === "fulfilled" ? `${answer.value.length} row(s)` : `refused, ${(answer.reason as Error).message}`}`);
+});
 
 for (let left = staySeconds; left > 0 && !closedError; left -= 60) {
   await sleep(Math.min(left, 60) * 1000);
@@ -68,7 +98,7 @@ for (let left = staySeconds; left > 0 && !closedError; left -= 60) {
 }
 
 if (!closedError) {
-  connection.handler.sendCommand(Buffer.from("clientdisconnect reasonid=8 reasonmsg=leaving"));
+  scheduler.send(clientDisconnect());
   for (let waited = 0; waited < 3_000 && (connection.handler.pendingCommands > 0 || !leftCleanly) && !closedError; waited += 50)
     await sleep(50);
   log(`disconnect ${connection.handler.pendingCommands === 0 ? "acknowledged" : "not acknowledged"}, left view: ${leftCleanly}`);

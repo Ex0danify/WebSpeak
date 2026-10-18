@@ -10,7 +10,7 @@ import { clientEkProofData } from "../../src/lib/teamspeak/handshake/legacyExpan
 import { PacketHandler, type PacketHandlerOptions } from "../../src/lib/teamspeak/transport/packetHandler.js";
 import type { DatagramChannel } from "../../src/lib/teamspeak/transport/udpChannel.js";
 import type { CommandRow } from "../../src/lib/teamspeak/wire/commandRows.js";
-import { buildCommand, parseCommand } from "../../src/lib/teamspeak/wire/commandText.js";
+import { buildCommand, parseCommand, type ParsedCommand } from "../../src/lib/teamspeak/wire/commandText.js";
 
 const { VERSION_BYTES, COOKIE_BYTES, NUMBER_BYTES, PUZZLE_BYTES } = INIT1_LAYOUT;
 
@@ -32,6 +32,8 @@ export interface LoopbackServerOptions {
   restartOnce?: boolean;
   /** Bytes of filler in a channel description, to make the welcome span several packets. */
   welcomePadding?: number;
+  /** Replies to a command after the handshake, sent in order. */
+  answer?: (command: ParsedCommand, text: string) => string[];
 }
 
 export interface LoopbackServer {
@@ -153,6 +155,7 @@ export function createLoopbackServer(channel: DatagramChannel, options: Loopback
     if (command.name === "clientek") return onClientEk(row);
     if (command.name === "clientinit") return onClientInit(row);
     server.received.push(text);
+    for (const reply of options.answer?.(command, text) ?? []) send(reply);
     if (command.name === "clientdisconnect") {
       send(buildCommand("notifyclientleftview", { cfid: 1, ctid: 0, reasonid: 8, reasonmsg: row.reasonmsg, clid: clientId }));
     }
