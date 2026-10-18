@@ -141,6 +141,20 @@ export class PacketHandler {
     return this.#rtt.smoothedRttMs;
   }
 
+  /** Commands sent and not acked yet, both priorities. */
+  get pendingCommands(): number {
+    return this.#reliable[PacketType.command].sender.pending + this.#reliable[PacketType.commandLow].sender.pending;
+  }
+
+  /**
+   * For the Init1 handshake, which carries `clientinitiv` inside Init1 where it still takes command
+   * id 0. Call before the first command in either role.
+   */
+  skipInitCommand(): void {
+    if (this.#role === "client") this.#counters[PacketType.command].take();
+    else this.#reliable[PacketType.command].receiver.skip(0);
+  }
+
   /** Sends a command reliably, split when it does not fit one packet. `compressed` marks QuickLZ data. */
   sendCommand(payload: Buffer, options: { low?: boolean; compressed?: boolean } = {}): void {
     if (this.#closed) return;

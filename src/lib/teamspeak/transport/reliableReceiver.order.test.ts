@@ -47,4 +47,12 @@ describe("ReliableReceiver", () => {
     expect(texts(receiver.accept(receiver.resolve(0), part("y")))).toEqual(["y"]);
     expect(receiver.next).toBe(0x10001);
   });
+
+  it("skips an index that never had a packet, but not while packets wait", () => {
+    const receiver = new ReliableReceiver();
+    receiver.skip(0);
+    expect(receiver.next).toBe(1);
+    receiver.accept(3, part("later"));
+    expect(() => receiver.skip(1)).toThrow(/buffered/);
+  });
 });

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createTransportPair, datagramType, TEST_FAKE_MAC, texts } from "../../../../test/support/tsTransportPair.js";
+import { createTransportPair, datagramId, datagramType, TEST_FAKE_MAC, texts } from "../../../../test/support/tsTransportPair.js";
 import { TeamSpeakTransportError } from "../errors/teamSpeakErrors.js";
 import { DUMMY_PACKET_KEY, LegacyPacketKeys } from "../crypto/packetKeys.js";
 import { encodePacket } from "./packetCodec.js";
@@ -164,6 +164,27 @@ describe("PacketHandler voice and ids", () => {
     clock.runUntil(() => server.commands.length === 1 && client.handler.smoothedRttMs !== undefined);
     expect(client.handler.smoothedRttMs).toBe(40);
     expect(server.commands[0].type).toBe(PacketType.commandLow);
+  });
+
+  it("starts commands at id 1 on both sides when Init1 carried command 0", () => {
+    const ids: number[] = [];
+    const { clock, client, server } = createTransportPair({
+      impairment: {
+        filter: (datagram, from) => (
+          from === "a" && datagramType(datagram, from) === PacketType.command && ids.push(datagramId(datagram)),
+          false
+        ),
+      },
+    });
+    client.handler.skipInitCommand();
+    server.handler.skipInitCommand();
+    client.handler.sendCommand(Buffer.from("clientek"));
+    client.handler.sendCommand(Buffer.from("clientinit"), { low: true });
+    expect(client.handler.pendingCommands).toBe(2);
+    clock.advance(100);
+    expect(ids).toEqual([1]);
+    expect(texts(server.commands)).toEqual(["clientek", "clientinit"]);
+    expect(client.handler.pendingCommands).toBe(0);
   });
 });
 

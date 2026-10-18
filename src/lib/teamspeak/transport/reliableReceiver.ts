@@ -30,6 +30,12 @@ export class ReliableReceiver {
     return this.#window.next;
   }
 
+  /** Treats `index` as delivered without a packet, only before anything is buffered. */
+  skip(index: number): void {
+    if (this.#buffer.size > 0) throw new Error("cannot skip while packets are buffered");
+    this.#window.passed(index);
+  }
+
   resolve(id: number): number {
     return this.#window.resolve(id);
   }
