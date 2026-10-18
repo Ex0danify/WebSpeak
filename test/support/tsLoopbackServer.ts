@@ -7,7 +7,7 @@ import { deriveIvStruct, LegacyPacketKeys, legacyFakeMac } from "../../src/lib/t
 import { solveRsaPuzzle } from "../../src/lib/teamspeak/crypto/rsaPuzzle.js";
 import { INIT1_LAYOUT, INIT_VERSION, Init1Step } from "../../src/lib/teamspeak/handshake/init1.js";
 import { clientEkProofData } from "../../src/lib/teamspeak/handshake/legacyExpand.js";
-import { PacketHandler, type PacketHandlerOptions } from "../../src/lib/teamspeak/transport/packetHandler.js";
+import { PacketHandler, type PacketHandlerOptions, type VoicePacket } from "../../src/lib/teamspeak/transport/packetHandler.js";
 import type { DatagramChannel } from "../../src/lib/teamspeak/transport/udpChannel.js";
 import type { CommandRow } from "../../src/lib/teamspeak/wire/commandRows.js";
 import { buildCommand, parseCommand, type ParsedCommand } from "../../src/lib/teamspeak/wire/commandText.js";
@@ -44,6 +44,8 @@ export interface LoopbackServer {
   deriveServerKey: () => Buffer;
   /** Command texts from the client after the handshake commands, in order. */
   received: string[];
+  /** Voice and whisper packets from the client. */
+  voice: VoicePacket[];
   /** Set once the session keys are in place. */
   ivStruct: Buffer | undefined;
   /** The client's clientinit fields. */
@@ -173,6 +175,7 @@ export function createLoopbackServer(channel: DatagramChannel, options: Loopback
       {
         init1: onInit1,
         command: (message) => onCommand(message.payload.toString()),
+        voice: (packet) => server.voice.push(packet),
         closed: () => {
           server.closed = true;
         },
@@ -181,6 +184,7 @@ export function createLoopbackServer(channel: DatagramChannel, options: Loopback
     ),
     deriveServerKey: () => serverEd25519.publicKey,
     received: [],
+    voice: [],
     ivStruct: undefined,
     clientInit: undefined,
     solvedPuzzles: 0,

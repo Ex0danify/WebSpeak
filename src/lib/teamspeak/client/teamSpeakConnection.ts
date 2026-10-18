@@ -5,10 +5,20 @@ import { type CommandInput, CommandTracker, type CommandTrackerOptions, type Ser
 import { TeamSpeakError, TeamSpeakTransportError } from "../errors/teamSpeakErrors.js";
 import { connectLegacy, type LegacyConnection, type LegacyHandshakeOptions } from "../handshake/legacyHandshake.js";
 import { type SessionView, SessionState } from "../session/sessionState.js";
-import { type PacketHandler, systemClock } from "../transport/packetHandler.js";
+import { type PacketHandler, systemClock, type VoicePacket, type VoiceType } from "../transport/packetHandler.js";
+import { PacketFlag, PacketType } from "../transport/packetTypes.js";
 import { type DatagramChannelFactory, openUdpChannel, type UdpAddress } from "../transport/udpChannel.js";
 import type { CommandRow } from "../wire/commandRows.js";
 import type { ConnectionEvent, ConnectionEventMap } from "./clientEvents.js";
+import {
+  buildVoiceBody,
+  buildWhisperBody,
+  parseServerVoice,
+  VoiceCodec,
+  type VoiceEncryption,
+  voiceEncrypted,
+  type WhisperTargets,
+} from "./clientVoice.js";
 
 export interface TeamSpeakConnectionOptions extends Omit<LegacyHandshakeOptions, "signal" | "timeoutMs"> {
   /** Already resolved and checked by the caller. */
@@ -20,6 +30,8 @@ export interface TeamSpeakConnectionOptions extends Omit<LegacyHandshakeOptions,
   socketFactory?: DatagramChannelFactory;
   tracker?: Pick<CommandTrackerOptions, "defaultTimeoutMs" | "maxRows">;
   scheduler?: Omit<CommandSchedulerOptions, "clock">;
+  /** Default `auto`, see VoiceEncryption. */
+  voiceEncryption?: VoiceEncryption;
 }
 
 export type ConnectionState = "idle" | "connecting" | "connected" | "closed";
@@ -92,6 +104,24 @@ export class TeamSpeakConnection extends EventEmitter<ConnectionEventMap> {
     this.#scheduler.send(input, options);
   }
 
+  /** Opus frame to our channel. Dropped while not connected, like any lost voice packet. */
+  sendVoice(data: Uint8Array, codec: number = VoiceCodec.opusVoice): void {
+    this.#sendVoice(PacketType.voice, buildVoiceBody(data, codec), 0);
+  }
+
+  /** Throws a RangeError for targets the server cannot take, also while not connected. */
+  sendWhisper(data: Uint8Array, targets: WhisperTargets, codec: number = VoiceCodec.opusVoice): void {
+    const { body, flags } = buildWhisperBody(data, targets, codec);
+    this.#sendVoice(PacketType.voiceWhisper, body, flags);
+  }
+
+  #sendVoice(type: VoiceType, body: Buffer, flags: number): void {
+    if (this.#state !== "connected" || !this.#handler) return;
+    const { server, self } = this.#session;
+    const encrypted = voiceEncrypted(this.#options.voiceEncryption ?? "auto", server, this.#session.channel(self.channelId));
+    this.#handler.sendVoice(type, body, encrypted ? flags : flags | PacketFlag.unencrypted);
+  }
+
   /** Leaves with `clientdisconnect`, or stops a connect that is still running. */
   async disconnect(options: { reasonMessage?: string } = {}): Promise<void> {
     if (this.#state === "idle") {
@@ -134,6 +164,7 @@ export class TeamSpeakConnection extends EventEmitter<ConnectionEventMap> {
         {
           established: (connection) => this.#onEstablished(connection),
           command: (message) => this.#tracker.receive(message),
+          voice: (packet) => this.#onVoice(packet),
           closed: (error) => this.#onClosed(error),
         },
       );
@@ -191,6 +222,13 @@ export class TeamSpeakConnection extends EventEmitter<ConnectionEventMap> {
     }
     // The server is done with us and sends nothing more.
     if (selfLeft) this.#handler?.close();
+  }
+
+  #onVoice(packet: VoicePacket): void {
+    if (this.listenerCount("voice") === 0) return;
+    const voice = parseServerVoice(packet);
+    // Our own voice, should a server echo it.
+    if (voice && voice.clientId !== this.#session.self.clientId) this.#emit(voice);
   }
 
   #onClosed(error: TeamSpeakTransportError | undefined): void {

@@ -70,5 +70,15 @@ export { type ServerFields, type SessionGroup, type SessionServer } from "./sess
 export { ReasonId, type SessionEvent, type SessionEventType } from "./session/sessionEvents.js";
 export { type SessionSelf, type SessionView } from "./session/sessionState.js";
 export { type ClosedEvent, type ConnectionEvent, type ConnectionEventMap } from "./client/clientEvents.js";
+export {
+  CodecEncryptionMode,
+  MAX_WHISPER_TARGETS,
+  VoiceCodec,
+  WhisperGroupTarget,
+  WhisperGroupType,
+  type VoiceEncryption,
+  type VoiceEvent,
+  type WhisperTargets,
+} from "./client/clientVoice.js";
 export { type ConnectionState, TeamSpeakConnection, type TeamSpeakConnectionOptions } from "./client/teamSpeakConnection.js";
 export { type DatagramChannel, type DatagramChannelFactory, type UdpAddress } from "./transport/udpChannel.js";
