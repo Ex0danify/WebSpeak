@@ -1,5 +1,5 @@
 import type { EventEmitter } from "node:events";
-import type { CommandPriority, CommandRequest, Identity } from "../../lib/teamspeak/index.js";
+import type { CommandPriority, CommandRequest, Identity, VersionProfile, VersionProfileName } from "../../lib/teamspeak/index.js";
 import type { Logger } from "../../shared/logger.js";
 import type { WebSpeakError } from "../../shared/errors.js";
 import type { TeamSpeakProtocol } from "../../shared/teamSpeakProtocol.js";
@@ -51,6 +51,9 @@ export interface TeamSpeakBackendOptions {
   serverPassword?: string;
   defaultChannel?: string;
   channelPassword?: string;
+  versionProfile?: VersionProfileName;
+  /** An explicit version that overrides the named profile. */
+  version?: VersionProfile;
 }
 
 /** One connection attempt. TSClient builds a new backend after the tunnel closed or disconnect() ran. */

@@ -7,8 +7,12 @@ import {
   generateIdentity,
   sendTextMessage,
   TextMessageTarget,
+  VERSION_PROFILES,
   type Identity,
+  type VersionProfile,
+  type VersionProfileName,
 } from "../../lib/teamspeak/index.js";
+import type { TsClientVersion } from "../../config/env.js";
 import type { Logger } from "../../shared/logger.js";
 import { describeTeamSpeakError, normalizeTeamSpeakError } from "../../shared/errors.js";
 import type { TSChatScope } from "./teamSpeakMessages.js";
@@ -29,6 +33,14 @@ export interface TSClientOptions {
   channelPassword?: string;
   identity?: Identity;
   acceleration?: AccelerationRelayOptions;
+  clientVersion?: TsClientVersion;
+}
+
+/** Turns the operator's version config into the profile or explicit version the connection takes. */
+function resolveClientVersion(config?: TsClientVersion): { versionProfile?: VersionProfileName; version?: VersionProfile } {
+  if (!config) return {};
+  if (!config.override) return { versionProfile: config.profile };
+  return { versionProfile: config.profile, version: { ...VERSION_PROFILES[config.profile], ...config.override } };
 }
 
 export type { TSClientAvatar };
@@ -101,6 +113,7 @@ export class TSClient extends EventEmitter {
           serverPassword: this.options.serverPassword,
           defaultChannel: this.options.defaultChannel,
           channelPassword: this.options.channelPassword,
+          ...resolveClientVersion(this.options.clientVersion),
         },
         this.logger,
       );

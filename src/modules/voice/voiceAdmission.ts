@@ -20,6 +20,7 @@ import {
   type ScreenShareIceServer,
 } from "../screenShare/index.js";
 import type { WebRtcAudioOptions } from "../../config/webrtcConfig.js";
+import type { TsClientVersion } from "../../config/env.js";
 import type { SessionManager, SessionTeardownReason } from "./session/voiceSessionManager.js";
 import type { VoiceConnection, WebClientEntry } from "./voiceTypes.js";
 import { createAudioFlowStats } from "./audio/audioStats.js";
@@ -57,6 +58,7 @@ export interface AdmissionDeps {
   hooks: ConnectionHooks;
   directoryDeps: VoiceDirectoryDeps;
   createClient?: (options: TSClientOptions, logger: LoggerType) => TSClient;
+  clientVersion?: TsClientVersion;
   resolveConnection(url: URL): JoinTicketPayload | null;
   getAccelerationOptions(relayId?: string): ConfiguredAccelerationRelay | undefined;
   teardown(entryId: string, reason: SessionTeardownReason): Promise<void>;
@@ -139,6 +141,7 @@ export function admitConnection(deps: AdmissionDeps, ws: WebSocket, req: Incomin
       defaultChannel: channelName,
       identity,
       ...(acceleration ? { acceleration } : {}),
+      ...(deps.clientVersion ? { clientVersion: deps.clientVersion } : {}),
     };
     tsClient = deps.createClient ? deps.createClient(clientOptions, deps.logger) : new TSClient(clientOptions, deps.logger);
   } catch (error: unknown) {

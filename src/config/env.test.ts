@@ -2,7 +2,7 @@ import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { EnvError, loadEnvFile, parsePort, parseSwitch, readDataDir, readGatewayEnv, readMode, readRelayEnv } from "./env.js";
+import { EnvError, loadEnvFile, parsePort, parseSwitch, readDataDir, readGatewayEnv, readMode, readRelayEnv, readTsClientVersion } from "./env.js";
 
 const GATEWAY = {
   WEBSPEAK_ADMIN_USERNAME: "admin",
@@ -12,6 +12,8 @@ const GATEWAY = {
   WEBSPEAK_DATA_DIR: "./data",
   WEBSPEAK_TRUST_PROXY: "0",
   WEBSPEAK_SCREEN_SHARE_ICE_SERVERS: "",
+  WEBSPEAK_TS_CLIENT_VERSION_PROFILE: "ts3",
+  WEBSPEAK_TS_CLIENT_VERSION_OVERRIDE: "",
 };
 
 const RELAY = {
@@ -50,6 +52,7 @@ describe("readGatewayEnv", () => {
       screenShareIceServers: undefined,
       adminUsername: "admin",
       adminPassword: undefined,
+      tsClientVersion: { profile: "ts3", override: undefined },
     });
   });
 
@@ -75,7 +78,7 @@ describe("readGatewayEnv", () => {
   it("has no defaults: every unset variable is reported at once", () => {
     expect(() => readGatewayEnv({})).toThrow(EnvError);
     expect(() => readGatewayEnv({})).toThrow(
-      /^WEBSPEAK_ADMIN_USERNAME, WEBSPEAK_ADMIN_PASSWORD, WEBSPEAK_HOST, WEBSPEAK_PORT, WEBSPEAK_DATA_DIR, WEBSPEAK_TRUST_PROXY, WEBSPEAK_SCREEN_SHARE_ICE_SERVERS are not set\. Copy \.env\.example to \.env/,
+      /^WEBSPEAK_ADMIN_USERNAME, WEBSPEAK_ADMIN_PASSWORD, WEBSPEAK_HOST, WEBSPEAK_PORT, WEBSPEAK_DATA_DIR, WEBSPEAK_TRUST_PROXY, WEBSPEAK_SCREEN_SHARE_ICE_SERVERS, WEBSPEAK_TS_CLIENT_VERSION_PROFILE, WEBSPEAK_TS_CLIENT_VERSION_OVERRIDE are not set\. Copy \.env\.example to \.env/,
     );
   });
 
@@ -85,10 +88,10 @@ describe("readGatewayEnv", () => {
   });
 
   it("accepts an empty value only where .env.example leaves it empty", () => {
-    for (const name of ["WEBSPEAK_ADMIN_PASSWORD", "WEBSPEAK_HOST", "WEBSPEAK_SCREEN_SHARE_ICE_SERVERS"]) {
+    for (const name of ["WEBSPEAK_ADMIN_PASSWORD", "WEBSPEAK_HOST", "WEBSPEAK_SCREEN_SHARE_ICE_SERVERS", "WEBSPEAK_TS_CLIENT_VERSION_OVERRIDE"]) {
       expect(() => readGatewayEnv({ ...GATEWAY, [name]: "" })).not.toThrow();
     }
-    for (const name of ["WEBSPEAK_PORT", "WEBSPEAK_DATA_DIR", "WEBSPEAK_TRUST_PROXY"]) {
+    for (const name of ["WEBSPEAK_PORT", "WEBSPEAK_DATA_DIR", "WEBSPEAK_TRUST_PROXY", "WEBSPEAK_TS_CLIENT_VERSION_PROFILE"]) {
       expect(() => readGatewayEnv({ ...GATEWAY, [name]: "" })).toThrow(EnvError);
     }
   });
@@ -163,5 +166,35 @@ describe("loadEnvFile", () => {
 
   it("reports a missing file instead of failing", () => {
     expect(loadEnvFile(join(tmpdir(), "webspeak-no-such-dir", ".env"))).toBe(false);
+  });
+});
+
+describe("readTsClientVersion", () => {
+  it("takes the named profile without an override", () => {
+    expect(readTsClientVersion({ WEBSPEAK_TS_CLIENT_VERSION_PROFILE: " TS6 ", WEBSPEAK_TS_CLIENT_VERSION_OVERRIDE: "" })).toEqual({
+      profile: "ts6",
+      override: undefined,
+    });
+  });
+
+  it("parses an override into version, platform and sign", () => {
+    expect(
+      readTsClientVersion({
+        WEBSPEAK_TS_CLIENT_VERSION_PROFILE: "ts3",
+        WEBSPEAK_TS_CLIENT_VERSION_OVERRIDE: "6.1.0 [Build: 9] | Linux | c2ln",
+      }),
+    ).toEqual({ profile: "ts3", override: { version: "6.1.0 [Build: 9]", platform: "Linux", sign: "c2ln" } });
+  });
+
+  it.each(["", "windows", "ts5"])("rejects the profile %j", (value) => {
+    expect(() => readTsClientVersion({ WEBSPEAK_TS_CLIENT_VERSION_PROFILE: value, WEBSPEAK_TS_CLIENT_VERSION_OVERRIDE: "" })).toThrow(
+      EnvError,
+    );
+  });
+
+  it.each(["a|b", "a|b|c|d", "a||c"])("rejects the override %j", (value) => {
+    expect(() => readTsClientVersion({ WEBSPEAK_TS_CLIENT_VERSION_PROFILE: "ts3", WEBSPEAK_TS_CLIENT_VERSION_OVERRIDE: value })).toThrow(
+      new EnvError("WEBSPEAK_TS_CLIENT_VERSION_OVERRIDE must be empty or version|platform|sign"),
+    );
   });
 });

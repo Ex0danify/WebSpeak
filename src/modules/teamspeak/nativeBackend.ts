@@ -69,6 +69,8 @@ export class NativeBackend extends EventEmitter<TeamSpeakBackendEvents> implemen
       serverPassword: this.options.serverPassword,
       defaultChannel: this.options.defaultChannel,
       defaultChannelPassword: this.options.channelPassword,
+      versionProfile: this.options.versionProfile,
+      version: this.options.version,
       timeoutMs: CONNECT_TIMEOUT_MS,
       transport: { logger: this.logger },
     };
