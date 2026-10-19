@@ -116,6 +116,16 @@ jobs:
           path: test-results/visual/
           if-no-files-found: ignore
 
+  # Fails the merge when a shipped dependency has a high or critical advisory, so nothing vulnerable reaches master.
+  security-audit:
+    needs: format
+    if: ${{ !cancelled() && needs.format.result != 'failure' && needs.format.outputs.changed != 'true' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+      - run: npm run audit:ci
+
   docker-smoke:
     needs: format
     if: ${{ !cancelled() && needs.format.result != 'failure' && needs.format.outputs.changed != 'true' }}
@@ -138,7 +148,7 @@ jobs:
   # The one status to require in the branch protection. A skipped visual job (label ui) counts as passed.
   ci-pass:
     if: always()
-    needs: [format, verify, e2e, visual, docker-smoke]
+    needs: [format, verify, e2e, visual, docker-smoke, security-audit]
     runs-on: ubuntu-latest
     steps:
       - run: |
