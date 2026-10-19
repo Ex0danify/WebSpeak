@@ -1,4 +1,3 @@
-import { Qlz } from "@echosixhiya/teamspeak-client/transport";
 import { describe, expect, it } from "vitest";
 import { CAPTURE_FILES, hasCaptures, loadCapture, serverCommandParts } from "../../../../test/support/tsCaptureFixtures.js";
 import { encodePacket, openPacket, parsePacket } from "./packetCodec.js";
@@ -40,8 +39,6 @@ describe.skipIf(!hasCaptures)("packet codec against the captures", () => {
         const data = Buffer.concat(message.packetIds.map((id) => parts.get(id)!.plain!));
         const text = decompressQuickLz(data);
         expect(text.toString("utf8").startsWith(message.name)).toBe(true);
-        // Parity with the pinned SDK, removed together with the SDK.
-        expect(Buffer.from(new Qlz().decompress(data)).equals(text)).toBe(true);
       }
     });
   }

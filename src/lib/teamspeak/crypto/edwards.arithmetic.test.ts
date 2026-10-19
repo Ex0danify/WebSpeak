@@ -1,5 +1,4 @@
 import { ed25519 } from "@noble/curves/ed25519.js";
-import { generateTemporaryKey, getSharedSecret2 } from "@echosixhiya/teamspeak-client/crypto";
 import { generateKeyPairSync, randomBytes, sign } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import {
@@ -71,15 +70,6 @@ describe("legacy key exchange", () => {
     expect(privateKey.equals(clampScalar(seed))).toBe(true);
     expect(decodePoint(publicKey).equals(naiveMultiply(BASE, scalarFromBytes(privateKey)))).toBe(true);
     expect(createEphemeralKey().publicKey).toHaveLength(32);
-  });
-
-  // Parity with the pinned SDK, removed together with the SDK.
-  it("computes the same shared secret as the SDK, also for a server key with a small-order part", () => {
-    for (const server of [BASE.multiply(987654321n), BASE.multiply(42n).add(ORDER_TWO)]) {
-      const serverKey = server.toBytes();
-      const [, sdkPrivate] = generateTemporaryKey();
-      expect(legacySharedSecret(serverKey, sdkPrivate).equals(Buffer.from(getSharedSecret2(serverKey, sdkPrivate)))).toBe(true);
-    }
   });
 
   it("rejects keys that are not 32 bytes", () => {

@@ -1,9 +1,8 @@
-import { Crypt, identityFromString as sdkIdentityFromString } from "@echosixhiya/teamspeak-client/crypto";
 import { createHash, randomBytes } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { FIXTURES, fixtureFile, hasFixture } from "../../../../test/support/tsCaptureFixtures.js";
-import { AlphaPacketKeys, alphaSecrets, deriveIvStruct, LegacyPacketKeys, legacyFakeMac } from "./packetKeys.js";
+import { AlphaPacketKeys, alphaSecrets, deriveIvStruct, LegacyPacketKeys } from "./packetKeys.js";
 
 const hasFixtures = hasFixture(FIXTURES.handshakeVectors);
 
@@ -38,30 +37,6 @@ describe("LegacyPacketKeys", () => {
     }
     expect(seen.size).toBe(80);
     expect(keys.keyFor("c2s", 0, 0, 1).key.toString("hex")).toBe([...seen][0]);
-  });
-
-  // Parity with the pinned SDK, removed together with the SDK.
-  it("derives the same keys as the SDK", () => {
-    const crypt = new Crypt(sdkIdentityFromString(`${randomBytes(32).toString("base64")}:0`));
-    const alpha = randomBytes(10);
-    const beta = randomBytes(54);
-    const shared = randomBytes(64);
-    crypt.setSharedSecret(alpha, beta, shared);
-    const iv = deriveIvStruct(alpha, beta, shared);
-    expect(iv.equals(Buffer.from(crypt.ivStruct))).toBe(true);
-    expect(legacyFakeMac(iv).equals(Buffer.from(crypt.fakeSignature))).toBe(true);
-    const keys = new LegacyPacketKeys(iv);
-    for (const [fromServer, type, generation, id] of [
-      [false, 2, 0, 1],
-      [true, 2, 0, 65535],
-      [true, 0, 3, 777],
-      [false, 6, 1, 0x0100],
-    ] as const) {
-      const [sdkKey, sdkNonce] = crypt.getKeyNonce(fromServer, id, generation, type, false);
-      const ours = keys.keyFor(fromServer ? "s2c" : "c2s", type, generation, id);
-      expect(ours.key.equals(Buffer.from(sdkKey))).toBe(true);
-      expect(ours.nonce.equals(Buffer.from(sdkNonce))).toBe(true);
-    }
   });
 });
 

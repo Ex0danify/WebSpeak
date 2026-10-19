@@ -1,4 +1,3 @@
-import { Qlz } from "@echosixhiya/teamspeak-client/transport";
 import { describe, expect, it } from "vitest";
 import { compressQuickLz } from "../../../../test/support/quickLzCompressor.js";
 import { TeamSpeakTransportError } from "../errors/teamSpeakErrors.js";
@@ -36,14 +35,6 @@ describe("decompressQuickLz", () => {
   it("reads data stored without compression", () => {
     const stored = Buffer.concat([Buffer.from([0x44, 8, 5]), Buffer.from("hello")]);
     expect(decompressQuickLz(stored).toString()).toBe("hello");
-  });
-
-  // Parity with the pinned SDK, removed together with the SDK.
-  it("decompresses like the SDK", () => {
-    for (const [, input] of inputs) {
-      const compressed = compressQuickLz(input);
-      expect(Buffer.from(new Qlz().decompress(compressed)).equals(decompressQuickLz(compressed))).toBe(true);
-    }
   });
 
   const malformed: [string, Buffer][] = [

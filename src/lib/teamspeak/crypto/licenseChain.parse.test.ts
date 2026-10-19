@@ -1,5 +1,4 @@
 import { ed25519 } from "@noble/curves/ed25519.js";
-import { parseLicenses as sdkParseLicenses } from "@echosixhiya/teamspeak-client/handshake";
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { FIXTURES, fixtureFile, hasFixture } from "../../../../test/support/tsCaptureFixtures.js";
@@ -67,9 +66,10 @@ describe("parseLicenseChain", () => {
 });
 
 describe("deriveLicenseKey", () => {
-  // Parity with the pinned SDK, removed together with the SDK.
-  it("derives the same key as the SDK", () => {
-    expect(deriveLicenseKey(parseLicenseChain(sample)).equals(Buffer.from(sdkParseLicenses(sample).deriveKey()))).toBe(true);
+  it("derives a 32-byte key deterministically from a chain", () => {
+    const first = deriveLicenseKey(parseLicenseChain(sample));
+    expect(first).toHaveLength(32);
+    expect(deriveLicenseKey(parseLicenseChain(sample)).equals(first)).toBe(true);
   });
 
   it("fails with a HandshakeError on a block key that is not a point", () => {

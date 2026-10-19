@@ -50,7 +50,6 @@ describe("readGatewayEnv", () => {
       screenShareIceServers: undefined,
       adminUsername: "admin",
       adminPassword: undefined,
-      teamSpeakClient: "native",
     });
   });
 
@@ -97,12 +96,6 @@ describe("readGatewayEnv", () => {
   it("fails on a bad port or switch, naming the variable", () => {
     expect(() => readGatewayEnv({ ...GATEWAY, WEBSPEAK_PORT: "abc" })).toThrow("WEBSPEAK_PORT");
     expect(() => readGatewayEnv({ ...GATEWAY, WEBSPEAK_TRUST_PROXY: "maybe" })).toThrow("WEBSPEAK_TRUST_PROXY");
-  });
-
-  it("picks the TeamSpeak client from the optional WEBSPEAK_TS_CLIENT", () => {
-    expect(readGatewayEnv({ ...GATEWAY, WEBSPEAK_TS_CLIENT: " SDK " }).teamSpeakClient).toBe("sdk");
-    expect(readGatewayEnv({ ...GATEWAY, WEBSPEAK_TS_CLIENT: "" }).teamSpeakClient).toBe("native");
-    expect(() => readGatewayEnv({ ...GATEWAY, WEBSPEAK_TS_CLIENT: "both" })).toThrow("WEBSPEAK_TS_CLIENT must be sdk or native");
   });
 });
 

@@ -1,4 +1,3 @@
-import { EAX as SdkEax } from "@echosixhiya/teamspeak-client/crypto";
 import { randomBytes } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import { aesCmac, eaxDecrypt, eaxEncrypt } from "./eax.js";
@@ -144,17 +143,15 @@ describe("eaxEncrypt and eaxDecrypt", () => {
     expect(() => eaxEncrypt(Buffer.alloc(16), Buffer.alloc(16), Buffer.alloc(0), Buffer.alloc(0), 17)).toThrow(RangeError);
   });
 
-  // Parity with the pinned SDK, removed together with the SDK.
-  it("seals exactly like the SDK for random AES-128 packets", () => {
+  it("round-trips random AES-128 packets through encrypt and decrypt", () => {
     for (let i = 0; i < 50; i++) {
       const key = randomBytes(16);
       const nonce = randomBytes(16);
       const header = randomBytes(i % 2 ? 5 : 3);
       const plain = randomBytes(i * 10);
-      const [sdkCipher, sdkTag] = new SdkEax(key).encrypt(nonce, header, plain);
-      const ours = eaxEncrypt(key, nonce, header, plain);
-      expect(Buffer.from(sdkCipher).equals(ours.ciphertext)).toBe(true);
-      expect(Buffer.from(sdkTag).equals(ours.tag)).toBe(true);
+      const { ciphertext, tag } = eaxEncrypt(key, nonce, header, plain);
+      const opened = eaxDecrypt(key, nonce, header, ciphertext, tag);
+      expect(opened?.equals(plain)).toBe(true);
     }
   });
 });

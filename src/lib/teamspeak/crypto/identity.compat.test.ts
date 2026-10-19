@@ -1,8 +1,3 @@
-import {
-  generateIdentity as sdkGenerateIdentity,
-  getUidFromPublicKey as sdkUid,
-  identityFromString as sdkIdentityFromString,
-} from "@echosixhiya/teamspeak-client/crypto";
 import { createHash, randomBytes } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import { InvalidIdentityError } from "../errors/teamSpeakErrors.js";
@@ -22,26 +17,13 @@ import { ts3Uid, ts6Uid } from "./uid.js";
 const P256_ORDER = Buffer.from("ffffffff00000000ffffffffffffffffbce6faada7179e84f3b9cac2fc632551", "hex");
 
 describe("identityFromString", () => {
-  // Parity with the pinned SDK, removed together with the SDK.
-  it("matches the SDK on 20 random identities in both directions", () => {
-    for (let i = 0; i < 20; i++) {
-      const text = `${randomBytes(32).toString("base64")}:${BigInt(i) * 7919n}`;
-      const sdk = sdkIdentityFromString(text);
-      const ours = identityFromString(text);
-      expect(ours.toString()).toBe(sdk.toString());
-      expect(ours.publicKeyBase64).toBe(sdk.publicKeyBase64());
-      expect(ours.securityLevel()).toBe(sdk.securityLevel());
-      expect(ts3Uid(ours.publicKeyBase64)).toBe(sdkUid(sdk.publicKeyBase64()));
-    }
-    const fromSdk = sdkGenerateIdentity(8).toString();
-    expect(identityFromString(fromSdk).toString()).toBe(fromSdk);
-    const fromUs = generateIdentity(8);
-    expect(sdkIdentityFromString(fromUs.toString()).publicKeyBase64()).toBe(fromUs.publicKeyBase64);
+  it("round-trips a generated identity through its string form", () => {
+    const text = generateIdentity(8).toString();
+    expect(identityFromString(text).toString()).toBe(text);
   });
 
-  it("pads a short private key at the front like the SDK", () => {
+  it("pads a short private key at the front", () => {
     const short = `${randomBytes(30).toString("base64")}:5`;
-    expect(identityFromString(short).toString()).toBe(sdkIdentityFromString(short).toString());
     expect(identityFromString(short).toString()).toMatch(/^AA/);
   });
 

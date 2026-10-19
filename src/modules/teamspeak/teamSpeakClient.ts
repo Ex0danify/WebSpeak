@@ -9,7 +9,6 @@ import {
   TextMessageTarget,
   type Identity,
 } from "../../lib/teamspeak/index.js";
-import { readTeamSpeakClientKind } from "../../config/env.js";
 import type { Logger } from "../../shared/logger.js";
 import { describeTeamSpeakError, normalizeTeamSpeakError } from "../../shared/errors.js";
 import { createCommandPacer } from "./commandPacer.js";
@@ -18,7 +17,6 @@ import { InputMuteSync } from "./inputMuteSync.js";
 import { OutputMuteSync } from "./outputMuteSync.js";
 import { sendStreamCommand } from "./teamSpeakStreamCommand.js";
 import { NativeBackend } from "./nativeBackend.js";
-import { SdkBackend } from "./sdkBackend.js";
 import type { TeamSpeakBackend, TeamSpeakBackendEvents, TeamSpeakBackendFactory, TSClientAvatar } from "./teamSpeakBackend.js";
 import type { TeamSpeakProtocol } from "../../shared/teamSpeakProtocol.js";
 import type { TeamSpeakTarget } from "../../shared/teamSpeakTarget.js";
@@ -37,8 +35,7 @@ export interface TSClientOptions {
 export type { TSClientAvatar };
 export type * from "./teamSpeakMessages.js";
 
-const createDefaultBackend: TeamSpeakBackendFactory = (options, logger) =>
-  readTeamSpeakClientKind() === "native" ? new NativeBackend(options, logger) : new SdkBackend(options, logger);
+const createDefaultBackend: TeamSpeakBackendFactory = (options, logger) => new NativeBackend(options, logger);
 
 // Re-emitted as they come, the rest needs TSClient's own bookkeeping first.
 const FORWARDED_EVENTS = [

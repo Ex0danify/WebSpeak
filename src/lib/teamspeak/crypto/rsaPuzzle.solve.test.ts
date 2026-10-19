@@ -1,5 +1,3 @@
-import { Crypt, identityFromString as sdkIdentityFromString } from "@echosixhiya/teamspeak-client/crypto";
-import { randomBytes } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import { HandshakeError } from "../errors/teamSpeakErrors.js";
 import { MAX_PUZZLE_LEVEL, solveRsaPuzzle } from "./rsaPuzzle.js";
@@ -14,16 +12,6 @@ describe("solveRsaPuzzle", () => {
     for (let i = 0; i < 10; i++) expected = (expected * expected) % n;
     expect(solveRsaPuzzle(number(x), number(n), 10).equals(number(expected))).toBe(true);
     expect(solveRsaPuzzle(number(n + 5n), number(n), 0).equals(number(5n))).toBe(true);
-  });
-
-  // Parity with the pinned SDK, removed together with the SDK.
-  it("answers like the SDK for a random puzzle", () => {
-    const x = randomBytes(64);
-    const n = randomBytes(64);
-    n[0] |= 0x80;
-    const crypt = new Crypt(sdkIdentityFromString(`${randomBytes(32).toString("base64")}:0`));
-    const sdk = crypt.solveRsaChallenge(Buffer.concat([x, n]), 0, 5000);
-    expect(solveRsaPuzzle(x, n, 5000).equals(Buffer.from(sdk))).toBe(true);
   });
 
   it("rejects bad sizes, levels and moduli", () => {
