@@ -2,7 +2,17 @@ import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { EnvError, loadEnvFile, parsePort, parseSwitch, readDataDir, readGatewayEnv, readMode, readRelayEnv, readTsClientVersion } from "./env.js";
+import {
+  EnvError,
+  loadEnvFile,
+  parsePort,
+  parseSwitch,
+  readDataDir,
+  readGatewayEnv,
+  readMode,
+  readRelayEnv,
+  readTsClientVersion,
+} from "./env.js";
 
 const GATEWAY = {
   WEBSPEAK_ADMIN_USERNAME: "admin",
@@ -88,7 +98,12 @@ describe("readGatewayEnv", () => {
   });
 
   it("accepts an empty value only where .env.example leaves it empty", () => {
-    for (const name of ["WEBSPEAK_ADMIN_PASSWORD", "WEBSPEAK_HOST", "WEBSPEAK_SCREEN_SHARE_ICE_SERVERS", "WEBSPEAK_TS_CLIENT_VERSION_OVERRIDE"]) {
+    for (const name of [
+      "WEBSPEAK_ADMIN_PASSWORD",
+      "WEBSPEAK_HOST",
+      "WEBSPEAK_SCREEN_SHARE_ICE_SERVERS",
+      "WEBSPEAK_TS_CLIENT_VERSION_OVERRIDE",
+    ]) {
       expect(() => readGatewayEnv({ ...GATEWAY, [name]: "" })).not.toThrow();
     }
     for (const name of ["WEBSPEAK_PORT", "WEBSPEAK_DATA_DIR", "WEBSPEAK_TRUST_PROXY", "WEBSPEAK_TS_CLIENT_VERSION_PROFILE"]) {

@@ -107,11 +107,7 @@ describe("alphaSecrets", () => {
 
     it.skipIf(!vector())("reproduces the sharedIv and fake MAC", () => {
       const v = vector()!;
-      const { sharedIv, fakeMac } = alphaSecrets(
-        Buffer.from(v.ecdh, "hex"),
-        Buffer.from(v.alpha, "hex"),
-        Buffer.from(v.beta, "hex"),
-      );
+      const { sharedIv, fakeMac } = alphaSecrets(Buffer.from(v.ecdh, "hex"), Buffer.from(v.alpha, "hex"), Buffer.from(v.beta, "hex"));
       expect(sharedIv.toString("hex")).toBe(v.sharedIV);
       expect(fakeMac.toString("hex")).toBe(v.fakeMac);
     });

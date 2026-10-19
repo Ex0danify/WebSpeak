@@ -4,7 +4,14 @@
 import { generateKeyPairSync, sign as edSign } from "node:crypto";
 import { createEphemeralKey, legacySharedSecret } from "../../src/lib/teamspeak/crypto/edwards.js";
 import { generateIdentity, importTsPublicKey, verifyTsSignature } from "../../src/lib/teamspeak/crypto/identity.js";
-import { AlphaPacketKeys, alphaSecrets, deriveIvStruct, DUMMY_PACKET_KEY_256, LegacyPacketKeys, legacyFakeMac } from "../../src/lib/teamspeak/crypto/packetKeys.js";
+import {
+  AlphaPacketKeys,
+  alphaSecrets,
+  deriveIvStruct,
+  DUMMY_PACKET_KEY_256,
+  LegacyPacketKeys,
+  legacyFakeMac,
+} from "../../src/lib/teamspeak/crypto/packetKeys.js";
 import { solveRsaPuzzle } from "../../src/lib/teamspeak/crypto/rsaPuzzle.js";
 import { createX25519Key, x25519SharedSecret } from "../../src/lib/teamspeak/crypto/x25519.js";
 import { alphaProofData } from "../../src/lib/teamspeak/handshake/alphaExpand.js";
@@ -159,7 +166,8 @@ export function createLoopbackServer(channel: DatagramChannel, options: Loopback
   const onClientivxAlpha = (row: CommandRow) => {
     const clientEps = Buffer.from(row.epsilon, "base64");
     const key = importTsPublicKey(clientOmega);
-    if (!key || !verifyTsSignature(key, alphaProofData(clientEps, ALPHA_TIME), Buffer.from(row.proof, "base64"))) return server.handler.close();
+    if (!key || !verifyTsSignature(key, alphaProofData(clientEps, ALPHA_TIME), Buffer.from(row.proof, "base64")))
+      return server.handler.close();
     const { sharedIv, fakeMac } = alphaSecrets(x25519SharedSecret(serverX25519.privateKey, clientEps), alpha!, betaAlpha);
     server.ivStruct = sharedIv;
     server.handler.switchKeys({ keys: new AlphaPacketKeys(sharedIv), fakeMac });
