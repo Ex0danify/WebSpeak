@@ -43,6 +43,8 @@ export interface LegacyHandshakeOptions extends ClientInitOptions {
   testSeams?: Pick<LegacyExpandOptions, "ephemeralSeed" | "deriveServerKey">;
 }
 
+// `auto` keys off the named `ts6` profile. An explicit `version` carries no such hint, so pick the
+// handshake with `handshake` directly when overriding the version.
 function resolveHandshake(options: LegacyHandshakeOptions): "legacy" | "alpha" {
   if (options.handshake === "auto") return options.versionProfile === "ts6" ? "alpha" : "legacy";
   return options.handshake ?? "legacy";

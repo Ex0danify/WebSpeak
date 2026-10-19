@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import type { Identity } from "../crypto/identity.js";
 import { buildCommand, type CommandValue } from "../wire/commandText.js";
-import { VERSION_PROFILES, type VersionProfileName } from "./versionProfiles.js";
+import { VERSION_PROFILES, type VersionProfile, type VersionProfileName } from "./versionProfiles.js";
 
 export interface ClientInitOptions {
   nickname: string;
@@ -11,6 +11,8 @@ export interface ClientInitOptions {
   defaultChannelPassword?: string;
   /** Default `ts3`, what the gateway sent so far. */
   versionProfile?: VersionProfileName;
+  /** An explicit version to send instead of a named profile. Wins over `versionProfile` when set. */
+  version?: VersionProfile;
 }
 
 /** Passwords go out as `base64(sha1(password))`, an empty one stays empty. */
@@ -30,7 +32,7 @@ export function buildClientInitIv(alpha: Uint8Array, identity: Identity, withAlp
 }
 
 export function buildClientInit(identity: Identity, options: ClientInitOptions): string {
-  const profile = VERSION_PROFILES[options.versionProfile ?? "ts3"];
+  const profile = options.version ?? VERSION_PROFILES[options.versionProfile ?? "ts3"];
   const fields: [string, CommandValue][] = [
     ["client_nickname", options.nickname],
     ["client_version", profile.version],

@@ -54,6 +54,24 @@ describe("clientinit", () => {
     expect(parseCommand(text).rows[0]).toMatchObject({ client_version: VERSION_PROFILES.ts6.version, client_platform: "Linux" });
   });
 
+  it("sends an explicit version over the named profile", () => {
+    const version = {
+      version: "6.1.0 [Build: 9999]",
+      platform: "Linux",
+      sign: "Zm9vYmFyc2lnbmF0dXJlZm9vYmFyc2lnbmF0dXJlZm9vYmFyc2lnbmF0dXJlAA==",
+      emptyFields: ["client_default_token"],
+    };
+    const text = buildClientInit(identity, { nickname: "n", versionProfile: "ts3", version });
+    const row = parseCommand(text).rows[0];
+    expect(row).toMatchObject({ client_version: version.version, client_platform: "Linux", client_version_sign: version.sign });
+    expect(keys(text).slice(10)).toEqual(["client_key_offset", "client_default_token", "hwid"]);
+  });
+
+  it("falls back to the ts3 profile without a version", () => {
+    const row = parseCommand(buildClientInit(identity, { nickname: "n" })).rows[0];
+    expect(row.client_version_sign).toBe(VERSION_PROFILES.ts3.sign);
+  });
+
   it("hashes passwords and keeps the default channel", () => {
     const row = parseCommand(
       buildClientInit(identity, { nickname: "n", serverPassword: "pw", defaultChannel: "/7", defaultChannelPassword: "chan" }),
