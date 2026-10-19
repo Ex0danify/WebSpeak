@@ -2,6 +2,7 @@ import { createRequire } from "node:module";
 import { describe, expect, it } from "vitest";
 import { decodeOpus, sineFrames } from "../../../../test/support/audio.js";
 import { WebRtcMixer, type WebRtcMixerStats } from "./webrtcMixer.js";
+import { createOpusCodec } from "../voiceOpus.js";
 
 const require = createRequire(import.meta.url);
 const { OpusEncoder } = require("@discordjs/opus") as {
@@ -18,7 +19,7 @@ const newStats = (): WebRtcMixerStats => ({
   webrtcDownlinkDecodeErrors: 0,
   webrtcDownlinkShortFrames: 0,
 });
-const newMixer = (stats = newStats()) => ({ stats, mixer: new WebRtcMixer(new OpusEncoder(48_000, 1), stats, logger) });
+const newMixer = (stats = newStats()) => ({ stats, mixer: new WebRtcMixer(createOpusCodec(48_000, 1), stats, logger) });
 const opusFrames = (hz: number, count: number): Buffer[] => {
   const encoder = new OpusEncoder(48_000, 1);
   return sineFrames(hz, count).map((pcm) => encoder.encode(pcm));

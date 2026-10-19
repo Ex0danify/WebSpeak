@@ -71,6 +71,7 @@ export async function cleanupEntry(entry: WebClientEntry, reason: SessionTeardow
     clearTimeout(entry.reconnectTimer);
     entry.reconnectTimer = null;
   }
+  entry.opusEncoder?.dispose();
   entry.opusEncoder = null;
   const webRtc = entry.webrtc;
   entry.webrtc = null;
