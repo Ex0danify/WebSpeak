@@ -1,6 +1,6 @@
 import { createSocket, type RemoteInfo, type Socket } from "node:dgram";
 import { afterEach, describe, expect, it } from "vitest";
-import { INIT_VERSION } from "@echosixhiya/teamspeak-client/handshake";
+import { INIT_VERSION } from "../../lib/teamspeak/index.js";
 import { buildInitPacket, probeTeamSpeak, readInitAnswer, TeamSpeakProbeError } from "./teamSpeakProbe.js";
 
 // Probe against a real loopback UDP socket playing the TS server: answers the first packet,

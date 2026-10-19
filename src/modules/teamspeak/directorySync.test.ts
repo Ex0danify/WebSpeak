@@ -1,4 +1,8 @@
-import type { ChannelInfo, ClientInfo, DirectoryClientInfo } from "@echosixhiya/teamspeak-client";
+import type {
+  TSClientInfo as ClientInfo,
+  TSDirectoryChannel as ChannelInfo,
+  TSDirectoryClient as DirectoryClientInfo,
+} from "./teamSpeakMessages.js";
 import { describe, expect, it } from "vitest";
 import { DirectorySynchronizer } from "./directorySync.js";
 import type { TSDirectorySnapshot } from "./teamSpeakClient.js";

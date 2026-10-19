@@ -1,7 +1,7 @@
 import express from "express";
-import { identityFromString } from "@echosixhiya/teamspeak-client";
 import { resolveSafeOpenTarget } from "../../../infra/security/openTargetPolicy.js";
 import type { JoinRateLimiter, ServerPasswordBackoff } from "../../../modules/join/index.js";
+import { identityFromString } from "../../../modules/teamspeak/index.js";
 import { isRecord } from "../../../shared/typeGuards.js";
 import { clientRateLimitKey } from "../../../shared/http/clientIp.js";
 import { isSameOrigin } from "../../../shared/http/sameOrigin.js";

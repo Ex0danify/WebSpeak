@@ -86,6 +86,7 @@ async function runGateway(env: GatewayEnv): Promise<void> {
       // standalone relay process and must not bring the relay option back after an admin disabled it.
       acceleration: () => adminService.getAccelerationRelayOptions(),
       accelerationName: () => adminService.getAccelerationRelayName(),
+      clientVersion: env.tsClientVersion,
     },
     adminService,
     logger,

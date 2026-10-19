@@ -1,4 +1,4 @@
-import { generateIdentity } from "@echosixhiya/teamspeak-client";
+import { generateIdentity } from "../../../lib/teamspeak/index.js";
 import { describe, expect, it, vi } from "vitest";
 import { FakeTeamSpeakServer } from "../../../../test/support/fakeTsClient.js";
 import { useGateway } from "../../../../test/support/gateway.js";

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ServerError } from "@echosixhiya/teamspeak-client";
+import { TeamSpeakServerError } from "../../src/lib/teamspeak/index.js";
 import { clientConnectionFailureCode, normalizeTeamSpeakError } from "../../src/shared/errors.js";
 import type { TSClientOptions } from "../../src/modules/teamspeak/teamSpeakClient.js";
 import { FakeTeamSpeakServer, type FakeServerOptions, type FakeTSClient } from "./fakeTsClient.js";
@@ -229,7 +229,7 @@ describe("channel rules", () => {
     const alice = make("alice");
     await alice.connect();
     expect(normalizeTeamSpeakError(await alice.switchChannel(2n).catch((e: unknown) => e)).code).toBe("channel_password_required");
-    await expect(alice.switchChannel(2n, "wrong")).rejects.toMatchObject({ id: "781" });
+    await expect(alice.switchChannel(2n, "wrong")).rejects.toMatchObject({ id: 781 });
     await alice.switchChannel(2n, "open");
     expect(alice.getChannelId()).toBe(2n);
   });
@@ -238,7 +238,7 @@ describe("channel rules", () => {
     const { make } = setup();
     const alice = make("alice");
     await alice.connect();
-    await expect(alice.switchChannel(99n)).rejects.toBeInstanceOf(ServerError);
+    await expect(alice.switchChannel(99n)).rejects.toBeInstanceOf(TeamSpeakServerError);
   });
 });
 
@@ -250,8 +250,8 @@ describe("move permission", () => {
     await guest.connect();
     await bob.connect();
     const error = await guest.moveClient(bob.getClientId(), 2n).catch((e: unknown) => e);
-    expect(error).toBeInstanceOf(ServerError);
-    expect((error as ServerError).id).toBe("2568");
+    expect(error).toBeInstanceOf(TeamSpeakServerError);
+    expect((error as TeamSpeakServerError).id).toBe(2568);
     expect(bob.getChannelId()).toBe(1n);
     expect(server.members.get(bob.getClientId())!.channelID).toBe(1n);
   });

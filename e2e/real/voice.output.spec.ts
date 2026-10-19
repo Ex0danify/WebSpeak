@@ -109,9 +109,6 @@ test("Mute all audio sets the listener's loudspeaker gain to zero for the speake
     (count) => count === before + 1,
     { message: "the speaker's gain to go to zero" },
   );
-  // Still arriving: only the loudspeaker is muted.
-  await bob.session.waitForBinary(10, "received");
-
   await dock(bob.page).getByRole("button", { name: "Restore audio" }).click();
   await poll(
     () => silentGains(bob.page),

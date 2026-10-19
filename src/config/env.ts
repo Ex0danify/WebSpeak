@@ -55,6 +55,40 @@ export function parseSwitch(value: string, name: string): boolean {
   throw new EnvError(`${name} must be 1 or 0`);
 }
 
+const TS_CLIENT_PROFILES = ["ts3", "ts6"] as const;
+export type TsClientProfile = (typeof TS_CLIENT_PROFILES)[number];
+
+export interface TsClientVersion {
+  /** The built-in version profile to present. */
+  profile: TsClientProfile;
+  /** Operator-supplied build and signature that replace the profile's, e.g. for a client newer than the build. */
+  override?: { version: string; platform: string; sign: string };
+}
+
+function parseTsClientProfile(value: string): TsClientProfile {
+  const profile = value.trim().toLowerCase();
+  if ((TS_CLIENT_PROFILES as readonly string[]).includes(profile)) return profile as TsClientProfile;
+  throw new EnvError(`WEBSPEAK_TS_CLIENT_VERSION_PROFILE must be one of ${TS_CLIENT_PROFILES.join(", ")}`);
+}
+
+/** `version|platform|sign`, or empty for the profile's own values. */
+function parseTsClientOverride(value: string): TsClientVersion["override"] {
+  const raw = value.trim();
+  if (!raw) return undefined;
+  const parts = raw.split("|").map((part) => part.trim());
+  if (parts.length !== 3 || parts.some((part) => part === "")) {
+    throw new EnvError("WEBSPEAK_TS_CLIENT_VERSION_OVERRIDE must be empty or version|platform|sign");
+  }
+  return { version: parts[0], platform: parts[1], sign: parts[2] };
+}
+
+export function readTsClientVersion(env: NodeJS.ProcessEnv = process.env): TsClientVersion {
+  return {
+    profile: parseTsClientProfile(text(env, "WEBSPEAK_TS_CLIENT_VERSION_PROFILE")),
+    override: parseTsClientOverride(text(env, "WEBSPEAK_TS_CLIENT_VERSION_OVERRIDE")),
+  };
+}
+
 export type RunMode = "gateway" | "relay";
 
 export function readMode(env: NodeJS.ProcessEnv = process.env): RunMode {
@@ -82,6 +116,7 @@ export interface GatewayEnv {
   /** The raw bootstrap credentials, checked where the account is created. Only used on a fresh database. */
   adminUsername: string;
   adminPassword: string | undefined;
+  tsClientVersion: TsClientVersion;
 }
 
 export function readGatewayEnv(env: NodeJS.ProcessEnv = process.env): GatewayEnv {
@@ -93,6 +128,8 @@ export function readGatewayEnv(env: NodeJS.ProcessEnv = process.env): GatewayEnv
     "WEBSPEAK_DATA_DIR",
     "WEBSPEAK_TRUST_PROXY",
     "WEBSPEAK_SCREEN_SHARE_ICE_SERVERS",
+    "WEBSPEAK_TS_CLIENT_VERSION_PROFILE",
+    "WEBSPEAK_TS_CLIENT_VERSION_OVERRIDE",
   ]);
   return {
     host: text(env, "WEBSPEAK_HOST") || undefined,
@@ -102,6 +139,7 @@ export function readGatewayEnv(env: NodeJS.ProcessEnv = process.env): GatewayEnv
     screenShareIceServers: text(env, "WEBSPEAK_SCREEN_SHARE_ICE_SERVERS") || undefined,
     adminUsername: text(env, "WEBSPEAK_ADMIN_USERNAME"),
     adminPassword: env.WEBSPEAK_ADMIN_PASSWORD || undefined,
+    tsClientVersion: readTsClientVersion(env),
   };
 }
 

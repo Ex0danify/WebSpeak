@@ -4,7 +4,7 @@ Where code lives, which way imports point, how files are named, and which gates 
 
 ## Overview
 
-The browser talks to the gateway over one WebSocket (`modules/voice`) and a few HTTP routes (`transport/http`). The gateway joins TeamSpeak 3 and TeamSpeak 6 servers through the TeamSpeak client library (`modules/teamspeak`) and carries voice and screen share between them and the browsers (`modules/voice`, `modules/screenShare`, optionally over WebRTC). `modules/admin` serves the administration console; its settings, invites and sessions live in SQLite (`node:sqlite`, `infra/persistence`). With `WEBSPEAK_MODE=relay`, `index.ts` starts only the acceleration relay (`modules/relay`) instead of the gateway; `relay.ts` is a standalone entry point for the same relay.
+The browser talks to the gateway over one WebSocket (`modules/voice`) and a few HTTP routes (`transport/http`). The gateway joins TeamSpeak 3 and TeamSpeak 6 servers through its own in-repo TeamSpeak client (`lib/teamspeak`, driven by `modules/teamspeak`) and carries voice and screen share between them and the browsers (`modules/voice`, `modules/screenShare`, optionally over WebRTC). `modules/admin` serves the administration console; its settings, invites and sessions live in SQLite (`node:sqlite`, `infra/persistence`). With `WEBSPEAK_MODE=relay`, `index.ts` starts only the acceleration relay (`modules/relay`) instead of the gateway; `relay.ts` is a standalone entry point for the same relay.
 
 ## Principles
 
@@ -92,6 +92,8 @@ A feature folder past about ten files gets sub-folders by sub-feature, or by rol
 ```
 src/
   index.ts  relay.ts          # composition roots (dist/index.js and dist/relay.js are the deploy paths)
+  lib/
+    teamspeak/                # own TeamSpeak client, public API in index.ts
   shared/                     # logger, errors, constants, messageCodes, teamSpeakTarget, teamSpeakProtocol, typeGuards, tokenBucket, http/
   config/                     # env (all settings from .env), webrtcConfig
   infra/
@@ -113,8 +115,11 @@ src/
 
 ```
 index/relay  ->  transport  ->  modules  ->  infra  ->  config  ->  shared
+                                  modules/teamspeak  ->  lib
 ```
 
+- `lib/` holds self-contained libraries that could become npm packages. A `lib/` folder imports nothing else from `src/`. `lib/teamspeak` uses `node:*` and `@noble/curves` only, and only `modules/teamspeak` imports it, through its `index.ts`.
+- Inside `lib/teamspeak/` the order is `data < errors < wire < crypto < transport < handshake < command < session < client`: a folder imports only folders to its left. `discovery/` and `fileTransfer/` import `data`, `errors` and `wire` only, and only `client/` imports them.
 - Inside `modules/` the order is `relay < teamspeak < join < screenShare < voice < admin`: a module imports only modules to its left, through their `index.ts`.
 - `screenShare` never imports `voice`. `voice/audio/` and `voice/webrtc/` never import each other. `voice/session/` never imports `voice/messages/`.
 - `voice/directory/` is a leaf: it imports no other voice subfolder. No voice subfolder imports `voiceBridge.ts`; the bridge assembles them, not the reverse.

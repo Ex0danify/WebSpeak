@@ -2,7 +2,7 @@ import { mkdtempSync, rmSync, statSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { getUidFromPublicKey, identityFromString } from "@echosixhiya/teamspeak-client";
+import { identityFromString, ts3Uid } from "../src/lib/teamspeak/index.js";
 import { IdentityStore, serverUidOf, storageStateFor } from "../e2e/real/identities";
 
 const dirs: string[] = [];
@@ -35,14 +35,14 @@ describe("seeded identities", () => {
     expect(identityFromString(store.get(0).privateMaterial).securityLevel()).toBeGreaterThanOrEqual(8);
   });
 
-  it("names them the way TeamSpeak 6 does, SHA-256 of the public key, which is not the SDK's SHA-1 UID", () => {
+  it("names them the way TeamSpeak 6 does, SHA-256 of the public key, which is not the TeamSpeak 3 SHA-1 UID", () => {
     const { store } = tempStore();
     const { privateMaterial, uid } = store.get(0);
-    const publicKey = identityFromString(privateMaterial).publicKeyBase64();
+    const publicKey = identityFromString(privateMaterial).publicKeyBase64;
     expect(uid).toBe(serverUidOf(publicKey));
     expect(uid).toHaveLength(44);
-    expect(getUidFromPublicKey(publicKey)).toHaveLength(28);
-    expect(getUidFromPublicKey(publicKey)).not.toBe(uid);
+    expect(ts3Uid(publicKey)).toHaveLength(28);
+    expect(ts3Uid(publicKey)).not.toBe(uid);
   });
 
   it("reproduces the UID a real TeamSpeak 6 server reported for a known public key", () => {
@@ -50,7 +50,7 @@ describe("seeded identities", () => {
     // with this public key. SHA-1 of the same key is jLjx5pIMJszva8Z6CM51YeSQyNI=.
     const publicKey = "ME0DAgcAAgEgAiEAht8kWseAlIxVe0M9FD3buO6Dt3wn1tKDlmcP81X0vQ0CIQCoeJwd6WkaZ40RT/vKF3J/t6PRmKmEUyPwqg9qvnrG0Q==";
     expect(serverUidOf(publicKey)).toBe("5xNaN5EbsO/Ccg929pS4u2awXacScXRizfuG/oSlNX8=");
-    expect(getUidFromPublicKey(publicKey)).toBe("jLjx5pIMJszva8Z6CM51YeSQyNI=");
+    expect(ts3Uid(publicKey)).toBe("jLjx5pIMJszva8Z6CM51YeSQyNI=");
   });
 
   it("keeps the private keys readable by the owner only", () => {

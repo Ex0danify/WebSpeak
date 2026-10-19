@@ -1,8 +1,5 @@
-import { Client as TeamSpeakClient, generateIdentity, type ClientOptions, type Identity } from "@echosixhiya/teamspeak-client";
-import type { Logger } from "../../shared/logger.js";
-import { normalizeTeamSpeakError } from "../../shared/errors.js";
 import type { TeamSpeakProtocol } from "../../shared/teamSpeakProtocol.js";
-import { formatTeamSpeakTarget, teamSpeakTargetKey, type TeamSpeakTarget } from "../../shared/teamSpeakTarget.js";
+import { teamSpeakTargetKey, type TeamSpeakTarget } from "../../shared/teamSpeakTarget.js";
 
 interface CacheEntry {
   protocol: TeamSpeakProtocol;
@@ -50,92 +47,6 @@ export class EndpointProtocolCache {
 }
 
 export const endpointProtocolCache = new EndpointProtocolCache();
-
-const TEAM_SPEAK_CONNECT_TIMEOUT_MS = 15_000;
-
-export interface TeamSpeakAdapterOptions {
-  target: TeamSpeakTarget;
-  nickname: string;
-  identity?: Identity;
-  serverPassword?: string;
-  defaultChannel?: string;
-  channelPassword?: string;
-}
-
-/**
- * The SDK negotiates TS3 vs TS6 on the wire itself. This adapter is the only place that knows the SDK
- * and it remembers the server generation we saw for later connections.
- */
-export class TeamSpeakAdapter {
-  readonly client: TeamSpeakClient;
-  readonly identity: Identity;
-  private detectedProtocol: TeamSpeakProtocol | null = null;
-
-  constructor(
-    options: TeamSpeakAdapterOptions,
-    private readonly logger: Logger,
-    private readonly protocolCache: EndpointProtocolCache = endpointProtocolCache,
-  ) {
-    this.identity = options.identity ?? generateIdentity(8);
-    const clientOptions: ClientOptions = {
-      serverPassword: options.serverPassword,
-      defaultChannel: options.defaultChannel,
-      defaultChannelPassword: options.channelPassword,
-      logger: {
-        debug: (msg: string) => this.logger.debug(msg),
-        info: (msg: string) => this.logger.info(msg),
-        warn: (msg: string) => this.logger.warn(msg),
-        error: (msg: string) => this.logger.error(msg),
-      },
-    };
-    this.client = new TeamSpeakClient(this.identity, formatTeamSpeakTarget(options.target), options.nickname, clientOptions);
-    this.target = options.target;
-  }
-
-  private readonly target: TeamSpeakTarget;
-
-  async connect(): Promise<void> {
-    const cachedProtocol = this.protocolCache.get(this.target);
-    this.logger.info({ target: formatTeamSpeakTarget(this.target), cachedProtocol }, "Connecting through TeamSpeak adapter");
-    try {
-      await this.client.connect();
-      await this.client.waitConnected(AbortSignal.timeout(TEAM_SPEAK_CONNECT_TIMEOUT_MS));
-    } catch (error: unknown) {
-      await this.client.disconnect().catch(() => undefined);
-      throw normalizeTeamSpeakError(error);
-    }
-
-    const observedProtocol = await this.detectProtocol();
-    this.detectedProtocol = observedProtocol ?? cachedProtocol ?? null;
-    if (observedProtocol) this.protocolCache.set(this.target, observedProtocol);
-  }
-
-  get protocol(): TeamSpeakProtocol | null {
-    return this.detectedProtocol;
-  }
-
-  async disconnect(): Promise<void> {
-    try {
-      await this.client.disconnect();
-    } catch {
-      // Teardown must remain safe when the transport has already gone away.
-    }
-  }
-
-  private async detectProtocol(): Promise<TeamSpeakProtocol | null> {
-    try {
-      const rows = await this.client.execCommandWithResponse("version", 3000);
-      const versionText = rows
-        .flatMap((row) => Object.values(row))
-        .filter((value): value is string => typeof value === "string")
-        .join(" ");
-      return detectTeamSpeakProtocol(versionText);
-    } catch {
-      // Version discovery is only an optimization, a successful connection is enough.
-      return null;
-    }
-  }
-}
 
 export function detectTeamSpeakProtocol(versionText: string): TeamSpeakProtocol | null {
   const text = versionText.trim().toLocaleLowerCase();

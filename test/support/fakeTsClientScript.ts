@@ -1,6 +1,5 @@
-import type { DirectoryClientInfo } from "@echosixhiya/teamspeak-client";
 import type { TeamSpeakProtocol } from "../../src/shared/teamSpeakProtocol.js";
-import type { TSChatScope } from "../../src/modules/teamspeak/teamSpeakClient.js";
+import type { TSChatScope, TSDirectoryClient as DirectoryClientInfo } from "../../src/modules/teamspeak/teamSpeakClient.js";
 import type { FakeTeamSpeakServer, FakeTSClient } from "./fakeTsClient.js";
 
 /** Scripting pieces of the fake server: options, default channels and FakeRemoteMember (a member without a bridge session). */

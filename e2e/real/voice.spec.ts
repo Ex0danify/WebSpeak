@@ -1,7 +1,8 @@
 import type { Locator, Page } from "@playwright/test";
-import { memberRow, withAudioTone } from "../helpers";
+import { memberRow, poll, withAudioTone } from "../helpers";
 import { AudioCounters, expectQuiet } from "./counters";
 import { expect, test, type Person } from "./fixtures";
+import { clientIdOf } from "./ui";
 
 // Voice through the real TeamSpeak server. Both browsers' fake microphones play a steady 1000 Hz tone, so audio flows until
 // muted. Asserts what the gateway counts (the admin sessions API) and what the browsers see, never what a socket sniffer
@@ -67,23 +68,28 @@ test("muting the microphone stops the voice at the browser, the gateway and the 
   expect((await counters.read(alice.nickname)).ingressFrames).toBeGreaterThan(whileMuted.ingressFrames);
 });
 
-test("Mute all audio is local: the voice keeps arriving at the listener's browser, and Restore audio undoes it", async ({
+test("Mute all audio deafens the listener on the server, which stops the voice to them, and Restore audio brings it back", async ({
   person,
   gateway,
+  query,
 }) => {
-  // There is no deafen state on the wire and the loudspeaker gain lives inside the browser's AudioContext where a test cannot
-  // read it. A real-server test can show that deafening changes nothing upstream of the browser's output.
+  // Muting sends TeamSpeak's output-muted flag, so others see the listener deafened and the server stops forwarding voice to them.
   const { alice, bob } = await twoInARoom(person);
   const counters = await AudioCounters.of(gateway);
   await bob.session.waitForBinary(10, "received");
+  const outputMuted = async () => {
+    const [info] = await query.call("clientinfo", { clid: await clientIdOf(query, bob.nickname) });
+    return info?.client_output_muted;
+  };
 
   await dock(bob.page).getByRole("button", { name: "Mute all audio" }).click();
   await expect(dock(bob.page).getByRole("button", { name: "Restore audio" })).toHaveAttribute("aria-pressed", "true");
-  const before = (await counters.read(bob.nickname)).egressFrames;
-  await bob.session.waitForBinary(25, "received");
-  await counters.until(bob.nickname, (audio) => audio.egressFrames >= before + 25);
+  await poll(outputMuted, (flag) => flag === "1", { message: "the server to show Bob deafened" });
+  await expectQuiet(async () => (await counters.read(bob.nickname)).tsReceiveFrames, "the voice TeamSpeak sends to Bob");
   await alice.session.waitForBinary(10, "sent");
 
   await dock(bob.page).getByRole("button", { name: "Restore audio" }).click();
   await expect(dock(bob.page).getByRole("button", { name: "Mute all audio" })).toHaveAttribute("aria-pressed", "false");
+  await poll(outputMuted, (flag) => flag === "0", { message: "the server to show Bob listening again" });
+  await bob.session.waitForBinary(10, "received");
 });

@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { generateIdentity, ServerError } from "@echosixhiya/teamspeak-client";
+import { generateIdentity, TeamSpeakServerError } from "../../../lib/teamspeak/index.js";
 import { describe, expect, it, vi } from "vitest";
 import { FakeTeamSpeakServer } from "../../../../test/support/fakeTsClient.js";
 import { type Gateway, useGateway } from "../../../../test/support/gateway.js";
@@ -43,15 +43,19 @@ describe("a join that TeamSpeak refuses", () => {
   it("reports a banned identity as BANNED", async () => {
     const gateway = await gateways.start();
     const identity = generateIdentity(8);
-    gateway.ts.bannedUids.add(createHash("sha1").update(identity.publicKeyBase64()).digest("base64"));
+    gateway.ts.bannedUids.add(createHash("sha1").update(identity.publicKeyBase64).digest("base64"));
     const { messages, closed } = await failedJoin(gateway, { identity: identity.toString() });
     expect(messages[0]).toMatchObject({ type: "connectionFailed", code: "BANNED" });
     expect(closed).toEqual({ code: 4003, reason: "BANNED" });
   });
 
   it.each([
-    { what: "a nickname that is taken", error: new ServerError("513", "nickname is already in use"), code: "NICKNAME_IN_USE" },
-    { what: "a full server", error: new ServerError("1796", "server is full"), code: "SERVER_FULL" },
+    {
+      what: "a nickname that is taken",
+      error: new TeamSpeakServerError({ id: 513, serverMessage: "nickname is already in use" }),
+      code: "NICKNAME_IN_USE",
+    },
+    { what: "a full server", error: new TeamSpeakServerError({ id: 1796, serverMessage: "server is full" }), code: "SERVER_FULL" },
     {
       what: "a host that does not resolve",
       error: Object.assign(new Error("getaddrinfo ENOTFOUND ts.test"), { code: "ENOTFOUND" }),
@@ -150,8 +154,8 @@ describe("a join the gateway refuses before TeamSpeak", () => {
 
 describe("a session that TeamSpeak ends", () => {
   it.each([
-    { what: "kick", ban: false, code: "KICKED", detail: "server error id=4" },
-    { what: "ban", ban: true, code: "BANNED", detail: "server error id=5" },
+    { what: "kick", ban: false, code: "KICKED", detail: "server error id=5" },
+    { what: "ban", ban: true, code: "BANNED", detail: "server error id=6" },
   ])(
     "replays the reason of a $what as `connectionFailed` $code, then closes with 1000 and does not reconnect",
     async ({ ban, code, detail }) => {

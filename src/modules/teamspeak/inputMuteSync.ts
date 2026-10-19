@@ -1,5 +1,3 @@
-import type { CommandPacer } from "./commandPacer.js";
-
 interface InputMuteTarget {
   execCommand(command: string): Promise<unknown>;
 }
@@ -15,8 +13,6 @@ export class InputMuteSync {
   private accompanimentActive = false;
   private sent: boolean | null = null;
   private tail: Promise<void> = Promise.resolve();
-
-  constructor(private readonly pacer: CommandPacer) {}
 
   /** A new connection starts unmuted. */
   reset(): void {
@@ -38,7 +34,7 @@ export class InputMuteSync {
       if (!isCurrent()) return;
       const muted = this.micMuted && !this.accompanimentActive;
       if (muted === this.sent) return;
-      await this.pacer.run(() => target.execCommand(`clientupdate client_input_muted=${muted ? 1 : 0}`));
+      await target.execCommand(`clientupdate client_input_muted=${muted ? 1 : 0}`);
       if (isCurrent()) this.sent = muted;
     });
     this.tail = run.catch(() => undefined);

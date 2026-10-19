@@ -1,4 +1,4 @@
-// Contract between gateway and browser, every control frame type the gateway (any non-test `.ts` under `src/`) puts on the
+// Contract between gateway and browser, every control frame type the gateway (any non-test `.ts` under `src/` outside `src/lib/`) puts on the
 // socket must be in the `ServerMessage` union. Both sides are read as source text, so a sender added without extending the
 // union fails here wherever it lives.
 import { readFileSync, readdirSync } from "node:fs";
@@ -10,10 +10,11 @@ const read = (relative: string) => readFileSync(new URL(relative, import.meta.ur
 
 const gatewayRoot = resolve(import.meta.dirname, "../../../../src");
 
+// lib/ imports nothing of the gateway (dependency-cruiser), so it cannot put frames on the socket.
 function gatewayFiles(): string[] {
   return (readdirSync(gatewayRoot, { recursive: true }) as string[])
     .map((file) => file.replaceAll("\\", "/"))
-    .filter((file) => file.endsWith(".ts") && !file.endsWith(".test.ts"))
+    .filter((file) => file.endsWith(".ts") && !file.endsWith(".test.ts") && !file.startsWith("lib/"))
     .sort();
 }
 

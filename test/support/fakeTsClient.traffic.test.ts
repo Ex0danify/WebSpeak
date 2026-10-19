@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { ServerError } from "@echosixhiya/teamspeak-client";
+import { TeamSpeakServerError } from "../../src/lib/teamspeak/index.js";
 import type { TSChatMessage, TSClientOptions, TSVoiceData } from "../../src/modules/teamspeak/teamSpeakClient.js";
 import { FakeTeamSpeakServer, type FakeTSClient } from "./fakeTsClient.js";
 
@@ -115,7 +115,7 @@ describe("text messages", () => {
     const inbox = collect<TSChatMessage>(alice, "textMessage");
     remote.say("channel", "hello");
     expect(inbox).toMatchObject([{ invokerName: "remote", message: "hello", targetMode: 2 }]);
-    await expect(alice.sendTextMessage("private", "hi", 999n)).rejects.toBeInstanceOf(ServerError);
+    await expect(alice.sendTextMessage("private", "hi", 999n)).rejects.toBeInstanceOf(TeamSpeakServerError);
   });
 });
 
@@ -127,7 +127,7 @@ describe("poke, away and mute", () => {
     const pokes = collect<{ invokerName: string; invokerID: number; message: string }>(bob, "poked");
     await alice.poke(bob.getClientId(), "wake up");
     expect(pokes).toMatchObject([{ invokerName: "alice", invokerID: alice.getClientId(), message: "wake up" }]);
-    await expect(alice.poke(999, "x")).rejects.toMatchObject({ id: "512" });
+    await expect(alice.poke(999, "x")).rejects.toMatchObject({ id: 512 });
   });
 
   it("delivers a scripted member's poke", async () => {
