@@ -24,6 +24,26 @@ export function sineFrames(frequencyHz: number, frames: number, amplitude = 8000
 
 export const silentFrame = (): Buffer => Buffer.alloc(FRAME_BYTES);
 
+// First byte of an uplink binary frame: PCM payload or an already-encoded Opus voice frame.
+export const UPLINK_TAG_PCM = 0;
+export const UPLINK_TAG_OPUS_VOICE = 4;
+
+/** Wrap a raw PCM frame as the browser sends it over the WebSocket. */
+export const pcmWireFrame = (pcm: Buffer): Buffer => Buffer.concat([Buffer.from([UPLINK_TAG_PCM]), pcm]);
+
+/** Wrap an already-encoded Opus frame as a browser with WebCodecs sends it. */
+export const opusWireFrame = (opus: Buffer): Buffer => Buffer.concat([Buffer.from([UPLINK_TAG_OPUS_VOICE]), opus]);
+
+/** `frames` tagged PCM wire frames of a sine wave, ready for `socket.sendRaw`. */
+export const sinePcmWireFrames = (frequencyHz: number, frames: number, amplitude = 8000): Buffer[] =>
+  sineFrames(frequencyHz, frames, amplitude).map(pcmWireFrame);
+
+/** `frames` tagged Opus wire frames of a sine wave, as a browser that encodes in place would send. */
+export function sineOpusWireFrames(frequencyHz: number, frames: number, amplitude = 8000): Buffer[] {
+  const encoder = new OpusEncoder(SAMPLE_RATE, 1);
+  return sineFrames(frequencyHz, frames, amplitude).map((pcm) => opusWireFrame(encoder.encode(pcm)));
+}
+
 /** Decodes Opus packets in order with one decoder, like a receiving client, into one Int16 sample array. */
 export function decodeOpus(packets: Buffer[]): Int16Array {
   const decoder = new OpusEncoder(SAMPLE_RATE, 1);
