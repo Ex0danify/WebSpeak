@@ -34,7 +34,9 @@ function capture(worklet: FakeAudioWorkletNode, samples: Float32Array, rms?: num
 }
 
 const constant = (value: number, length = 960): Float32Array => new Float32Array(length).fill(value);
-const frames = (socket: FakeWebSocket): Int16Array[] => socket.sentBinary.map((frame) => new Int16Array(frame as ArrayBuffer));
+// Each uplink frame is a 1-byte codec tag (0 = PCM) followed by the Int16 payload; drop the tag to read the samples.
+const frames = (socket: FakeWebSocket): Int16Array[] =>
+  socket.sentBinary.map((frame) => new Int16Array(new Uint8Array(frame as ArrayBuffer).slice(1).buffer));
 
 describe("uplink: VOX gate", () => {
   it("opens at once on a loud frame (attack of one frame) and stays closed on silence", async () => {
@@ -97,11 +99,12 @@ describe("uplink: VOX gate", () => {
 });
 
 describe("uplink: frame assembler", () => {
-  it("sends each 960-sample worklet frame as one 1920-byte Int16 frame", async () => {
+  it("sends each 960-sample worklet frame as one tagged 1921-byte Int16 frame", async () => {
     const { socket, worklet } = await liveMicrophone();
     capture(worklet, constant(0.5));
     expect(socket.sentBinary).toHaveLength(1);
-    expect((socket.sentBinary[0] as ArrayBuffer).byteLength).toBe(1920);
+    expect((socket.sentBinary[0] as ArrayBuffer).byteLength).toBe(1921);
+    expect(new Uint8Array(socket.sentBinary[0] as ArrayBuffer)[0]).toBe(0);
   });
 
   it("converts Float32 to Int16 asymmetrically and clips out-of-range samples", async () => {
@@ -167,8 +170,8 @@ describe("uplink: buffer cap", () => {
     const { socket, worklet } = await liveMicrophone();
     socket.accumulateBuffered = true;
     capture(worklet, constant(0.5, 960 * 20));
-    // Sends while bufferedAmount <= 19200: 10 frames reach exactly 19200, the 11th is still allowed.
-    expect(socket.sentBinary).toHaveLength(11);
+    // Sends while bufferedAmount <= 19200: each tagged frame is 1921 bytes, so the 10th leaves 19210 buffered and the 11th is dropped.
+    expect(socket.sentBinary).toHaveLength(10);
   });
 
   it("sends nothing over WebRTC (the PCM path is bypassed)", async () => {
