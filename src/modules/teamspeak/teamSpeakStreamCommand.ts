@@ -1,5 +1,4 @@
 import type { Logger } from "../../shared/logger.js";
-import type { CommandPacer } from "./commandPacer.js";
 import type { TeamSpeakBackend } from "./teamSpeakBackend.js";
 
 const ACKNOWLEDGED_STREAM_COMMANDS = new Set(["stopstream", "removeclientfromstream"]);
@@ -12,7 +11,6 @@ const ACKNOWLEDGED_STREAM_COMMANDS = new Set(["stopstream", "removeclientfromstr
  */
 export async function sendStreamCommand(
   backend: Pick<TeamSpeakBackend, "command" | "send">,
-  pacer: CommandPacer,
   logger: Logger,
   command: string,
 ): Promise<void> {
@@ -21,7 +19,7 @@ export async function sendStreamCommand(
     return;
   }
   try {
-    await pacer.run(() => backend.command(command, 5000));
+    await backend.command(command, 5000, "background");
   } catch (error: unknown) {
     logger.warn(
       { command: command.split(" ", 1)[0], err: error instanceof Error ? error.message : String(error) },

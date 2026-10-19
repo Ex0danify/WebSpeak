@@ -11,7 +11,6 @@ import {
 } from "../../lib/teamspeak/index.js";
 import type { Logger } from "../../shared/logger.js";
 import { describeTeamSpeakError, normalizeTeamSpeakError } from "../../shared/errors.js";
-import { createCommandPacer } from "./commandPacer.js";
 import type { TSChatScope } from "./teamSpeakMessages.js";
 import { InputMuteSync } from "./inputMuteSync.js";
 import { OutputMuteSync } from "./outputMuteSync.js";
@@ -58,13 +57,12 @@ export class TSClient extends EventEmitter {
   private readonly identity: Identity;
   private clientId = 0;
   private connected = false;
-  private readonly pacer = createCommandPacer();
   private preferredChannelId = 0n;
   private accelerationClient: AccelerationRelayClient | null = null;
   // Bumped by disconnect(), a connect() already in flight gives up when it sees the change.
   private connectGeneration = 0;
-  private readonly inputMute = new InputMuteSync(this.pacer);
-  private readonly outputMute = new OutputMuteSync(this.pacer);
+  private readonly inputMute = new InputMuteSync();
+  private readonly outputMute = new OutputMuteSync();
 
   constructor(
     private options: TSClientOptions,
@@ -125,12 +123,12 @@ export class TSClient extends EventEmitter {
     try {
       // Native clients subscribe to the whole channel tree after welcome. Without it members
       // vanish from the list as soon as they leave our channel.
-      await this.pacer.run(() => backend.command(channelSubscribeAll(), 5000));
+      await backend.command(channelSubscribeAll(), 5000, "background");
     } catch (error: unknown) {
       this.logger.warn({ err: error instanceof Error ? error.message : String(error) }, "Could not subscribe to all TeamSpeak channels");
     }
     try {
-      await backend.syncDirectory((command) => this.pacer.run(command));
+      await backend.syncDirectory();
     } catch (error: unknown) {
       this.logger.warn(
         {
@@ -169,7 +167,7 @@ export class TSClient extends EventEmitter {
     const backend = this.readyBackend();
     // A reconnect replaces the backend, whatever the old one still returns belongs to another session.
     try {
-      const avatar = await backend.loadAvatar(clientId, expectedUid, (command) => this.pacer.run(command));
+      const avatar = await backend.loadAvatar(clientId, expectedUid);
       return this.backend === backend ? avatar : null;
     } catch (error: unknown) {
       if (this.backend !== backend) return null;
@@ -222,7 +220,7 @@ export class TSClient extends EventEmitter {
   /** Waits for the server's answer, so a refusal (a client that has left, a muted channel) reaches the sender. */
   async sendTextMessage(scope: TSChatScope, message: string, targetId = 0n): Promise<void> {
     const backend = this.readyBackend();
-    await this.pacer.run(() => backend.command(sendTextMessage(TEXT_TARGET_MODES[scope], targetId, message)));
+    await backend.command(sendTextMessage(TEXT_TARGET_MODES[scope], targetId, message), undefined, "background");
   }
 
   async poke(clientId: number, message: string): Promise<void> {
@@ -231,7 +229,7 @@ export class TSClient extends EventEmitter {
 
   async setAway(away: boolean, message = ""): Promise<void> {
     const backend = this.readyBackend();
-    await this.pacer.run(() => backend.command(clientUpdate({ away, awayMessage: message })));
+    await backend.command(clientUpdate({ away, awayMessage: message }), undefined, "background");
   }
 
   async setInputMuted(muted: boolean): Promise<void> {
@@ -279,7 +277,7 @@ export class TSClient extends EventEmitter {
 
   /** Only the trusted stream adapter builds these commands, never the browser. */
   async sendProtocolCommand(command: string): Promise<void> {
-    await sendStreamCommand(this.readyBackend(), this.pacer, this.logger, command);
+    await sendStreamCommand(this.readyBackend(), this.logger, command);
   }
 
   getIdentityString(): string {
@@ -300,7 +298,7 @@ export class TSClient extends EventEmitter {
   }
 
   private muteTarget(backend: TeamSpeakBackend) {
-    return { execCommand: (command: string) => backend.command(command) };
+    return { execCommand: (command: string) => backend.command(command, undefined, "background") };
   }
 
   private releaseAcceleration(): void {

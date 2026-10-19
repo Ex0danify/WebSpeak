@@ -4,6 +4,7 @@ import { isIP } from "node:net";
 import {
   resolveAddress,
   TeamSpeakConnection,
+  type CommandPriority,
   type CommandRequest,
   type TeamSpeakConnectionOptions,
   type UdpAddress,
@@ -95,8 +96,8 @@ export class NativeBackend extends EventEmitter<TeamSpeakBackendEvents> implemen
     return this.connection?.session.self.channelId ?? 0n;
   }
 
-  async command(request: CommandRequest | string, timeoutMs = 10_000): Promise<Record<string, string>[]> {
-    const rows = await this.live().command(request, { timeoutMs });
+  async command(request: CommandRequest | string, timeoutMs = 10_000, priority?: CommandPriority): Promise<Record<string, string>[]> {
+    const rows = await this.live().command(request, { timeoutMs, priority });
     return rows.map((row) => ({ ...row }));
   }
 
@@ -112,18 +113,16 @@ export class NativeBackend extends EventEmitter<TeamSpeakBackendEvents> implemen
     this.connection?.sendWhisper(data, { clientIds }, codec);
   }
 
-  async loadAvatar(
-    clientId: number,
-    expectedUid: string,
-    pace: <T>(command: () => Promise<T>) => Promise<T>,
-  ): Promise<TSClientAvatar | null> {
+  async loadAvatar(clientId: number, expectedUid: string): Promise<TSClientAvatar | null> {
     const connection = this.live();
     const client = connection.session.client(clientId);
     if (!client || (expectedUid && client.uid !== expectedUid)) return null;
     // Server and file port refusals, a missing file or one too large all leave the initial letter.
-    const avatar = await pace(() =>
-      connection.downloadAvatar(clientId, { maxBytes: MAX_CLIENT_AVATAR_BYTES, host: this.options.serverHost }),
-    );
+    const avatar = await connection.downloadAvatar(clientId, {
+      maxBytes: MAX_CLIENT_AVATAR_BYTES,
+      host: this.options.serverHost,
+      priority: "background",
+    });
     return avatar && avatar.data.length > 0 ? avatar : null;
   }
 

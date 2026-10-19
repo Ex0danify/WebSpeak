@@ -1,5 +1,5 @@
 import type { EventEmitter } from "node:events";
-import type { CommandRequest, Identity } from "../../lib/teamspeak/index.js";
+import type { CommandPriority, CommandRequest, Identity } from "../../lib/teamspeak/index.js";
 import type { Logger } from "../../shared/logger.js";
 import type { WebSpeakError } from "../../shared/errors.js";
 import type { TeamSpeakProtocol } from "../../shared/teamSpeakProtocol.js";
@@ -62,16 +62,19 @@ export interface TeamSpeakBackend extends EventEmitter<TeamSpeakBackendEvents> {
   /** 0 before the server assigned one. */
   clientId(): number;
   channelId(): bigint;
-  /** Answer rows, rejects with the server's refusal. */
-  command(request: CommandRequest | string, timeoutMs?: number): Promise<Record<string, string>[]>;
+  /**
+   * Answer rows, rejects with the server's refusal. `background` commands run through the client's
+   * scheduler after interactive ones and are retried after a flood refusal (the post-connect burst).
+   */
+  command(request: CommandRequest | string, timeoutMs?: number, priority?: CommandPriority): Promise<Record<string, string>[]>;
   /** For commands whose answer comes as a notification. */
   send(text: string): Promise<void>;
   sendVoice(data: Buffer, codec: number): void;
   sendWhisper(data: Buffer, clientIds: number[], codec: number): void;
   /** Null for a client without avatar, or one that is not `expectedUid` (any more). */
-  loadAvatar(clientId: number, expectedUid: string, pace: <T>(command: () => Promise<T>) => Promise<T>): Promise<TSClientAvatar | null>;
+  loadAvatar(clientId: number, expectedUid: string): Promise<TSClientAvatar | null>;
   /** After channelsubscribeall: hands the full directory to the listeners. */
-  syncDirectory(pace: <T>(command: () => Promise<T>) => Promise<T>): Promise<void>;
+  syncDirectory(): Promise<void>;
 }
 
 export type TeamSpeakBackendFactory = (options: TeamSpeakBackendOptions, logger: Logger) => TeamSpeakBackend;
