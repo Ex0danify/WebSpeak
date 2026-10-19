@@ -4,7 +4,7 @@ Where code lives, which way imports point, how files are named, and which gates 
 
 ## Overview
 
-The browser talks to the gateway over one WebSocket (`modules/voice`) and a few HTTP routes (`transport/http`). The gateway joins TeamSpeak 3 and TeamSpeak 6 servers through the TeamSpeak client library (`modules/teamspeak`) and carries voice and screen share between them and the browsers (`modules/voice`, `modules/screenShare`, optionally over WebRTC). `modules/admin` serves the administration console; its settings, invites and sessions live in SQLite (`node:sqlite`, `infra/persistence`). With `WEBSPEAK_MODE=relay`, `index.ts` starts only the acceleration relay (`modules/relay`) instead of the gateway; `relay.ts` is a standalone entry point for the same relay.
+The browser talks to the gateway over one WebSocket (`modules/voice`) and a few HTTP routes (`transport/http`). The gateway joins TeamSpeak 3 and TeamSpeak 6 servers through its own in-repo TeamSpeak client (`lib/teamspeak`, driven by `modules/teamspeak`) and carries voice and screen share between them and the browsers (`modules/voice`, `modules/screenShare`, optionally over WebRTC). `modules/admin` serves the administration console; its settings, invites and sessions live in SQLite (`node:sqlite`, `infra/persistence`). With `WEBSPEAK_MODE=relay`, `index.ts` starts only the acceleration relay (`modules/relay`) instead of the gateway; `relay.ts` is a standalone entry point for the same relay.
 
 ## Principles
 

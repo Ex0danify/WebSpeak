@@ -89,7 +89,6 @@ A relay instance is a dedicated forwarding service with no visitor page or admin
 git clone --depth 1 https://github.com/Ex0danify/WebSpeak.git
 cd WebSpeak
 npm ci --ignore-scripts
-npm run prepare:sdk
 npm run build:gateway
 WEBSPEAK_MODE=relay \
 WEBSPEAK_RELAY_TOKEN='replace-with-a-long-random-token' \
@@ -152,7 +151,7 @@ Disable and save the relay configuration to remove the relay option from the wel
 
 - The relay service is built into WebSpeak with Node.js standard libraries; it does not use GOST, sing-box, or another proxy framework.
 - WebRTC uses [werift](https://github.com/shinyoshiaki/werift-webrtc) `0.24.4`, whose upstream project is licensed under MIT.
-- TeamSpeak protocol connectivity uses the project-maintained [EchoSixHIYA/teamspeak-js](https://github.com/EchoSixHIYA/teamspeak-js) SDK fork.
+- TeamSpeak protocol connectivity uses WebSpeak's own in-repo TeamSpeak client, written from scratch. It builds on the protocol groundwork of the [EchoSixHIYA/teamspeak-js](https://github.com/EchoSixHIYA/teamspeak-js) fork (MIT) and on the public TeamSpeak protocol documentation by the TSDNS/TeamSpeak reverse-engineering community.
 
 ## 🧾 Changelog
 
@@ -217,7 +216,6 @@ Download the matching `windows-x64.zip` or `linux-x64.tar.gz` from [GitHub Relea
 git clone https://github.com/Ex0danify/WebSpeak.git
 cd WebSpeak
 npm ci --ignore-scripts
-npm run prepare:sdk
 npm rebuild @discordjs/opus --foreground-scripts
 npm --prefix web ci
 npm run build
