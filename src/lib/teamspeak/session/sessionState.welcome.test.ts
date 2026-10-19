@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { hasSessions, loadServerCommands, SESSION_FILES } from "../../../../test/support/tsCaptureFixtures.js";
+import { FIXTURES, hasSessions, loadServerCommands, SESSION_FILES } from "../../../../test/support/tsCaptureFixtures.js";
 import { cmd, enter, startSession, WELCOME_CHANNELS } from "../../../../test/support/tsSessionScript.js";
 import { CommandTracker } from "../command/commandTracker.js";
 import { PacketType } from "../transport/packetTypes.js";
@@ -109,13 +109,13 @@ describe("welcome", () => {
 
 describe.skipIf(!hasSessions)("captured welcomes", () => {
   const expected = {
-    "ts3ServerSession.json": {
+    [FIXTURES.ts3Session]: {
       selfId: 1,
       clients: [1],
       top: [3n, 4n, 5n, 1n, 7n, 6n, 2n],
       unapplied: ["notifyclientneededpermissions"],
     },
-    "ts6ServerSession.json": {
+    [FIXTURES.ts6Session]: {
       selfId: 133,
       clients: [129, 133],
       top: [1n, 10n, 11n, 12n, 2n, 3n, 4n, 5n, 6n, 7n, 8n, 9n],

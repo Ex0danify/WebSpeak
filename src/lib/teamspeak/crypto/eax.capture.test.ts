@@ -1,11 +1,11 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { fixtureFile, hasFixture } from "../../../../test/support/tsCaptureFixtures.js";
+import { FIXTURES, fixtureFile, hasFixture } from "../../../../test/support/tsCaptureFixtures.js";
 import { eaxDecrypt, eaxEncrypt } from "./eax.js";
 import { DUMMY_PACKET_KEY, DUMMY_PACKET_KEY_256 } from "./packetKeys.js";
 
 // Capture fixtures stay local, CI skips these tests.
-const hasFixtures = hasFixture("ts6AlphaPackets.json");
+const hasFixtures = hasFixture(FIXTURES.ts6Packets);
 
 interface CapturedPacket {
   direction: "c2s" | "s2c";
@@ -23,8 +23,8 @@ function encryptedPackets(file: string): Required<CapturedPacket>[] {
 
 describe.skipIf(!hasFixtures)("EAX against the captures", () => {
   for (const [file, kinds] of [
-    ["ts3LegacyPackets.json", ["dummy128", "session128"]],
-    ["ts6AlphaPackets.json", ["dummy128", "dummy256", "session256"]],
+    [FIXTURES.ts3Packets, ["dummy128", "session128"]],
+    [FIXTURES.ts6Packets, ["dummy128", "dummy256", "session256"]],
   ] as const) {
     it(`opens and reseals every encrypted packet of ${file}`, () => {
       const packets = encryptedPackets(file);
@@ -43,7 +43,7 @@ describe.skipIf(!hasFixtures)("EAX against the captures", () => {
   }
 
   it("uses the dummy keys of packetKeys.ts", () => {
-    const packets = [...encryptedPackets("ts3LegacyPackets.json"), ...encryptedPackets("ts6AlphaPackets.json")];
+    const packets = [...encryptedPackets(FIXTURES.ts3Packets), ...encryptedPackets(FIXTURES.ts6Packets)];
     for (const [kind, dummy] of [
       ["dummy128", DUMMY_PACKET_KEY],
       ["dummy256", DUMMY_PACKET_KEY_256],

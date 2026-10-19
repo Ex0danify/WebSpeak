@@ -2,7 +2,7 @@ import { ed25519 } from "@noble/curves/ed25519.js";
 import { parseLicenses as sdkParseLicenses } from "@echosixhiya/teamspeak-client/handshake";
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { fixtureFile, hasFixture } from "../../../../test/support/tsCaptureFixtures.js";
+import { FIXTURES, fixtureFile, hasFixture } from "../../../../test/support/tsCaptureFixtures.js";
 import { HandshakeError } from "../errors/teamSpeakErrors.js";
 import { verifyEd25519 } from "./edwards.js";
 import { deriveLicenseKey, LicenseBlockType, parseLicenseChain } from "./licenseChain.js";
@@ -79,11 +79,11 @@ describe("deriveLicenseKey", () => {
 });
 
 // Capture fixtures stay local, CI skips these tests.
-const hasFixtures = hasFixture("handshakeVectors.json");
+const hasFixtures = hasFixture(FIXTURES.handshakeVectors);
 
 describe.skipIf(!hasFixtures)("license chains against the captures", () => {
   const vectors = () =>
-    JSON.parse(readFileSync(fixtureFile("handshakeVectors.json")!, "utf8")) as {
+    JSON.parse(readFileSync(fixtureFile(FIXTURES.handshakeVectors)!, "utf8")) as {
       legacy: { initivexpand2: { l: string }; licenseBlockTypes: number[]; derivedKeyHex: string };
       alpha: {
         initivxalpha: { l: string; epsilon: string; time: string; proof: string };

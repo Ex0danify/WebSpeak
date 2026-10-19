@@ -1,11 +1,11 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { fixtureFile, hasFixture } from "../../../../test/support/tsCaptureFixtures.js";
+import { FIXTURES, fixtureFile, hasFixture, SESSION_FILES } from "../../../../test/support/tsCaptureFixtures.js";
 import { shareFirstRowFields, splitCommandRows } from "./commandRows.js";
 import { parseCommand } from "./commandText.js";
 
 // Capture fixtures stay local, CI skips the capture tests.
-const hasFixtures = hasFixture("ts6ServerSession.json");
+const hasFixtures = hasFixture(FIXTURES.ts6Session);
 
 function capturedCommands(file: string): string[] {
   const session = JSON.parse(readFileSync(fixtureFile(file)!, "utf8")) as { commands: { direction: string; text: string }[] };
@@ -51,7 +51,7 @@ describe("shareFirstRowFields", () => {
 
 describe.skipIf(!hasFixtures)("row semantics against the phase 0 captures", () => {
   it("resolves the batched notifycliententerview of the TS6 session", () => {
-    const text = capturedCommands("ts6ServerSession.json").find((command) => command.startsWith("notifycliententerview"))!;
+    const text = capturedCommands(FIXTURES.ts6Session).find((command) => command.startsWith("notifycliententerview"))!;
     const { rows } = parseCommand(text);
     expect(rows).toHaveLength(2);
     expect(rows.map((row) => [row.cfid, row.ctid, row.reasonid, row.clid])).toEqual([
@@ -65,7 +65,7 @@ describe.skipIf(!hasFixtures)("row semantics against the phase 0 captures", () =
   });
 
   it("finds no other field that only the first row carries, in either session", () => {
-    for (const file of ["ts3ServerSession.json", "ts6ServerSession.json"]) {
+    for (const file of SESSION_FILES) {
       for (const text of capturedCommands(file)) {
         const segments = splitCommandRows(text);
         if (segments.length < 2) continue;

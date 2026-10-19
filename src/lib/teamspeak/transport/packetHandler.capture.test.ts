@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { type CaptureFile, hasCaptures, loadCapture } from "../../../../test/support/tsCaptureFixtures.js";
+import { type CaptureFile, FIXTURES, hasCaptures, loadCapture } from "../../../../test/support/tsCaptureFixtures.js";
 import { ManualClock } from "../../../../test/support/tsLinkSimulator.js";
 import { DUMMY_PACKET_KEY, type PacketKey, type PacketKeySchedule } from "../crypto/packetKeys.js";
 import { type CommandMessage, PacketHandler } from "./packetHandler.js";
@@ -46,14 +46,14 @@ function replay(file: CaptureFile) {
 
 describe.skipIf(!hasCaptures)("PacketHandler replaying the captured server side", () => {
   it("delivers every TS6 server command in order, decompressed and reassembled", () => {
-    const { commands, init1, expected } = replay("ts6AlphaPackets.json");
+    const { commands, init1, expected } = replay(FIXTURES.ts6Packets);
     expect(init1).toHaveLength(1);
     expect(commands.map((message) => message.payload.toString("utf8").split(" ", 1)[0])).toEqual(expected.map((message) => message.name));
     expect(Math.max(...commands.map((message) => message.payload.length))).toBe(21_391);
   });
 
   it("stops at the TS3 command that was cut from the capture instead of skipping it", () => {
-    const { commands, expected, handler } = replay("ts3LegacyPackets.json");
+    const { commands, expected, handler } = replay(FIXTURES.ts3Packets);
     // Server command 21 (a notifyclientupdated with account data) was removed from the capture.
     const beforeGap = expected.filter((message) => Math.max(...message.packetIds) < 21);
     expect(beforeGap.length).toBeLessThan(expected.length);
@@ -62,8 +62,8 @@ describe.skipIf(!hasCaptures)("PacketHandler replaying the captured server side"
   });
 
   it("acks every server command and answers every server ping", () => {
-    const { sent } = replay("ts6AlphaPackets.json");
-    const { packets } = loadCapture("ts6AlphaPackets.json");
+    const { sent } = replay(FIXTURES.ts6Packets);
+    const { packets } = loadCapture(FIXTURES.ts6Packets);
     const types = (type: number) => sent.filter((datagram) => (datagram[12] & 0x0f) === type).length;
     const serverPackets = (type: number) => packets.filter((packet) => packet.direction === "s2c" && packet.type === type).length;
     expect(types(PacketType.ack)).toBe(serverPackets(PacketType.command));

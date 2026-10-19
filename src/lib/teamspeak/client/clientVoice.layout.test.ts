@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { hasCaptures, loadCapture } from "../../../../test/support/tsCaptureFixtures.js";
+import { FIXTURES, hasCaptures, loadCapture } from "../../../../test/support/tsCaptureFixtures.js";
 import { startSession } from "../../../../test/support/tsSessionScript.js";
 import { PacketFlag, PacketType } from "../transport/packetTypes.js";
 import {
@@ -142,7 +142,7 @@ describe("voice encryption", () => {
 
 describe.skipIf(!hasCaptures)("voice against the TS3 capture", () => {
   it("builds the body of every voice packet the native client sent", () => {
-    const voice = loadCapture("ts3LegacyPackets.json").packets.filter((packet) => packet.type === PacketType.voice);
+    const voice = loadCapture(FIXTURES.ts3Packets).packets.filter((packet) => packet.type === PacketType.voice);
     expect(voice.length).toBeGreaterThan(50);
     for (const packet of voice) {
       // Unencrypted, so the body after MAC and the 5-byte header is the payload.

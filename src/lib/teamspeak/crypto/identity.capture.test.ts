@@ -1,12 +1,12 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { fixtureFile, hasFixture } from "../../../../test/support/tsCaptureFixtures.js";
+import { FIXTURES, fixtureFile, hasFixture } from "../../../../test/support/tsCaptureFixtures.js";
 import { parseCommand } from "../wire/commandText.js";
 import { importTsPublicKey, verifyTsSignature } from "./identity.js";
 import { ts3Uid, ts6Uid } from "./uid.js";
 
 // Capture fixtures stay local, CI skips these tests.
-const hasFixtures = hasFixture("ts3LegacyPackets.json");
+const hasFixtures = hasFixture(FIXTURES.ts3Packets);
 
 /** The uncompressed single-packet commands of a capture, as text. */
 function plainCommands(file: string): string[] {
@@ -26,7 +26,7 @@ function firstRow(commands: string[], name: string) {
 
 describe.skipIf(!hasFixtures)("identities against the captures", () => {
   it("verifies the TS3 server's initivexpand2 proof and the client's clientek proof", () => {
-    const commands = plainCommands("ts3LegacyPackets.json");
+    const commands = plainCommands(FIXTURES.ts3Packets);
     const client = firstRow(commands, "clientinitiv");
     const expand = firstRow(commands, "initivexpand2");
     const clientek = firstRow(commands, "clientek");
@@ -44,8 +44,8 @@ describe.skipIf(!hasFixtures)("identities against the captures", () => {
 
   it("predicts the UID each server reported for the throwaway identity", () => {
     for (const [file, uid] of [
-      ["ts3LegacyPackets.json", ts3Uid],
-      ["ts6AlphaPackets.json", ts6Uid],
+      [FIXTURES.ts3Packets, ts3Uid],
+      [FIXTURES.ts6Packets, ts6Uid],
     ] as const) {
       const commands = plainCommands(file);
       const omega = firstRow(commands, "clientinitiv").omega!;

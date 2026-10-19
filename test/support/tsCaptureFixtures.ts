@@ -34,7 +34,17 @@ export function hasFixture(name: string): boolean {
   return path !== undefined && existsSync(path);
 }
 
-export const CAPTURE_FILES = ["ts3LegacyPackets.json", "ts6AlphaPackets.json"] as const;
+/** The one place that names each fixture file. Rename a file here, not in the tests. */
+export const FIXTURES = {
+  ts3Packets: "ts3LegacyPackets.json",
+  ts6Packets: "ts6AlphaPackets.json",
+  alphaSchedule: "ts6AlphaKeySchedule.json",
+  handshakeVectors: "handshakeVectors.json",
+  ts3Session: "ts3ServerSession.json",
+  ts6Session: "ts6ServerSession.json",
+} as const;
+
+export const CAPTURE_FILES = [FIXTURES.ts3Packets, FIXTURES.ts6Packets] as const;
 export type CaptureFile = (typeof CAPTURE_FILES)[number];
 
 export const hasCaptures = CAPTURE_FILES.every((file) => hasFixture(file));
@@ -102,7 +112,7 @@ export function serverCommandParts(packets: CapturedPacket[]): Map<number, Captu
   return parts;
 }
 
-export const SESSION_FILES = ["ts3ServerSession.json", "ts6ServerSession.json"] as const;
+export const SESSION_FILES = [FIXTURES.ts3Session, FIXTURES.ts6Session] as const;
 export type SessionFile = (typeof SESSION_FILES)[number];
 
 export const hasSessions = SESSION_FILES.every((file) => hasFixture(file));

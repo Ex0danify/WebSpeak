@@ -2,10 +2,10 @@ import { Crypt, identityFromString as sdkIdentityFromString } from "@echosixhiya
 import { createHash, randomBytes } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { fixtureFile, hasFixture } from "../../../../test/support/tsCaptureFixtures.js";
+import { FIXTURES, fixtureFile, hasFixture } from "../../../../test/support/tsCaptureFixtures.js";
 import { AlphaPacketKeys, alphaSecrets, deriveIvStruct, LegacyPacketKeys, legacyFakeMac } from "./packetKeys.js";
 
-const hasFixtures = hasFixture("handshakeVectors.json");
+const hasFixtures = hasFixture(FIXTURES.handshakeVectors);
 
 const ivStruct = Buffer.from("0102030405060708090a0b0c0d0e0f10111213141516171819", "hex");
 
@@ -87,10 +87,10 @@ describe("AlphaPacketKeys", () => {
     expect(key.subarray(2).equals(hash.subarray(2, 32))).toBe(true);
   });
 
-  describe.skipIf(!hasFixture("ts6AlphaKeySchedule.json"))("against the recorded schedule", () => {
+  describe.skipIf(!hasFixture(FIXTURES.alphaSchedule))("against the recorded schedule", () => {
     const entries = () =>
       (
-        JSON.parse(readFileSync(fixtureFile("ts6AlphaKeySchedule.json")!, "utf8")) as {
+        JSON.parse(readFileSync(fixtureFile(FIXTURES.alphaSchedule)!, "utf8")) as {
           entries: { output: string; direction: "c2s" | "s2c"; packetType: number; generation: number; sharedIV: string }[];
         }
       ).entries;
@@ -125,7 +125,7 @@ describe("alphaSecrets", () => {
   describe.skipIf(!hasFixtures)("against the recorded vector", () => {
     const vector = () =>
       (
-        JSON.parse(readFileSync(fixtureFile("handshakeVectors.json")!, "utf8")) as {
+        JSON.parse(readFileSync(fixtureFile(FIXTURES.handshakeVectors)!, "utf8")) as {
           alpha: { sharedIvVector?: { ecdh: string; alpha: string; beta: string; sharedIV: string; fakeMac: string } };
         }
       ).alpha.sharedIvVector;

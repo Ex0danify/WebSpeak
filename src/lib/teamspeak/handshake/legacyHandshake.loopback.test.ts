@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { hasCaptures, loadCapture } from "../../../../test/support/tsCaptureFixtures.js";
+import { FIXTURES, hasCaptures, loadCapture } from "../../../../test/support/tsCaptureFixtures.js";
 import { createLink, type LinkImpairment, ManualClock } from "../../../../test/support/tsLinkSimulator.js";
 import { createLoopbackServer, type LoopbackServerOptions } from "../../../../test/support/tsLoopbackServer.js";
 import { generateIdentity } from "../crypto/identity.js";
@@ -213,7 +213,7 @@ describe.skipIf(!hasCaptures)("legacy handshake key order against the TS3 captur
       ours.set(`${packet.type}:${packet.id}`, kind);
     }
     const captured = new Map<string, KeyKind>();
-    for (const packet of loadCapture("ts3LegacyPackets.json").packets) {
+    for (const packet of loadCapture(FIXTURES.ts3Packets).packets) {
       if (packet.direction !== "c2s" || !packet.key) continue;
       captured.set(`${packet.type}:${packet.packetId}`, packet.key.equals(DUMMY_PACKET_KEY.key) ? "dummy" : "session");
     }

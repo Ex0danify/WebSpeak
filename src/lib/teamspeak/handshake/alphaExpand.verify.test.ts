@@ -1,7 +1,7 @@
 import { generateKeyPairSync, sign as edSign } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { fixtureFile, hasFixture } from "../../../../test/support/tsCaptureFixtures.js";
+import { FIXTURES, fixtureFile, hasFixture } from "../../../../test/support/tsCaptureFixtures.js";
 import { generateIdentity, importTsPublicKey, verifyTsSignature } from "../crypto/identity.js";
 import { alphaSecrets } from "../crypto/packetKeys.js";
 import { createX25519Key, x25519SharedSecret } from "../crypto/x25519.js";
@@ -85,10 +85,10 @@ describe("initivxalpha", () => {
   });
 });
 
-describe.skipIf(!hasFixture("handshakeVectors.json"))("initivxalpha against the recorded server answer", () => {
+describe.skipIf(!hasFixture(FIXTURES.handshakeVectors))("initivxalpha against the recorded server answer", () => {
   it("accepts the real proof and license chain and derives a 64-byte sharedIv", () => {
     const row = (
-      JSON.parse(readFileSync(fixtureFile("handshakeVectors.json")!, "utf8")) as { alpha: { initivxalpha: CommandRow } }
+      JSON.parse(readFileSync(fixtureFile(FIXTURES.handshakeVectors)!, "utf8")) as { alpha: { initivxalpha: CommandRow } }
     ).alpha.initivxalpha;
     const result = acceptInitivxalpha(row, { identity: client, alpha });
     expect(parseCommand(result.clientivxalpha).name).toBe("clientivxalpha");

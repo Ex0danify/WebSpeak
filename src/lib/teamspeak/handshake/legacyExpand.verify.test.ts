@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { hasCaptures, loadCapture } from "../../../../test/support/tsCaptureFixtures.js";
+import { FIXTURES, hasCaptures, loadCapture } from "../../../../test/support/tsCaptureFixtures.js";
 import { createEphemeralKey, legacySharedSecret } from "../crypto/edwards.js";
 import { generateIdentity, importTsPublicKey, verifyTsSignature } from "../crypto/identity.js";
 import { deriveIvStruct } from "../crypto/packetKeys.js";
@@ -83,7 +83,7 @@ describe("initivexpand2", () => {
 
 describe.skipIf(!hasCaptures)("initivexpand2 against the TS3 capture", () => {
   it("accepts the real server's proof and license chain", () => {
-    const text = loadCapture("ts3LegacyPackets.json")
+    const text = loadCapture(FIXTURES.ts3Packets)
       .packets.filter((packet) => packet.direction === "s2c" && packet.plain)
       .map((packet) => packet.plain!.toString())
       .find((plain) => plain.startsWith("initivexpand2 "));
