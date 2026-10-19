@@ -99,11 +99,13 @@ describe("alphaSecrets", () => {
 
   describe.skipIf(!hasFixtures)("against the recorded vector", () => {
     const vector = () =>
-      (
-        JSON.parse(readFileSync(fixtureFile(FIXTURES.handshakeVectors)!, "utf8")) as {
-          alpha: { sharedIvVector?: { ecdh: string; alpha: string; beta: string; sharedIV: string; fakeMac: string } };
-        }
-      ).alpha.sharedIvVector;
+      hasFixtures
+        ? (
+            JSON.parse(readFileSync(fixtureFile(FIXTURES.handshakeVectors)!, "utf8")) as {
+              alpha: { sharedIvVector?: { ecdh: string; alpha: string; beta: string; sharedIV: string; fakeMac: string } };
+            }
+          ).alpha.sharedIvVector
+        : undefined;
 
     it.skipIf(!vector())("reproduces the sharedIv and fake MAC", () => {
       const v = vector()!;
