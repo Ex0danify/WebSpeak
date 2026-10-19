@@ -19,7 +19,8 @@
         { "type": "test", "section": "Other" },
         { "type": "build", "section": "Other" },
         { "type": "ci", "section": "Other" },
-        { "type": "chore", "section": "Other" }
+        { "type": "chore", "section": "Other" },
+        { "type": "baseline", "hidden": true }
       ]
     }
   }
