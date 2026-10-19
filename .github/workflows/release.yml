@@ -26,6 +26,9 @@ jobs:
           cache-dependency-path: |
             package-lock.json
             web/package-lock.json
+      - name: Audit shipped dependencies
+        shell: pwsh
+        run: npm run audit:ci
       - name: Build application
         shell: pwsh
         env:
@@ -116,6 +119,8 @@ jobs:
           cache-dependency-path: |
             package-lock.json
             web/package-lock.json
+      - name: Audit shipped dependencies
+        run: npm run audit:ci
       - name: Build application
         env:
           RELEASE_REF: ${{ inputs.version || github.ref_name }}

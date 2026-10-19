@@ -35,7 +35,8 @@
     "format": "prettier --write web/src web/scripts e2e src test scripts",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
-    "format:check": "prettier --check web/src web/scripts e2e src test scripts"
+    "format:check": "prettier --check web/src web/scripts e2e src test scripts",
+    "audit:ci": "node scripts/audit-deps.mjs"
   },
   "dependencies": {
     "@noble/curves": "^2.4.0",
