@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { decodeOpus, powerAt, rms, sineFrames } from "../../../../test/support/audio.js";
+import { decodeOpus, powerAt, rms, sinePcmWireFrames } from "../../../../test/support/audio.js";
 import { type Gateway, useGateway } from "../../../../test/support/gateway.js";
 import { ask, joinVoice, type VoiceSession } from "../../../../test/support/voice.js";
 
@@ -65,7 +65,7 @@ describe("TeamSpeak to browser: Opus relay", () => {
     const gateway = await gateways.start();
     const alice = await joinVoice(gateway, { nickname: "alice" });
     const bob = await joinVoice(gateway, { nickname: "bob" });
-    sineFrames(880, 20).forEach((frame) => alice.socket.sendRaw(frame));
+    sinePcmWireFrames(880, 20).forEach((frame) => alice.socket.sendRaw(frame));
     const frames = (await bob.socket.waitForBinaryCount(20)).map(parseRelay);
     expect(frames.every((frame) => frame.clientId === alice.id && frame.codec === 4)).toBe(true);
     const samples = decodeOpus(frames.slice(10).map((frame) => frame.payload));
@@ -79,7 +79,7 @@ describe("TeamSpeak to browser: Opus relay", () => {
     const alice = await joinVoice(gateway, { nickname: "alice" });
     const bob = await joinVoice(gateway, { nickname: "bob" });
     const carol = gateway.ts.addMember("carol");
-    sineFrames(440, 12).forEach((frame) => alice.socket.sendRaw(frame));
+    sinePcmWireFrames(440, 12).forEach((frame) => alice.socket.sendRaw(frame));
     for (let i = 0; i < 5; i++) carol.speak(Buffer.from([i]));
     await bob.socket.waitForBinaryCount(17);
     await settle(alice);

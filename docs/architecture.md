@@ -127,7 +127,7 @@ index/relay  ->  transport  ->  modules  ->  infra  ->  config  ->  shared
 - Only `index.ts` and `relay.ts` import `transport/`, and `transport/` never imports them.
 - `index.ts` and `relay.ts` are the only places that construct concrete objects.
 - `voiceBridge.ts` holds the `WebSocketServer`, the heartbeat, shutdown and hooks. `voiceAdmission.ts` admits a connection: it builds the per-connection `VoiceConnection` context and registers the listeners in a fixed order before `connect()`, because `clientEnter` and `clientLeave` fire during the handshake. Gateway state is plain TypeScript; there is no Pinia on the gateway.
-- `@discordjs/opus` is CommonJS and is loaded with `createRequire`.
+- `lib/opus` is the Opus codec, built from upstream libopus to WebAssembly (`node:*` and itself only); `modules/voice/voiceOpus.ts` re-exports it.
 
 Gateway files are camelCase and prefixed by the module when they would otherwise be generic (`voiceCommands.ts`, not `commands.ts`). Tests are `name.aspect.test.ts` beside the file; cross-cutting tests live in `test/`, their helpers in `test/support/`.
 

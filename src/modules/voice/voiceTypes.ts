@@ -7,6 +7,7 @@ import type { MessageParams } from "../../shared/messageCodes.js";
 import type { AccelerationRelayOptions } from "../relay/index.js";
 import type { ManagedSession } from "./session/voiceSessionManager.js";
 import type { WebRtcAudioSession } from "./webrtc/webrtcAudioSession.js";
+import type { OpusCodec } from "./voiceOpus.js";
 
 export interface AdminSessionSummary {
   id: string;
@@ -108,7 +109,7 @@ export interface WebClientEntry {
   clientChannelId?(clientId: number): bigint | undefined;
   avatarCache: Map<string, string | null>;
   eventLog: ServerEvent[];
-  opusEncoder: { encode(pcm: Buffer): Buffer } | null;
+  opusEncoder: OpusCodec | null;
   opusEncoderWarnedAt: number; // time of the last "Opus encoder unavailable" warning, used to rate-limit it
   invalidFrameWarnedAt: number; // time of the last INVALID_AUDIO_FRAME answer, used to rate-limit it
   whisperTargetIds: Set<number>;

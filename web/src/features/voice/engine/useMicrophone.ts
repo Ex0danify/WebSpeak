@@ -10,6 +10,7 @@ import type { SinkAudioContext } from "@/features/voice/voiceTypes";
 import { useAudioInputDevices } from "@/features/voice/engine/useAudioInputDevices";
 import { createMicrophoneProcessing } from "@/features/voice/engine/microphoneProcessing";
 import { useMicrophoneTest } from "@/features/voice/engine/useMicrophoneTest";
+import { createUplinkEncoder, type UplinkEncoder } from "@/features/voice/engine/uplinkEncoder";
 
 /** Late-bound pieces owned by other modules, resolved at call time. */
 export interface MicrophoneDeps {
@@ -61,8 +62,8 @@ export function useMicrophone(deps: MicrophoneDeps) {
   let silentGain: GainNode | null = null;
   let processedMicDestination: MediaStreamAudioDestinationNode | null = null;
   let microphoneStartPromise: Promise<void> | null = null;
-  let convBuf = new Int16Array(1024);
-  let accumBuf = new Int16Array(2048);
+  let uplinkEncoder: UplinkEncoder | null = null;
+  let accumBuf = new Float32Array(2048);
   let accumLen = 0;
 
   const processing = createMicrophoneProcessing();
@@ -164,6 +165,16 @@ export function useMicrophone(deps: MicrophoneDeps) {
     silentGain = ctx.createGain();
     silentGain.gain.value = 0;
 
+    // A browser with WebCodecs encodes Opus here, the gateway forwards it; the rest send PCM and the gateway encodes.
+    uplinkEncoder = await createUplinkEncoder({
+      onPacket: (frame) => {
+        const socket = ws.value;
+        if (!socket || socket.readyState !== WebSocket.OPEN || socket.bufferedAmount > MAX_AUDIO_BUFFERED_BYTES) return;
+        socket.send(frame);
+        if (state.tsClientId) deps.markSpeaking(state.tsClientId);
+      },
+    });
+
     const handleCaptureChunk = (input: Float32Array, rms?: number): void => {
       if (!input.length) return;
       micLevel.value = Math.min(1, (rms ?? Math.sqrt(input.reduce((sum, sample) => sum + sample * sample, 0) / input.length)) * 6);
@@ -179,39 +190,23 @@ export function useMicrophone(deps: MicrophoneDeps) {
         if (microphoneMuted.value) processing.resetVox();
         return;
       }
-      if (!socket) {
+      if (!socket || socket.bufferedAmount > MAX_AUDIO_BUFFERED_BYTES) {
         accumLen = 0;
         return;
-      }
-      const bufferedBytes = socket.bufferedAmount;
-      if (bufferedBytes > MAX_AUDIO_BUFFERED_BYTES) {
-        accumLen = 0;
-        return;
-      }
-
-      if (convBuf.length < input.length) convBuf = new Int16Array(input.length);
-      for (let i = 0; i < input.length; i++) {
-        const sample = Math.max(-1, Math.min(1, input[i]!));
-        convBuf[i] = sample < 0 ? sample * 0x8000 : sample * 0x7fff;
       }
 
       const need = accumLen + input.length;
-      if (accumBuf.length < need) accumBuf = new Int16Array(Math.max(need, accumBuf.length * 2));
-      accumBuf.set(convBuf.subarray(0, input.length), accumLen);
+      if (accumBuf.length < need) accumBuf = new Float32Array(Math.max(need, accumBuf.length * 2));
+      accumBuf.set(input, accumLen);
       accumLen = need;
 
       let offset = 0;
-      while (
-        offset + AUDIO_FRAME_SAMPLES <= accumLen &&
-        socket.readyState === WebSocket.OPEN &&
-        socket.bufferedAmount <= MAX_AUDIO_BUFFERED_BYTES
-      ) {
-        socket.send(accumBuf.slice(offset, offset + AUDIO_FRAME_SAMPLES).buffer);
+      while (offset + AUDIO_FRAME_SAMPLES <= accumLen) {
+        uplinkEncoder?.pushFrame(accumBuf.subarray(offset, offset + AUDIO_FRAME_SAMPLES));
         offset += AUDIO_FRAME_SAMPLES;
       }
-      if (offset > 0) deps.markSpeaking(state.tsClientId);
       accumLen -= offset;
-      if (offset > 0) accumBuf.set(accumBuf.subarray(offset, offset + accumLen), 0);
+      if (offset > 0) accumBuf.copyWithin(0, offset, offset + accumLen);
     };
 
     if (typeof AudioWorkletNode !== "undefined" && ctx.audioWorklet) {
@@ -266,6 +261,8 @@ export function useMicrophone(deps: MicrophoneDeps) {
   function stopCaptureGraph(): void {
     accumLen = 0;
     processing.resetVox();
+    uplinkEncoder?.dispose();
+    uplinkEncoder = null;
     micLevel.value = 0;
     scriptNode?.disconnect();
     workletNode?.port.close();

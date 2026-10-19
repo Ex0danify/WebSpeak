@@ -22,7 +22,7 @@ const area = (files, project, extra = {}) => ({
 });
 
 export default tseslint.config(
-  { ignores: ["**/dist/**", "**/node_modules/**", "coverage/**", "test-results/**", "data/**", "web/public/**", ".snapshots/**"] },
+  { ignores: ["**/dist/**", "**/node_modules/**", "coverage/**", "test-results/**", "data/**", "web/public/**", ".snapshots/**", "src/lib/opus/opusGlue.mjs"] },
   js.configs.recommended,
   ...tseslint.configs.recommended,
   ...vue.configs["flat/recommended"],

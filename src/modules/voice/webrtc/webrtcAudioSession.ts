@@ -2,7 +2,7 @@ import { randomInt } from "node:crypto";
 import { MediaStreamTrack, RtpHeader, RtpPacket, RTCPeerConnection, useOPUS } from "werift";
 import type { Logger as LoggerType } from "../../../shared/logger.js";
 import type { TSVoiceData } from "../../teamspeak/index.js";
-import { OpusEncoder } from "../voiceOpus.js";
+import { createOpusCodec, type OpusCodec } from "../voiceOpus.js";
 import { AUDIO_CLOCK_INTERVAL_MS, AUDIO_FRAME_SAMPLES, AUDIO_SAMPLE_RATE, MAX_MIXER_PACER_LAG_MS, WebRtcMixer } from "./webrtcMixer.js";
 import { WEBRTC_UDP_PORT_RANGE } from "../../../config/webrtcConfig.js";
 
@@ -27,7 +27,7 @@ export interface WebRtcAudioSessionOptions {
   onVoiceFrame: (data: Buffer, codec: 4 | 5) => void;
   onVoiceActivity: (clientIds: number[]) => void;
   /** Seam for the mixer's Opus encoder, production uses the native one. */
-  createEncoder?: () => { encode(data: Buffer): Buffer };
+  createEncoder?: () => OpusCodec;
 }
 
 export interface WebRtcAudioStats {
@@ -147,9 +147,9 @@ export class WebRtcAudioSession {
       this.logger.warn({ err: error instanceof Error ? error.message : String(error) }, "Could not prepare WebRTC output track");
     });
 
-    let encoder: { encode(data: Buffer): Buffer };
+    let encoder: OpusCodec;
     try {
-      encoder = options.createEncoder?.() ?? new OpusEncoder(AUDIO_SAMPLE_RATE, 1);
+      encoder = options.createEncoder?.() ?? createOpusCodec(AUDIO_SAMPLE_RATE, 1);
     } catch (error: unknown) {
       this.logger.error({ err: error instanceof Error ? error.message : String(error) }, "Could not create WebRTC mixer encoder");
       this.outgoingTrack.stop();
