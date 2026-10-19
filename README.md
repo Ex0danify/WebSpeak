@@ -50,6 +50,10 @@ WebSpeak in this repository is a fork of [EchoSixHIYA/WebSpeak-client-for-TeamSp
 
 Thanks to everyone who contributed to the original project, including [LainHE](https://github.com/LainHE) ([PR #2](https://github.com/EchoSixHIYA/WebSpeak-client-for-TeamSpeak/pull/2): translation of browser-side errors and prompts).
 
+## Trademarks
+
+TeamSpeak is a trademark of TeamSpeak Systems GmbH. WebSpeak is an independent project and is not affiliated with, endorsed by, or sponsored by TeamSpeak Systems GmbH. The name is used only to describe the servers WebSpeak connects to. The TeamSpeak client protocol code in this repository is an independent, interoperable implementation that contains no TeamSpeak source code or binaries.
+
 ## License
 
 WebSpeak is released under the [GNU Affero General Public License v3.0 only](./LICENSE). If a modified version is offered to users over a network, its corresponding source code must be offered under AGPL-3.0.
