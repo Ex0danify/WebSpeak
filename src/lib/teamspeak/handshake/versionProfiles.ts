@@ -10,9 +10,9 @@ export interface VersionProfile {
 
 export const VERSION_PROFILES = {
   ts3: {
-    version: "3.?.? [Build: 5680278000]",
-    platform: "Windows",
-    sign: "DX5NIYLvfJEUjuIbCidnoeozxIDRRkpq3I9vVMBmE9L2qnekOoBzSenkzsg2lC9CMv8K5hkEzhr2TYUYSwUXCg==",
+    version: "3.6.2 [Build: 1695203293]",
+    platform: "Linux",
+    sign: "p4iF1jZ3ZOz9MEkKSZ2bvnFtm9WmUcQy9mAP//erFE4PF1sB6K1CSANrr+3X4B0aZR0u+K2pjnv8kiKsWKQCBQ==",
     emptyFields: ["client_nickname_phonetic", "client_default_token"],
   },
   ts6: {

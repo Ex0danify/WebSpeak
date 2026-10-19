@@ -31,7 +31,7 @@ describe("clientinit", () => {
     expect(row).toMatchObject({
       client_nickname: "Web Guest",
       client_version: VERSION_PROFILES.ts3.version,
-      client_platform: "Windows",
+      client_platform: "Linux",
       client_version_sign: VERSION_PROFILES.ts3.sign,
       client_key_offset: "42",
       client_server_password: "",
