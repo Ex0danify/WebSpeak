@@ -1,14 +1,7 @@
-import { createRequire } from "node:module";
 import { describe, expect, it } from "vitest";
 import { decodeOpus, sineFrames } from "../../../../test/support/audio.js";
 import { WebRtcMixer, type WebRtcMixerStats } from "./webrtcMixer.js";
 import { createOpusCodec } from "../voiceOpus.js";
-
-const require = createRequire(import.meta.url);
-const { OpusEncoder } = require("@discordjs/opus") as {
-  OpusEncoder: new (sampleRate: number, channels: number) => { encode(pcm: Buffer): Buffer; decode(data: Buffer): Buffer };
-};
-const OpusDecoder = OpusEncoder;
 
 const logger = { warn: () => undefined } as never;
 const newStats = (): WebRtcMixerStats => ({
@@ -21,8 +14,12 @@ const newStats = (): WebRtcMixerStats => ({
 });
 const newMixer = (stats = newStats()) => ({ stats, mixer: new WebRtcMixer(createOpusCodec(48_000, 1), stats, logger) });
 const opusFrames = (hz: number, count: number): Buffer[] => {
-  const encoder = new OpusEncoder(48_000, 1);
-  return sineFrames(hz, count).map((pcm) => encoder.encode(pcm));
+  const encoder = createOpusCodec(48_000, 1);
+  try {
+    return sineFrames(hz, count).map((pcm) => encoder.encode(pcm));
+  } finally {
+    encoder.dispose();
+  }
 };
 const voice = (clientId: number, data: Buffer) => ({ clientId, data, codec: 4 as const });
 const rms = (samples: Int16Array) => Math.sqrt(samples.reduce((sum, value) => sum + value * value, 0) / samples.length);
@@ -49,9 +46,12 @@ describe("WebRtcMixer", () => {
   for (const scenario of ["silence gaps", "alternating speakers"] as const) {
     it(`keeps every tick audible for a listener decoding one continuous stream: ${scenario}`, () => {
       const { mixer } = newMixer();
-      const sources = [new OpusEncoder(48_000, 1), new OpusEncoder(48_000, 1)];
-      const listener = new OpusDecoder(48_000, 1);
-      const heard = () => rms(new Int16Array(listener.decode(mixer.mixNextFrame()!).buffer.slice(0)));
+      const sources = [createOpusCodec(48_000, 1), createOpusCodec(48_000, 1)];
+      const listener = createOpusCodec(48_000, 1);
+      const heard = () => {
+        const pcm = listener.decode(mixer.mixNextFrame()!);
+        return rms(new Int16Array(pcm.buffer, pcm.byteOffset, pcm.length / 2));
+      };
       for (let tick = 0; tick < 50; tick++) heard();
       const quiet: number[] = [];
       sineFrames(440, 50).forEach((pcm, frame) => {
@@ -60,6 +60,8 @@ describe("WebRtcMixer", () => {
         if (heard() <= 500) quiet.push(frame);
         if (scenario === "silence gaps") heard();
       });
+      sources.forEach((source) => source.dispose());
+      listener.dispose();
       expect(quiet, `quiet ticks at frames ${quiet.join(",")}`).toEqual([]);
     });
   }

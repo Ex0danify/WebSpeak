@@ -1,9 +1,4 @@
-import { createRequire } from "node:module";
-
-const require = createRequire(import.meta.url);
-const { OpusEncoder } = require("@discordjs/opus") as {
-  OpusEncoder: new (sampleRate: number, channels: number) => { encode(pcm: Buffer): Buffer; decode(opus: Buffer): Buffer };
-};
+import { createOpusCodec } from "../../src/lib/opus/index.js";
 
 export const SAMPLE_RATE = 48_000;
 /** One browser audio frame: 20 ms of mono 48 kHz Int16 PCM. */
@@ -40,16 +35,24 @@ export const sinePcmWireFrames = (frequencyHz: number, frames: number, amplitude
 
 /** `frames` tagged Opus wire frames of a sine wave, as a browser that encodes in place would send. */
 export function sineOpusWireFrames(frequencyHz: number, frames: number, amplitude = 8000): Buffer[] {
-  const encoder = new OpusEncoder(SAMPLE_RATE, 1);
-  return sineFrames(frequencyHz, frames, amplitude).map((pcm) => opusWireFrame(encoder.encode(pcm)));
+  const encoder = createOpusCodec(SAMPLE_RATE, 1);
+  try {
+    return sineFrames(frequencyHz, frames, amplitude).map((pcm) => opusWireFrame(encoder.encode(pcm)));
+  } finally {
+    encoder.dispose();
+  }
 }
 
 /** Decodes Opus packets in order with one decoder, like a receiving client, into one Int16 sample array. */
 export function decodeOpus(packets: Buffer[]): Int16Array {
-  const decoder = new OpusEncoder(SAMPLE_RATE, 1);
-  const chunks = packets.map((packet) => decoder.decode(packet));
-  const pcm = Buffer.concat(chunks);
-  return new Int16Array(pcm.buffer, pcm.byteOffset, pcm.length / 2);
+  const decoder = createOpusCodec(SAMPLE_RATE, 1);
+  try {
+    const chunks = packets.map((packet) => decoder.decode(packet));
+    const pcm = Buffer.concat(chunks);
+    return new Int16Array(pcm.buffer, pcm.byteOffset, pcm.length / 2);
+  } finally {
+    decoder.dispose();
+  }
 }
 
 /** Signal power at one frequency (Goertzel), normalised by the sample count so it is comparable across lengths. */

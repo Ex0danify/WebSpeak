@@ -1,4 +1,3 @@
-import { createRequire } from "node:module";
 import { describe, expect, it } from "vitest";
 import { createOpusCodec } from "./opusCodec.js";
 
@@ -76,22 +75,6 @@ describe("opusCodec round trip", () => {
         for (const s of out) peak = Math.max(peak, Math.abs(s));
       }
       expect(peak).toBeLessThan(64); // well under int16 full scale
-    } finally {
-      codec.dispose();
-    }
-  });
-
-  it("interoperates with @discordjs/opus in both directions", () => {
-    const require = createRequire(import.meta.url);
-    const { OpusEncoder } = require("@discordjs/opus") as {
-      OpusEncoder: new (rate: number, ch: number) => { encode(b: Buffer): Buffer; decode(b: Buffer): Buffer };
-    };
-    const native = new OpusEncoder(RATE, 1);
-    const codec = createOpusCodec(RATE, 1);
-    try {
-      const pcm = sineFrame(0);
-      expect(native.decode(codec.encode(pcm)).length).toBe(FRAME * 2);
-      expect(codec.decode(native.encode(pcm)).length).toBe(FRAME * 2);
     } finally {
       codec.dispose();
     }

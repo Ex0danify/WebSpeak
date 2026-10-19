@@ -151,6 +151,7 @@ Relay deaktivieren und speichern, um die Option von der Willkommensseite zu entf
 
 - Der Relay-Dienst ist Bestandteil von WebSpeak und verwendet Node.js-Standardbibliotheken; GOST, sing-box oder ein anderes Proxy-Framework werden nicht verwendet.
 - WebRTC verwendet [werift](https://github.com/shinyoshiaki/werift-webrtc) `0.24.4`; das Upstream-Projekt steht unter MIT-Lizenz.
+- Opus-Audio wird mit [libopus](https://opus-codec.org/) `1.5.2` (BSD-3-Clause) kodiert und dekodiert, nach WebAssembly übersetzt und im Repository mitgeliefert, sodass für die Installation keine native Toolchain nötig ist.
 - Die TeamSpeak-Protokollverbindung nutzt WebSpeaks eigenen, von Grund auf neu geschriebenen TeamSpeak-Client im Repository. Er baut auf der Protokollgrundlage des [EchoSixHIYA/teamspeak-js](https://github.com/EchoSixHIYA/teamspeak-js)-Forks (MIT) und auf der öffentlichen TeamSpeak-Protokolldokumentation der Reverse-Engineering-Community auf.
 
 ## 🧾 Änderungsprotokoll
@@ -216,14 +217,11 @@ Das passende `windows-x64.zip` oder `linux-x64.tar.gz` aus den [GitHub Releases]
 git clone https://github.com/Ex0danify/WebSpeak.git
 cd WebSpeak
 npm ci --ignore-scripts
-npm rebuild @discordjs/opus --foreground-scripts
 npm --prefix web ci
 npm run build
 cp .env.example .env   # danach WEBSPEAK_ADMIN_PASSWORD darin setzen
 npm start
 ```
-
-Für den Bau von `@discordjs/opus` werden Python, Make und eine C/C++-Toolchain benötigt.
 
 ### Erste Konfiguration
 
