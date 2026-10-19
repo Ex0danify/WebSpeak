@@ -111,7 +111,11 @@ export interface AlphaSecrets {
 export function alphaSecrets(ecdh: Uint8Array, alpha: Uint8Array, beta: Uint8Array): AlphaSecrets {
   const h = createHash("sha512").update(createHash("sha256").update(ecdh).digest()).digest();
   const y = createHash("sha256").update(alpha).digest();
-  const sharedIv = createHash("sha512").update(Buffer.concat([h.subarray(0, 32), y, beta])).digest();
-  const aux = createHash("sha256").update(Buffer.concat([h.subarray(32, 64), y, beta])).digest();
+  const sharedIv = createHash("sha512")
+    .update(Buffer.concat([h.subarray(0, 32), y, beta]))
+    .digest();
+  const aux = createHash("sha256")
+    .update(Buffer.concat([h.subarray(32, 64), y, beta]))
+    .digest();
   return { sharedIv, fakeMac: aux.subarray(0, FAKE_MAC_BYTES) };
 }

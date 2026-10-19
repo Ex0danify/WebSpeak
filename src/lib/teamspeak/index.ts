@@ -30,7 +30,13 @@ export { parseBool, parseI32, parseList, parseU16, parseU32, parseU64, parseU8 }
 export { INIT_VERSION } from "./handshake/init1.js";
 export { type ClientInitOptions } from "./handshake/clientInit.js";
 export { VERSION_PROFILES, type VersionProfile, type VersionProfileName } from "./handshake/versionProfiles.js";
-export { connectLegacy, type ConnectionEvents, type HandshakeMode, type LegacyConnection, type LegacyHandshakeOptions } from "./handshake/legacyHandshake.js";
+export {
+  connectLegacy,
+  type ConnectionEvents,
+  type HandshakeMode,
+  type LegacyConnection,
+  type LegacyHandshakeOptions,
+} from "./handshake/legacyHandshake.js";
 export {
   CommandTracker,
   type CommandInput,

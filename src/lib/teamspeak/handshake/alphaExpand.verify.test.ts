@@ -87,9 +87,8 @@ describe("initivxalpha", () => {
 
 describe.skipIf(!hasFixture(FIXTURES.handshakeVectors))("initivxalpha against the recorded server answer", () => {
   it("accepts the real proof and license chain and derives a 64-byte sharedIv", () => {
-    const row = (
-      JSON.parse(readFileSync(fixtureFile(FIXTURES.handshakeVectors)!, "utf8")) as { alpha: { initivxalpha: CommandRow } }
-    ).alpha.initivxalpha;
+    const row = (JSON.parse(readFileSync(fixtureFile(FIXTURES.handshakeVectors)!, "utf8")) as { alpha: { initivxalpha: CommandRow } }).alpha
+      .initivxalpha;
     const result = acceptInitivxalpha(row, { identity: client, alpha });
     expect(parseCommand(result.clientivxalpha).name).toBe("clientivxalpha");
     expect(result.sharedIv).toHaveLength(64);
