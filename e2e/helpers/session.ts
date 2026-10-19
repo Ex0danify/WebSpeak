@@ -14,15 +14,22 @@ export class Session {
   readonly sent: GatewayMessage[] = [];
   /** Binary frames the gateway sent (relayed Opus). */
   binaryReceived = 0;
-  /** Binary frames the browser sent (PCM). */
+  /** Binary frames the browser sent (PCM or Opus). */
   binarySent = 0;
+  /** Leading codec tag of each binary frame the browser sent: 0 PCM, 4 Opus voice. */
+  readonly sentBinaryTags: number[] = [];
   readonly pageErrors: string[] = [];
 
   private constructor(readonly page: Page) {
     page.on("pageerror", (error) => this.pageErrors.push(String(error)));
     page.on("websocket", (socket) => {
       socket.on("framereceived", (frame) => this.record(frame.payload, this.received, () => this.binaryReceived++));
-      socket.on("framesent", (frame) => this.record(frame.payload, this.sent, () => this.binarySent++));
+      socket.on("framesent", (frame) =>
+        this.record(frame.payload, this.sent, () => {
+          this.binarySent++;
+          if (typeof frame.payload !== "string" && frame.payload.length > 0) this.sentBinaryTags.push(frame.payload[0]!);
+        }),
+      );
     });
   }
 
