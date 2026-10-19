@@ -1,5 +1,3 @@
-// Local capture fixtures of the native client, never committed. Their folder comes from
-// TEST_FIXTURE_FOLDER (env or .env); without it every fixture-backed test skips.
 import { existsSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
@@ -7,7 +5,13 @@ function readDotEnvFolder(): string | undefined {
   try {
     for (const raw of readFileSync(fileURLToPath(new URL("../../.env", import.meta.url)), "utf8").split("\n")) {
       const line = raw.trim();
-      if (line.startsWith("TEST_FIXTURE_FOLDER=")) return line.slice("TEST_FIXTURE_FOLDER=".length).trim().replace(/^["']|["']$/g, "") || undefined;
+      if (line.startsWith("TEST_FIXTURE_FOLDER="))
+        return (
+          line
+            .slice("TEST_FIXTURE_FOLDER=".length)
+            .trim()
+            .replace(/^["']|["']$/g, "") || undefined
+        );
     }
   } catch {
     // no .env
@@ -34,7 +38,6 @@ export function hasFixture(name: string): boolean {
   return path !== undefined && existsSync(path);
 }
 
-/** The one place that names each fixture file. Rename a file here, not in the tests. */
 export const FIXTURES = {
   ts3Packets: "ts3LegacyPackets.json",
   ts6Packets: "ts6AlphaPackets.json",
