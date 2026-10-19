@@ -15,7 +15,7 @@
     "build": "npm run build:all",
     "build:all": "npm run build:web && npm run build:gateway",
     "build:web": "npm --prefix web run build",
-    "build:gateway": "tsc -p tsconfig.build.json && npm run check:gateway-types && npm run check:gateway-size && npm run check:gateway-names && npm run check:gateway-deps && npm run check:gateway-literals",
+    "build:gateway": "tsc -p tsconfig.build.json && node scripts/copy-opus-wasm.mjs && npm run check:gateway-types && npm run check:gateway-size && npm run check:gateway-names && npm run check:gateway-deps && npm run check:gateway-literals",
     "start": "node dist/index.js",
     "admin:reset-password": "node dist/index.js reset-admin-password",
     "web:dev": "cd web && npx vite --host",
