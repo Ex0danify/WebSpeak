@@ -7,7 +7,6 @@ The repository is one gateway (`src/`, Node and TypeScript) and one web app (`we
 ```bash
 cp .env.example .env              # every deployment setting is read from .env, strictly and without defaults
 npm ci && npm --prefix web ci
-npm run prepare:sdk               # fetch the TeamSpeak SDK
 npm run build                     # alias for build:all = build:web + build:gateway, runs every gate
 npm run dev                       # gateway with tsx; npm run web:dev serves the web app on Vite
 ```
