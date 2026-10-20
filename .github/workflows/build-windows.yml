@@ -22,9 +22,11 @@ permissions:
 jobs:
   windows-x64:
     runs-on: windows-latest
+    # harden-runner is Linux-only, so the Windows job runs without egress control.
+    timeout-minutes: 35
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 22.22.2
           cache: npm
@@ -64,7 +66,7 @@ jobs:
       - name: Failed tests on the run summary
         if: ${{ !cancelled() }}
         run: node scripts/ci-summary.mjs
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: failure()
         with:
           name: windows-test-results
@@ -118,7 +120,7 @@ jobs:
             if ($process -and -not $process.HasExited) { Stop-Process -Id $process.Id -Force }
           }
           Compress-Archive -LiteralPath $packageRoot -DestinationPath (Join-Path $env:GITHUB_WORKSPACE ($packageName + ".zip")) -CompressionLevel Optimal
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: ${{ inputs.upload }}
         with:
           name: windows-x64

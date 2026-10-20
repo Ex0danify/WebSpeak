@@ -22,12 +22,16 @@ jobs:
   format:
     if: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository }}
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     permissions:
       contents: write
     outputs:
       changed: ${{ steps.commit.outputs.changed }}
     steps:
-      - uses: actions/checkout@v7
+      - uses: step-security/harden-runner@dc2769abcc0fcfbadfc1df54081c1608579ef6b2 # v2.22.2
+        with:
+          egress-policy: audit
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ github.event.pull_request.head.ref }}
           token: ${{ secrets.CI_PUSH_TOKEN }}
@@ -48,8 +52,12 @@ jobs:
     needs: format
     if: ${{ !cancelled() && needs.format.result != 'failure' && needs.format.outputs.changed != 'true' }}
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v7
+      - uses: step-security/harden-runner@dc2769abcc0fcfbadfc1df54081c1608579ef6b2 # v2.22.2
+        with:
+          egress-policy: audit
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: ./.github/actions/setup
       - run: npm run format:check
       - run: npm run lint
@@ -58,8 +66,12 @@ jobs:
     needs: format
     if: ${{ !cancelled() && needs.format.result != 'failure' && needs.format.outputs.changed != 'true' }}
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v7
+      - uses: step-security/harden-runner@dc2769abcc0fcfbadfc1df54081c1608579ef6b2 # v2.22.2
+        with:
+          egress-policy: audit
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: ./.github/actions/setup
       - run: npx playwright install --with-deps chromium
       - run: npm run build:web
@@ -70,7 +82,7 @@ jobs:
       - name: Failed tests on the run summary
         if: ${{ !cancelled() }}
         run: node scripts/ci-summary.mjs
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: failure()
         with:
           name: e2e-test-results
@@ -81,10 +93,14 @@ jobs:
   visual:
     if: ${{ !contains(github.event.pull_request.labels.*.name, 'ui') }}
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     env:
       WEBSPEAK_VISUAL_BASELINE: ${{ github.workspace }}/e2e/visual/baseline
     steps:
-      - uses: actions/checkout@v7
+      - uses: step-security/harden-runner@dc2769abcc0fcfbadfc1df54081c1608579ef6b2 # v2.22.2
+        with:
+          egress-policy: audit
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: ./.github/actions/setup
       - run: npx playwright install --with-deps chromium
       - run: npm run build:web
@@ -98,7 +114,7 @@ jobs:
       - name: Failed tests on the run summary
         if: ${{ !cancelled() }}
         run: node scripts/ci-summary.mjs
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: failure()
         with:
           name: visual-diff
@@ -110,8 +126,12 @@ jobs:
     needs: format
     if: ${{ !cancelled() && needs.format.result != 'failure' && needs.format.outputs.changed != 'true' }}
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v7
+      - uses: step-security/harden-runner@dc2769abcc0fcfbadfc1df54081c1608579ef6b2 # v2.22.2
+        with:
+          egress-policy: audit
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: ./.github/actions/setup
       - run: npm run audit:ci
 
@@ -131,9 +151,13 @@ jobs:
     needs: format
     if: ${{ !cancelled() && needs.format.result != 'failure' && needs.format.outputs.changed != 'true' }}
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v7
-      - uses: docker/setup-buildx-action@v3
+      - uses: step-security/harden-runner@dc2769abcc0fcfbadfc1df54081c1608579ef6b2 # v2.22.2
+        with:
+          egress-policy: audit
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
       - run: docker build --tag webspeak:ci .
       - name: Health smoke test
         run: |
@@ -151,6 +175,7 @@ jobs:
     if: always()
     needs: [format, verify, e2e, visual, docker-smoke, security-audit, linux-build, windows-build]
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - run: |
           echo '${{ toJSON(needs) }}'
