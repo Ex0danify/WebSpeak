@@ -23,8 +23,8 @@ jobs:
   linux-x64:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: 22.22.2
           cache: npm
@@ -56,7 +56,7 @@ jobs:
       - name: Failed tests on the run summary
         if: ${{ !cancelled() }}
         run: node scripts/ci-summary.mjs
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: failure()
         with:
           name: linux-test-results
@@ -104,7 +104,7 @@ jobs:
             grep -q "\"version\":\"$release_version\"" <<<"$health"
           )
           tar -czf "$GITHUB_WORKSPACE/${package_name}.tar.gz" -C "$RUNNER_TEMP" "$package_name"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: ${{ inputs.upload }}
         with:
           name: linux-x64

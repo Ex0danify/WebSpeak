@@ -23,8 +23,8 @@ jobs:
   windows-x64:
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: 22.22.2
           cache: npm
@@ -64,7 +64,7 @@ jobs:
       - name: Failed tests on the run summary
         if: ${{ !cancelled() }}
         run: node scripts/ci-summary.mjs
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: failure()
         with:
           name: windows-test-results
@@ -118,7 +118,7 @@ jobs:
             if ($process -and -not $process.HasExited) { Stop-Process -Id $process.Id -Force }
           }
           Compress-Archive -LiteralPath $packageRoot -DestinationPath (Join-Path $env:GITHUB_WORKSPACE ($packageName + ".zip")) -CompressionLevel Optimal
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: ${{ inputs.upload }}
         with:
           name: windows-x64
