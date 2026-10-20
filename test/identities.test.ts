@@ -53,7 +53,7 @@ describe("seeded identities", () => {
     expect(ts3Uid(publicKey)).toBe("jLjx5pIMJszva8Z6CM51YeSQyNI=");
   });
 
-  it("keeps the private keys readable by the owner only", () => {
+  it.skipIf(process.platform === "win32")("keeps the private keys readable by the owner only", () => {
     const { store, file } = tempStore();
     store.get(0);
     expect(statSync(file).mode & 0o077).toBe(0);

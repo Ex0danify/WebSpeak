@@ -121,7 +121,8 @@ describe("probeTeamSpeak", () => {
     });
   });
 
-  it("fails with CONNECTION_REFUSED when the host answers that nothing listens on the port", async () => {
+  // Windows does not surface ICMP port-unreachable on a connected UDP socket, so the probe times out (NO_ANSWER) instead.
+  it.skipIf(process.platform === "win32")("fails with CONNECTION_REFUSED when the host answers that nothing listens on the port", async () => {
     const closed = await udpServer(() => undefined);
     const port = closed.port;
     sockets.pop()!.close();

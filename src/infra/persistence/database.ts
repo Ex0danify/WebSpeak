@@ -31,15 +31,21 @@ export class WebSpeakDatabase {
     mkdirSync(dirname(path), { recursive: true });
     const existed = existsSync(path);
     this.database = new DatabaseSync(path);
-    this.database.exec("PRAGMA foreign_keys = ON; PRAGMA journal_mode = WAL;");
-    const context = { database: this.database, transaction: (action: () => void) => this.transaction(action) };
-    this.adminCredentials = new AdminCredentialRepository(context);
-    this.settings = new SettingsRepository(context);
-    this.relayNodes = new RelayNodeRepository(context);
-    this.managedInvites = new ManagedInviteRepository(context);
-    this.audit = new AuditRepository(context);
-    this.meta = new MetaRepository(context);
-    this.migrate(existed);
+    try {
+      this.database.exec("PRAGMA foreign_keys = ON; PRAGMA journal_mode = WAL;");
+      const context = { database: this.database, transaction: (action: () => void) => this.transaction(action) };
+      this.adminCredentials = new AdminCredentialRepository(context);
+      this.settings = new SettingsRepository(context);
+      this.relayNodes = new RelayNodeRepository(context);
+      this.managedInvites = new ManagedInviteRepository(context);
+      this.audit = new AuditRepository(context);
+      this.meta = new MetaRepository(context);
+      this.migrate(existed);
+    } catch (error) {
+      // A failed migration must not leak the open handle, or Windows cannot unlink the file.
+      this.database.close();
+      throw error;
+    }
   }
 
   close(): void {
