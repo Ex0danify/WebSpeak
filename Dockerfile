@@ -1,4 +1,4 @@
-FROM node:22-bookworm-slim AS build
+FROM node:22-bookworm-slim@sha256:c3de60bf2f9dd0ac6370e6117950ff62d6e339527e7472301c9c78a017978392 AS build
 
 WORKDIR /app
 RUN apt-get update \
@@ -15,7 +15,7 @@ RUN npm run build \
   && npm prune --omit=dev \
   && rm -rf web/node_modules
 
-FROM node:22-bookworm-slim AS runtime
+FROM node:22-bookworm-slim@sha256:c3de60bf2f9dd0ac6370e6117950ff62d6e339527e7472301c9c78a017978392 AS runtime
 
 WORKDIR /app
 RUN apt-get update \

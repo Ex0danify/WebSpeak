@@ -20,10 +20,14 @@ concurrency:
 jobs:
   baseline:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     env:
       WEBSPEAK_VISUAL_BASELINE: ${{ github.workspace }}/e2e/visual/baseline
     steps:
-      - uses: actions/checkout@v7
+      - uses: step-security/harden-runner@dc2769abcc0fcfbadfc1df54081c1608579ef6b2 # v2.22.2
+        with:
+          egress-policy: audit
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: ./.github/actions/setup
       - run: npx playwright install --with-deps chromium
       - run: npm run build:web
