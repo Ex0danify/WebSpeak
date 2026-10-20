@@ -1,6 +1,6 @@
 name: CI
 
-# The required check is `ci-pass`. Together the jobs cover `npm run test:full` plus format, lint and the gateway checks.
+# The required check is `ci-pass`. Together the jobs cover `npm run test:full` plus format, lint, the gateway checks and a Windows build.
 # Add the label `ui-change` to a pull request that changes the look on purpose: the visual job is skipped, and the baseline is
 # rebuilt after the merge (visual-baseline.yml). The format job commits Prettier fixes to the branch first.
 on:
@@ -126,6 +126,13 @@ jobs:
       - uses: ./.github/actions/setup
       - run: npm run audit:ci
 
+  # Builds, tests, packages and boots the Windows x64 artifact on a Windows runner, without uploading it, so a
+  # Windows-only build or runtime break is caught at PR time rather than at release (release.yml shares the script).
+  windows-build:
+    needs: format
+    if: ${{ !cancelled() && needs.format.result != 'failure' && needs.format.outputs.changed != 'true' }}
+    uses: ./.github/workflows/build-windows.yml
+
   docker-smoke:
     needs: format
     if: ${{ !cancelled() && needs.format.result != 'failure' && needs.format.outputs.changed != 'true' }}
@@ -148,7 +155,7 @@ jobs:
   # The one status to require in the branch protection. A skipped visual job (label ui) counts as passed.
   ci-pass:
     if: always()
-    needs: [format, verify, e2e, visual, docker-smoke, security-audit]
+    needs: [format, verify, e2e, visual, docker-smoke, security-audit, windows-build]
     runs-on: ubuntu-latest
     steps:
       - run: |
