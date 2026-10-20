@@ -61,6 +61,15 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           npm prune --omit=dev --no-audit --no-fund
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Failed tests on the run summary
+        if: ${{ !cancelled() }}
+        run: node scripts/ci-summary.mjs
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: windows-test-results
+          path: test-results/
+          if-no-files-found: ignore
       - name: Package and smoke-test Windows x64
         shell: pwsh
         run: |

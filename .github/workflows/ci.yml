@@ -1,6 +1,6 @@
 name: CI
 
-# The required check is `ci-pass`. Together the jobs cover `npm run test:full` plus format, lint, the gateway checks and a Windows build.
+# The required check is `ci-pass`. Together the jobs cover `npm run test:full` plus format, lint and a packaged build on each target platform.
 # Add the label `ui-change` to a pull request that changes the look on purpose: the visual job is skipped, and the baseline is
 # rebuilt after the merge (visual-baseline.yml). The format job commits Prettier fixes to the branch first.
 on:
@@ -43,6 +43,7 @@ jobs:
           git push
           echo "changed=true" >> "$GITHUB_OUTPUT"
 
+  # Static checks only. The build and unit tests run on each target platform in linux-build and windows-build.
   verify:
     needs: format
     if: ${{ !cancelled() && needs.format.result != 'failure' && needs.format.outputs.changed != 'true' }}
@@ -52,18 +53,6 @@ jobs:
       - uses: ./.github/actions/setup
       - run: npm run format:check
       - run: npm run lint
-      - run: npm run build
-      - name: Unit tests
-        run: npm test -- --maxWorkers=4
-      - name: Failed tests on the run summary
-        if: ${{ !cancelled() }}
-        run: node scripts/ci-summary.mjs
-      - uses: actions/upload-artifact@v4
-        if: failure()
-        with:
-          name: verify-test-results
-          path: test-results/
-          if-no-files-found: ignore
 
   e2e:
     needs: format
@@ -126,8 +115,13 @@ jobs:
       - uses: ./.github/actions/setup
       - run: npm run audit:ci
 
-  # Builds, tests, packages and boots the Windows x64 artifact on a Windows runner, without uploading it, so a
-  # Windows-only build or runtime break is caught at PR time rather than at release (release.yml shares the script).
+  # Each target platform builds, tests, packages and boots its artifact on its own runner, without uploading it, so a
+  # platform-specific build or runtime break is caught at PR time rather than at release (release.yml shares the scripts).
+  linux-build:
+    needs: format
+    if: ${{ !cancelled() && needs.format.result != 'failure' && needs.format.outputs.changed != 'true' }}
+    uses: ./.github/workflows/build-linux.yml
+
   windows-build:
     needs: format
     if: ${{ !cancelled() && needs.format.result != 'failure' && needs.format.outputs.changed != 'true' }}
@@ -155,7 +149,7 @@ jobs:
   # The one status to require in the branch protection. A skipped visual job (label ui) counts as passed.
   ci-pass:
     if: always()
-    needs: [format, verify, e2e, visual, docker-smoke, security-audit, windows-build]
+    needs: [format, verify, e2e, visual, docker-smoke, security-audit, linux-build, windows-build]
     runs-on: ubuntu-latest
     steps:
       - run: |

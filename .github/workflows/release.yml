@@ -22,83 +22,10 @@ jobs:
       upload: true
 
   linux-x64:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22.22.2
-          cache: npm
-          cache-dependency-path: |
-            package-lock.json
-            web/package-lock.json
-      - name: Audit shipped dependencies
-        run: npm run audit:ci
-      - name: Build application
-        env:
-          RELEASE_REF: ${{ inputs.version || github.ref_name }}
-        run: |
-          set -euo pipefail
-          release_version="${RELEASE_REF#v}"
-          npm ci --ignore-scripts --no-audit --no-fund
-          npm --prefix web ci --no-audit --no-fund
-          current_version="$(node -p "require('./package.json').version")"
-          if [ "$current_version" != "$release_version" ]; then
-            npm version --no-git-tag-version "$release_version"
-          fi
-          npm run build
-          npm test -- --maxWorkers=4
-          npm prune --omit=dev --no-audit --no-fund
-      - name: Package and smoke-test Linux x64
-        env:
-          RELEASE_REF: ${{ inputs.version || github.ref_name }}
-        run: |
-          set -euo pipefail
-          release_version="${RELEASE_REF#v}"
-          package_name="webspeak-webclient-v${release_version}-linux-x64"
-          package_root="$RUNNER_TEMP/$package_name"
-          runtime_root="$(dirname "$(dirname "$(command -v node)")")"
-          mkdir -p "$package_root/web" "$package_root/runtime"
-          cp -a dist "$package_root/dist"
-          cp -a web/dist "$package_root/web/dist"
-          cp -a node_modules "$package_root/node_modules"
-          cp .env.example README.md LICENSE package.json package-lock.json "$package_root/"
-          cp "$runtime_root/bin/node" "$package_root/runtime/node"
-          cp "$runtime_root/LICENSE" "$package_root/runtime/NODE-LICENSE"
-          chmod 0755 "$package_root/runtime/node"
-          cat > "$package_root/start-webspeak.sh" <<'LAUNCHER'
-          #!/usr/bin/env sh
-          set -eu
-          cd -- "$(dirname -- "$0")"
-          exec "$PWD/runtime/node" "$PWD/dist/index.js"
-          LAUNCHER
-          chmod 0755 "$package_root/start-webspeak.sh"
-
-          smoke_root="$RUNNER_TEMP/${package_name}-smoke"
-          cp -a "$package_root" "$smoke_root"
-          cp "$smoke_root/.env.example" "$smoke_root/.env"
-          export WEBSPEAK_ADMIN_PASSWORD="release-smoke-test-password"
-          (
-            cd "$smoke_root"
-            "$smoke_root/runtime/node" dist/index.js >"$RUNNER_TEMP/linux-smoke.log" 2>&1 &
-            app_pid=$!
-            trap 'kill "$app_pid" 2>/dev/null || true; wait "$app_pid" 2>/dev/null || true' EXIT
-            health=""
-            for _ in $(seq 1 30); do
-              health="$(curl -fsS --max-time 2 http://127.0.0.1:3040/api/health 2>/dev/null || true)"
-              if grep -q '"status":"ok"' <<<"$health" && grep -q "\"version\":\"$release_version\"" <<<"$health"; then break; fi
-              sleep 0.5
-            done
-            grep -q '"status":"ok"' <<<"$health"
-            grep -q "\"version\":\"$release_version\"" <<<"$health"
-          )
-          tar -czf "$GITHUB_WORKSPACE/${package_name}.tar.gz" -C "$RUNNER_TEMP" "$package_name"
-      - uses: actions/upload-artifact@v4
-        with:
-          name: linux-x64
-          path: webspeak-webclient-v*-linux-x64.tar.gz
-          if-no-files-found: error
-          compression-level: 0
+    uses: ./.github/workflows/build-linux.yml
+    with:
+      version: ${{ inputs.version || github.ref_name }}
+      upload: true
 
   publish-release:
     if: startsWith(github.ref, 'refs/tags/v')
