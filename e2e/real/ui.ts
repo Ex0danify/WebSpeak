@@ -6,9 +6,9 @@ import type { WebQuery } from "./server";
 
 const escapeRegExp = (text: string): string => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
-/** The button of a channel with `count` people in it, so a count that follows a move can be awaited. */
+/** The button of a channel with `count` people in it, so a count that follows a move can be awaited. An empty channel shows no count. */
 export const channelWith = (page: Page, channel: string, count: number): Locator =>
-  page.getByRole("button", { name: `${channel} ${count}`, exact: true });
+  page.getByRole("button", { name: count ? `${channel} ${count}` : channel, exact: true });
 
 /** A tab of the chat panel (the channel's own, "Server", or a private chat named by the person). */
 export const chatTab = (page: Page, name: string): Locator => page.getByRole("tab", { name, exact: true });

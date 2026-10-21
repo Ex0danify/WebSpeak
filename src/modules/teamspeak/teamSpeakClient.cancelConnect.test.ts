@@ -1,74 +1,62 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { Logger } from "../../shared/logger.js";
+import { describe, expect, it } from "vitest";
+import { fakeBackends, silentLogger } from "../../../test/support/fakeTsBackend.js";
+import { TSClient } from "./teamSpeakClient.js";
 
-const adapters: FakeAdapter[] = [];
-
-class FakeAdapter {
-  readonly client = Object.assign(new (class {})(), {
-    on() {},
-    clientID: () => 56,
-    channelID: () => 1n,
-    execCommand: async () => undefined,
-    execCommandWithResponse: async () => [],
-  });
-  release: () => void = () => undefined;
-  readonly disconnect = vi.fn(async () => undefined);
-  readonly connect = vi.fn(
-    () =>
-      new Promise<void>((resolve) => {
-        this.release = resolve;
-      }),
-  );
-
-  constructor() {
-    adapters.push(this);
-  }
+function holdConnect() {
+  const { backends, factory } = fakeBackends();
+  let release: () => void = () => undefined;
+  const make: typeof factory = (options, logger) => {
+    const backend = factory(options, logger);
+    backend.onConnect = () => new Promise<void>((resolve) => (release = resolve));
+    return backend;
+  };
+  return { backends, factory: make, release: () => release() };
 }
 
-vi.mock("./teamSpeakAdapter.js", () => ({ TeamSpeakAdapter: FakeAdapter }));
-
-const { TSClient } = await import("./teamSpeakClient.js");
-
-const logger: Logger = {
-  debug() {},
-  info() {},
-  warn() {},
-  error() {},
-  child() {
-    return logger;
-  },
-};
-
 describe("a TeamSpeak connect that is cancelled while it is in flight", () => {
-  beforeEach(() => {
-    adapters.length = 0;
-  });
-
-  it("closes the session the SDK finishes afterwards and never reports it as connected", async () => {
-    const client = new TSClient({ target: { host: "127.0.0.1", port: 9987 }, nickname: "early-leaver" }, logger);
-    const connected = vi.fn();
-    client.on("connected", connected);
+  it("closes the session that finishes afterwards and never reports it as connected", async () => {
+    const { backends, factory, release } = holdConnect();
+    const client = new TSClient({ target: { host: "127.0.0.1", port: 9987 }, nickname: "early-leaver" }, silentLogger, factory);
+    let connected = false;
+    client.on("connected", () => (connected = true));
 
     const connecting = client.connect();
+    await Promise.resolve();
     await client.disconnect();
-    expect(adapters).toHaveLength(1);
-    expect(adapters[0]!.disconnect).toHaveBeenCalledTimes(1);
+    expect(backends).toHaveLength(1);
+    expect(backends[0]!.disconnects).toBe(1);
 
-    // The address lookup inside the SDK ends only now, and the handshake completes on its own.
-    adapters[0]!.release();
+    // The handshake completes on its own after the disconnect.
+    release();
     await connecting;
 
-    expect(adapters[0]!.disconnect).toHaveBeenCalledTimes(2);
-    expect(connected).not.toHaveBeenCalled();
+    expect(backends[0]!.disconnects).toBe(2);
+    expect(connected).toBe(false);
     expect(client.getClientId()).toBe(0);
   });
 
-  it("still connects when nobody disconnected", async () => {
-    const client = new TSClient({ target: { host: "127.0.0.1", port: 9987 }, nickname: "stays" }, logger);
+  it("swallows the failure of a connect that disconnect() stopped", async () => {
+    const { backends, factory } = fakeBackends();
+    const client = new TSClient({ target: { host: "127.0.0.1", port: 9987 }, nickname: "stopped" }, silentLogger, (options, logger) => {
+      const backend = factory(options, logger);
+      backend.onConnect = () => new Promise<void>((_resolve, reject) => setImmediate(() => reject(new Error("closed while connecting"))));
+      return backend;
+    });
     const connecting = client.connect();
-    adapters[0]!.release();
+    await Promise.resolve();
+    await client.disconnect();
+    await expect(connecting).resolves.toBeUndefined();
+    expect(backends[0]!.disconnects).toBe(1);
+  });
+
+  it("still connects when nobody disconnected", async () => {
+    const { backends, factory, release } = holdConnect();
+    const client = new TSClient({ target: { host: "127.0.0.1", port: 9987 }, nickname: "stays" }, silentLogger, factory);
+    const connecting = client.connect();
+    await Promise.resolve();
+    release();
     await connecting;
-    expect(adapters[0]!.disconnect).not.toHaveBeenCalled();
+    expect(backends[0]!.disconnects).toBe(0);
     expect(client.getClientId()).toBe(56);
   });
 });

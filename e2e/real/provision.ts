@@ -1,4 +1,4 @@
-import { identityFromString } from "@echosixhiya/teamspeak-client";
+import { identityFromString } from "../../src/lib/teamspeak/index.js";
 import { TSClient } from "../../src/modules/teamspeak/teamSpeakClient";
 import { poll } from "../helpers/poll";
 import { ADMIN_IDENTITIES, GUEST_IDENTITY, type IdentityStore, identities } from "./identities";

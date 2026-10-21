@@ -1,0 +1,16 @@
+version: 2
+updates:
+  # Keep the SHA-pinned actions current; grouped so a week's bumps arrive as one reviewable PR.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns: ["*"]
+
+  # Pinned by digest in the Dockerfile, so Dependabot is the only thing that moves the base image.
+  - package-ecosystem: docker
+    directory: /
+    schedule:
+      interval: weekly

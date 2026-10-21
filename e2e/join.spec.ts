@@ -1,4 +1,4 @@
-import { ServerError } from "@echosixhiya/teamspeak-client";
+import { TeamSpeakServerError } from "../src/lib/teamspeak/index.js";
 import { expect, test } from "./fixtures";
 import { expectInRoom, memberRow, submitJoin } from "./helpers";
 import { storageStateFor } from "./real/identities";
@@ -91,7 +91,7 @@ test.describe("join form", () => {
   });
 
   test("a refused join shows the reason and its code, and the form stays usable", async ({ page, gateway }) => {
-    gateway.ts.failNext("connect", new ServerError("513", "nickname is already in use"));
+    gateway.ts.failNext("connect", new TeamSpeakServerError({ id: 513, serverMessage: "nickname is already in use" }));
     await submitJoin(page, "join-refused");
     await expect(page.getByText("NICKNAME_IN_USE")).toBeVisible();
     await expect(page.getByLabel("Your nickname")).toHaveValue("join-refused");
@@ -104,7 +104,7 @@ test.describe("join form", () => {
 
   // The form must not stay put without a visible reason, and for both suspected failures the reason is on screen.
   test("a ban is shown with its reason and code, and the form stays usable", async ({ page, gateway }) => {
-    gateway.ts.failNext("connect", new ServerError("3329", "you are banned"));
+    gateway.ts.failNext("connect", new TeamSpeakServerError({ id: 3329, serverMessage: "you are banned" }));
     await submitJoin(page, "join-banned");
     await expect(page.getByText("You are banned from this server, so the connection is refused")).toBeVisible();
     await expect(page.getByText("Error code: BANNED")).toBeVisible();

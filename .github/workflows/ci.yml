@@ -1,6 +1,6 @@
 name: CI
 
-# The required check is `ci-pass`. Together the jobs cover `npm run test:full` plus format, lint and the gateway checks.
+# The required check is `ci-pass`. Together the jobs cover `npm run test:full` plus format, lint and a packaged build on each target platform.
 # Add the label `ui-change` to a pull request that changes the look on purpose: the visual job is skipped, and the baseline is
 # rebuilt after the merge (visual-baseline.yml). The format job commits Prettier fixes to the branch first.
 on:
@@ -18,16 +18,20 @@ concurrency:
 jobs:
   # Runs Prettier on the pull request's branch and pushes a commit if anything changed. That push starts a new run (it needs
   # the CI_PUSH_TOKEN secret: a push by GITHUB_TOKEN starts no workflow, so the new head would never get its checks), and this
-  # run stops here. Skipped for pull requests from forks and in the merge queue, where verify's format:check still guards.
+  # run stops here. Skipped for forks, Dependabot (no access to the push token) and the merge queue, where verify's format:check still guards.
   format:
-    if: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository }}
+    if: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && github.actor != 'dependabot[bot]' }}
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     permissions:
       contents: write
     outputs:
       changed: ${{ steps.commit.outputs.changed }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: step-security/harden-runner@dc2769abcc0fcfbadfc1df54081c1608579ef6b2 # v2.22.2
+        with:
+          egress-policy: audit
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ github.event.pull_request.head.ref }}
           token: ${{ secrets.CI_PUSH_TOKEN }}
@@ -43,34 +47,31 @@ jobs:
           git push
           echo "changed=true" >> "$GITHUB_OUTPUT"
 
+  # Static checks only. The build and unit tests run on each target platform in linux-build and windows-build.
   verify:
     needs: format
     if: ${{ !cancelled() && needs.format.result != 'failure' && needs.format.outputs.changed != 'true' }}
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
+      - uses: step-security/harden-runner@dc2769abcc0fcfbadfc1df54081c1608579ef6b2 # v2.22.2
+        with:
+          egress-policy: audit
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: ./.github/actions/setup
       - run: npm run format:check
       - run: npm run lint
-      - run: npm run build
-      - name: Unit tests
-        run: npm test -- --maxWorkers=4
-      - name: Failed tests on the run summary
-        if: ${{ !cancelled() }}
-        run: node scripts/ci-summary.mjs
-      - uses: actions/upload-artifact@v4
-        if: failure()
-        with:
-          name: verify-test-results
-          path: test-results/
-          if-no-files-found: ignore
 
   e2e:
     needs: format
     if: ${{ !cancelled() && needs.format.result != 'failure' && needs.format.outputs.changed != 'true' }}
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
+      - uses: step-security/harden-runner@dc2769abcc0fcfbadfc1df54081c1608579ef6b2 # v2.22.2
+        with:
+          egress-policy: audit
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: ./.github/actions/setup
       - run: npx playwright install --with-deps chromium
       - run: npm run build:web
@@ -81,7 +82,7 @@ jobs:
       - name: Failed tests on the run summary
         if: ${{ !cancelled() }}
         run: node scripts/ci-summary.mjs
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: failure()
         with:
           name: e2e-test-results
@@ -92,10 +93,14 @@ jobs:
   visual:
     if: ${{ !contains(github.event.pull_request.labels.*.name, 'ui') }}
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     env:
       WEBSPEAK_VISUAL_BASELINE: ${{ github.workspace }}/e2e/visual/baseline
     steps:
-      - uses: actions/checkout@v4
+      - uses: step-security/harden-runner@dc2769abcc0fcfbadfc1df54081c1608579ef6b2 # v2.22.2
+        with:
+          egress-policy: audit
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: ./.github/actions/setup
       - run: npx playwright install --with-deps chromium
       - run: npm run build:web
@@ -109,20 +114,50 @@ jobs:
       - name: Failed tests on the run summary
         if: ${{ !cancelled() }}
         run: node scripts/ci-summary.mjs
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: failure()
         with:
           name: visual-diff
           path: test-results/visual/
           if-no-files-found: ignore
 
+  # Fails the merge when a shipped dependency has a high or critical advisory, so nothing vulnerable reaches master.
+  security-audit:
+    needs: format
+    if: ${{ !cancelled() && needs.format.result != 'failure' && needs.format.outputs.changed != 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: step-security/harden-runner@dc2769abcc0fcfbadfc1df54081c1608579ef6b2 # v2.22.2
+        with:
+          egress-policy: audit
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/setup
+      - run: npm run audit:ci
+
+  # Each target platform builds, tests, packages and boots its artifact on its own runner, without uploading it, so a
+  # platform-specific build or runtime break is caught at PR time rather than at release (release.yml shares the scripts).
+  linux-build:
+    needs: format
+    if: ${{ !cancelled() && needs.format.result != 'failure' && needs.format.outputs.changed != 'true' }}
+    uses: ./.github/workflows/build-linux.yml
+
+  windows-build:
+    needs: format
+    if: ${{ !cancelled() && needs.format.result != 'failure' && needs.format.outputs.changed != 'true' }}
+    uses: ./.github/workflows/build-windows.yml
+
   docker-smoke:
     needs: format
     if: ${{ !cancelled() && needs.format.result != 'failure' && needs.format.outputs.changed != 'true' }}
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
-      - uses: docker/setup-buildx-action@v3
+      - uses: step-security/harden-runner@dc2769abcc0fcfbadfc1df54081c1608579ef6b2 # v2.22.2
+        with:
+          egress-policy: audit
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
       - run: docker build --tag webspeak:ci .
       - name: Health smoke test
         run: |
@@ -138,8 +173,9 @@ jobs:
   # The one status to require in the branch protection. A skipped visual job (label ui) counts as passed.
   ci-pass:
     if: always()
-    needs: [format, verify, e2e, visual, docker-smoke]
+    needs: [format, verify, e2e, visual, docker-smoke, security-audit, linux-build, windows-build]
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - run: |
           echo '${{ toJSON(needs) }}'

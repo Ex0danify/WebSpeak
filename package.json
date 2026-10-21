@@ -1,6 +1,6 @@
 {
   "name": "webspeak-webclient",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "private": true,
   "license": "AGPL-3.0-only",
   "type": "module",
@@ -15,11 +15,10 @@
     "build": "npm run build:all",
     "build:all": "npm run build:web && npm run build:gateway",
     "build:web": "npm --prefix web run build",
-    "build:gateway": "tsc -p tsconfig.build.json && npm run check:gateway-types && npm run check:gateway-size && npm run check:gateway-names && npm run check:gateway-deps && npm run check:gateway-literals",
+    "build:gateway": "tsc -p tsconfig.build.json && node scripts/copy-opus-wasm.mjs && npm run check:gateway-types && npm run check:gateway-size && npm run check:gateway-names && npm run check:gateway-deps && npm run check:gateway-literals",
     "start": "node dist/index.js",
     "admin:reset-password": "node dist/index.js reset-admin-password",
     "web:dev": "cd web && npx vite --host",
-    "prepare:sdk": "node scripts/prepare-sdk.mjs",
     "acceleration:relay": "node dist/relay.js",
     "test": "cross-env NODE_OPTIONS=--disable-warning=ExperimentalWarning vitest run",
     "test:watch": "cross-env NODE_OPTIONS=--disable-warning=ExperimentalWarning vitest",
@@ -36,11 +35,11 @@
     "format": "prettier --write web/src web/scripts e2e src test scripts",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
-    "format:check": "prettier --check web/src web/scripts e2e src test scripts"
+    "format:check": "prettier --check web/src web/scripts e2e src test scripts",
+    "audit:ci": "node scripts/audit-deps.mjs"
   },
   "dependencies": {
-    "@discordjs/opus": "^0.10.0",
-    "@echosixhiya/teamspeak-client": "git+https://github.com/EchoSixHIYA/teamspeak-js.git#2c1e8fd5ff8655a14c82e1d00bc2c614638cf528",
+    "@noble/curves": "^2.4.0",
     "express": "^5.2.1",
     "pino": "^10.3.1",
     "werift": "0.24.4",

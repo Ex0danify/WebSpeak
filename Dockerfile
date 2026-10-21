@@ -1,16 +1,13 @@
-FROM node:22-bookworm-slim AS build
+FROM node:22-bookworm-slim@sha256:c3de60bf2f9dd0ac6370e6117950ff62d6e339527e7472301c9c78a017978392 AS build
 
 WORKDIR /app
 RUN apt-get update \
-  && apt-get install -y --no-install-recommends ca-certificates git python3 make g++ \
+  && apt-get install -y --no-install-recommends ca-certificates \
   && rm -rf /var/lib/apt/lists/*
 
 COPY package.json package-lock.json ./
 COPY web/package.json web/package-lock.json ./web/
 RUN npm ci --ignore-scripts --no-audit --no-fund
-COPY scripts/prepare-sdk.mjs ./scripts/prepare-sdk.mjs
-RUN npm run prepare:sdk
-RUN npm rebuild @discordjs/opus --foreground-scripts --no-audit --no-fund
 RUN npm --prefix web ci
 
 COPY . .
@@ -18,7 +15,7 @@ RUN npm run build \
   && npm prune --omit=dev \
   && rm -rf web/node_modules
 
-FROM node:22-bookworm-slim AS runtime
+FROM node:22-bookworm-slim@sha256:c3de60bf2f9dd0ac6370e6117950ff62d6e339527e7472301c9c78a017978392 AS runtime
 
 WORKDIR /app
 RUN apt-get update \

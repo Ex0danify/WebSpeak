@@ -1,6 +1,6 @@
 import type { Logger as LoggerType } from "../../../shared/logger.js";
 import type { TSVoiceData } from "../../teamspeak/index.js";
-import { OpusEncoder } from "../voiceOpus.js";
+import { createOpusCodec, type OpusCodec } from "../voiceOpus.js";
 
 export const AUDIO_SAMPLE_RATE = 48_000;
 export const AUDIO_FRAME_SAMPLES = 960;
@@ -35,16 +35,16 @@ interface PendingAudioFrame {
  * The session owns the clock and the RTP send.
  */
 export class WebRtcMixer {
-  private readonly decoderByClient = new Map<number, { decode(data: Buffer): Buffer }>();
+  private readonly decoderByClient = new Map<number, OpusCodec>();
   private readonly partialPcmByClient = new Map<number, Buffer>();
   private readonly pendingFrames = new Map<number, PendingAudioFrame[]>();
   private readonly memberVolumes = new Map<number, number>();
   private readonly activeSpeakerIds = new Set<number>();
   private lastQueueEnqueuedAt: number | null = null;
-  private encoder: { encode(data: Buffer): Buffer } | null;
+  private encoder: OpusCodec | null;
 
   constructor(
-    encoder: { encode(data: Buffer): Buffer },
+    encoder: OpusCodec,
     private readonly stats: WebRtcMixerStats,
     private readonly logger: LoggerType,
   ) {
@@ -55,8 +55,7 @@ export class WebRtcMixer {
     let decoder = this.decoderByClient.get(data.clientId);
     if (!decoder) {
       try {
-        // @discordjs/opus has no separate decoder class, decoding lives on OpusEncoder.
-        decoder = new OpusEncoder(AUDIO_SAMPLE_RATE, 1);
+        decoder = createOpusCodec(AUDIO_SAMPLE_RATE, 1);
         this.decoderByClient.set(data.clientId, decoder);
       } catch (error: unknown) {
         this.logger.warn({ err: error instanceof Error ? error.message : String(error) }, "Could not create WebRTC mixer decoder");
@@ -186,7 +185,9 @@ export class WebRtcMixer {
     this.memberVolumes.clear();
     this.partialPcmByClient.clear();
     this.activeSpeakerIds.clear();
+    for (const decoder of this.decoderByClient.values()) decoder.dispose();
     this.decoderByClient.clear();
+    this.encoder?.dispose();
     this.encoder = null;
   }
 }

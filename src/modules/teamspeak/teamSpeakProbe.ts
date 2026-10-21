@@ -2,7 +2,7 @@ import { randomBytes } from "node:crypto";
 import { lookup } from "node:dns/promises";
 import { createSocket, type Socket } from "node:dgram";
 import { isIP } from "node:net";
-import { INIT_VERSION } from "@echosixhiya/teamspeak-client/handshake";
+import { INIT_VERSION } from "../../lib/teamspeak/index.js";
 import type { TeamSpeakTarget } from "../../shared/teamSpeakTarget.js";
 
 /**

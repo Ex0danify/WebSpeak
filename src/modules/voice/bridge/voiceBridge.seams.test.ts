@@ -1,11 +1,11 @@
-import { generateIdentity } from "@echosixhiya/teamspeak-client";
+import { generateIdentity } from "../../../lib/teamspeak/index.js";
 import { createServer } from "node:http";
 import type { AddressInfo } from "node:net";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { stubLogger } from "../../../../test/support/adminService.js";
 import { FakeTeamSpeakServer } from "../../../../test/support/fakeTsClient.js";
 import { type Gateway, useGateway } from "../../../../test/support/gateway.js";
-import { silentFrame } from "../../../../test/support/audio.js";
+import { pcmWireFrame, silentFrame } from "../../../../test/support/audio.js";
 import { JoinTicketStore } from "../../join/joinTicket.js";
 import { VoiceBridge } from "../voiceBridge.js";
 import { ask, joinVoice } from "../../../../test/support/voice.js";
@@ -178,7 +178,7 @@ describe("an unavailable Opus encoder", () => {
       for (const entry of (bridge as unknown as { entries: Map<string, { opusEncoder: unknown }> }).entries.values())
         entry.opusEncoder = null;
       const frames = () => {
-        for (let i = 0; i < 3; i++) socket.sendRaw(silentFrame());
+        for (let i = 0; i < 3; i++) socket.sendRaw(pcmWireFrame(silentFrame()));
       };
       const settle = async () => {
         const id = `s-${Math.random()}`;

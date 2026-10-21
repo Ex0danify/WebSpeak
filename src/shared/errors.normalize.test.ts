@@ -194,11 +194,12 @@ describe("normalizeTeamSpeakError: odd inputs and diagnostics", () => {
 });
 
 describe("normalizeTeamSpeakKickedReason", () => {
-  it("treats reason id 4 as a kick and 5 as a ban", () => {
-    const kick = normalizeTeamSpeakKickedReason("Slow down!", 4);
+  // Seen on TeamSpeak 6: clientkick reasonid=5 leaves with 5, banclient with 6.
+  it("treats reason id 5 as a kick and 6 as a ban", () => {
+    const kick = normalizeTeamSpeakKickedReason("Slow down!", 5);
     expect(kick).toMatchObject({ code: "kicked", retryable: false, message: WEBSPEAK_ERROR_MESSAGES.kicked });
-    expect(kick.diagnostics).toEqual({ name: "TeamSpeakKick", serverMessage: "Slow down!", id: "4" });
-    const ban = normalizeTeamSpeakKickedReason("bye", 5);
+    expect(kick.diagnostics).toEqual({ name: "TeamSpeakKick", serverMessage: "Slow down!", id: "5" });
+    const ban = normalizeTeamSpeakKickedReason("bye", 6);
     expect(ban).toMatchObject({ code: "banned", retryable: false });
     expect(ban.diagnostics.name).toBe("TeamSpeakBan");
   });
@@ -209,9 +210,9 @@ describe("normalizeTeamSpeakKickedReason", () => {
   });
 
   it("accepts a numeric string reason id and trims the text", () => {
-    const result = normalizeTeamSpeakKickedReason("  hi  ", "5");
+    const result = normalizeTeamSpeakKickedReason("  hi  ", "6");
     expect(result.code).toBe("banned");
-    expect(result.diagnostics).toMatchObject({ serverMessage: "hi", id: "5" });
+    expect(result.diagnostics).toMatchObject({ serverMessage: "hi", id: "6" });
   });
 
   it("copes with a missing or non-text reason", () => {

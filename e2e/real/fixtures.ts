@@ -54,9 +54,10 @@ interface TestFixtures {
   person: (index: number, label: string, options?: { gateway?: Gateway; seeded?: boolean }) => Promise<Person>;
   /**
    * A gateway of the test's own, for a test that ends it (the worker's cannot be restarted on its port). Stopped after
-   * the test. `webRtc: true` turns WebRTC audio on, by default voice travels as Opus over the WebSocket.
+   * the test. `webRtc: true` turns WebRTC audio on, by default voice travels as Opus over the WebSocket. `target`
+   * overrides the TeamSpeak address, e.g. a UDP impairment proxy in front of the server.
    */
-  ownGateway: (options?: { webRtc?: boolean }) => Promise<Gateway>;
+  ownGateway: (options?: { webRtc?: boolean; target?: string }) => Promise<Gateway>;
   /** A permanent channel of its own with a unique name. Returns its name and id; deleted after the test. */
   testChannel: (label: string) => Promise<{ name: string; id: string }>;
 }
@@ -64,11 +65,11 @@ interface TestFixtures {
 let counter = 0;
 
 /** A real gateway aimed at the disposable server, with the real TeamSpeak client. */
-async function startRealGateway(server: RealServer, options: { webRtc?: boolean } = {}): Promise<Gateway> {
+async function startRealGateway(server: RealServer, options: { webRtc?: boolean; target?: string } = {}): Promise<Gateway> {
   assertFreshBuild();
   const gateway = await startGateway({ staticDir, realTeamSpeak: true });
   gateway.adminService.updateSettings({
-    target: `${server.host}:${server.voicePort}`,
+    target: options.target ?? `${server.host}:${server.voicePort}`,
     accessMode: "fixed",
     siteName: "WebSpeak real-server test",
     webRtcEnabled: options.webRtc === true,

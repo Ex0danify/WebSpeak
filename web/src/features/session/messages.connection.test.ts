@@ -109,6 +109,16 @@ describe("connected", () => {
     expect(harness.voice.session.state.audioNoticeCode).toBe("VOICE_FAILED");
   });
 
+  it("does not report a failed voice when the microphone start is cut short by a reconnect", async () => {
+    let rejectMic!: (error: Error) => void;
+    harness = await createVoiceHarness({ getUserMedia: () => new Promise((_, reject) => (rejectMic = reject)) });
+    const socket = await harness.joinAndConnect();
+    await push(socket, { type: "reconnecting", attempt: 1 });
+    rejectMic(new Error("closed"));
+    await flushPromises();
+    expect(harness.voice.session.state.audioNoticeCode).not.toBe("VOICE_FAILED");
+  });
+
   it("negotiates a WebRTC voice peer instead when the gateway advertises WebRTC", async () => {
     const { FakeMediaStream, FakeMediaStreamTrack, FakeRTCPeerConnection } = await import("@/testSupport/browserStubs");
     harness = await createVoiceHarness({ getUserMedia: async () => new FakeMediaStream([new FakeMediaStreamTrack("audio")]) });

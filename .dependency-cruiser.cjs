@@ -1,5 +1,5 @@
 // Layer rules for the gateway, from docs/architecture.md. Written against
-// the tree (shared/, config/, infra/, modules/, transport/). SEVERITY "error" fails the run.
+// the tree (lib/, shared/, config/, infra/, modules/, transport/). SEVERITY "error" fails the run.
 const SEVERITY = "error";
 
 // Inside modules/ the order is relay < teamspeak < join < screenShare < voice < admin; a module may
@@ -7,6 +7,33 @@ const SEVERITY = "error";
 const MODULE_ORDER = ["relay", "teamspeak", "join", "screenShare", "voice", "admin"];
 
 const ROOTS = "^src/(index|relay)\\.ts$";
+
+// Inside lib/teamspeak/ each folder imports only folders to its left. discovery/ and fileTransfer/ are
+// side leaves: they sit on wire and below and only client/ uses them.
+const LIB_TS = "^src/lib/teamspeak/";
+const LIB_TS_ORDER = ["data", "errors", "wire", "crypto", "transport", "handshake", "command", "session", "client"];
+const LIB_TS_LEAVES = ["discovery", "fileTransfer"];
+
+const libOrderRules = LIB_TS_ORDER.map((name, i) => ({
+  name: `ts-lib-order-${name}`,
+  severity: SEVERITY,
+  comment: `lib/teamspeak/${name} imports only ${LIB_TS_ORDER.slice(0, i).join(", ") || "nothing else in the lib"}.`,
+  from: { path: `${LIB_TS}${name}/` },
+  to: {
+    path: `${LIB_TS}(${[...LIB_TS_ORDER.slice(i + 1), ...(name === "client" ? [] : LIB_TS_LEAVES), "index\\.ts$"].join("|")})`,
+  },
+}));
+
+const libLeafRules = LIB_TS_LEAVES.map((name) => ({
+  name: `ts-lib-leaf-${name}`,
+  severity: SEVERITY,
+  comment: `lib/teamspeak/${name} imports data, errors and wire only.`,
+  from: { path: `${LIB_TS}${name}/` },
+  to: {
+    path: LIB_TS,
+    pathNot: [`${LIB_TS}${name}/`, `${LIB_TS}(data|errors|wire)/`],
+  },
+}));
 
 const moduleOrderRules = MODULE_ORDER.map((name, i) => ({
   name: `module-order-${name}`,
@@ -26,6 +53,39 @@ module.exports = {
       from: {},
       to: { circular: true },
     },
+    {
+      name: "lib-standalone",
+      severity: SEVERITY,
+      comment: "A lib/ folder imports nothing else from src/, so it can move into its own package.",
+      from: { path: "^src/lib/([^/]+)/" },
+      to: { path: "^src/", pathNot: "^src/lib/$1/" },
+    },
+    {
+      name: "lib-teamspeak-npm",
+      severity: SEVERITY,
+      comment: "The only npm package lib/teamspeak may use is @noble/curves (Ed25519 point arithmetic).",
+      from: { path: LIB_TS },
+      to: {
+        dependencyTypes: ["npm", "npm-dev", "npm-optional", "npm-peer", "npm-no-pkg", "npm-unknown"],
+        pathNot: "node_modules/@noble/curves/",
+      },
+    },
+    {
+      name: "lib-teamspeak-only-from-adapter",
+      severity: SEVERITY,
+      comment: "Only modules/teamspeak imports lib/teamspeak, and only through its index.ts.",
+      from: { pathNot: [LIB_TS, "^src/modules/teamspeak/"] },
+      to: { path: LIB_TS },
+    },
+    {
+      name: "lib-teamspeak-barrel-only",
+      severity: SEVERITY,
+      comment: "modules/teamspeak imports lib/teamspeak through its index.ts only.",
+      from: { path: "^src/modules/teamspeak/" },
+      to: { path: LIB_TS, pathNot: `${LIB_TS}index\\.ts$` },
+    },
+    ...libOrderRules,
+    ...libLeafRules,
     {
       name: "layers-shared",
       severity: SEVERITY,

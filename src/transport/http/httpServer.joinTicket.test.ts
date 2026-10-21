@@ -1,4 +1,4 @@
-import { generateIdentity } from "@echosixhiya/teamspeak-client";
+import { generateIdentity } from "../../lib/teamspeak/index.js";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { settingsInput } from "../../../test/support/adminService.js";
 import { type Gateway, useGateway } from "../../../test/support/gateway.js";

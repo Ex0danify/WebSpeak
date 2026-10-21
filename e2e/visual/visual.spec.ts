@@ -60,6 +60,8 @@ for (const theme of themes) {
         try {
           await submitJoin(page, "Snapshot Tester");
           await expectInRoom(page, "Snapshot Tester");
+          // A scenario that stops the microphone while it is still starting leaves a "voice failed" banner, on slow runners only.
+          await expect(page.getByText("Connecting voice…")).toHaveCount(0);
           scripted.apply(scenario);
           if (tab && project.name === "mobile") await page.getByRole("tab", { name: tab }).click();
           const text = scenarioText[scenario];

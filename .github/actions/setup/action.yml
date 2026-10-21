@@ -1,9 +1,9 @@
 name: Set up WebSpeak
-description: Node, root and web dependencies, the TeamSpeak SDK and the Opus build
+description: Node, root and web dependencies
 runs:
   using: composite
   steps:
-    - uses: actions/setup-node@v4
+    - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
       with:
         node-version: 22.22.2
         cache: npm
@@ -13,6 +13,4 @@ runs:
     - shell: bash
       run: |
         npm ci --ignore-scripts --no-audit --no-fund
-        npm run prepare:sdk
-        npm rebuild @discordjs/opus --foreground-scripts --no-audit --no-fund
         npm --prefix web ci --no-audit --no-fund

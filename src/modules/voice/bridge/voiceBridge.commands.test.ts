@@ -1,4 +1,4 @@
-import { ServerError } from "@echosixhiya/teamspeak-client";
+import { TeamSpeakServerError } from "../../../lib/teamspeak/index.js";
 import { describe, expect, it } from "vitest";
 import { FakeTeamSpeakServer } from "../../../../test/support/fakeTsClient.js";
 import { type Gateway, useGateway } from "../../../../test/support/gateway.js";
@@ -78,7 +78,7 @@ describe("switching channels", () => {
     // The tree still lists the channel, so the request reaches the server, which answers "invalid channelID".
     const stale = session.client as unknown as { switchChannel: (id: bigint, password?: string) => Promise<void> };
     stale.switchChannel = async () => {
-      throw new ServerError("768", "invalid channelID");
+      throw new TeamSpeakServerError({ id: 768, serverMessage: "invalid channelID" });
     };
     expect(errorOf(await ask(session, "switchChannel", { channelId: "2" }))).toMatchObject({ code: "CHANNEL_NOT_FOUND" });
   });
@@ -223,7 +223,7 @@ describe("away and mute", () => {
   it("maps a TeamSpeak refusal of an operation to its error code, and anything else to OPERATION_FAILED", async () => {
     const gateway = await gateways.start({ ts: newServer() });
     const session = await alice(gateway);
-    gateway.ts.failNext("setAway", new ServerError("2568", "insufficient client permissions"));
+    gateway.ts.failNext("setAway", new TeamSpeakServerError({ id: 2568, serverMessage: "insufficient client permissions" }));
     expect(errorOf(await ask(session, "setAway", { away: true }))).toMatchObject({ code: "PERMISSION_DENIED" });
     gateway.ts.failNext("setAway", new Error("the wire caught fire"));
     expect(errorOf(await ask(session, "setAway", { away: true }))).toMatchObject({ code: "OPERATION_FAILED", message: "Operation failed" });

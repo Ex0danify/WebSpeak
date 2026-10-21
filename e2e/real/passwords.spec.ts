@@ -3,6 +3,9 @@ import { expectInRoom, poll } from "../helpers";
 import { GUEST_IDENTITY } from "./identities";
 import { channelIdOf, channelWith } from "./ui";
 
+/** The first wait of `ServerPasswordBackoff`, plus a margin. */
+const PASSWORD_BACKOFF_MS = 5_500;
+
 // Passwords on the real server. The dialogs themselves are layer 4, what only the real server shows is that its own refusals
 // reach the person as the right dialog and that a right password gets them in. Rights don't matter here, so the guest identity
 // is used throughout.
@@ -29,6 +32,8 @@ test.describe("server password", () => {
     await expect(password).toHaveValue("");
     expect(await channelIdOf(query, alice.nickname)).toBeUndefined();
 
+    // The gateway takes the next password for this server only after a backoff (5 s after the first wrong one).
+    await alice.page.waitForTimeout(PASSWORD_BACKOFF_MS);
     await password.fill("real-s3cret");
     await alice.page.keyboard.press("Enter");
     await expectInRoom(alice.page, alice.nickname);
@@ -49,7 +54,7 @@ test("a protected channel asks for its password, refuses a wrong one and lets th
   await alice.join(home.name);
   await expect(channelWith(alice.page, vault.name, 0)).toBeVisible();
 
-  await alice.page.getByRole("button", { name: `${vault.name} 0`, exact: true }).click();
+  await channelWith(alice.page, vault.name, 0).click();
   const dialog = alice.page.getByRole("dialog", { name: "Enter protected channel" });
   const password = dialog.getByLabel("Enter the channel password");
   await password.fill("wrong");

@@ -1,5 +1,5 @@
-import { ServerError, type DirectoryClientInfo } from "@echosixhiya/teamspeak-client";
-import type { TSChatMessage, TSChatScope } from "../../src/modules/teamspeak/teamSpeakClient.js";
+import { TeamSpeakServerError } from "../../src/lib/teamspeak/index.js";
+import type { TSChatMessage, TSChatScope, TSDirectoryClient as DirectoryClientInfo } from "../../src/modules/teamspeak/teamSpeakClient.js";
 import type { FakeTeamSpeakServer } from "./fakeTsClient.js";
 
 /** Routes a text message of the fake server: channel to the sender's channel, private to one client, server to everyone. */
@@ -11,7 +11,8 @@ export function deliverChat(
   targetId: bigint,
 ): void {
   const targetMode = scope === "private" ? 1 : scope === "server" ? 3 : 2;
-  if (scope === "private" && !server.members.has(Number(targetId))) throw new ServerError("512", "invalid clientID");
+  if (scope === "private" && !server.members.has(Number(targetId)))
+    throw new TeamSpeakServerError({ id: 512, serverMessage: "invalid clientID" });
   // Channel notifications carry no target; the SDK reports it as 0.
   const payload: TSChatMessage = {
     invokerName: from.nickname,

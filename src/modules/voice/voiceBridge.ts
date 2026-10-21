@@ -9,6 +9,7 @@ import { type VoiceDirectoryDeps } from "./directory/voiceDirectory.js";
 import { sendInitialState } from "./session/voiceConnection.js";
 import { admitConnection, type AdmissionDeps, type ConnectionHooks } from "./voiceAdmission.js";
 import type { WebRtcAudioOptions } from "../../config/webrtcConfig.js";
+import type { TsClientVersion } from "../../config/env.js";
 import { cleanupEntry, getSessionSummaries, terminateSession, type SessionCleanupDeps } from "./session/voiceSessionAdmin.js";
 import type { ConfiguredAccelerationRelay } from "../relay/index.js";
 import {
@@ -28,6 +29,7 @@ export interface VoiceBridgeOptions {
   acceleration?: ConfiguredAccelerationRelay[] | (() => ConfiguredAccelerationRelay[]);
   accelerationName?: string | (() => string | undefined);
   createClient?: (options: TSClientOptions, logger: LoggerType) => TSClient;
+  clientVersion?: TsClientVersion;
   /** How long a connected TeamSpeak client may take to deliver its first directory snapshot. */
   directorySyncTimeoutMs?: number;
 }
@@ -92,6 +94,7 @@ export class VoiceBridge {
       hooks: this.hooks,
       directoryDeps: this.directoryDeps,
       createClient: this.options.createClient,
+      clientVersion: this.options.clientVersion,
       resolveConnection: (url) => this.resolveConnection(url),
       getAccelerationOptions: (relayId) => this.getAccelerationOptions(relayId),
       teardown: (entryId, reason) => this.teardown(entryId, reason),

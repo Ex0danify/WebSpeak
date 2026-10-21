@@ -1,7 +1,7 @@
 // The wire text the gateway sends, pinned row by row (command errors and server events). The
 // message column is English and for logs only, optional fields ride beside it. Expected text uses escapes
 // so the files stay free of CJK characters.
-import { ServerError } from "@echosixhiya/teamspeak-client";
+import { TeamSpeakServerError } from "../src/lib/teamspeak/index.js";
 import { describe, expect, it, vi } from "vitest";
 import { FakeTeamSpeakServer } from "./support/fakeTsClient.js";
 import { useGateway } from "./support/gateway.js";
@@ -81,7 +81,7 @@ describe("command errors (voiceCommands)", () => {
   it("a failing switch answers the classified code, or CHANNEL_SWITCH_FAILED", async () => {
     const full = entryWith({
       switchChannel: async () => {
-        throw new ServerError("515", "server is full");
+        throw new TeamSpeakServerError({ id: 515, serverMessage: "server is full" });
       },
     });
     expect(await run(full, "switchChannel", { channelId: "2" })).toEqual(failure("CHANNEL_FULL", "This channel is full"));
@@ -96,7 +96,7 @@ describe("command errors (voiceCommands)", () => {
   it("any other failing command answers the classified code, or OPERATION_FAILED", async () => {
     const denied = entryWith({
       moveClient: async () => {
-        throw new ServerError("2568", "insufficient client permissions");
+        throw new TeamSpeakServerError({ id: 2568, serverMessage: "insufficient client permissions" });
       },
     });
     expect(await run(denied, "moveClient", { clientId: 7, channelId: "2" })).toEqual(

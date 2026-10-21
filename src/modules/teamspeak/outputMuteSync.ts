@@ -1,5 +1,3 @@
-import type { CommandPacer } from "./commandPacer.js";
-
 interface OutputMuteTarget {
   execCommand(command: string): Promise<unknown>;
 }
@@ -14,8 +12,6 @@ export class OutputMuteSync {
   private sent: boolean | null = null;
   private tail: Promise<void> = Promise.resolve();
 
-  constructor(private readonly pacer: CommandPacer) {}
-
   /** A new connection starts undeafened. */
   reset(): void {
     this.sent = null;
@@ -27,7 +23,7 @@ export class OutputMuteSync {
       if (!isCurrent()) return;
       const muted = this.wanted;
       if (muted === this.sent) return;
-      await this.pacer.run(() => target.execCommand(`clientupdate client_output_muted=${muted ? 1 : 0}`));
+      await target.execCommand(`clientupdate client_output_muted=${muted ? 1 : 0}`);
       if (isCurrent()) this.sent = muted;
     });
     this.tail = run.catch(() => undefined);
