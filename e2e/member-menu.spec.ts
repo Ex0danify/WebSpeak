@@ -240,23 +240,22 @@ test.describe("volume", () => {
 });
 
 test.describe("poke and copy", () => {
-  // Poking asks for a message with the browser's prompt.
-  async function poke(page: Page, nickname: string, answer: string | null) {
-    let asked = "";
-    page.once("dialog", (dialog) => {
-      asked = `${dialog.type()}: ${dialog.message()}`;
-      return answer === null ? dialog.dismiss() : dialog.accept(answer);
-    });
+  // Poking asks for a message in the shared dialog, titled after the member.
+  async function openPoke(page: Page, nickname: string) {
     const menu = await openMemberMenu(page, nickname);
     await action(menu, "Poke").click();
-    await expect(page.getByText("Poke sent", { exact: true })).toBeVisible();
-    return asked;
+    const dialog = page.getByRole("dialog", { name: `Poke ${nickname}` });
+    await expect(dialog).toBeVisible();
+    return dialog;
   }
 
   test("a poke carries the message that was typed, and says it was sent", async ({ page, gateway, script }) => {
     const target = script.member("poke-target");
     await join(page, "poke-self");
-    expect(await poke(page, "poke-target", "wake up")).toBe("prompt: Poke message (optional)");
+    const dialog = await openPoke(page, "poke-target");
+    await dialog.getByLabel("Poke message (optional)").fill("wake up");
+    await dialog.getByRole("button", { name: "Poke", exact: true }).click();
+    await expect(page.getByText("Poke sent", { exact: true })).toBeVisible();
     expect(
       await poll(
         () => pokesBy(gateway, "poke-self"),
@@ -265,16 +264,14 @@ test.describe("poke and copy", () => {
     ).toEqual([{ clientId: target.id, message: "wake up" }]);
   });
 
-  test("cancelling the message prompt still pokes, without a message", async ({ page, gateway, script }) => {
-    const target = script.member("poke-cancel-target");
+  test("cancelling the poke dialog sends nothing", async ({ page, gateway, script }) => {
+    script.member("poke-cancel-target");
     await join(page, "poke-cancel-self");
-    await poke(page, "poke-cancel-target", null);
-    expect(
-      await poll(
-        () => pokesBy(gateway, "poke-cancel-self"),
-        (pokes) => pokes.length > 0,
-      ),
-    ).toEqual([{ clientId: target.id, message: "" }]);
+    const dialog = await openPoke(page, "poke-cancel-target");
+    await dialog.getByRole("button", { name: "Cancel", exact: true }).click();
+    await expect(dialog).toBeHidden();
+    await expect(page.getByText("Poke sent", { exact: true })).toBeHidden();
+    expect(pokesBy(gateway, "poke-cancel-self")).toEqual([]);
   });
 
   test("Copy nickname puts the nickname on the clipboard and says so", async ({ page, context, script }) => {

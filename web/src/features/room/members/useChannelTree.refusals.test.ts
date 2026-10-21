@@ -6,8 +6,12 @@ import { LocalizedError, text } from "@/shared/i18n/localizedText";
 import type { ChannelInfo } from "@/features/session";
 import { mountUseChannelTree } from "@/testSupport/channelTreeFixture";
 
+const dialog = vi.hoisted(() => ({ prompt: vi.fn(), confirm: vi.fn(), alert: vi.fn() }));
+vi.mock("@/shared/composables/useDialog", () => ({ useDialog: () => dialog }));
+
 beforeEach(() => {
   useToast().dismiss();
+  dialog.prompt.mockReset();
 });
 
 afterEach(() => {
@@ -74,10 +78,7 @@ describe("a refused channel switch", () => {
 
 describe("toggleAway and the gateway", () => {
   it("keeps the new away state once the gateway accepted it", async () => {
-    vi.stubGlobal(
-      "prompt",
-      vi.fn(() => "lunch"),
-    );
+    dialog.prompt.mockResolvedValue("lunch");
     const { vm, options } = await mountUseChannelTree();
     await vm.toggleAway();
     expect(options.setAway).toHaveBeenCalledWith(true, "lunch");
@@ -85,10 +86,7 @@ describe("toggleAway and the gateway", () => {
   });
 
   it("goes back to the previous state and toasts when the gateway refuses", async () => {
-    vi.stubGlobal(
-      "prompt",
-      vi.fn(() => "lunch"),
-    );
+    dialog.prompt.mockResolvedValue("lunch");
     const setAway = vi.fn(async () => {
       throw new LocalizedError(text("err_PERMISSION_DENIED"), "PERMISSION_DENIED");
     });

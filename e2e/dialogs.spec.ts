@@ -178,6 +178,12 @@ test.describe("channel password dialog", () => {
       .toBe("Room A");
   });
 
+  test("opens clean on the first ask, with no rejection notice", async ({ page }) => {
+    const dialog = await askForRoomA(page, "dlg-channel-clean");
+    await expect(dialog).not.toContainText("That password was not accepted");
+    await expect(dialog.getByLabel("Enter the channel password")).toHaveValue("");
+  });
+
   test("Esc cancels: no move, and the member is still in the room", async ({ page, gateway }) => {
     const dialog = await askForRoomA(page, "dlg-channel-esc");
     await page.keyboard.press("Escape");
@@ -185,6 +191,40 @@ test.describe("channel password dialog", () => {
     await expect(memberRow(page, "dlg-channel-esc")).toBeVisible();
     const self = [...gateway.ts.members.values()].find((member) => member.nickname === "dlg-channel-esc")!;
     expect(self.channelID).toBe(gateway.ts.defaultChannelId);
+  });
+});
+
+test.describe("away message dialog", () => {
+  test("sets the away state and message from the dialog", async ({ page, gateway }) => {
+    await submitJoin(page, "dlg-away");
+    await expectInRoom(page, "dlg-away");
+    await page.getByRole("button", { name: "Available" }).click();
+    const dialog = page.getByRole("dialog", { name: "Set away message" });
+    await expect(dialog).toBeVisible();
+    const field = dialog.getByLabel("Away message (optional)");
+    await expect(field).toBeFocused();
+    await field.fill("lunch");
+    await dialog.getByRole("button", { name: "Set away" }).click();
+    await expect(dialog).toBeHidden();
+    await expect(page.getByRole("button", { name: "Away" })).toBeVisible();
+    await expect
+      .poll(() => {
+        const self = [...gateway.ts.members.values()].find((member) => member.nickname === "dlg-away");
+        return self && { away: self.away, message: self.awayMessage };
+      })
+      .toEqual({ away: true, message: "lunch" });
+  });
+
+  test("cancelling leaves you available and tells the server nothing", async ({ page, gateway }) => {
+    await submitJoin(page, "dlg-away-cancel");
+    await expectInRoom(page, "dlg-away-cancel");
+    await page.getByRole("button", { name: "Available" }).click();
+    const dialog = page.getByRole("dialog", { name: "Set away message" });
+    await dialog.getByRole("button", { name: "Cancel" }).click();
+    await expect(dialog).toBeHidden();
+    await expect(page.getByRole("button", { name: "Available" })).toBeVisible();
+    const self = [...gateway.ts.members.values()].find((member) => member.nickname === "dlg-away-cancel")!;
+    expect(self.away).toBe(false);
   });
 });
 

@@ -5,6 +5,7 @@ import type { LocalizedText, MaybeLocalizedText } from "@/shared/i18n/localizedT
 import { serverKey } from "@/shared/lib/format.js";
 import { removeStorage, writeStorage } from "@/shared/services/safeStorage.js";
 import { toast as raiseToast } from "@/shared/composables/useToast.js";
+import { useDialog } from "@/shared/composables/useDialog.js";
 import {
   clearLocalData as clearStoredLocalData,
   listFavorites,
@@ -53,6 +54,7 @@ let lastKnownInitialized = false;
 export function useJoinForm(options: UseJoinFormOptions) {
   const { voiceState, identityMaterial, connect, disconnect, clearError, checkSupport, setThemeMode } = options;
   const { language, setSiteName, t } = useI18n();
+  const { confirm } = useDialog();
 
   const query = new URLSearchParams(location.search);
   const inviteToken = query.get("invite") ?? "";
@@ -134,7 +136,14 @@ export function useJoinForm(options: UseJoinFormOptions) {
   }
 
   async function clearBrowserData(): Promise<void> {
-    if (!window.confirm(t("clearLocalDataConfirm"))) return;
+    const ok = await confirm({
+      title: t("clearLocalDataTitle"),
+      message: t("clearLocalDataConfirm"),
+      confirmLabel: t("clearLocalDataSubmit"),
+      cancelLabel: t("clearLocalDataCancel"),
+      variant: "danger",
+    });
+    if (!ok) return;
     await clearStoredLocalData();
     for (const key of [
       "webspeak:nickname",

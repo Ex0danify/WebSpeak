@@ -85,6 +85,14 @@ const states: State[] = [
       await expect(page.getByRole("dialog")).toBeVisible();
     },
   },
+  {
+    id: "room-away-dialog",
+    async prepare(page) {
+      await inRoom(page);
+      await page.getByRole("button", { name: "Available" }).click();
+      await expect(page.getByRole("dialog", { name: "Set away message" })).toBeVisible();
+    },
+  },
   ...["Voice", "Chat", "More"].map((tab) => ({
     id: `room-tab-${tab.toLowerCase()}`,
     phoneOnly: true,

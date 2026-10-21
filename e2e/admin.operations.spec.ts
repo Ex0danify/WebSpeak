@@ -50,9 +50,9 @@ test.describe("sessions", () => {
     const guest = await guestJoins(page, gateway, "ops-victim");
     await expect(guest.getByRole("textbox", { name: "Search members" })).toBeVisible();
     await openAdmin(page, gateway, "/operations");
-    page.on("dialog", (dialog) => dialog.accept());
 
     await sessionsTable(page).getByRole("row").filter({ hasText: "ops-victim" }).getByRole("button", { name: "Terminate" }).click();
+    await page.getByRole("dialog", { name: "Terminate session" }).getByRole("button", { name: "Terminate" }).click();
     await expect(guest.getByRole("button", { name: "Enter voice space" })).toBeVisible();
     await page.getByRole("button", { name: "Refresh" }).click();
     await expect(page.getByText("There are no active sessions.")).toBeVisible();
@@ -101,17 +101,14 @@ test.describe("invites", () => {
     const item = page.locator(".invite-row").first();
     await expect(item).toContainText("Active");
 
-    let asked = "";
-    page.once("dialog", (dialog) => {
-      asked = dialog.message();
-      return dialog.dismiss();
-    });
     await item.getByRole("button", { name: "Revoke" }).click();
-    await expect.poll(() => asked).toBe("Revoke this invite link?");
+    const dialog = page.getByRole("dialog", { name: "Revoke invite link" });
+    await expect(dialog).toContainText("Revoke this invite link?");
+    await dialog.getByRole("button", { name: "Cancel" }).click();
     await expect(item).toContainText("Active");
 
-    page.once("dialog", (dialog) => dialog.accept());
     await item.getByRole("button", { name: "Revoke" }).click();
+    await page.getByRole("dialog", { name: "Revoke invite link" }).getByRole("button", { name: "Revoke" }).click();
     await expect(item).toContainText("Revoked");
     await expect(item.getByRole("button", { name: "Revoke" })).toHaveCount(0);
 
@@ -130,15 +127,16 @@ test.describe("confirmations", () => {
     const guest = await guestJoins(page, gateway, "ops-notice");
     await expect(guest.getByRole("textbox", { name: "Search members" })).toBeVisible();
     await openAdmin(page, gateway, "/operations");
-    page.on("dialog", (dialog) => dialog.accept());
     await page.getByRole("button", { name: "Create invite link" }).click();
     const item = page.locator(".invite-row").first();
     await item.getByRole("button", { name: "Revoke" }).click();
+    await page.getByRole("dialog", { name: "Revoke invite link" }).getByRole("button", { name: "Revoke" }).click();
     await expect(item).toContainText("Revoked");
     await expect(toast(page, "Invite link revoked.")).toBeVisible();
     await expect(toast(page, "Session terminated.")).toHaveCount(0);
 
     await sessionsTable(page).getByRole("row").filter({ hasText: "ops-notice" }).getByRole("button", { name: "Terminate" }).click();
+    await page.getByRole("dialog", { name: "Terminate session" }).getByRole("button", { name: "Terminate" }).click();
     await expect(guest.getByRole("button", { name: "Enter voice space" })).toBeVisible();
     await expect(toast(page, "Session terminated.")).toBeVisible();
     await page.getByRole("button", { name: "Refresh" }).click();
@@ -150,8 +148,8 @@ test.describe("confirmations", () => {
     await openAdmin(page, gateway, "/operations");
     await page.getByRole("button", { name: "Create invite link" }).click();
     const item = page.locator(".invite-row").first();
-    page.once("dialog", (dialog) => dialog.dismiss());
     await item.getByRole("button", { name: "Revoke" }).click();
+    await page.getByRole("dialog", { name: "Revoke invite link" }).getByRole("button", { name: "Cancel" }).click();
     await expect(item).toContainText("Active");
     await expect(page.locator("li").filter({ hasText: "revoked" })).toHaveCount(0);
   });

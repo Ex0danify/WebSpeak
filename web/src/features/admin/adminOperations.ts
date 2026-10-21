@@ -3,6 +3,7 @@ import { defineStore } from "pinia";
 import type { ApiError } from "@/features/admin/adminApi.js";
 import type { AdminConnectionRecord, AdminLog, AdminSession, ManagedInvite } from "@/features/admin/adminTypes.js";
 import { useI18n } from "@/shared/i18n/useI18n.js";
+import { useDialog } from "@/shared/composables/useDialog.js";
 import { adminSiblings } from "@/features/admin/adminSiblings.js";
 import { useAdminSessionStore } from "@/features/admin/adminSession.js";
 
@@ -52,6 +53,7 @@ function initialOperations(): OperationsData {
 export const useAdminOperationsStore = defineStore("adminOperations", () => {
   const admin = useAdminSessionStore();
   const { t } = useI18n();
+  const { confirm } = useDialog();
 
   const operationsLoading = ref(false);
   const terminatingSession = ref("");
@@ -105,7 +107,14 @@ export const useAdminOperationsStore = defineStore("adminOperations", () => {
   }
 
   async function terminateSession(target: AdminSession) {
-    if (!window.confirm(t("confirmTerminate", { nickname: target.nickname }))) return;
+    const ok = await confirm({
+      title: t("confirmTerminateTitle"),
+      message: t("confirmTerminate", { nickname: target.nickname }),
+      confirmLabel: t("endSession"),
+      cancelLabel: t("confirmCancel"),
+      variant: "danger",
+    });
+    if (!ok) return;
     terminatingSession.value = target.id;
     admin.errorMessage = "";
     await attempt(
@@ -143,7 +152,14 @@ export const useAdminOperationsStore = defineStore("adminOperations", () => {
   }
 
   async function revokeInvite(invite: ManagedInvite) {
-    if (!window.confirm(t("confirmRevoke"))) return;
+    const ok = await confirm({
+      title: t("confirmRevokeTitle"),
+      message: t("confirmRevoke"),
+      confirmLabel: t("revoke"),
+      cancelLabel: t("confirmCancel"),
+      variant: "danger",
+    });
+    if (!ok) return;
     await attempt(async () => {
       await admin.sendJson(`/api/admin/invites/${encodeURIComponent(invite.id)}/revoke`, "POST", {});
       await loadOperations();
