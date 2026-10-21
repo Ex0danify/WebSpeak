@@ -29,7 +29,8 @@
       ><span
         class="mt-0 text-caption leading-tight text-fg-muted max-compact:mt-0.75 max-compact:text-xs"
         :title="member.away && member.awayMessage ? member.awayMessage : undefined"
-        ><template v-if="member.away">{{ t("away") }}<template v-if="member.awayMessage"> · {{ member.awayMessage }}</template></template
+        ><template v-if="member.away"
+          >{{ t("away") }}<template v-if="member.awayMessage"> · {{ member.awayMessage }}</template></template
         ><template v-else>{{ speaking ? t("speaking") : member.isSelf ? t("yourDevice") : t("memberOnline") }}</template></span
       >
     </div>
