@@ -141,11 +141,15 @@ jobs:
     needs: format
     if: ${{ !cancelled() && needs.format.result != 'failure' && needs.format.outputs.changed != 'true' }}
     uses: ./.github/workflows/build-linux.yml
+    with:
+      audit: false # the security-audit job already gates PRs
 
   windows-build:
     needs: format
     if: ${{ !cancelled() && needs.format.result != 'failure' && needs.format.outputs.changed != 'true' }}
     uses: ./.github/workflows/build-windows.yml
+    with:
+      audit: false # the security-audit job already gates PRs
 
   docker-smoke:
     needs: format
