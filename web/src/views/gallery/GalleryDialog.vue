@@ -8,6 +8,13 @@
       <Button variant="outline" @click="dialogLocked = true">{{ dialogSamples[lang].locked }}</Button>
     </div>
 
+    <p class="m-0 text-ui text-fg-muted">{{ imperative[lang].note }}</p>
+    <div class="flex flex-wrap items-center gap-3">
+      <Button variant="outline" @click="runConfirm">{{ imperative[lang].confirm }}</Button>
+      <Button variant="outline" @click="runPrompt">{{ imperative[lang].prompt }}</Button>
+      <Button variant="outline" @click="runAlert">{{ imperative[lang].alert }}</Button>
+    </div>
+
     <Dialog
       v-model="dialogSm"
       size="sm"
@@ -74,10 +81,51 @@ import { Field } from "@/shared/ui/field";
 import { Input } from "@/shared/ui/input";
 import { Select } from "@/shared/ui/select";
 import { Dialog } from "@/shared/ui/dialog";
+import { useDialog } from "@/shared/composables/useDialog";
+import { toast } from "@/shared/composables/useToast";
 import GallerySection from "@/views/gallery/GallerySection.vue";
 import { type Lang, useGalleryLang, closeLabel } from "@/views/gallery/galleryLang";
 
 const lang = useGalleryLang();
+const { confirm, prompt, alert } = useDialog();
+
+const imperative: Record<Lang, { note: string; confirm: string; prompt: string; alert: string; ask: string; label: string; ok: string; cancel: string; acknowledged: string }> =
+  {
+    en: {
+      note: "Imperative dialogs raised from logic through useDialog().",
+      confirm: "confirm()",
+      prompt: "prompt()",
+      alert: "alert()",
+      ask: "Leave this channel?",
+      label: "Away message",
+      ok: "OK",
+      cancel: "Cancel",
+      acknowledged: "Acknowledged",
+    },
+    de: {
+      note: "Imperative Dialoge, aus der Logik über useDialog() ausgelöst.",
+      confirm: "confirm()",
+      prompt: "prompt()",
+      alert: "alert()",
+      ask: "Diesen Kanal verlassen?",
+      label: "Abwesenheitsnachricht",
+      ok: "OK",
+      cancel: "Abbrechen",
+      acknowledged: "Bestätigt",
+    },
+  };
+
+async function runConfirm() {
+  const ok = await confirm({ title: imperative[lang.value].ask, confirmLabel: imperative[lang.value].ok, cancelLabel: imperative[lang.value].cancel, variant: "danger" });
+  toast({ title: String(ok), variant: ok ? "success" : "info", duration: 1800 });
+}
+async function runPrompt() {
+  const value = await prompt({ title: imperative[lang.value].label, label: imperative[lang.value].label, confirmLabel: imperative[lang.value].ok, cancelLabel: imperative[lang.value].cancel });
+  toast({ title: value ?? "null", duration: 1800 });
+}
+async function runAlert() {
+  await alert({ title: imperative[lang.value].acknowledged, message: imperative[lang.value].acknowledged, confirmLabel: imperative[lang.value].ok, variant: "info" });
+}
 
 const dialogSamples: Record<
   Lang,

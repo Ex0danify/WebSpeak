@@ -25,6 +25,7 @@
       <AdminOverviewPage v-else />
     </AdminShell>
     <Toaster :label="t('notifications')" :dismiss-label="t('close')" />
+    <DialogHost :close-label="t('close')" />
   </div>
 </template>
 
@@ -32,6 +33,7 @@
 import { computed, onMounted } from "vue";
 import { useRoute } from "vue-router";
 import { Toaster } from "@/shared/ui/toast";
+import { DialogHost } from "@/shared/ui/dialog";
 import { storeToRefs } from "pinia";
 import {
   AdminOperationsPage,
