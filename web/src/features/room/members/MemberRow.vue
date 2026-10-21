@@ -17,19 +17,25 @@
         v-if="mutedLocally"
         :label="t('mutedLocally')" /><span
         v-else
-        class="absolute -right-0.5 -bottom-0.5 size-2 rounded-full border-2 border-surface-1 bg-success max-compact:size-2.5"
+        :class="[
+          'absolute -right-0.5 -bottom-0.5 size-2 rounded-full border-2 border-surface-1 max-compact:size-2.5',
+          member.away ? 'bg-warning' : 'bg-success',
+        ]"
         aria-hidden="true"
       ></span
     ></span>
     <div class="min-w-0 flex-1 *:block *:truncate">
       <strong class="text-ui text-fg max-compact:text-sm">{{ memberDisplayName(member, t) }}</strong
-      ><span class="mt-0 text-caption leading-tight text-fg-muted max-compact:mt-0.75 max-compact:text-xs">{{
-        member.away ? t("away") : speaking ? t("speaking") : member.isSelf ? t("yourDevice") : t("memberOnline")
-      }}</span>
+      ><span
+        class="mt-0 text-caption leading-tight text-fg-muted max-compact:mt-0.75 max-compact:text-xs"
+        :title="member.away && member.awayMessage ? member.awayMessage : undefined"
+        ><template v-if="member.away"
+          >{{ t("away") }}<template v-if="member.awayMessage"> · {{ member.awayMessage }}</template></template
+        ><template v-else>{{ speaking ? t("speaking") : member.isSelf ? t("yourDevice") : t("memberOnline") }}</template></span
+      >
     </div>
     <div role="group" :aria-label="t('memberStates')" class="max-compact:hidden">
-      <span v-if="member.away" role="img" :title="t('away')" :aria-label="t('away')"><Icon name="clock" :size="13" /></span
-      ><span v-if="member.inputMuted" role="img" :title="t('inputMuted')" :aria-label="t('inputMuted')"
+      <span v-if="member.inputMuted" role="img" :title="t('inputMuted')" :aria-label="t('inputMuted')"
         ><Icon name="mic-off" :size="13" /></span
       ><span v-if="member.outputMuted" role="img" :title="t('outputMuted')" :aria-label="t('outputMuted')"
         ><Icon name="volume-off" :size="13" /></span

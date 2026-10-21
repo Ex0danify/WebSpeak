@@ -30,3 +30,21 @@ describe("MemberRow local mute badge", () => {
     expect(wrapper.find('[aria-label="Muted by you"]').exists()).toBe(false);
   });
 });
+
+describe("MemberRow away state", () => {
+  function mountAway(extra: Partial<ChannelMember>) {
+    return mount(MemberRow, { props: { member: { ...member, away: true, ...extra }, speaking: false, isMobileViewport: false } });
+  }
+
+  it("turns the status dot amber and labels the away state", () => {
+    const wrapper = mountAway({});
+    expect(wrapper.find(".bg-warning").exists()).toBe(true);
+    expect(wrapper.find(".bg-success").exists()).toBe(false);
+    expect(wrapper.text()).toContain("Away");
+  });
+
+  it("shows the away message on the status line", () => {
+    const wrapper = mountAway({ awayMessage: "back in 5" });
+    expect(wrapper.text()).toContain("back in 5");
+  });
+});
