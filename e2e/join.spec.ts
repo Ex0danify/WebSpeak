@@ -130,3 +130,30 @@ test.describe("join form", () => {
     }
   });
 });
+
+test.describe("gateway status", () => {
+  test("shows the gateway online", async ({ page }) => {
+    await page.goto("/");
+    await expect(page.getByText("Gateway online")).toBeVisible();
+  });
+
+  test("pauses joining while the gateway is unreachable and recovers on its own", async ({ page }) => {
+    let down = false;
+    await page.route("**/api/health", (route) => (down ? route.abort() : route.continue()));
+    await page.goto("/");
+    await page.getByLabel("Your nickname").fill("join-gateway-status");
+    await expect(joinButton(page)).toBeEnabled();
+
+    down = true;
+    // The browser's own event triggers the first check, the second follows after the short retry delay.
+    await page.evaluate(() => window.dispatchEvent(new Event("online")));
+    const status = page.getByRole("status").filter({ hasText: "Gateway unreachable" });
+    await expect(status).toBeVisible({ timeout: 15_000 });
+    await expect(joinButton(page)).toBeDisabled();
+
+    down = false;
+    await expect(status).toContainText(/retrying/);
+    await expect(page.getByText("Gateway online")).toBeVisible({ timeout: 10_000 });
+    await expect(joinButton(page)).toBeEnabled();
+  });
+});

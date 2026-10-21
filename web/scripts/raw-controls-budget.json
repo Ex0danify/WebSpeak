@@ -5,6 +5,12 @@
       "pattern": "details",
       "max": 1,
       "reason": "native disclosure of the device identity options: the library has no disclosure component, and <details>/<summary> give the toggle, keyboard and aria-expanded for free"
+    },
+    {
+      "file": "src/features/join/GatewayStatus.vue",
+      "pattern": "role=status",
+      "max": 1,
+      "reason": "one-line live status with a dot and a countdown: Banner is a block and Chip forces an icon on danger, so no library component fits. The dot is aria-hidden and the text carries the state"
     }
   ]
 }

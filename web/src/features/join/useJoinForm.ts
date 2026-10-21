@@ -19,6 +19,7 @@ import { isValidTeamSpeakPort, splitTeamSpeakTarget } from "@/shared/lib/teamspe
 import type { ThemeMode } from "@/shared/services/theme.js";
 import type { VoiceState } from "@/features/session";
 import { useJoinFormStore } from "@/features/join/stores/joinFormStore";
+import { useGatewayStatus } from "@/features/join/useGatewayStatus";
 
 export interface UseJoinFormOptions {
   voiceState: VoiceState;
@@ -75,6 +76,10 @@ export function useJoinForm(options: UseJoinFormOptions) {
   const serverConfigFailed = ref(false);
   const serverPasswordDialog = reactive({ open: false, password: "", errorCode: "" });
 
+  // Reload the settings once the gateway answers again, so a page opened during an outage fills itself in.
+  const gateway = useGatewayStatus({ onRecover: () => void loadPublicConfig() });
+  const gatewayStatus = gateway.status;
+
   const localizedWelcomeText = computed(() => {
     return welcomeTexts.value[language.value] || t("joinDescription");
   });
@@ -89,6 +94,7 @@ export function useJoinForm(options: UseJoinFormOptions) {
 
   const canJoin = computed(() =>
     Boolean(
+      gatewayStatus.value !== "offline" &&
       initialized.value &&
       nickname.value.trim() &&
       (accessMode.value === "fixed" || (serverHost.value.trim() && isValidTeamSpeakPort(serverPort.value))),
@@ -206,6 +212,7 @@ export function useJoinForm(options: UseJoinFormOptions) {
       // Joining stays disabled until the gateway has confirmed its initialized policy once. After
       // that the last answer holds, so the form survives the gateway going away under a live page.
       serverConfigFailed.value = !lastKnownInitialized;
+      void gateway.check();
     } finally {
       serverConfigLoading.value = false;
     }
@@ -259,6 +266,7 @@ export function useJoinForm(options: UseJoinFormOptions) {
 
   onMounted(() => {
     browserError.value = checkSupport() ?? "";
+    gateway.start();
     void loadPublicConfig();
     void listFavorites().then((items) => {
       favoriteServers.value = items;
@@ -291,6 +299,8 @@ export function useJoinForm(options: UseJoinFormOptions) {
     browserError,
     serverConfigLoading,
     serverConfigFailed,
+    gatewayStatus,
+    gatewayRetryIn: gateway.retryIn,
     serverPasswordDialog,
     canJoin,
     isFavorite,

@@ -11,18 +11,9 @@ const media = [
   { name: "media-accent", cls: "bg-media-accent" },
   { name: "media-live", cls: "bg-media-live" },
 ];
-const brand = [
-  { name: "brand-qq-body", cls: "bg-brand-qq-body" },
-  { name: "brand-qq-belly", cls: "bg-brand-qq-belly" },
-  { name: "brand-qq-beak", cls: "bg-brand-qq-beak" },
-  { name: "brand-qq-eye", cls: "bg-brand-qq-eye" },
-];
 const title = "Fixed colors";
 const caption = "same in every theme";
-const rows = [
-  { id: "media", label: "Media surface", swatches: media, backdrop: "bg-media" },
-  { id: "brand", label: "Brand marks", swatches: brand, backdrop: "bg-surface-0" },
-];
+const rows = [{ id: "media", label: "Media surface", swatches: media, backdrop: "bg-media" }];
 </script>
 
 <template>

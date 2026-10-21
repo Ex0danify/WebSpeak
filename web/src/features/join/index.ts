@@ -2,7 +2,6 @@ export { default as JoinForm } from "@/features/join/JoinForm.vue";
 export { default as JoinFooter } from "@/features/join/JoinFooter.vue";
 export { default as JoinHeader } from "@/features/join/JoinHeader.vue";
 export { default as JoinHero } from "@/features/join/JoinHero.vue";
-export { default as QqDialog } from "@/features/join/QqDialog.vue";
 export { useJoinForm, type UseJoinFormOptions } from "@/features/join/useJoinForm";
 export { translations as joinMessages } from "@/features/join/i18n";
 export { useJoinIdentity, type UseJoinIdentityOptions } from "@/features/join/useJoinIdentity";

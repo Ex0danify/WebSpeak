@@ -8,7 +8,6 @@
       :app-version="appVersion"
       :theme-icon="themeIcon"
       :theme-label="themeLabel"
-      @qq-open="qqModalOpen = true"
       @cycle-theme="cycleTheme"
       @language-change="persistLanguage"
     />
@@ -35,6 +34,8 @@
         :initialized="initialized"
         :server-config-loading="serverConfigLoading"
         :server-config-failed="serverConfigFailed"
+        :gateway-status="gatewayStatus"
+        :gateway-retry-in="gatewayRetryIn"
         :browser-error="browserError"
         :error="voiceState.error"
         :error-code="voiceState.errorCode"
@@ -50,8 +51,6 @@
     </main>
 
     <JoinFooter class="animate-join-fade-up-late" :app-version="appVersion" @clear-local-data="clearBrowserData" />
-
-    <QqDialog v-model="qqModalOpen" />
   </section>
 
   <!-- TeamSpeak server password modal -->
@@ -74,7 +73,7 @@
 import PasswordDialog from "@/shared/components/PasswordDialog.vue";
 import { useAppearance } from "@/shared/composables/useAppearance";
 import { useI18n } from "@/shared/i18n/useI18n";
-import { JoinFooter, JoinForm, JoinHeader, JoinHero, QqDialog, useJoinForm, useJoinIdentity, useJoinScreen } from "@/features/join";
+import { JoinFooter, JoinForm, JoinHeader, JoinHero, useJoinForm, useJoinIdentity, useJoinScreen } from "@/features/join";
 import { useRoomContext } from "@/features/room";
 
 const room = useRoomContext();
@@ -105,6 +104,8 @@ const {
   browserError,
   serverConfigLoading,
   serverConfigFailed,
+  gatewayStatus,
+  gatewayRetryIn,
   loadPublicConfig,
   serverPasswordDialog,
   canJoin,
@@ -126,5 +127,5 @@ const {
   setThemeMode,
 });
 const { identityReady } = useJoinIdentity({ identityMaterial, rememberIdentity });
-const { qqModalOpen } = useJoinScreen({ voiceState, serverPasswordDialog, clearError });
+useJoinScreen({ voiceState, serverPasswordDialog, clearError });
 </script>

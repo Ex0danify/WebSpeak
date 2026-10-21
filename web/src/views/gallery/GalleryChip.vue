@@ -8,8 +8,7 @@
           ><template #icon><Icon name="mic-off" :size="13" /></template>{{ chipSamples[lang].muted }}</Chip
         >
         <Chip variant="accent">{{ chipSamples[lang].ptt }}</Chip>
-        <Chip>{{ chipSamples[lang].role }}</Chip
-        ><Chip variant="highlight" size="hero">{{ chipSamples[lang].role }}</Chip>
+        <Chip>{{ chipSamples[lang].role }}</Chip>
       </div>
       <div class="max-w-[16rem]">
         <Chip variant="warning">{{ chipSamples[lang].long }}</Chip>
