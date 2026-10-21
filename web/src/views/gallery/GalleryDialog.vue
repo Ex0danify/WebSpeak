@@ -13,6 +13,7 @@
       <Button variant="outline" @click="runConfirm">{{ imperative[lang].confirm }}</Button>
       <Button variant="outline" @click="runPrompt">{{ imperative[lang].prompt }}</Button>
       <Button variant="outline" @click="runAlert">{{ imperative[lang].alert }}</Button>
+      <Button variant="outline" @click="runTimedAlert">{{ imperative[lang].timedAlert }}</Button>
     </div>
 
     <Dialog
@@ -89,31 +90,35 @@ import { type Lang, useGalleryLang, closeLabel } from "@/views/gallery/galleryLa
 const lang = useGalleryLang();
 const { confirm, prompt, alert } = useDialog();
 
-const imperative: Record<Lang, { note: string; confirm: string; prompt: string; alert: string; ask: string; label: string; ok: string; cancel: string; acknowledged: string }> =
-  {
-    en: {
-      note: "Imperative dialogs raised from logic through useDialog().",
-      confirm: "confirm()",
-      prompt: "prompt()",
-      alert: "alert()",
-      ask: "Leave this channel?",
-      label: "Away message",
-      ok: "OK",
-      cancel: "Cancel",
-      acknowledged: "Acknowledged",
-    },
-    de: {
-      note: "Imperative Dialoge, aus der Logik über useDialog() ausgelöst.",
-      confirm: "confirm()",
-      prompt: "prompt()",
-      alert: "alert()",
-      ask: "Diesen Kanal verlassen?",
-      label: "Abwesenheitsnachricht",
-      ok: "OK",
-      cancel: "Abbrechen",
-      acknowledged: "Bestätigt",
-    },
-  };
+const imperative: Record<
+  Lang,
+  { note: string; confirm: string; prompt: string; alert: string; timedAlert: string; ask: string; label: string; ok: string; cancel: string; acknowledged: string }
+> = {
+  en: {
+    note: "Imperative dialogs raised from logic through useDialog().",
+    confirm: "confirm()",
+    prompt: "prompt()",
+    alert: "alert()",
+    timedAlert: "alert() · 5s",
+    ask: "Leave this channel?",
+    label: "Away message",
+    ok: "OK",
+    cancel: "Cancel",
+    acknowledged: "Acknowledged",
+  },
+  de: {
+    note: "Imperative Dialoge, aus der Logik über useDialog() ausgelöst.",
+    confirm: "confirm()",
+    prompt: "prompt()",
+    alert: "alert()",
+    timedAlert: "alert() · 5s",
+    ask: "Diesen Kanal verlassen?",
+    label: "Abwesenheitsnachricht",
+    ok: "OK",
+    cancel: "Abbrechen",
+    acknowledged: "Bestätigt",
+  },
+};
 
 async function runConfirm() {
   const ok = await confirm({ title: imperative[lang.value].ask, confirmLabel: imperative[lang.value].ok, cancelLabel: imperative[lang.value].cancel, variant: "danger" });
@@ -125,6 +130,9 @@ async function runPrompt() {
 }
 async function runAlert() {
   await alert({ title: imperative[lang.value].acknowledged, message: imperative[lang.value].acknowledged, confirmLabel: imperative[lang.value].ok, variant: "info" });
+}
+async function runTimedAlert() {
+  await alert({ title: imperative[lang.value].acknowledged, message: imperative[lang.value].acknowledged, confirmLabel: imperative[lang.value].ok, variant: "info", timeoutMs: 5000 });
 }
 
 const dialogSamples: Record<

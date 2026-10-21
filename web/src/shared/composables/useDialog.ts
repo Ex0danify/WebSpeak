@@ -34,6 +34,8 @@ export interface PromptOptions {
 export interface AlertOptions extends DialogBase {
   /** Label of the single acknowledge button. */
   confirmLabel: string;
+  /** When set, the alert shows a countdown bar and acknowledges itself after this many milliseconds. */
+  timeoutMs?: number;
 }
 
 interface Request {
