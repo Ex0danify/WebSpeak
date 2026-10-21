@@ -13,9 +13,7 @@ const media = [
 ];
 const title = "Fixed colors";
 const caption = "same in every theme";
-const rows = [
-  { id: "media", label: "Media surface", swatches: media, backdrop: "bg-media" },
-];
+const rows = [{ id: "media", label: "Media surface", swatches: media, backdrop: "bg-media" }];
 </script>
 
 <template>
