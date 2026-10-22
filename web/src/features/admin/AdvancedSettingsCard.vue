@@ -35,6 +35,23 @@
       </div>
     </div>
     <small class="-mt-2 text-2xs text-fg-muted">{{ t("webrtcApplyHint") }}</small>
+    <div class="grid gap-2 rounded-lg border border-line bg-surface-0 p-3">
+      <div>
+        <strong class="block text-caption">{{ t("identityMintLimits") }}</strong
+        ><small class="mt-1 block text-2xs leading-normal text-fg-muted">{{ t("identityMintLimitsLead") }}</small>
+      </div>
+      <div class="grid grid-cols-3 gap-2.5 max-narrow:grid-cols-1">
+        <Field :label="t('identityMintMaxLevel')"
+          ><Input v-model.number="serverForm.identityMintMaxLevel" type="number" inputmode="numeric" min="1" max="24"
+        /></Field>
+        <Field :label="t('identityMintConcurrency')"
+          ><Input v-model.number="serverForm.identityMintConcurrency" type="number" inputmode="numeric" min="1" max="8"
+        /></Field>
+        <Field :label="t('identityMintQueueDepth')"
+          ><Input v-model.number="serverForm.identityMintQueueDepth" type="number" inputmode="numeric" min="0" max="100"
+        /></Field>
+      </div>
+    </div>
   </Card>
 </template>
 

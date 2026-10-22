@@ -54,6 +54,8 @@ describe("useAdminServerSettingsStore", () => {
       accessMode: "open",
       welcomeTexts: { de: "Hallo" },
       webRtcUdpStart: 0,
+      identityMintMaxLevel: 12,
+      identityMintQueueDepth: 0,
       relayNodes: [{ id: "r", name: "R", target: "t" }],
     });
     await s.st.loadServerSettings();
@@ -64,6 +66,9 @@ describe("useAdminServerSettingsStore", () => {
       accessMode: "open",
       welcomeTexts: { de: "Hallo" },
       webRtcUdpStart: 40000,
+      identityMintMaxLevel: 12,
+      identityMintConcurrency: 2,
+      identityMintQueueDepth: 0,
       passwordAction: "keep",
     });
     expect(s.st.serverForm.relayNodes).toHaveLength(1);
@@ -112,6 +117,9 @@ describe("useAdminServerSettingsStore", () => {
     s.st.serverForm.port = "1";
     s.st.serverForm.passwordAction = "replace";
     s.st.serverForm.serverPassword = "pw";
+    s.st.serverForm.identityMintMaxLevel = 10;
+    s.st.serverForm.identityMintConcurrency = 3;
+    s.st.serverForm.identityMintQueueDepth = 0;
     s.st.serverForm.relayNodes = [
       { id: "n", name: "N", enabled: true, target: "t", token: "tok", tokenAction: "replace", hasToken: false },
     ];
@@ -123,6 +131,9 @@ describe("useAdminServerSettingsStore", () => {
       target: expect.stringContaining("h"),
       serverPassword: "pw",
       passwordAction: "replace",
+      identityMintMaxLevel: 10,
+      identityMintConcurrency: 3,
+      identityMintQueueDepth: 0,
       relayNodes: [{ id: "n", tokenAction: "replace", token: "tok" }],
     });
     expect(s.st.serverForm).toMatchObject({ address: "h2", port: "2", siteName: "Saved", serverPassword: "", passwordAction: "keep" });

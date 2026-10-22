@@ -64,6 +64,12 @@ export const de: Record<string, string> = {
   webrtcPortEnd: "Endport",
   webrtcApplyHint:
     "Der Bereich lässt sich nur bei ausgeschaltetem WebRTC ändern. Solange WebRTC aktiv ist, bleibt er gesperrt und gilt nach dem Speichern für neue Verbindungen.",
+  identityMintLimits: "Limits der Identitätserstellung",
+  identityMintLimitsLead:
+    "Schützt das Gateway vor aufwendiger Identitätserstellung. Höhere Stufen und mehr parallele Worker verbrauchen mehr CPU.",
+  identityMintMaxLevel: "Maximale Sicherheitsstufe",
+  identityMintConcurrency: "Parallele Worker",
+  identityMintQueueDepth: "Warteschlangengröße",
   webrtcPortNoticeTitle: "WebRTC-Ports zuerst freigeben",
   webrtcPortNotice:
     "Diese Ports müssen geöffnet sein: {{range}} (UDP). Gib den Bereich zuerst in der Firewall des Hosts, in der Sicherheitsgruppe und in der Docker-Portzuordnung frei.",
@@ -220,4 +226,7 @@ export const de: Record<string, string> = {
   adminErr_PROTOCOL_NEGOTIATION_FAILED: "Die Aushandlung des TeamSpeak-Protokolls ist fehlgeschlagen.",
   adminErr_SERVER_REJECTED: "Der TeamSpeak-Server hat die Verbindung abgelehnt.",
   adminErr_TARGET_NOT_ALLOWED: "Dieses Ziel ist im offenen Modus nicht erlaubt.",
+  adminErr_INVALID_IDENTITY_MINT_LEVEL: "Die maximale Sicherheitsstufe ist ungültig. Verwende 1–24.",
+  adminErr_INVALID_IDENTITY_MINT_CONCURRENCY: "Die Anzahl paralleler Worker ist ungültig. Verwende 1–8.",
+  adminErr_INVALID_IDENTITY_MINT_QUEUE_DEPTH: "Die Warteschlangentiefe ist ungültig. Verwende 0–100.",
 };

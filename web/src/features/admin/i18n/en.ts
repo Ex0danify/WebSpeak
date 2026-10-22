@@ -63,6 +63,11 @@ export const en = {
   webrtcPortEnd: "End port",
   webrtcApplyHint:
     "The range can only be edited while WebRTC is off. It is locked while enabled and applies to new connections after saving.",
+  identityMintLimits: "Identity minting limits",
+  identityMintLimitsLead: "Guard the gateway against costly identity minting. Higher levels and more parallel workers use more CPU.",
+  identityMintMaxLevel: "Max security level",
+  identityMintConcurrency: "Parallel workers",
+  identityMintQueueDepth: "Queue depth",
   webrtcPortNoticeTitle: "Allow WebRTC ports first",
   webrtcPortNotice:
     "Ports must be opened: {{range}} (UDP). Allow this range in the host firewall, security group, and Docker port mapping first.",
@@ -217,4 +222,7 @@ export const en = {
   adminErr_PROTOCOL_NEGOTIATION_FAILED: "TeamSpeak protocol negotiation failed.",
   adminErr_SERVER_REJECTED: "The TeamSpeak server rejected the connection.",
   adminErr_TARGET_NOT_ALLOWED: "This target is not allowed in open mode.",
+  adminErr_INVALID_IDENTITY_MINT_LEVEL: "The maximum security level is invalid. Use 1–24.",
+  adminErr_INVALID_IDENTITY_MINT_CONCURRENCY: "The number of parallel workers is invalid. Use 1–8.",
+  adminErr_INVALID_IDENTITY_MINT_QUEUE_DEPTH: "The queue depth is invalid. Use 0–100.",
 } satisfies Record<string, string>;
