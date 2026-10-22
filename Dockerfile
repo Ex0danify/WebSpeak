@@ -12,7 +12,7 @@ RUN npm --prefix web ci
 
 COPY . .
 RUN npm run build \
-  && npm prune --omit=dev \
+  && npm prune --omit=dev --no-audit --no-fund \
   && rm -rf web/node_modules
 
 FROM node:26-bookworm-slim@sha256:298992629d69bbd5b2b03ad57094d8e4fcb3a8eeb7c4e25d29de656519568913 AS runtime
