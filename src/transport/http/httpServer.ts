@@ -51,7 +51,7 @@ export function createWebServer(options: WebServerOptions): WebServer {
 
   registerPublicRoutes(app, options, logger);
   registerJoinRoutes(app, options, joinRateLimiter, passwordBackoff);
-  registerIdentityRoutes(app, options, identityRateLimiter, identityMintQueue);
+  registerIdentityRoutes(app, options, identityRateLimiter, identityMintQueue, (key) => voiceBridge.isIdentityLeased(key));
 
   app.use(
     "/api/admin",

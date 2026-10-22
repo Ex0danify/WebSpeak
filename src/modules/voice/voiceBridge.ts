@@ -151,6 +151,11 @@ export class VoiceBridge {
     return getSessionSummaries(this.entries);
   }
 
+  /** Whether a target-scoped identity lease is currently held, for the join screen's pre-connect hint. */
+  isIdentityLeased(key: string): boolean {
+    return this.identityLeases.isLeased(key);
+  }
+
   async terminateSession(entryId: string): Promise<boolean> {
     return terminateSession(this.entries, this.sessionManager, entryId);
   }

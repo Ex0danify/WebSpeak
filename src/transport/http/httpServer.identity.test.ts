@@ -103,3 +103,37 @@ describe("POST /api/identity/validate", () => {
     });
   });
 });
+
+describe("POST /api/identity/status", () => {
+  it("answers 503 NOT_INITIALIZED before an administrator account exists", async () => {
+    const gateway = await gateways.start({ initialize: false });
+    expect(await postJson(gateway, "/api/identity/status", {})).toMatchObject({ status: 503, body: { code: "NOT_INITIALIZED" } });
+  });
+
+  it("rejects malformed material with 400 INVALID_IDENTITY", async () => {
+    const gateway = await gateways.start();
+    expect(await postJson(gateway, "/api/identity/status", { identity: "nope" })).toMatchObject({
+      status: 400,
+      body: { code: "INVALID_IDENTITY" },
+    });
+  });
+
+  it("reports a valid identity as not in use when no session holds its lease", async () => {
+    const gateway = await gateways.start();
+    const identity = generateIdentity(0).toString();
+    expect(await postJson(gateway, "/api/identity/status", { identity })).toMatchObject({
+      status: 200,
+      body: { ok: true, inUse: false },
+    });
+  });
+
+  it("treats an unresolvable open-mode target as not in use", async () => {
+    const gateway = await gateways.start();
+    configure(gateway, { accessMode: "open" });
+    const identity = generateIdentity(0).toString();
+    expect(await postJson(gateway, "/api/identity/status", { identity, target: "nonexistent.invalid:9987" })).toMatchObject({
+      status: 200,
+      body: { ok: true, inUse: false },
+    });
+  });
+});
