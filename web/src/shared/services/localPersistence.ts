@@ -44,6 +44,8 @@ export interface LocalPreferences {
   outputVolume?: number;
   notificationVolume?: number;
   lastNickname?: string;
+  /** The identity the join screen preselects, by its `StoredIdentity.id`. */
+  selectedIdentityId?: string;
   inputDeviceId?: string;
   volumesByUid?: Record<string, number>;
   /** Members muted on this client, by uid. A mute keeps the member's slider level in `volumesByUid`. */
@@ -98,19 +100,71 @@ const DEFAULT_IDENTITY_LABEL = "This device";
 // The stored label of the old default, escaped to keep the file free of CJK.
 const LEGACY_IDENTITY_LABEL = "\u6b64\u8bbe\u5907";
 
+function withResolvedLabel(identity: StoredIdentity): StoredIdentity {
+  if (identity.label === LEGACY_IDENTITY_LABEL) identity.label = DEFAULT_IDENTITY_LABEL;
+  return identity;
+}
+
 export async function loadStoredIdentity(): Promise<StoredIdentity | null> {
+  return getIdentity(CURRENT_IDENTITY_KEY);
+}
+
+export async function listIdentities(): Promise<StoredIdentity[]> {
+  try {
+    const identities = await request<StoredIdentity[]>("identities", "readonly", (store, resolve, reject) => {
+      const get = store.getAll();
+      get.onsuccess = () => resolve(get.result as StoredIdentity[]);
+      get.onerror = () => reject(get.error);
+    });
+    return identities.map(withResolvedLabel).sort((a, b) => b.lastUsedAt - a.lastUsedAt);
+  } catch {
+    return [];
+  }
+}
+
+export async function getIdentity(id: string): Promise<StoredIdentity | null> {
   try {
     return await request<StoredIdentity | null>("identities", "readonly", (store, resolve, reject) => {
-      const get = store.get(CURRENT_IDENTITY_KEY);
+      const get = store.get(id);
       get.onsuccess = () => {
         const identity = get.result as StoredIdentity | undefined;
-        if (identity?.label === LEGACY_IDENTITY_LABEL) identity.label = DEFAULT_IDENTITY_LABEL;
-        resolve(identity ?? null);
+        resolve(identity ? withResolvedLabel(identity) : null);
       };
       get.onerror = () => reject(get.error);
     });
   } catch {
     return null;
+  }
+}
+
+export async function saveIdentity(record: StoredIdentity): Promise<boolean> {
+  try {
+    await request("identities", "readwrite", (store, resolve, reject) => {
+      const put = store.put(record);
+      put.onsuccess = () => resolve(undefined);
+      put.onerror = () => reject(put.error);
+    });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export async function renameIdentity(id: string, label: string): Promise<boolean> {
+  const existing = await getIdentity(id);
+  if (!existing) return false;
+  return saveIdentity({ ...existing, label });
+}
+
+export async function removeIdentity(id: string): Promise<void> {
+  try {
+    await request("identities", "readwrite", (store, resolve, reject) => {
+      const remove = store.delete(id);
+      remove.onsuccess = () => resolve(undefined);
+      remove.onerror = () => reject(remove.error);
+    });
+  } catch {
+    // Identity removal is best effort when browser storage is unavailable.
   }
 }
 
@@ -135,15 +189,7 @@ export async function saveStoredIdentity(privateMaterial: string, label = DEFAUL
 }
 
 export async function removeStoredIdentity(): Promise<void> {
-  try {
-    await request("identities", "readwrite", (store, resolve, reject) => {
-      const remove = store.delete(CURRENT_IDENTITY_KEY);
-      remove.onsuccess = () => resolve(undefined);
-      remove.onerror = () => reject(remove.error);
-    });
-  } catch {
-    // Identity removal is best effort when browser storage is unavailable.
-  }
+  await removeIdentity(CURRENT_IDENTITY_KEY);
 }
 
 export async function loadLocalPreferences(): Promise<LocalPreferences> {
