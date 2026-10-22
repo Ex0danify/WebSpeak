@@ -33,5 +33,7 @@ jobs:
         if: ${{ steps.release.outputs.pr }}
         env:
           GH_TOKEN: ${{ secrets.CI_PUSH_TOKEN }}
-          PR: ${{ fromJSON(steps.release.outputs.pr).number }}
-        run: gh pr edit "$PR" --add-label ui
+          PR_JSON: ${{ steps.release.outputs.pr }}
+        # fromJSON lives in the shell, not the env template: a run with no PR leaves the output empty, and
+        # fromJSON('') fails template validation even behind the if guard.
+        run: gh pr edit "$(printf '%s' "$PR_JSON" | jq -r '.number')" --add-label ui
