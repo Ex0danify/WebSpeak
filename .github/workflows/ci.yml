@@ -18,9 +18,10 @@ concurrency:
 jobs:
   # Runs Prettier on the pull request's branch and pushes a commit if anything changed. That push starts a new run (it needs
   # the CI_PUSH_TOKEN secret: a push by GITHUB_TOKEN starts no workflow, so the new head would never get its checks), and this
-  # run stops here. Skipped for forks, Dependabot (no access to the push token) and the merge queue, where verify's format:check still guards.
+  # run stops here. Skipped for forks, Dependabot (no push token), the merge queue, and the release-please PR (its bot branch
+  # is force-pushed and auto-deleted, so the head-ref checkout races and fails) - verify's format:check still guards all of them.
   format:
-    if: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && github.actor != 'dependabot[bot]' }}
+    if: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && github.actor != 'dependabot[bot]' && !startsWith(github.event.pull_request.head.ref, 'release-please--') }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
