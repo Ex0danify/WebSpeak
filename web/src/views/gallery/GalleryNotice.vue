@@ -27,6 +27,9 @@
       <Button variant="outline" @click="raiseToast({ title: noticeSamples[lang].sticky, variant: 'info', duration: 0 })">{{
         noticeSamples[lang].sticky
       }}</Button>
+      <Button variant="outline" @click="raiseToast({ title: noticeSamples[lang].timed, variant: 'info', progress: true, duration: 5000 })">{{
+        noticeSamples[lang].timed
+      }}</Button>
       <Button variant="ghost" @click="dismissToasts()">{{ noticeSamples[lang].dismiss }}</Button>
     </div>
 
@@ -83,6 +86,7 @@ type NoticeSample = {
   long: string;
   longBody: string;
   sticky: string;
+  timed: string;
   reconnecting: string;
   reconnectingBody: string;
   retryNow: string;
@@ -107,6 +111,7 @@ const noticeSamples: Record<Lang, NoticeSample> = {
     long: "Could not move Kestrel to the channel",
     longBody: "You do not have permission to move members out of a password-protected channel on this server.",
     sticky: "Stays until dismissed",
+    timed: "With countdown",
     reconnecting: "Reconnecting",
     reconnectingBody: "Connection to the server was lost. Trying again in 3 s.",
     retryNow: "Retry now",
@@ -130,6 +135,7 @@ const noticeSamples: Record<Lang, NoticeSample> = {
     long: "Kestrel konnte nicht in den Kanal verschoben werden",
     longBody: "Sie haben auf diesem Server keine Berechtigung, Mitglieder aus einem passwortgeschützten Kanal zu verschieben.",
     sticky: "Bleibt bis zum Schließen",
+    timed: "Mit Countdown",
     reconnecting: "Verbindung wird wiederhergestellt",
     reconnectingBody: "Die Verbindung zum Server wurde unterbrochen. Neuer Versuch in 3 s.",
     retryNow: "Jetzt erneut versuchen",

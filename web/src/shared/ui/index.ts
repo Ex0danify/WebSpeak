@@ -4,6 +4,7 @@ export * from "@/shared/ui/button";
 export * from "@/shared/ui/card";
 export * from "@/shared/ui/checkbox";
 export * from "@/shared/ui/chip";
+export * from "@/shared/ui/countdown";
 export * from "@/shared/ui/dialog";
 export * from "@/shared/ui/field";
 export * from "@/shared/ui/icon";
