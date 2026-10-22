@@ -74,6 +74,9 @@ describe("migrations", () => {
       webRtcEnabled: false,
       webRtcUdpStart: 40000,
       webRtcUdpEnd: 40099,
+      identityMintMaxLevel: 8,
+      identityMintConcurrency: 2,
+      identityMintQueueDepth: 20,
       relayConfigured: false,
       relayPort: 39087,
     });
@@ -105,6 +108,9 @@ describe("migrations", () => {
       tsHost: "legacy.example.org",
       tsPort: 9000,
       webRtcUdpStart: 40000,
+      identityMintMaxLevel: 8,
+      identityMintConcurrency: 2,
+      identityMintQueueDepth: 20,
       relayConfigured: false,
     });
     expect(database.listRelayNodes()).toEqual([]);

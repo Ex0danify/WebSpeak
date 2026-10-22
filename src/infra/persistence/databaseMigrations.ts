@@ -1,6 +1,6 @@
 import type { DatabaseSync } from "node:sqlite";
 
-export const DATABASE_SCHEMA_VERSION = 8;
+export const DATABASE_SCHEMA_VERSION = 9;
 
 /** Relay name earlier builds stored when none was given, as escapes to keep CJK out of the file. */
 const LEGACY_RELAY_NAME = "\u4e2d\u7ee7\u52a0\u901f";
@@ -211,6 +211,19 @@ const MIGRATIONS: Migration[] = [
         database.prepare(`UPDATE ${table} SET ${column} = ? WHERE ${column} = ?`).run(DEFAULT_RELAY_NAME, LEGACY_RELAY_NAME);
       }
       database.exec("PRAGMA user_version = 8");
+    },
+  },
+  {
+    from: 8,
+    up(database) {
+      // Identity mint back-pressure limits live with the administrator settings, read live by the
+      // mint endpoint and edited in the admin console.
+      database.exec(`
+          ALTER TABLE settings ADD COLUMN identity_mint_max_level INTEGER NOT NULL DEFAULT 8 CHECK (identity_mint_max_level BETWEEN 1 AND 24);
+          ALTER TABLE settings ADD COLUMN identity_mint_concurrency INTEGER NOT NULL DEFAULT 2 CHECK (identity_mint_concurrency BETWEEN 1 AND 8);
+          ALTER TABLE settings ADD COLUMN identity_mint_queue_depth INTEGER NOT NULL DEFAULT 20 CHECK (identity_mint_queue_depth BETWEEN 0 AND 100);
+        `);
+      database.exec("PRAGMA user_version = 9");
     },
   },
 ];

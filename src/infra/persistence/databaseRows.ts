@@ -28,6 +28,9 @@ export interface SettingsRow extends Record<string, unknown> {
   webrtc_public_host: string;
   webrtc_udp_start: number;
   webrtc_udp_end: number;
+  identity_mint_max_level: number;
+  identity_mint_concurrency: number;
+  identity_mint_queue_depth: number;
   relay_configured: number;
   relay_enabled: number;
   relay_name: string;

@@ -22,6 +22,9 @@ const stored = (overrides: Partial<PersistedSettings> = {}): PersistedSettings =
   webRtcEnabled: false,
   webRtcUdpStart: 40000,
   webRtcUdpEnd: 40100,
+  identityMintMaxLevel: 8,
+  identityMintConcurrency: 2,
+  identityMintQueueDepth: 20,
   relayConfigured: false,
   relayEnabled: false,
   relayName: "",
@@ -80,6 +83,11 @@ describe("normalizeSettings", () => {
     ["a start port below 1024", { webRtcUdpStart: 80 }, "INVALID_WEBRTC_PORT_RANGE"],
     ["an end port above 65535", { webRtcUdpEnd: 70000 }, "INVALID_WEBRTC_PORT_RANGE"],
     ["a start port after the end port", { webRtcUdpStart: 50000, webRtcUdpEnd: 45000 }, "INVALID_WEBRTC_PORT_RANGE"],
+    ["a mint level below 1", { identityMintMaxLevel: 0 }, "INVALID_IDENTITY_MINT_LEVEL"],
+    ["a mint level above 24", { identityMintMaxLevel: 25 }, "INVALID_IDENTITY_MINT_LEVEL"],
+    ["a mint concurrency below 1", { identityMintConcurrency: 0 }, "INVALID_IDENTITY_MINT_CONCURRENCY"],
+    ["a mint concurrency above 8", { identityMintConcurrency: 9 }, "INVALID_IDENTITY_MINT_CONCURRENCY"],
+    ["a mint queue depth above 100", { identityMintQueueDepth: 101 }, "INVALID_IDENTITY_MINT_QUEUE_DEPTH"],
   ];
   it.each(rejects)("rejects %s", (_name, overrides, code) => {
     expect(codeOf(() => normalizeSettings(settingsInput(overrides), stored(), MASTER_SECRET))).toBe(code);
@@ -106,6 +114,16 @@ describe("normalizeSettings", () => {
     expect(kept.welcomeTexts).toEqual({ en: "en", de: "de", fr: "salut" });
     expect(normalizeSettings(settingsInput({ welcomeTexts: { de: "  " } }), stored(), MASTER_SECRET).welcomeTexts).toEqual({ en: "en" });
     expect(normalizeSettings(settingsInput(), stored(), MASTER_SECRET).welcomeTexts).toEqual({ en: "en", de: "de" });
+  });
+
+  it("keeps current mint limits for omitted fields and accepts a zero queue depth", () => {
+    const current = stored({ identityMintMaxLevel: 12, identityMintConcurrency: 4, identityMintQueueDepth: 50 });
+    expect(normalizeSettings(settingsInput(), current, MASTER_SECRET)).toMatchObject({
+      identityMintMaxLevel: 12,
+      identityMintConcurrency: 4,
+      identityMintQueueDepth: 50,
+    });
+    expect(normalizeSettings(settingsInput({ identityMintQueueDepth: 0 }), current, MASTER_SECRET).identityMintQueueDepth).toBe(0);
   });
 
   it("locks the UDP range while WebRTC is enabled", () => {

@@ -7,6 +7,7 @@ import { probeTeamSpeak, TeamSpeakProbeError } from "../teamspeak/index.js";
 import { pingTeamSpeakHost, type TeamSpeakPingResult } from "../relay/index.js";
 import { type ConfiguredAccelerationRelay } from "../relay/index.js";
 import { type WebRtcAudioOptions } from "../../config/webrtcConfig.js";
+import { type IdentityMintPolicy } from "../../config/identityMintConfig.js";
 import { DEFAULT_WELCOME_TEXTS, resolveWelcomeTexts } from "./siteCopy.js";
 import { AdminInputError } from "./adminErrors.js";
 import { AdminInviteService, type ManagedInviteInput, type ManagedInviteView } from "./adminInviteService.js";
@@ -133,6 +134,9 @@ export class AdminService {
       webRtcEnabled: settings.webRtcEnabled,
       webRtcUdpStart: settings.webRtcUdpStart,
       webRtcUdpEnd: settings.webRtcUdpEnd,
+      identityMintMaxLevel: settings.identityMintMaxLevel,
+      identityMintConcurrency: settings.identityMintConcurrency,
+      identityMintQueueDepth: settings.identityMintQueueDepth,
       relayConfigured: settings.relayConfigured,
       relayEnabled: settings.relayEnabled,
       relayName: settings.relayName,
@@ -149,6 +153,15 @@ export class AdminService {
     return {
       enabled: settings.webRtcEnabled,
       udpPortRange: [settings.webRtcUdpStart, settings.webRtcUdpEnd],
+    };
+  }
+
+  getIdentityMintPolicy(): IdentityMintPolicy {
+    const settings = this.database.getSettings();
+    return {
+      maxLevel: settings.identityMintMaxLevel,
+      concurrency: settings.identityMintConcurrency,
+      queueDepth: settings.identityMintQueueDepth,
     };
   }
 

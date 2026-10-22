@@ -46,4 +46,16 @@ describe("adminRequestParsing", () => {
     expect(input.relayNodes).toEqual([{ id: "n1", name: "N", target: "t", enabled: true, token: undefined, tokenAction: "remove" }]);
     expect(() => readSettingsInput({ siteName: "x" })).toThrow(AdminInputError);
   });
+
+  it("readSettingsInput reads the identity mint limits and rejects non-integers", () => {
+    const input = readSettingsInput({
+      target: "ts.example:9987",
+      siteName: "Site",
+      identityMintMaxLevel: 10,
+      identityMintConcurrency: 3,
+      identityMintQueueDepth: 0,
+    });
+    expect(input).toMatchObject({ identityMintMaxLevel: 10, identityMintConcurrency: 3, identityMintQueueDepth: 0 });
+    expect(() => readSettingsInput({ target: "ts.example:9987", siteName: "Site", identityMintMaxLevel: 1.5 })).toThrow(AdminInputError);
+  });
 });
