@@ -1,7 +1,7 @@
 name: CI
 
 # The required check is `ci-pass`. Together the jobs cover `npm run test:full` plus format, lint and a packaged build on each target platform.
-# Add the label `ui-change` to a pull request that changes the look on purpose: the visual job is skipped, and the baseline is
+# Add the label `ui` to a pull request that changes the look on purpose: the visual job is skipped, and the baseline is
 # rebuilt after the merge (visual-baseline.yml). The format job commits Prettier fixes to the branch first.
 on:
   pull_request:
