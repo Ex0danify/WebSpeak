@@ -5,10 +5,19 @@ import { useI18n } from "@/shared/i18n/useI18n";
 import { useAdminOperationsStore } from "@/features/admin/adminOperations";
 import { useAdminOverviewStore } from "@/features/admin/adminOverview";
 import { useAdminSessionStore } from "@/features/admin/adminSession";
+import { useDialogQueue } from "@/shared/composables/useDialog";
 
 vi.mock("vue-router", () => ({ useRoute: () => ({ path: "/admin" }), useRouter: () => ({ replace: vi.fn() }) }));
 
 const { t } = useI18n();
+
+// The store asks through the shared dialog queue, so a test answers the one it raised. The store is pre-imported by the test
+// setup, so module-mocking useDialog would land too late; driving the real queue is what the app does anyway.
+async function answerDialog(value: boolean) {
+  await Promise.resolve();
+  const { current, settle } = useDialogQueue();
+  if (current.value) settle(current.value.id, value);
+}
 
 function setup() {
   const admin = useAdminSessionStore();
@@ -77,22 +86,18 @@ describe("useAdminOperationsStore", () => {
 
   it("terminateSession does nothing when the confirmation is declined", async () => {
     const s = setup();
-    vi.stubGlobal(
-      "confirm",
-      vi.fn(() => false),
-    );
-    await s.ops.terminateSession({ id: "s1", nickname: "Ann" } as never);
+    const done = s.ops.terminateSession({ id: "s1", nickname: "Ann" } as never);
+    await answerDialog(false);
+    await done;
     expect(s.sendJson).not.toHaveBeenCalled();
   });
 
   it("terminateSession posts, refreshes operations and overview, then notifies", async () => {
     const s = setup();
     answerAll(s.getJson);
-    vi.stubGlobal(
-      "confirm",
-      vi.fn(() => true),
-    );
-    await s.ops.terminateSession({ id: "a/b", nickname: "Ann" } as never);
+    const done = s.ops.terminateSession({ id: "a/b", nickname: "Ann" } as never);
+    await answerDialog(true);
+    await done;
     expect(s.sendJson).toHaveBeenCalledWith("/api/admin/sessions/a%2Fb/terminate", "POST", {});
     expect(s.loadOverview).toHaveBeenCalled();
     expect(s.notify).toHaveBeenCalledWith(t("sessionTerminated"));
@@ -122,12 +127,13 @@ describe("useAdminOperationsStore", () => {
   it("revokeInvite only acts after confirmation", async () => {
     const s = setup();
     answerAll(s.getJson);
-    const confirm = vi.fn(() => false);
-    vi.stubGlobal("confirm", confirm);
-    await s.ops.revokeInvite({ id: "i1" } as never);
+    const declined = s.ops.revokeInvite({ id: "i1" } as never);
+    await answerDialog(false);
+    await declined;
     expect(s.sendJson).not.toHaveBeenCalled();
-    confirm.mockReturnValue(true);
-    await s.ops.revokeInvite({ id: "i1" } as never);
+    const accepted = s.ops.revokeInvite({ id: "i1" } as never);
+    await answerDialog(true);
+    await accepted;
     expect(s.sendJson).toHaveBeenCalledWith("/api/admin/invites/i1/revoke", "POST", {});
     expect(s.notify).toHaveBeenCalledWith(t("inviteRevoked"));
   });

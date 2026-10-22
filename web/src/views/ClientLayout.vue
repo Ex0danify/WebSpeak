@@ -4,6 +4,7 @@
   >
     <RouterView />
     <Toaster :label="t('notifications')" :dismiss-label="t('close')" class="p-6 desktop:p-[calc(24px/var(--ui-scale))]" />
+    <DialogHost :close-label="t('close')" />
   </div>
 </template>
 
@@ -17,6 +18,7 @@ import { isLanguage, useI18n } from "@/shared/i18n/useI18n";
 import { loadLocalPreferences } from "@/shared/services/localPersistence";
 import { readStorage } from "@/shared/services/safeStorage";
 import { Toaster } from "@/shared/ui/toast";
+import { DialogHost } from "@/shared/ui/dialog";
 
 const room = useRoomSession();
 provideRoomSession(room);

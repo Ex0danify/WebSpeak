@@ -2,6 +2,7 @@ import { computed, onScopeDispose, reactive, ref, watch, type Ref } from "vue";
 import { useI18n } from "@/shared/i18n/useI18n.js";
 import { errorText, resolveText, text } from "@/shared/i18n/localizedText.js";
 import { toast as raiseToast } from "@/shared/composables/useToast.js";
+import { useAway } from "@/features/room/members/useAway.js";
 import { channelNameText, type ChannelMember } from "@/features/session";
 import type { RoomSession, TreeChannel } from "@/features/room/roomTypes.js";
 import { buildChannelTree } from "@/features/room/members/buildChannelTree.js";
@@ -37,8 +38,7 @@ export function useChannelTree(options: UseChannelTreeOptions) {
   }
 
   const memberQuery = ref("");
-  const away = ref(false);
-  const awayMessage = ref("");
+  const { away, toggleAway } = useAway(setAway, notify);
   const channelPasswordDialog = reactive({ open: false, channelId: "", password: "", error: "", submitting: false });
   const draggedMember = ref<ChannelMember | null>(null);
   const dragOverChannelId = ref("");
@@ -163,10 +163,13 @@ export function useChannelTree(options: UseChannelTreeOptions) {
         return;
       }
       if (code !== "CHANNEL_PASSWORD_REQUIRED" || !requested) return;
+      // Already asking for this channel means a submitted password came back refused, only then is the retry shown. The
+      // first ask opens clean.
+      const refused = channelPasswordDialog.open && channelPasswordDialog.channelId === requested.id;
       channelPasswordDialog.open = true;
       channelPasswordDialog.channelId = requested.id;
       channelPasswordDialog.password = "";
-      channelPasswordDialog.error = t("channelPasswordRetry");
+      channelPasswordDialog.error = refused ? t("channelPasswordRetry") : "";
       channelPasswordDialog.submitting = false;
       clearError();
     },
@@ -223,20 +226,6 @@ export function useChannelTree(options: UseChannelTreeOptions) {
 
   function channelLabel(item: TreeChannel) {
     return `${"\u3000".repeat(item.depth)}${channelNameText(item, t)}`;
-  }
-
-  async function toggleAway(): Promise<void> {
-    const previous = { away: away.value, message: awayMessage.value };
-    away.value = !away.value;
-    awayMessage.value = away.value ? (window.prompt(t("awayPrompt"), awayMessage.value) ?? "") : "";
-    try {
-      await setAway(away.value, awayMessage.value);
-    } catch (error: unknown) {
-      // The server kept the old state, so the button goes back to it.
-      away.value = previous.away;
-      awayMessage.value = previous.message;
-      notify(resolveText(errorText(error, text("err_OPERATION_FAILED"))), "danger");
-    }
   }
 
   async function moveMemberDirect(member: ChannelMember, targetChannelId: string): Promise<void> {

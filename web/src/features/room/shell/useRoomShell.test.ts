@@ -6,6 +6,9 @@ import { LocalizedError, text } from "@/shared/i18n/localizedText";
 import type { ChannelMember } from "@/features/session";
 import { useRoomShell } from "@/features/room/shell/useRoomShell";
 
+const dialog = vi.hoisted(() => ({ prompt: vi.fn(), confirm: vi.fn(), alert: vi.fn() }));
+vi.mock("@/shared/composables/useDialog", () => ({ useDialog: () => dialog }));
+
 const member = { id: 2, nickname: "Ana", isSelf: false } as ChannelMember;
 
 function mountShell(sendPoke: (clientId: number, message: string) => Promise<void>) {
@@ -30,10 +33,7 @@ function mountShell(sendPoke: (clientId: number, message: string) => Promise<voi
 
 beforeEach(() => {
   useToast().dismiss();
-  vi.stubGlobal(
-    "prompt",
-    vi.fn(() => "hi"),
-  );
+  dialog.prompt.mockReset().mockResolvedValue("hi");
 });
 
 describe("pokeMember", () => {
@@ -49,5 +49,12 @@ describe("pokeMember", () => {
     await mountShell(refused).pokeMember(member);
     expect(useToast().toasts.value).toHaveLength(1);
     expect(useToast().toasts.value[0]).toMatchObject({ variant: "danger" });
+  });
+
+  it("does not poke when the prompt is cancelled", async () => {
+    dialog.prompt.mockResolvedValue(null);
+    const sendPoke = vi.fn(async () => undefined);
+    await mountShell(sendPoke).pokeMember(member);
+    expect(sendPoke).not.toHaveBeenCalled();
   });
 });

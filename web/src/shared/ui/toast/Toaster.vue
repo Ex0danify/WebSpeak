@@ -1,8 +1,10 @@
 <script setup lang="ts">
+import { reactive } from "vue";
 import { ToastAction, ToastClose, ToastDescription, ToastProvider, ToastRoot, ToastTitle, ToastViewport } from "reka-ui";
 import { cn } from "@/shared/lib/cn";
 import { useToast } from "@/shared/composables/useToast";
 import { Button } from "@/shared/ui/button";
+import { CountdownBar } from "@/shared/ui/countdown";
 import { Icon } from "@/shared/ui/icon";
 import { statusIconName } from "@/shared/ui/shared/status";
 import { toastIconVariants, toastRootClass, toastViewportClass } from "@/shared/ui/toast/toast";
@@ -19,6 +21,10 @@ const props = withDefaults(defineProps<{ label?: string; dismissLabel?: string; 
 });
 
 const { toasts, dismiss } = useToast();
+
+// reka pauses the dismiss timer while the viewport is hovered or focused and emits pause/resume per toast; the progress bar
+// follows the same signal so it never empties while the toast is held open.
+const paused = reactive(new Set<number>());
 </script>
 
 <template>
@@ -30,7 +36,9 @@ const { toasts, dismiss } = useToast();
       :type="t.variant === 'danger' ? 'foreground' : 'background'"
       :duration="t.duration"
       :class="toastRootClass"
-      @update:open="(open: boolean) => !open && dismiss(t.id)"
+      @update:open="(open: boolean) => !open && (dismiss(t.id), paused.delete(t.id))"
+      @pause="paused.add(t.id)"
+      @resume="paused.delete(t.id)"
     >
       <span :class="toastIconVariants({ variant: t.variant })"><Icon :name="statusIconName[t.variant]" :size="16" /></span>
       <div class="min-w-0 flex-1 basis-40 break-words">
@@ -57,6 +65,7 @@ const { toasts, dismiss } = useToast();
           <Icon name="close" :size="15" />
         </Button>
       </ToastClose>
+      <CountdownBar v-if="t.progress && t.duration > 0" :duration-ms="t.duration" :paused="paused.has(t.id)" class="basis-full" />
     </ToastRoot>
     <ToastViewport :label="`${label} ({hotkey})`" :class="cn(toastViewportClass, props.class)" />
   </ToastProvider>

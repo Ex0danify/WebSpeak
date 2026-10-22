@@ -5,6 +5,9 @@ import { defineComponent, reactive, ref } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { VoiceState } from "@/features/session";
 
+const dialog = vi.hoisted(() => ({ prompt: vi.fn(), confirm: vi.fn(), alert: vi.fn() }));
+vi.mock("@/shared/composables/useDialog", () => ({ useDialog: () => dialog }));
+
 type Exposed = {
   nickname: string;
   channel: string;
@@ -244,10 +247,7 @@ describe("favorites", () => {
 
 describe("clearBrowserData", () => {
   it("resets identity, remembered flag, favorites and theme after confirming", async () => {
-    vi.stubGlobal(
-      "confirm",
-      vi.fn(() => true),
-    );
+    dialog.confirm.mockResolvedValue(true);
     const { vm, options } = await mountUseJoinForm();
     options.identityMaterial.value = "material";
     vm.rememberIdentity = true;
@@ -263,10 +263,7 @@ describe("clearBrowserData", () => {
   });
 
   it("does nothing without confirmation", async () => {
-    vi.stubGlobal(
-      "confirm",
-      vi.fn(() => false),
-    );
+    dialog.confirm.mockResolvedValue(false);
     const { vm, options } = await mountUseJoinForm();
     options.identityMaterial.value = "material";
     await flushPromises();

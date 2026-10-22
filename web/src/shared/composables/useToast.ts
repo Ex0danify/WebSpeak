@@ -19,12 +19,15 @@ export interface ToastOptions {
   /** Milliseconds until it closes itself, 0 keeps it until dismissed. Default 5000, 10000 with an action. */
   duration?: number;
   action?: ToastAction;
+  /** Show a countdown bar for the remaining duration. Ignored when `duration` is 0. */
+  progress?: boolean;
 }
 
 export interface ToastItem extends Required<Pick<ToastOptions, "title" | "variant" | "duration">> {
   id: number;
   description?: string;
   action?: ToastAction;
+  progress?: boolean;
 }
 
 // Older toasts are dropped first, so a burst cannot bury the page.
@@ -43,6 +46,7 @@ export function toast(options: ToastOptions | string): number {
     variant: o.variant ?? "info",
     duration: o.duration ?? (o.action ? 10000 : 5000),
     action: o.action,
+    progress: o.progress,
   };
   items.value = [...items.value, item].slice(-MAX_VISIBLE);
   return id;

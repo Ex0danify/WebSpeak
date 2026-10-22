@@ -46,15 +46,24 @@ for (const theme of themes) {
   test.describe(`room ${theme}`, () => {
     test.use({ colorScheme: theme });
     // One shot per state and viewport, plus the phone's other three tabs (a desktop shows all at once).
-    const rooms: { state: string; scenario: ScriptedScenario; tab?: string; phoneOnly?: boolean }[] = [
+    const rooms: {
+      state: string;
+      scenario: ScriptedScenario;
+      tab?: string;
+      phoneOnly?: boolean;
+      desktopOnly?: boolean;
+      openAway?: boolean;
+    }[] = [
       ...connectedScenarios.map((scenario) => ({ state: scenario, scenario, tab: "Voice" })),
       { state: "channels", scenario: "connected", phoneOnly: true },
       { state: "chat", scenario: "connected", tab: "Chat", phoneOnly: true },
       { state: "more", scenario: "connected", tab: "More", phoneOnly: true },
+      { state: "away-dialog", scenario: "connected", desktopOnly: true, openAway: true },
     ];
-    for (const { state, scenario, tab, phoneOnly } of rooms) {
+    for (const { state, scenario, tab, phoneOnly, desktopOnly, openAway } of rooms) {
       test(`${state} looks the same`, async ({ page }, { project }) => {
         test.skip(phoneOnly === true && project.name !== "mobile", "the phone's tabs are one panel at a time");
+        test.skip(desktopOnly === true && project.name !== "desktop", "captured on the desktop layout only");
         await useCannedApi(page, { lang: "en", theme });
         const scripted = await installVoiceFixture(page.context());
         try {
@@ -66,6 +75,10 @@ for (const theme of themes) {
           if (tab && project.name === "mobile") await page.getByRole("tab", { name: tab }).click();
           const text = scenarioText[scenario];
           if (text) await expect(page.getByText(text).first()).toBeVisible();
+          if (openAway) {
+            await page.getByRole("button", { name: "Available" }).click();
+            await expect(page.getByRole("dialog", { name: "Set away message" })).toBeVisible();
+          }
           await expect(page).toHaveScreenshot(`room-${state}-en-${theme}-${project.name}.png`);
         } finally {
           scripted.stop();

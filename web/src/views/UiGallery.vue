@@ -5,6 +5,7 @@ import { provide, ref, watch } from "vue";
 import TokenSwatches from "@/shared/components/TokenSwatches.vue";
 import { Select } from "@/shared/ui/select";
 import { Toaster } from "@/shared/ui/toast";
+import { DialogHost } from "@/shared/ui/dialog";
 import { applyTheme, getStoredTheme, saveTheme, type ThemeMode } from "@/shared/services/theme";
 import GalleryAvatar from "@/views/gallery/GalleryAvatar.vue";
 import GalleryButton from "@/views/gallery/GalleryButton.vue";
@@ -23,7 +24,7 @@ import GallerySmall from "@/views/gallery/GallerySmall.vue";
 import GallerySwitch from "@/views/gallery/GallerySwitch.vue";
 import GalleryTabs from "@/views/gallery/GalleryTabs.vue";
 import GalleryTooltip from "@/views/gallery/GalleryTooltip.vue";
-import { langKey, type Lang } from "@/views/gallery/galleryLang";
+import { langKey, closeLabel, type Lang } from "@/views/gallery/galleryLang";
 
 // In page order, which the gallery specs rely on.
 const sections = [
@@ -93,5 +94,6 @@ watch(theme, (value) => {
       <TokenSwatches />
     </main>
     <Toaster :label="toasterLabels[lang].notifications" :dismiss-label="toasterLabels[lang].dismiss" />
+    <DialogHost :close-label="closeLabel[lang]" />
   </div>
 </template>

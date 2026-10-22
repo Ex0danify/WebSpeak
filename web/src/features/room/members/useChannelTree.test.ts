@@ -3,8 +3,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useToast } from "@/shared/composables/useToast";
 import { member, mountUseChannelTree, spacerChannel } from "@/testSupport/channelTreeFixture";
 
+const dialog = vi.hoisted(() => ({ prompt: vi.fn(), confirm: vi.fn(), alert: vi.fn() }));
+vi.mock("@/shared/composables/useDialog", () => ({ useDialog: () => dialog }));
+
 beforeEach(() => {
   useToast().dismiss();
+  dialog.prompt.mockReset();
+  dialog.confirm.mockReset();
 });
 
 afterEach(() => {
@@ -131,15 +136,8 @@ describe("selectChannel / selectChannelById / channelLabel", () => {
 });
 
 describe("toggleAway", () => {
-  afterEach(() => {
-    vi.unstubAllGlobals();
-  });
-
   it("flips away, prompts for a message and reports both to the server", async () => {
-    vi.stubGlobal(
-      "prompt",
-      vi.fn(() => "back in 5"),
-    );
+    dialog.prompt.mockResolvedValue("back in 5");
     const { vm, options } = await mountUseChannelTree();
     expect(vm.away).toBe(false);
     await vm.toggleAway();
@@ -148,27 +146,22 @@ describe("toggleAway", () => {
   });
 
   it("clears the message and reports available without prompting again", async () => {
-    vi.stubGlobal(
-      "prompt",
-      vi.fn(() => "back in 5"),
-    );
+    dialog.prompt.mockResolvedValue("back in 5");
     const { vm, options } = await mountUseChannelTree();
     await vm.toggleAway();
-    vi.mocked(window.prompt).mockClear();
+    dialog.prompt.mockClear();
     await vm.toggleAway();
     expect(vm.away).toBe(false);
-    expect(window.prompt).not.toHaveBeenCalled();
+    expect(dialog.prompt).not.toHaveBeenCalled();
     expect(options.setAway).toHaveBeenLastCalledWith(false, "");
   });
 
-  it("treats a dismissed prompt as an empty message", async () => {
-    vi.stubGlobal(
-      "prompt",
-      vi.fn(() => null),
-    );
+  it("stays available when the prompt is dismissed", async () => {
+    dialog.prompt.mockResolvedValue(null);
     const { vm, options } = await mountUseChannelTree();
     await vm.toggleAway();
-    expect(options.setAway).toHaveBeenCalledWith(true, "");
+    expect(vm.away).toBe(false);
+    expect(options.setAway).not.toHaveBeenCalled();
   });
 });
 
@@ -194,6 +187,30 @@ describe("channel password dialog", () => {
     expect(vm.channelPasswordDialog.open).toBe(true);
     expect(vm.channelPasswordDialog.channelId).toBe("raid");
     expect(options.clearError).toHaveBeenCalled();
+  });
+
+  it("opens without an error on the first ask", async () => {
+    const { vm, voiceState } = await mountUseChannelTree();
+    vm.selectChannel(vm.channelTree.find((item) => item.id === "raid")!);
+    voiceState.errorCode = "CHANNEL_PASSWORD_REQUIRED";
+    await flushPromises();
+    expect(vm.channelPasswordDialog.open).toBe(true);
+    expect(vm.channelPasswordDialog.error).toBe("");
+  });
+
+  it("shows the retry message only after a submitted password is refused", async () => {
+    const { vm, voiceState } = await mountUseChannelTree();
+    vm.selectChannel(vm.channelTree.find((item) => item.id === "raid")!);
+    voiceState.errorCode = "CHANNEL_PASSWORD_REQUIRED";
+    await flushPromises();
+    vm.channelPasswordDialog.password = "wrong";
+    vm.submitChannelPassword();
+    // The gateway clears then re-reports the refusal.
+    voiceState.errorCode = "";
+    await flushPromises();
+    voiceState.errorCode = "CHANNEL_PASSWORD_REQUIRED";
+    await flushPromises();
+    expect(vm.channelPasswordDialog.error).not.toBe("");
   });
 
   it("submitChannelPassword calls switchChannel with the channel id and password", async () => {

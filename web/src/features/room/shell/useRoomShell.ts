@@ -1,5 +1,6 @@
 import { onMounted, onUnmounted, ref, type Ref } from "vue";
 import { showToast } from "@/shared/composables/useToast";
+import { useDialog } from "@/shared/composables/useDialog";
 import { useI18n } from "@/shared/i18n/useI18n";
 import { errorText, resolveText, text } from "@/shared/i18n/localizedText";
 import type { ChannelMember, PokeNotification } from "@/features/session";
@@ -25,6 +26,7 @@ export function useRoomShell({
   sendPoke,
 }: UseRoomShellOptions) {
   const { t } = useI18n();
+  const { prompt } = useDialog();
   const mobileSection = ref<"channels" | "chat" | "voice" | "more">("channels");
   const isMobileViewport = ref(false);
 
@@ -52,8 +54,16 @@ export function useRoomShell({
   });
 
   async function pokeMember(member: ChannelMember): Promise<void> {
+    const message = await prompt({
+      title: t("pokeDialogTitle", { nickname: member.nickname }),
+      label: t("pokeMessagePrompt"),
+      placeholder: t("pokePlaceholder"),
+      confirmLabel: t("poke"),
+      cancelLabel: t("cancel"),
+    });
+    if (message === null) return;
     try {
-      await sendPoke(member.id, window.prompt(t("pokeMessagePrompt"), "") ?? "");
+      await sendPoke(member.id, message);
       showToast(t("pokeSent"));
     } catch (error: unknown) {
       showToast(resolveText(errorText(error, text("err_OPERATION_FAILED"))), "danger");
