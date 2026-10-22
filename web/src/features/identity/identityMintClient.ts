@@ -1,5 +1,6 @@
 const MINT_URL = "/api/identity";
 const VALIDATE_URL = "/api/identity/validate";
+const STATUS_URL = "/api/identity/status";
 
 /** A gateway identity endpoint rejected the request; `code` is the server's error code. */
 export class IdentityMintError extends Error {
@@ -86,4 +87,23 @@ export async function validateIdentity(material: string, signal?: AbortSignal): 
   if (!response.ok) throw new IdentityMintError(await errorCode(response));
   const body = (await response.json()) as { level?: unknown };
   return typeof body.level === "number" ? body.level : 0;
+}
+
+/** Best-effort check of whether `material` is already live on `target` in another page, via
+ *  `POST /api/identity/status`. Returns false on any failure so the hint never blocks a connection. */
+export async function checkIdentityStatus(material: string, target: string, signal?: AbortSignal): Promise<boolean> {
+  try {
+    const response = await fetch(STATUS_URL, {
+      method: "POST",
+      headers: { "content-type": "application/json", accept: "application/json" },
+      body: JSON.stringify(target ? { identity: material, target } : { identity: material }),
+      cache: "no-store",
+      signal,
+    });
+    if (!response.ok) return false;
+    const body = (await response.json()) as { inUse?: unknown };
+    return body.inUse === true;
+  } catch {
+    return false;
+  }
 }

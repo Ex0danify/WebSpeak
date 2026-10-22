@@ -10,6 +10,7 @@ export {
 export {
   mintIdentity,
   validateIdentity,
+  checkIdentityStatus,
   IdentityMintError,
   type MintOptions,
   type MintResult,

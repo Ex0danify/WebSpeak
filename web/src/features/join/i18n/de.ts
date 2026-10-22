@@ -32,10 +32,6 @@ export const de: Record<string, string> = {
   nicknamePlaceholder: "z. B. Alex Rivera",
   targetChannel: "Zielkanal",
   emptyDefault: "Leer lassen, um den Standardkanal zu verwenden",
-  rememberIdentity: "Diese TeamSpeak-Identität auf diesem Gerät speichern",
-  rememberIdentityHint: "Wird nur auf diesem Gerät gespeichert und bei der nächsten Verbindung wiederverwendet.",
-  rememberIdentityConcurrentWarning:
-    "Dieselbe Identität kann in einem Browser nur eine Verbindung gleichzeitig verwenden. Deaktiviere die Option für eine zweite Verbindung oder nutze einen anderen Browser.",
   identityOptions: "Identitätsoptionen des Geräts",
   localPersistenceUnavailable: "Dauerhafter Browserspeicher ist nicht verfügbar; diese Sitzung verwendet eine temporäre Identität.",
   favoriteServers: "Favoriten",

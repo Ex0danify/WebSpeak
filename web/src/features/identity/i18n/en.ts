@@ -1,16 +1,22 @@
 export const en = {
   identityLabel: "Device identity",
-  identityEphemeral: "Ephemeral — don't save",
+  identityEphemeral: "Temporary identity",
   identityManage: "Manage…",
   identityUnnamed: "Unnamed identity",
+  identityDefault: "default",
+  identityMakeDefault: "Set as default identity",
+  identityMakeDefaultShort: "Set as default",
+  identityIsDefault: "Default identity",
+  identityConcurrentWarning: "This identity is already used by another active connection. Pick a different one.",
 
   identityMintQueued: "Waiting for the identity service…",
   identityMintAhead: "{{count}} ahead of you",
   identityMintProgress: "Creating identity…",
 
   identityManagerTitle: "Device identities",
-  identityManagerDescription: "Identities are stored only on this device. Pick one per connection.",
-  identityEmpty: "No saved identities yet. Create one below.",
+  identityManagerDescription: "Identities are stored only on this device.",
+  identityEmpty: "No saved identities yet.",
+  identityAdd: "Add identity",
   identityCreatedOn: "Created {{date}}",
 
   identityNewHeading: "Create a new identity",
@@ -26,7 +32,6 @@ export const en = {
   identityDeleteConfirm: "Delete this identity? This cannot be undone!",
   identityExport: "Export",
   identityImport: "Import",
-  identityImportHeading: "Import an identity",
   identitySave: "Save",
 
   identityExportWarning: "This file is a private key. Keep it secret!",

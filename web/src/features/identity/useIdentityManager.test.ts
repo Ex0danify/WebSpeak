@@ -108,6 +108,51 @@ describe("useIdentityManager", () => {
     expect(manager.selectedId.value).toBe("b");
   });
 
+  it("adopts the first identity as the default and lets the selection fall back to it", async () => {
+    await seed("a", "Alpha");
+    await seed("b", "Beta");
+    const manager = useIdentityManager();
+    await manager.init();
+    expect(manager.defaultId.value).toBe("a");
+    expect(manager.selectedId.value).toBe("a");
+    expect((await loadLocalPreferences()).defaultIdentityId).toBe("a");
+  });
+
+  it("makes a freshly minted identity the default when none is set", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => sseResponse(MINT_FRAMES)),
+    );
+    const manager = useIdentityManager();
+    await manager.init();
+    expect(manager.defaultId.value).toBeUndefined();
+    const result = await manager.create({ label: "First", level: 8 });
+    if (!result.ok) throw new Error("expected mint to succeed");
+    expect(manager.defaultId.value).toBe(result.identity.id);
+  });
+
+  it("changes the default without changing the selection, and persists it", async () => {
+    await seed("a", "Alpha");
+    await seed("b", "Beta");
+    const manager = useIdentityManager();
+    await manager.init();
+    await manager.select("a");
+    await manager.setDefault("b");
+    expect(manager.defaultId.value).toBe("b");
+    expect(manager.selectedId.value).toBe("a");
+    expect((await loadLocalPreferences()).defaultIdentityId).toBe("b");
+  });
+
+  it("reassigns the default to a remaining identity when the default is removed", async () => {
+    await seed("a", "Alpha");
+    await seed("b", "Beta");
+    const manager = useIdentityManager();
+    await manager.init();
+    expect(manager.defaultId.value).toBe("a");
+    await manager.remove("a");
+    expect(manager.defaultId.value).toBe("b");
+  });
+
   it("exports the stored material of a known identity", async () => {
     await seed("a", "Alpha");
     const manager = useIdentityManager();

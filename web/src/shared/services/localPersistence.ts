@@ -46,6 +46,8 @@ export interface LocalPreferences {
   lastNickname?: string;
   /** The identity the join screen preselects, by its `StoredIdentity.id`. */
   selectedIdentityId?: string;
+  /** The identity marked as default and used when no explicit selection is remembered. */
+  defaultIdentityId?: string;
   inputDeviceId?: string;
   volumesByUid?: Record<string, number>;
   /** Members muted on this client, by uid. A mute keeps the member's slider level in `volumesByUid`. */

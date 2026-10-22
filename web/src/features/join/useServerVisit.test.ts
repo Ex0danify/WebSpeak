@@ -1,18 +1,17 @@
 import { flushPromises } from "@vue/test-utils";
 import { IDBFactory } from "fake-indexeddb";
 import { createPinia, setActivePinia } from "pinia";
-import { reactive, ref } from "vue";
+import { reactive } from "vue";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { clearLocalData, listRecentServers } from "@/shared/services/localPersistence";
+import { clearLocalData, listRecentServers, saveLocalPreferences } from "@/shared/services/localPersistence";
 import { useJoinFormStore } from "@/features/join/stores/joinFormStore";
 import { useServerVisit } from "@/features/join/useServerVisit";
 
 function setup() {
   const voiceState = reactive({ connected: false });
-  const identityMaterial = ref("");
   const form = useJoinFormStore();
-  useServerVisit({ voiceState, identityMaterial });
-  return { voiceState, identityMaterial, form };
+  useServerVisit({ voiceState });
+  return { voiceState, form };
 }
 
 beforeEach(async () => {
@@ -37,6 +36,27 @@ describe("useServerVisit", () => {
     expect(recent?.address).toContain("voice.example.com");
     expect(recent?.nickname).toBe("Ann");
     expect(recent?.lastChannelHint).toEqual({ name: "lobby" });
+  });
+
+  it("pins the persisted selected identity on the recent server", async () => {
+    await saveLocalPreferences({ schemaVersion: 1, selectedIdentityId: "work-id" });
+    const { voiceState, form } = setup();
+    form.serverHost = "voice.example.com";
+    form.serverPort = "9987";
+    voiceState.connected = true;
+    await vi.waitFor(async () => expect(await listRecentServers()).toHaveLength(1));
+    const [recent] = await listRecentServers();
+    expect(recent?.identityId).toBe("work-id");
+  });
+
+  it("records no identity when the selection is ephemeral", async () => {
+    const { voiceState, form } = setup();
+    form.serverHost = "voice.example.com";
+    form.serverPort = "9987";
+    voiceState.connected = true;
+    await vi.waitFor(async () => expect(await listRecentServers()).toHaveLength(1));
+    const [recent] = await listRecentServers();
+    expect(recent?.identityId).toBeUndefined();
   });
 
   it("does nothing without a target", async () => {

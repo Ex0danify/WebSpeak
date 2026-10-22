@@ -46,7 +46,10 @@ function newId(): string {
 export function useIdentityManager() {
   const identities = ref<StoredIdentity[]>([]);
   const selectedId = ref<string | undefined>(undefined);
+  const defaultId = ref<string | undefined>(undefined);
   const mintState = ref<MintState>({ phase: "idle" });
+
+  const has = (id: string | undefined): boolean => Boolean(id) && identities.value.some((entry) => entry.id === id);
 
   async function refresh(): Promise<void> {
     identities.value = await listIdentities();
@@ -55,13 +58,22 @@ export function useIdentityManager() {
   async function init(): Promise<void> {
     await refresh();
     const preferences = await loadLocalPreferences();
+    // A populated store without a stored default adopts its first entry, so one identity is always marked.
+    const resolvedDefault = has(preferences.defaultIdentityId) ? preferences.defaultIdentityId : identities.value[0]?.id;
+    if (resolvedDefault !== preferences.defaultIdentityId) await setDefault(resolvedDefault);
+    else defaultId.value = resolvedDefault;
     const stored = preferences.selectedIdentityId;
-    selectedId.value = stored && identities.value.some((entry) => entry.id === stored) ? stored : identities.value[0]?.id;
+    selectedId.value = has(stored) ? stored : defaultId.value;
   }
 
   async function select(id: string | undefined): Promise<void> {
     selectedId.value = id;
     await saveLocalPreferences({ schemaVersion: 1, selectedIdentityId: id });
+  }
+
+  async function setDefault(id: string | undefined): Promise<void> {
+    defaultId.value = id;
+    await saveLocalPreferences({ schemaVersion: 1, defaultIdentityId: id });
   }
 
   async function create({ label, level, signal }: CreateOptions = {}): Promise<CreateResult> {
@@ -78,6 +90,7 @@ export function useIdentityManager() {
       await saveIdentity(identity);
       await refresh();
       await select(identity.id);
+      if (!defaultId.value) await setDefault(identity.id);
       mintState.value = { phase: "done" };
       return { ok: true, identity };
     } catch (error) {
@@ -95,7 +108,8 @@ export function useIdentityManager() {
   async function remove(id: string): Promise<void> {
     await removeIdentity(id);
     await refresh();
-    if (selectedId.value === id) await select(identities.value[0]?.id);
+    if (defaultId.value === id) await setDefault(identities.value[0]?.id);
+    if (selectedId.value === id) await select(defaultId.value);
   }
 
   function exportIdentity(id: string): ExportedIdentity | null {
@@ -115,16 +129,19 @@ export function useIdentityManager() {
     if (!saved) return { ok: false, code: "SAVE_FAILED" };
     await refresh();
     await select(identity.id);
+    if (!defaultId.value) await setDefault(identity.id);
     return { ok: true, identity };
   }
 
   return {
     identities,
     selectedId,
+    defaultId,
     mintState,
     init,
     refresh,
     select,
+    setDefault,
     create,
     rename,
     remove,

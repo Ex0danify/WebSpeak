@@ -20,6 +20,7 @@ export const iconNames = [
   "info",
   "alert",
   "check",
+  "star",
   "plus",
   "close",
   "more",

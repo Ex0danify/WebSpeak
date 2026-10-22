@@ -4,17 +4,25 @@ import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vite
 import type * as Persistence from "@/shared/services/localPersistence";
 import { mountClient, warmClient } from "@/testSupport/mountClient";
 
-// The remembered-identity flow of the join view on the real component: restore on mount, save when the gateway hands one out,
-// and the checkbox. Only the browser edges are replaced (IndexedDB, fetch, the AudioWorkletNode class the noise suppressor
-// extends), JoinView and useRoomSession run as in the app.
+// The device-identity flow of the join view on the real component: the selected identity's material flows
+// into the connection inputs, the ephemeral choice clears them, and the picked identity survives a reload.
+// Only the browser edges are replaced (IndexedDB, fetch, the AudioWorkletNode class the noise suppressor
+// extends); JoinView and useRoomSession run as in the app.
 
-const KEY = "webspeak:remember-identity";
 const STORED = "stored-identity-material";
+const OTHER = "other-identity-material";
 
+type Manager = {
+  selectedId: { value: string | undefined };
+  identities: { value: Persistence.StoredIdentity[] };
+  select: (id: string | undefined) => Promise<void>;
+  refresh: () => Promise<void>;
+};
 type View = {
   identityMaterial: string;
   rememberIdentity: boolean;
   identityReady: boolean;
+  identityManager: Manager;
 };
 
 let store: typeof Persistence;
@@ -43,7 +51,7 @@ afterEach(() => {
   wrapper = undefined;
 });
 
-/** Mounts the view and waits until it has finished reading the stored identity. */
+/** Mounts the view and waits until it has finished reading the identity list. */
 async function mountView(): Promise<View> {
   const mounted = await mountClient();
   wrapper = mounted.wrapper;
@@ -53,75 +61,57 @@ async function mountView(): Promise<View> {
   return view;
 }
 
-describe("restoring the identity on mount", () => {
-  it("restores it when remember-identity is 1", async () => {
-    await store.saveStoredIdentity(STORED);
-    localStorage.setItem(KEY, "1");
+describe("binding the selected identity on mount", () => {
+  it("uses no identity and stays ephemeral on a first visit", async () => {
     const view = await mountView();
-    expect(view.identityMaterial).toBe(STORED);
-    expect(view.rememberIdentity).toBe(true);
-  });
-
-  it("does not restore it when remember-identity is 0, and the checkbox is off", async () => {
-    await store.saveStoredIdentity(STORED);
-    localStorage.setItem(KEY, "0");
-    const view = await mountView();
+    expect(view.identityManager.selectedId.value).toBeUndefined();
     expect(view.identityMaterial).toBe("");
     expect(view.rememberIdentity).toBe(false);
   });
 
-  it("has nothing to restore on a first visit", async () => {
+  it("restores the persisted selection and loads its material", async () => {
+    await store.saveStoredIdentity(STORED);
+    await store.saveLocalPreferences({ schemaVersion: 1, selectedIdentityId: "current" });
     const view = await mountView();
-    expect(view.identityMaterial).toBe("");
+    expect(view.identityManager.selectedId.value).toBe("current");
+    expect(view.identityMaterial).toBe(STORED);
+    expect(view.rememberIdentity).toBe(true);
   });
 
-  // With no key the checkbox shows on, so the stored identity is restored, as the checkbox says.
-  it("restores a stored identity when the key was never written", async () => {
+  it("falls back to the first identity when nothing is persisted", async () => {
     await store.saveStoredIdentity(STORED);
     const view = await mountView();
-    expect(view.rememberIdentity).toBe(true);
+    expect(view.identityManager.selectedId.value).toBe("current");
     expect(view.identityMaterial).toBe(STORED);
   });
 });
 
-describe("saving and forgetting", () => {
-  it("saves the identity the gateway hands out when remember is on", async () => {
-    localStorage.setItem(KEY, "1");
-    const view = await mountView();
-    view.identityMaterial = "fresh-material";
-    await vi.waitFor(async () => expect((await store.loadStoredIdentity())?.privateMaterial).toBe("fresh-material"));
-  });
-
-  it("does not save it, and drops it from memory, when remember is off", async () => {
-    localStorage.setItem(KEY, "0");
-    const view = await mountView();
-    view.identityMaterial = "fresh-material";
-    await flushPromises();
-    expect(view.identityMaterial).toBe("");
-    expect(await store.loadStoredIdentity()).toBeNull();
-  });
-
-  it("turning remember off writes 0, clears the identity in memory and deletes the stored one", async () => {
+describe("switching the selection", () => {
+  it("clears the material and remembered flag when ephemeral is chosen", async () => {
     await store.saveStoredIdentity(STORED);
-    localStorage.setItem(KEY, "1");
+    await store.saveLocalPreferences({ schemaVersion: 1, selectedIdentityId: "current" });
     const view = await mountView();
-    view.rememberIdentity = false;
-    await vi.waitFor(async () => expect(await store.loadStoredIdentity()).toBeNull());
-    expect(localStorage.getItem(KEY)).toBe("0");
+    await view.identityManager.select(undefined);
+    await flushPromises();
     expect(view.identityMaterial).toBe("");
+    expect(view.rememberIdentity).toBe(false);
+    expect((await store.loadLocalPreferences()).selectedIdentityId).toBeUndefined();
   });
 
-  it("turning remember on writes 1, which is what makes the next visit restore it", async () => {
-    localStorage.setItem(KEY, "0");
+  it("loads the material of a newly selected identity", async () => {
+    const now = Date.now();
+    await store.saveStoredIdentity(STORED);
+    await store.saveIdentity({ id: "work", label: "Work", privateMaterial: OTHER, createdAt: now, lastUsedAt: now });
     const view = await mountView();
-    view.rememberIdentity = true;
+    await view.identityManager.refresh();
+    await view.identityManager.select("work");
     await flushPromises();
-    expect(localStorage.getItem(KEY)).toBe("1");
-    view.identityMaterial = "kept-material";
-    await vi.waitFor(async () => expect((await store.loadStoredIdentity())?.privateMaterial).toBe("kept-material"));
+    expect(view.identityMaterial).toBe(OTHER);
+    expect(view.rememberIdentity).toBe(true);
 
     wrapper?.unmount();
     const next = await mountView();
-    expect(next.identityMaterial).toBe("kept-material");
+    expect(next.identityManager.selectedId.value).toBe("work");
+    expect(next.identityMaterial).toBe(OTHER);
   });
 });

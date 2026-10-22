@@ -1,7 +1,7 @@
 import { registerMessages } from "@/shared/i18n/useI18n";
 import { translations as commonMessages } from "@/shared/i18n/common";
 import { translations as roomMessages } from "@/features/room/i18n";
-import { joinMessages } from "@/features/join";
+import { translations as joinMessages } from "@/features/join/i18n";
 import { adminMessages } from "@/features/admin";
 import { demoMessages } from "@/features/demo";
 import { sessionMessages } from "@/features/session";

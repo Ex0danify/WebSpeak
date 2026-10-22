@@ -1,16 +1,22 @@
 export const de: Record<string, string> = {
   identityLabel: "Geräteidentität",
-  identityEphemeral: "Flüchtig — nicht speichern",
+  identityEphemeral: "Temporäre Identität",
   identityManage: "Verwalten…",
   identityUnnamed: "Unbenannte Identität",
+  identityDefault: "Standard",
+  identityMakeDefault: "Als Standardidentität festlegen",
+  identityMakeDefaultShort: "Als Standard nutzen",
+  identityIsDefault: "Standardidentität",
+  identityConcurrentWarning: "Diese Identität wird bereits von einer anderen, aktiven, Verbindung genutzt. Wähle eine andere.",
 
   identityMintQueued: "Warten auf den Identitätsdienst…",
   identityMintAhead: "{{count}} vor dir",
   identityMintProgress: "Identität wird erstellt…",
 
   identityManagerTitle: "Geräteidentitäten",
-  identityManagerDescription: "Identitäten werden nur auf diesem Gerät gespeichert. Wähle eine pro Verbindung.",
-  identityEmpty: "Noch keine gespeicherten Identitäten. Unten eine erstellen.",
+  identityManagerDescription: "Identitäten werden nur auf diesem Gerät gespeichert.",
+  identityEmpty: "Noch keine gespeicherten Identitäten.",
+  identityAdd: "Identität hinzufügen",
   identityCreatedOn: "Erstellt am {{date}}",
 
   identityNewHeading: "Neue Identität erstellen",
@@ -26,7 +32,6 @@ export const de: Record<string, string> = {
   identityDeleteConfirm: "Diese Identität löschen? Dies lässt sich nicht rückgängig machen!",
   identityExport: "Exportieren",
   identityImport: "Importieren",
-  identityImportHeading: "Identität importieren",
   identitySave: "Speichern",
 
   identityExportWarning: "Diese Datei ist ein privater Schlüssel. Halte ihn geheim!",

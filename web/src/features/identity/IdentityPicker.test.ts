@@ -15,10 +15,12 @@ function fakeManager(overrides: Partial<Record<keyof Manager, unknown>> = {}): M
   return {
     identities: ref(identities),
     selectedId: ref<string | undefined>("a"),
+    defaultId: ref<string | undefined>("a"),
     mintState: ref<MintState>({ phase: "idle" }),
     init: vi.fn(),
     refresh: vi.fn(),
     select: vi.fn(),
+    setDefault: vi.fn(),
     create: vi.fn(),
     rename: vi.fn(),
     remove: vi.fn(),
@@ -29,10 +31,10 @@ function fakeManager(overrides: Partial<Record<keyof Manager, unknown>> = {}): M
 }
 
 describe("IdentityPicker", () => {
-  it("lists saved identities, the unnamed fallback and an ephemeral option", () => {
+  it("lists the ephemeral option, saved identities, the unnamed fallback and marks the default", () => {
     const wrapper = mount(IdentityPicker, { props: { manager: fakeManager() } });
     const options = wrapper.findAll("option").map((o) => o.text());
-    expect(options).toEqual(["Ephemeral — don't save", "Alpha", "Unnamed identity"]);
+    expect(options).toEqual(["Temporary identity", "Alpha (default)", "Unnamed identity"]);
   });
 
   it("writes the selection back, mapping the ephemeral option to undefined", async () => {
@@ -54,5 +56,19 @@ describe("IdentityPicker", () => {
     const manager = fakeManager({ mintState: ref<MintState>({ phase: "minting" }) });
     const wrapper = mount(IdentityPicker, { props: { manager } });
     expect(wrapper.text()).toContain("Creating identity…");
+  });
+
+  it("warns when the gateway reports the selected identity is already live on the target", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(
+        async () =>
+          new Response(JSON.stringify({ ok: true, inUse: true }), { status: 200, headers: { "content-type": "application/json" } }),
+      ),
+    );
+    const wrapper = mount(IdentityPicker, { props: { manager: fakeManager(), target: "voice.example.com:9987" } });
+    await vi.waitFor(() => expect(wrapper.text()).toContain("already used by another active connection"));
+    wrapper.unmount();
+    vi.unstubAllGlobals();
   });
 });

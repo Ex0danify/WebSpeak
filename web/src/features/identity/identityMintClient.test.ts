@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { IdentityMintError, mintIdentity, validateIdentity } from "@/features/identity/identityMintClient";
+import { checkIdentityStatus, IdentityMintError, mintIdentity, validateIdentity } from "@/features/identity/identityMintClient";
 
 function sseResponse(frames: string[]): Response {
   const stream = new ReadableStream<Uint8Array>({
@@ -87,5 +87,37 @@ describe("validateIdentity", () => {
       vi.fn(async () => jsonResponse({ ok: false, code: "INVALID_IDENTITY" }, 400)),
     );
     await expect(validateIdentity("bad")).rejects.toMatchObject({ code: "INVALID_IDENTITY" });
+  });
+});
+
+describe("checkIdentityStatus", () => {
+  it("returns true only when the gateway reports the identity in use", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => jsonResponse({ ok: true, inUse: true }, 200)),
+    );
+    expect(await checkIdentityStatus("material", "host:9987")).toBe(true);
+  });
+
+  it("sends the target only when one is given", async () => {
+    const fetchMock = vi.fn(async (_url: string, init: RequestInit) => {
+      void init;
+      return jsonResponse({ ok: true, inUse: false }, 200);
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    await checkIdentityStatus("material", "");
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body as string)).toEqual({ identity: "material" });
+    await checkIdentityStatus("material", "host:9987");
+    expect(JSON.parse(fetchMock.mock.calls[1][1].body as string)).toEqual({ identity: "material", target: "host:9987" });
+  });
+
+  it("treats a failed request as not in use rather than throwing", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => {
+        throw new TypeError("Failed to fetch");
+      }),
+    );
+    expect(await checkIdentityStatus("material", "host:9987")).toBe(false);
   });
 });

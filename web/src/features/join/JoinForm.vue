@@ -113,12 +113,8 @@
         >
           {{ t("identityOptions") }}
         </summary>
-        <Checkbox v-model="rememberIdentity" class="mt-2 flex"
-          ><strong class="block text-caption font-bold">{{ t("rememberIdentity") }}</strong
-          ><small class="mt-0.75 block text-2xs leading-snug text-fg-muted">{{ t("rememberIdentityHint") }}</small></Checkbox
-        >
+        <IdentityPicker :manager="identityManager" :target="identityTarget" />
       </details>
-      <p v-if="rememberIdentity" class="mt-2 mb-0 text-2xs leading-normal text-warning">{{ t("rememberIdentityConcurrentWarning") }}</p>
 
       <GatewayStatus :status="gatewayStatus" :retry-in="gatewayRetryIn" />
 
@@ -145,11 +141,11 @@ import { Banner } from "@/shared/ui/banner";
 import GatewayStatus from "@/features/join/GatewayStatus.vue";
 import type { GatewayStatus as GatewayStatusValue } from "@/features/join/useGatewayStatus";
 import { Button } from "@/shared/ui/button";
-import { Checkbox } from "@/shared/ui/checkbox";
 import { Field } from "@/shared/ui/field";
 import { Icon } from "@/shared/ui/icon";
 import { Input } from "@/shared/ui/input";
 import { Select } from "@/shared/ui/select";
+import { IdentityPicker, type useIdentityManager } from "@/features/identity";
 import { useI18n } from "@/shared/i18n/useI18n.js";
 import { visibleErrorCode } from "@/features/session";
 import { resolveText, type MaybeLocalizedText } from "@/shared/i18n/localizedText.js";
@@ -172,6 +168,8 @@ defineProps<{
   error: MaybeLocalizedText;
   errorCode: string;
   identityReady: boolean;
+  identityManager: ReturnType<typeof useIdentityManager>;
+  identityTarget: string;
   canJoin: boolean;
   connecting: boolean;
 }>();
@@ -190,7 +188,6 @@ const serverPassword = defineModel<string>("serverPassword", { default: "" });
 const accelerationRelayId = defineModel<string>("accelerationRelayId", { default: "" });
 const nickname = defineModel<string>("nickname", { default: "" });
 const channel = defineModel<string>("channel", { default: "" });
-const rememberIdentity = defineModel<boolean>("rememberIdentity", { default: false });
 
 const { t } = useI18n();
 

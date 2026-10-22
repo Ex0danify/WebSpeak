@@ -28,14 +28,14 @@ loadLanguage();
 const { language, setThemeMode } = useAppearance();
 
 // Connection lifecycle: owned here so it survives the join page being replaced by the room.
-const { state: voiceState, identityMaterial } = room.session;
+const { state: voiceState } = room.session;
 useRoomSounds({
   voiceState,
   chatMessages: room.chat.chatMessages,
   pokeNotifications: room.roster.pokeNotifications,
   playNotification: room.audio.playNotification,
 });
-useServerVisit({ voiceState, identityMaterial });
+useServerVisit({ voiceState });
 
 // The join page shows until a session exists; the room covers connected, reconnecting and failed.
 // Entering or leaving the room replaces the history entry, so Back never lands on a dead page, and

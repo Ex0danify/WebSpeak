@@ -62,6 +62,7 @@ async function mountUseJoinForm(overrides: Partial<Parameters<typeof import("@/f
   const options = {
     voiceState,
     identityMaterial: ref(""),
+    selectedIdentityId: ref<string | undefined>(undefined),
     connect: vi.fn(),
     disconnect: vi.fn(),
     clearError: vi.fn(),
@@ -297,6 +298,7 @@ describe("loadPublicConfig (run on mount)", () => {
           useJoinForm({
             voiceState: makeVoiceState(),
             identityMaterial: ref(""),
+            selectedIdentityId: ref<string | undefined>(undefined),
             connect: vi.fn(),
             disconnect: vi.fn(),
             clearError: vi.fn(),
