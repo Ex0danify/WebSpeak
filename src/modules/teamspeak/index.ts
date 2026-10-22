@@ -29,3 +29,4 @@ export {
 } from "./teamSpeakProbe.js";
 export { buildTeamSpeakCommand } from "./teamSpeakCommand.js";
 export { generateIdentity, identityFromString, type Identity } from "../../lib/teamspeak/index.js";
+export { generateIdentityAsync, upgradeIdentity, type IdentitySearchOptions } from "../../lib/teamspeak/index.js";

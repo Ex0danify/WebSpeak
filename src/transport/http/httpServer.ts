@@ -9,6 +9,8 @@ import { AdminSessionStore } from "../../modules/admin/index.js";
 import { JoinRateLimiter, ServerPasswordBackoff } from "../../modules/join/index.js";
 import type { WebServerOptions } from "./webServerOptions.js";
 import { registerJoinRoutes } from "./routes/registerJoinRoutes.js";
+import { registerIdentityRoutes } from "./routes/registerIdentityRoutes.js";
+import { IdentityMintQueue } from "../../modules/identity/index.js";
 import { securityHeaders } from "./securityHeaders.js";
 import { registerPublicRoutes } from "./routes/registerPublicRoutes.js";
 
@@ -42,10 +44,14 @@ export function createWebServer(options: WebServerOptions): WebServer {
   const adminSessions = new AdminSessionStore(() => options.adminService.database.getAdminSessionEpoch());
   const joinRateLimiter = new JoinRateLimiter();
   const passwordBackoff = new ServerPasswordBackoff();
+  // A separate limiter keeps mint floods from draining the join budget and vice versa.
+  const identityRateLimiter = new JoinRateLimiter();
+  const identityMintQueue = new IdentityMintQueue(() => options.adminService.getIdentityMintPolicy());
   const startedAt = Date.now();
 
   registerPublicRoutes(app, options, logger);
   registerJoinRoutes(app, options, joinRateLimiter, passwordBackoff);
+  registerIdentityRoutes(app, options, identityRateLimiter, identityMintQueue);
 
   app.use(
     "/api/admin",
