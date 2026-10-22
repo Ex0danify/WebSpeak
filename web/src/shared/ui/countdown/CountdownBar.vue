@@ -56,6 +56,6 @@ const label = computed(() => {
     <div class="h-1 flex-1 overflow-hidden rounded-full bg-surface-2">
       <div class="h-full rounded-full bg-accent" :style="{ width: `${pct}%` }"></div>
     </div>
-    <span v-if="showLabel" class="shrink-0 text-caption tabular-nums text-fg-muted/70">{{ label }}</span>
+    <span v-if="showLabel" class="shrink-0 text-caption text-fg-muted/70 tabular-nums">{{ label }}</span>
   </div>
 </template>

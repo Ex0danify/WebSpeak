@@ -46,7 +46,14 @@ for (const theme of themes) {
   test.describe(`room ${theme}`, () => {
     test.use({ colorScheme: theme });
     // One shot per state and viewport, plus the phone's other three tabs (a desktop shows all at once).
-    const rooms: { state: string; scenario: ScriptedScenario; tab?: string; phoneOnly?: boolean; desktopOnly?: boolean; openAway?: boolean }[] = [
+    const rooms: {
+      state: string;
+      scenario: ScriptedScenario;
+      tab?: string;
+      phoneOnly?: boolean;
+      desktopOnly?: boolean;
+      openAway?: boolean;
+    }[] = [
       ...connectedScenarios.map((scenario) => ({ state: scenario, scenario, tab: "Voice" })),
       { state: "channels", scenario: "connected", phoneOnly: true },
       { state: "chat", scenario: "connected", tab: "Chat", phoneOnly: true },

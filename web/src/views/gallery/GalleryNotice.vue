@@ -27,9 +27,11 @@
       <Button variant="outline" @click="raiseToast({ title: noticeSamples[lang].sticky, variant: 'info', duration: 0 })">{{
         noticeSamples[lang].sticky
       }}</Button>
-      <Button variant="outline" @click="raiseToast({ title: noticeSamples[lang].timed, variant: 'info', progress: true, duration: 5000 })">{{
-        noticeSamples[lang].timed
-      }}</Button>
+      <Button
+        variant="outline"
+        @click="raiseToast({ title: noticeSamples[lang].timed, variant: 'info', progress: true, duration: 5000 })"
+        >{{ noticeSamples[lang].timed }}</Button
+      >
       <Button variant="ghost" @click="dismissToasts()">{{ noticeSamples[lang].dismiss }}</Button>
     </div>
 

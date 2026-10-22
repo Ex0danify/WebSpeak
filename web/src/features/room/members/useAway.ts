@@ -5,7 +5,10 @@ import { useDialog } from "@/shared/composables/useDialog.js";
 
 /** The away toggle: flips the state, asks for a message through the shared prompt and reports both to the server, rolling
  *  back to the previous state if the server refuses. `notify` surfaces that refusal. */
-export function useAway(setAway: (away: boolean, message: string) => Promise<void>, notify: (message: string, variant?: "success" | "danger") => void) {
+export function useAway(
+  setAway: (away: boolean, message: string) => Promise<void>,
+  notify: (message: string, variant?: "success" | "danger") => void,
+) {
   const { t } = useI18n();
   const { prompt } = useDialog();
   const away = ref(false);

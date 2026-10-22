@@ -162,7 +162,10 @@ test.describe("toasts", () => {
   // Poking someone raises the "Poke sent" toast; the dialog asks for the poke's message first.
   async function sendPoke(page: Page, target: string): Promise<Locator> {
     await (await openMemberMenu(page, target)).getByText("Poke", { exact: true }).click();
-    await page.getByRole("dialog", { name: `Poke ${target}` }).getByRole("button", { name: "Poke", exact: true }).click();
+    await page
+      .getByRole("dialog", { name: `Poke ${target}` })
+      .getByRole("button", { name: "Poke", exact: true })
+      .click();
     const toast = page.locator("li").filter({ hasText: "Poke sent" });
     await expect(toast).toBeVisible();
     return toast;

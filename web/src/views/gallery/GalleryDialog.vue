@@ -92,7 +92,18 @@ const { confirm, prompt, alert } = useDialog();
 
 const imperative: Record<
   Lang,
-  { note: string; confirm: string; prompt: string; alert: string; timedAlert: string; ask: string; label: string; ok: string; cancel: string; acknowledged: string }
+  {
+    note: string;
+    confirm: string;
+    prompt: string;
+    alert: string;
+    timedAlert: string;
+    ask: string;
+    label: string;
+    ok: string;
+    cancel: string;
+    acknowledged: string;
+  }
 > = {
   en: {
     note: "Imperative dialogs raised from logic through useDialog().",
@@ -121,18 +132,39 @@ const imperative: Record<
 };
 
 async function runConfirm() {
-  const ok = await confirm({ title: imperative[lang.value].ask, confirmLabel: imperative[lang.value].ok, cancelLabel: imperative[lang.value].cancel, variant: "danger" });
+  const ok = await confirm({
+    title: imperative[lang.value].ask,
+    confirmLabel: imperative[lang.value].ok,
+    cancelLabel: imperative[lang.value].cancel,
+    variant: "danger",
+  });
   toast({ title: String(ok), variant: ok ? "success" : "info", duration: 1800 });
 }
 async function runPrompt() {
-  const value = await prompt({ title: imperative[lang.value].label, label: imperative[lang.value].label, confirmLabel: imperative[lang.value].ok, cancelLabel: imperative[lang.value].cancel });
+  const value = await prompt({
+    title: imperative[lang.value].label,
+    label: imperative[lang.value].label,
+    confirmLabel: imperative[lang.value].ok,
+    cancelLabel: imperative[lang.value].cancel,
+  });
   toast({ title: value ?? "null", duration: 1800 });
 }
 async function runAlert() {
-  await alert({ title: imperative[lang.value].acknowledged, message: imperative[lang.value].acknowledged, confirmLabel: imperative[lang.value].ok, variant: "info" });
+  await alert({
+    title: imperative[lang.value].acknowledged,
+    message: imperative[lang.value].acknowledged,
+    confirmLabel: imperative[lang.value].ok,
+    variant: "info",
+  });
 }
 async function runTimedAlert() {
-  await alert({ title: imperative[lang.value].acknowledged, message: imperative[lang.value].acknowledged, confirmLabel: imperative[lang.value].ok, variant: "info", timeoutMs: 5000 });
+  await alert({
+    title: imperative[lang.value].acknowledged,
+    message: imperative[lang.value].acknowledged,
+    confirmLabel: imperative[lang.value].ok,
+    variant: "info",
+    timeoutMs: 5000,
+  });
 }
 
 const dialogSamples: Record<
