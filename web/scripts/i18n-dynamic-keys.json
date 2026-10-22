@@ -91,6 +91,17 @@
       "file": "features/screenShare/ScreenShareSettingsDialog.vue",
       "sources": ["features/screenShare/useScreenShare.ts"],
       "keys": ["screenShareResolutionSource", "screenShareResolution720p", "screenShareResolution1080p"]
+    },
+    {
+      "file": "features/identity/IdentityManagerDialog.vue",
+      "keys": [
+        "identityErrorBusy",
+        "identityErrorLevelTooHigh",
+        "identityErrorNotReady",
+        "identityImportInvalid",
+        "identityErrorSave",
+        "identityErrorFailed"
+      ]
     }
   ]
 }

@@ -11,6 +11,12 @@
       "pattern": "role=status",
       "max": 1,
       "reason": "one-line live status with a dot and a countdown: Banner is a block and Chip forces an icon on danger, so no library component fits. The dot is aria-hidden and the text carries the state"
+    },
+    {
+      "file": "src/features/identity/IdentityManagerDialog.vue",
+      "pattern": "input",
+      "max": 1,
+      "reason": "hidden file picker for identity import: the library has no file-input component. It is sr-only and triggered by a library Button; no text is typed into it"
     }
   ]
 }

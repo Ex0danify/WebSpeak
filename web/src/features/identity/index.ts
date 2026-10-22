@@ -14,3 +14,6 @@ export {
   type MintOptions,
   type MintResult,
 } from "@/features/identity/identityMintClient";
+export { default as IdentityPicker } from "@/features/identity/IdentityPicker.vue";
+export { default as IdentityManagerDialog } from "@/features/identity/IdentityManagerDialog.vue";
+export { translations as identityMessages } from "@/features/identity/i18n";
