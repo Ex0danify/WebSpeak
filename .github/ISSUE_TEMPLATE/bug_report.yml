@@ -1,0 +1,136 @@
+name: Bug report
+description: Report a reproducible problem with WebSpeak
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug. For setup questions or "is this supposed to work?", use [Discussions](https://github.com/Ex0danify/WebSpeak/discussions/categories/q-a) instead.
+
+  - type: dropdown
+    id: component
+    attributes:
+      label: Component
+      description: Which part is affected? Pick "Not sure" if you cannot tell.
+      options:
+        - Web UI (the browser app)
+        - Gateway (the Node server)
+        - Relay / acceleration
+        - Not sure
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: Describe the problem clearly and concisely.
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1.
+        2.
+        3.
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+      description: What you expected to happen.
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+      description: What happened instead. Include the exact error message, if any.
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: WebSpeak version
+      description: Release, image tag and digest, or Git commit. For a moving tag such as "latest", include the digest or commit if you can.
+    validations:
+      required: true
+
+  - type: textarea
+    id: client-env
+    attributes:
+      label: Client environment
+      description: Where you were running the web app.
+      value: |
+        - Device:
+        - Operating system and version:
+        - Browser and version:
+    validations:
+      required: true
+
+  - type: dropdown
+    id: other-browser
+    attributes:
+      label: Does this happen in another browser?
+      options:
+        - Not tested
+        - "Yes"
+        - "No"
+    validations:
+      required: true
+
+  - type: textarea
+    id: server-env
+    attributes:
+      label: Server environment
+      description: Complete what you know. If you do not administer the instance, write "Unknown".
+      value: |
+        - Deployment method: Docker Compose / Docker / source / other
+        - Server OS:
+        - Reverse proxy, if any:
+        - Access method: HTTPS / HTTP / localhost
+        - TeamSpeak server version, if known:
+
+  - type: textarea
+    id: audio
+    attributes:
+      label: Audio or connection details
+      description: Complete only for audio or connection problems; otherwise leave empty.
+      value: |
+        - Microphone/audio device and connection type:
+        - Microphone permission granted: Yes / No / Unknown
+        - What fails: joining / microphone input / hearing others / others hearing you / other
+        - Does the same TeamSpeak server work with a native client? Not tested / Yes / No
+        - Relevant network conditions, if known (VPN, firewall, proxy):
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs and screenshots
+      description: |
+        Relevant browser console output, gateway logs, screenshots, or recordings.
+        Remove passwords, tokens, session cookies, and other secrets first. Do not paste your full .env.
+      render: text
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional context
+      description: Frequency, when it started, last working version, recent config changes, workarounds, or whether other users are affected.
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before submitting
+      options:
+        - label: I searched existing issues and this is not a duplicate.
+          required: true
+        - label: I removed passwords, tokens, and other secrets from the details above.
+          required: true
