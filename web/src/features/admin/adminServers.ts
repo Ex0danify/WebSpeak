@@ -27,6 +27,11 @@ export const useAdminServersStore = defineStore("adminServers", () => {
   const dialog = reactive(initialServerDialog());
   const testing = ref(false);
   const testResult = ref<ProbeState | null>(null);
+  /** The server picked up for reordering, by pointer or keyboard. Empty when none. */
+  const grabbed = ref("");
+  /** What a screen reader hears about a move, in a live region. */
+  const announcement = ref("");
+  let orderBeforeGrab: AdminServer[] = [];
   /** Bumped on every full pass and on reset, so a pass that was overtaken stops probing. */
   let pass = 0;
 
@@ -60,6 +65,61 @@ export const useAdminServersStore = defineStore("adminServers", () => {
       await probeServer(id);
     }
     if (current === pass) await adminSiblings().loadOverview();
+  }
+
+  const positionText = (id: string) => {
+    const index = servers.value.findIndex((server) => server.id === id);
+    return { name: servers.value[index]?.name ?? "", position: index + 1, total: servers.value.length };
+  };
+
+  function grabServer(id: string) {
+    if (grabbed.value) return;
+    grabbed.value = id;
+    orderBeforeGrab = [...servers.value];
+    announcement.value = t("serverGrabbed", positionText(id));
+  }
+
+  /** Moves the picked-up server to `index` in the list, without saving yet. */
+  function moveGrabbedTo(index: number) {
+    const from = servers.value.findIndex((server) => server.id === grabbed.value);
+    const to = Math.max(0, Math.min(servers.value.length - 1, index));
+    if (from < 0 || from === to) return;
+    const next = [...servers.value];
+    next.splice(to, 0, ...next.splice(from, 1));
+    servers.value = next;
+    announcement.value = t("serverMoved", positionText(grabbed.value));
+  }
+
+  function shiftGrabbed(delta: number) {
+    moveGrabbedTo(servers.value.findIndex((server) => server.id === grabbed.value) + delta);
+  }
+
+  /** Puts the server down and saves the order when it changed. */
+  async function dropServer() {
+    const id = grabbed.value;
+    if (!id) return;
+    grabbed.value = "";
+    const ids = servers.value.map((server) => server.id);
+    if (ids.join() === orderBeforeGrab.map((server) => server.id).join()) {
+      announcement.value = t("serverDropped", positionText(id));
+      return;
+    }
+    try {
+      const result = await admin.sendJson("/api/admin/servers/order", "PUT", { ids });
+      servers.value = result.servers;
+      announcement.value = t("serverDropped", positionText(id));
+      admin.notify(t("serverOrderSaved"));
+    } catch (error) {
+      servers.value = orderBeforeGrab;
+      admin.errorMessage = admin.errorText((error as ApiError).code);
+    }
+  }
+
+  function cancelGrab() {
+    if (!grabbed.value) return;
+    servers.value = orderBeforeGrab;
+    announcement.value = t("serverMoveCancelled", positionText(grabbed.value));
+    grabbed.value = "";
   }
 
   function openAdd() {
@@ -150,6 +210,8 @@ export const useAdminServersStore = defineStore("adminServers", () => {
   function reset() {
     pass++;
     servers.value = [];
+    grabbed.value = "";
+    announcement.value = "";
     for (const id of Object.keys(probes)) delete probes[id];
     Object.assign(dialog, initialServerDialog());
     testResult.value = null;
@@ -164,6 +226,13 @@ export const useAdminServersStore = defineStore("adminServers", () => {
     testResult,
     testResultTitle,
     testResultText,
+    grabbed,
+    announcement,
+    grabServer,
+    moveGrabbedTo,
+    shiftGrabbed,
+    dropServer,
+    cancelGrab,
     statusOf,
     loadServers,
     probeAll,

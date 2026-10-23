@@ -229,3 +229,80 @@ test.describe("keyboard", () => {
     await expect(row(page, "Keys")).toBeVisible();
   });
 });
+
+test.describe("order", () => {
+  const names = async (page: Page) => (await page.locator(".server-row strong").allTextContents()).map((text) => text.trim());
+
+  test("a server picked up with the keyboard moves with the arrows and is saved on drop, in the guests' dropdown too", async ({
+    page,
+    ownGateway,
+    isMobile,
+  }) => {
+    test.skip(isMobile, "a phone moves a server with the buttons");
+    const gateway = await ownGateway();
+    gateway.adminService.createServer({ name: "Clan", target: "clan.example.test" });
+    gateway.adminService.createServer({ name: "LAN party", target: "lan.example.test" });
+    await openServerPage(page, gateway);
+    expect(await names(page)).toEqual(["WebSpeak", "Clan", "LAN party"]);
+
+    const handle = page.getByRole("button", { name: "Reorder LAN party" });
+    await handle.focus();
+    await page.keyboard.press("Space");
+    await expect(handle).toHaveAttribute("aria-pressed", "true");
+    await page.keyboard.press("ArrowUp");
+    await page.keyboard.press("ArrowUp");
+    await expect(handle).toBeFocused();
+    await expect(page.getByText("LAN party moved to position 1 of 3.")).toBeAttached();
+    expect(gateway.adminService.listServers()[0]!.name).toBe("WebSpeak");
+    await page.keyboard.press("Space");
+    await expect(toast(page, "Server order saved.")).toBeVisible();
+    expect(await names(page)).toEqual(["LAN party", "WebSpeak", "Clan"]);
+
+    await reloadServerPage(page, gateway);
+    expect(await names(page)).toEqual(["LAN party", "WebSpeak", "Clan"]);
+    await page.goto(`${gateway.url}/`);
+    await expect(page.getByLabel("Server", { exact: true }).locator("option")).toHaveText(["LAN party", "WebSpeak", "Clan"]);
+  });
+
+  test("Escape puts a picked up server back, and nothing is saved", async ({ page, ownGateway, isMobile }) => {
+    test.skip(isMobile, "a phone moves a server with the buttons");
+    const gateway = await ownGateway();
+    gateway.adminService.createServer({ name: "Clan", target: "clan.example.test" });
+    await openServerPage(page, gateway);
+    await page.getByRole("button", { name: "Reorder Clan" }).focus();
+    await page.keyboard.press("Space");
+    await page.keyboard.press("ArrowUp");
+    expect(await names(page)).toEqual(["Clan", "WebSpeak"]);
+    await page.keyboard.press("Escape");
+    expect(await names(page)).toEqual(["WebSpeak", "Clan"]);
+    expect(gateway.adminService.listServers().map((server) => server.name)).toEqual(["WebSpeak", "Clan"]);
+  });
+
+  test("a server dragged onto another takes its place and the order is kept", async ({ page, ownGateway, isMobile }) => {
+    test.skip(isMobile, "a phone moves a server with the buttons");
+    const gateway = await ownGateway();
+    gateway.adminService.createServer({ name: "Clan", target: "clan.example.test" });
+    await openServerPage(page, gateway);
+    await row(page, "Clan").dragTo(row(page, "WebSpeak"));
+    await expect(toast(page, "Server order saved.")).toBeVisible();
+    expect(await names(page)).toEqual(["Clan", "WebSpeak"]);
+    expect(gateway.adminService.listServers().map((server) => server.name)).toEqual(["Clan", "WebSpeak"]);
+  });
+
+  test("a phone moves a server one step with the buttons", async ({ page, ownGateway, isMobile }) => {
+    test.skip(!isMobile, "the buttons are for touch");
+    const gateway = await ownGateway();
+    gateway.adminService.createServer({ name: "Clan", target: "clan.example.test" });
+    await openServerPage(page, gateway);
+    await expect(page.getByRole("button", { name: "Move WebSpeak up" })).toBeDisabled();
+    await page.getByRole("button", { name: "Move Clan up" }).click();
+    await expect(toast(page, "Server order saved.")).toBeVisible();
+    expect(await names(page)).toEqual(["Clan", "WebSpeak"]);
+  });
+
+  test("a single server has nothing to reorder", async ({ page, ownGateway }) => {
+    const gateway = await ownGateway();
+    await openServerPage(page, gateway);
+    await expect(page.getByRole("button", { name: /^Reorder / })).toHaveCount(0);
+  });
+});

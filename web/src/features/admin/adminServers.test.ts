@@ -259,3 +259,68 @@ describe("testing the address in the dialog", () => {
     expect(s.st.testResult).toBeNull();
   });
 });
+
+describe("reordering", () => {
+  const ids = (s: ReturnType<typeof setup>) => s.st.servers.map((entry) => entry.id);
+
+  it("moves the picked up server locally and saves the order once it is dropped", async () => {
+    const s = setup();
+    s.st.servers = [server("a"), server("b"), server("c")];
+    s.st.grabServer("a");
+    s.st.shiftGrabbed(1);
+    s.st.shiftGrabbed(1);
+    expect(ids(s)).toEqual(["b", "c", "a"]);
+    expect(s.sendJson).not.toHaveBeenCalled();
+    expect(s.st.announcement).toBe(t("serverMoved", { name: "a", position: 3, total: 3 }));
+    s.sendJson.mockResolvedValue({ servers: [server("b"), server("c"), server("a")] });
+    await s.st.dropServer();
+    expect(s.sendJson).toHaveBeenCalledWith("/api/admin/servers/order", "PUT", { ids: ["b", "c", "a"] });
+    expect(s.notify).toHaveBeenCalledWith(t("serverOrderSaved"));
+    expect(s.st.grabbed).toBe("");
+  });
+
+  it("stays inside the list and saves nothing when the order did not change", async () => {
+    const s = setup();
+    s.st.servers = [server("a"), server("b")];
+    s.st.grabServer("a");
+    s.st.shiftGrabbed(-1);
+    s.st.shiftGrabbed(1);
+    s.st.shiftGrabbed(-1);
+    await s.st.dropServer();
+    expect(ids(s)).toEqual(["a", "b"]);
+    expect(s.sendJson).not.toHaveBeenCalled();
+    expect(s.notify).not.toHaveBeenCalled();
+  });
+
+  it("puts the old order back when cancelled", () => {
+    const s = setup();
+    s.st.servers = [server("a"), server("b")];
+    s.st.grabServer("b");
+    s.st.moveGrabbedTo(0);
+    expect(ids(s)).toEqual(["b", "a"]);
+    s.st.cancelGrab();
+    expect(ids(s)).toEqual(["a", "b"]);
+    expect(s.st.grabbed).toBe("");
+    expect(s.st.announcement).toBe(t("serverMoveCancelled", { name: "b" }));
+  });
+
+  it("goes back to the old order and shows the reason when the gateway refuses", async () => {
+    const s = setup();
+    s.st.servers = [server("a"), server("b")];
+    s.st.grabServer("a");
+    s.st.shiftGrabbed(1);
+    s.sendJson.mockRejectedValue({ code: "INVALID_SERVER_ORDER" });
+    await s.st.dropServer();
+    expect(ids(s)).toEqual(["a", "b"]);
+    expect(s.admin.errorMessage).toBe(s.admin.errorText("INVALID_SERVER_ORDER"));
+    expect(s.notify).not.toHaveBeenCalled();
+  });
+
+  it("holds one server at a time", () => {
+    const s = setup();
+    s.st.servers = [server("a"), server("b")];
+    s.st.grabServer("a");
+    s.st.grabServer("b");
+    expect(s.st.grabbed).toBe("a");
+  });
+});
