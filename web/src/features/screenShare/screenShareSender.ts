@@ -39,7 +39,9 @@ export function preferScreenShareCodecs(peer: RTCPeerConnection): void {
   const transceiver = peer
     .getTransceivers()
     .find((candidate) => candidate.sender.track?.kind === "video" || candidate.receiver.track?.kind === "video");
-  const capabilities = typeof RTCRtpReceiver !== "undefined" ? RTCRtpReceiver.getCapabilities?.("video") : null;
+  // The send direction's capabilities are the ones setCodecPreferences validates against; receiver
+  // capabilities can be rejected (InvalidModificationError in Chrome) and the preference never applies.
+  const capabilities = typeof RTCRtpSender !== "undefined" ? RTCRtpSender.getCapabilities?.("video") : null;
   if (!transceiver?.setCodecPreferences || !capabilities?.codecs?.length) return;
   const vp8 = capabilities.codecs.filter((codec) => codec.mimeType.toLowerCase() === "video/vp8");
   if (!vp8.length) return;
