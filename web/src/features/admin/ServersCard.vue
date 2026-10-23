@@ -1,5 +1,5 @@
 <template>
-  <Card as="article" padding="sm" body-class="grid content-start gap-3" class="col-span-full">
+  <Card as="article" padding="sm" body-class="grid content-start gap-3">
     <header class="flex items-start justify-between gap-3">
       <div>
         <h3 class="m-0 text-md font-bold">{{ t("teamSpeakServers") }}</h3>
