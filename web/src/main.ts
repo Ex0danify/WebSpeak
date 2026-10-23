@@ -20,11 +20,13 @@ import { sessionMessages } from "@/features/session";
 import { screenShareMessages } from "@/features/screenShare";
 import { voiceMessages } from "@/features/voice";
 import { chatMessages } from "@/features/room";
+import { identityMessages } from "@/features/identity";
 
 for (const messages of [
   commonMessages,
   roomMessages,
   joinMessages,
+  identityMessages,
   adminMessages,
   demoMessages,
   sessionMessages,

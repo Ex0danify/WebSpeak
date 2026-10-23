@@ -139,6 +139,7 @@ const SAME_AS_ENGLISH = new Set<string>([
   "demo.simulated",
   "demo.demoOnline",
   "join.browserSupport",
+  "identity.identityNameLabel",
   "chat.serverChat",
   "room.serverBreadcrumb",
   "room.onlineShort",

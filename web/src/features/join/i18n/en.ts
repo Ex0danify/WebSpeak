@@ -30,12 +30,9 @@ export const en = {
   relayAccelerationHint: "Choose a configured relay when the direct path is unstable or blocked.",
   nickname: "Your nickname",
   nicknamePlaceholder: "e.g. Alex Rivera",
+  connectAs: "connect as {{identity}}",
   targetChannel: "Target channel",
   emptyDefault: "Leave empty to use the default channel",
-  rememberIdentity: "Remember this TeamSpeak identity on this device",
-  rememberIdentityHint: "Stored only on this device and reused on the next connection.",
-  rememberIdentityConcurrentWarning:
-    "Only one connection can use this identity in the same browser. Clear this option for a second connection or use another browser.",
   identityOptions: "Device identity options",
   localPersistenceUnavailable: "Persistent browser storage is unavailable; this session will use an ephemeral identity.",
   favoriteServers: "Favorites",

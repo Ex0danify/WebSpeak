@@ -45,4 +45,13 @@ describe("IdentityLeaseStore", () => {
     expect(() => leases.release("missing", "a")).not.toThrow();
     expect(leases.acquire("missing", "b")).toBe(true);
   });
+
+  it("reports whether a key is currently leased", () => {
+    const leases = new IdentityLeaseStore();
+    expect(leases.isLeased("k")).toBe(false);
+    leases.acquire("k", "a");
+    expect(leases.isLeased("k")).toBe(true);
+    leases.release("k", "a");
+    expect(leases.isLeased("k")).toBe(false);
+  });
 });

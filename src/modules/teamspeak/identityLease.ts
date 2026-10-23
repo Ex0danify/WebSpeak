@@ -12,4 +12,8 @@ export class IdentityLeaseStore {
   release(key: string, owner: string): void {
     if (this.owners.get(key) === owner) this.owners.delete(key);
   }
+
+  isLeased(key: string): boolean {
+    return this.owners.has(key);
+  }
 }

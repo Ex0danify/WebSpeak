@@ -122,6 +122,9 @@ export const useAdminServerSettingsStore = defineStore("adminServerSettings", ()
       webRtcEnabled: serverForm.webRtcEnabled,
       webRtcUdpStart: serverForm.webRtcUdpStart,
       webRtcUdpEnd: serverForm.webRtcUdpEnd,
+      identityMintMaxLevel: serverForm.identityMintMaxLevel,
+      identityMintConcurrency: serverForm.identityMintConcurrency,
+      identityMintQueueDepth: serverForm.identityMintQueueDepth,
       relayNodes: serverForm.relayNodes.map((node) => ({
         id: node.id,
         name: node.name,

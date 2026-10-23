@@ -25,6 +25,7 @@ import { useGatewayStatus } from "@/features/join/useGatewayStatus";
 export interface UseJoinFormOptions {
   voiceState: VoiceState;
   identityMaterial: Ref<string>;
+  selectedIdentityId: Ref<string | undefined>;
   connect: (
     target: string,
     channel: string,
@@ -52,7 +53,7 @@ export interface UseJoinFormOptions {
 let lastKnownInitialized = false;
 
 export function useJoinForm(options: UseJoinFormOptions) {
-  const { voiceState, identityMaterial, connect, disconnect, clearError, checkSupport, setThemeMode } = options;
+  const { voiceState, identityMaterial, selectedIdentityId, connect, disconnect, clearError, checkSupport, setThemeMode } = options;
   const { language, setSiteName, t } = useI18n();
   const { confirm } = useDialog();
 
@@ -127,7 +128,7 @@ export function useJoinForm(options: UseJoinFormOptions) {
       label: address,
       address,
       ...(nickname.value.trim() ? { nickname: nickname.value.trim() } : {}),
-      ...(rememberIdentity.value && identityMaterial.value ? { identityId: "current" } : {}),
+      ...(selectedIdentityId.value ? { identityId: selectedIdentityId.value } : {}),
       ...(channel.value.trim() ? { lastChannelHint: { name: channel.value.trim() } } : {}),
     };
     await saveFavorite(favorite);

@@ -115,6 +115,7 @@
       <path d="M12 10v4M12 17h.01" />
     </template>
     <path v-else-if="name === 'check'" d="m5 12 4 4L19 6" />
+    <path v-else-if="name === 'star'" d="m12 3 2.7 5.5 6 .9-4.35 4.25 1 6L12 17.8 6.65 20.6l1-6L3.3 9.4l6-.9z" />
     <circle v-else cx="12" cy="12" r="8" />
   </svg>
 </template>

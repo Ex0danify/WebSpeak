@@ -93,9 +93,14 @@
       </Field>
 
       <Field id="nickname" :label="t('nickname')" class="mt-1.5">
-        <Input v-model="nickname" autocomplete="nickname" maxlength="30" :placeholder="t('nicknamePlaceholder')" autofocus
-          ><template #leading><Icon name="users" /></template
-        ></Input>
+        <Input v-model="nickname" autocomplete="nickname" maxlength="30" :placeholder="t('nicknamePlaceholder')" autofocus>
+          <template #leading><Icon name="users" /></template>
+          <template #trailing>
+            <span v-if="nickname.trim() && connectAsLabel" class="max-w-36 truncate text-2xs text-fg-muted italic">
+              ({{ t("connectAs", { identity: connectAsLabel }) }})
+            </span>
+          </template>
+        </Input>
       </Field>
 
       <Field id="channel" class="mt-1.5">
@@ -113,12 +118,8 @@
         >
           {{ t("identityOptions") }}
         </summary>
-        <Checkbox v-model="rememberIdentity" class="mt-2 flex"
-          ><strong class="block text-caption font-bold">{{ t("rememberIdentity") }}</strong
-          ><small class="mt-0.75 block text-2xs leading-snug text-fg-muted">{{ t("rememberIdentityHint") }}</small></Checkbox
-        >
+        <IdentityPicker :manager="identityManager" :target="identityTarget" />
       </details>
-      <p v-if="rememberIdentity" class="mt-2 mb-0 text-2xs leading-normal text-warning">{{ t("rememberIdentityConcurrentWarning") }}</p>
 
       <GatewayStatus :status="gatewayStatus" :retry-in="gatewayRetryIn" />
 
@@ -141,22 +142,23 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from "vue";
 import { Banner } from "@/shared/ui/banner";
 import GatewayStatus from "@/features/join/GatewayStatus.vue";
 import type { GatewayStatus as GatewayStatusValue } from "@/features/join/useGatewayStatus";
 import { Button } from "@/shared/ui/button";
-import { Checkbox } from "@/shared/ui/checkbox";
 import { Field } from "@/shared/ui/field";
 import { Icon } from "@/shared/ui/icon";
 import { Input } from "@/shared/ui/input";
 import { Select } from "@/shared/ui/select";
+import { IdentityPicker, type useIdentityManager } from "@/features/identity";
 import { useI18n } from "@/shared/i18n/useI18n.js";
 import { visibleErrorCode } from "@/features/session";
 import { resolveText, type MaybeLocalizedText } from "@/shared/i18n/localizedText.js";
 import { isLocalPersistenceAvailable } from "@/shared/services/localPersistence.js";
 import type { FavoriteServer, RecentServer } from "@/shared/services/localPersistence.js";
 
-defineProps<{
+const props = defineProps<{
   accessMode: "fixed" | "open";
   favoriteServers: FavoriteServer[];
   recentServers: RecentServer[];
@@ -172,6 +174,8 @@ defineProps<{
   error: MaybeLocalizedText;
   errorCode: string;
   identityReady: boolean;
+  identityManager: ReturnType<typeof useIdentityManager>;
+  identityTarget: string;
   canJoin: boolean;
   connecting: boolean;
 }>();
@@ -190,9 +194,17 @@ const serverPassword = defineModel<string>("serverPassword", { default: "" });
 const accelerationRelayId = defineModel<string>("accelerationRelayId", { default: "" });
 const nickname = defineModel<string>("nickname", { default: "" });
 const channel = defineModel<string>("channel", { default: "" });
-const rememberIdentity = defineModel<boolean>("rememberIdentity", { default: false });
 
 const { t } = useI18n();
+
+// The saved identity the connection will use, for the faint hint in the nickname field. Empty for the
+// ephemeral choice, which carries no identity to name.
+const connectAsLabel = computed(() => {
+  const id = props.identityManager.selectedId.value;
+  if (!id) return "";
+  const identity = props.identityManager.identities.value.find((entry) => entry.id === id);
+  return identity ? identity.label || t("identityUnnamed") : "";
+});
 
 const localPersistenceAvailable = isLocalPersistenceAvailable();
 </script>

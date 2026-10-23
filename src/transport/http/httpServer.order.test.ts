@@ -52,7 +52,7 @@ function stackOf(staticDir?: string): string[] {
 }
 
 describe("web server layer order", () => {
-  it("registers body parser, public routes, join ticket, admin mount, API 404, static, SPA fallback, error handler in that order", () => {
+  it("registers body parser, public routes, join ticket, identity, admin mount, API 404, static, SPA fallback, error handler in that order", () => {
     const dir = mkdtempSync(join(tmpdir(), "webspeak-static-"));
     dirs.push(dir);
     writeFileSync(join(dir, "index.html"), "<html></html>");
@@ -65,6 +65,9 @@ describe("web server layer order", () => {
         "GET /api/health",
         "GET /api/public-config",
         "POST /api/join-ticket",
+        "POST /api/identity",
+        "POST /api/identity/validate",
+        "POST /api/identity/status",
         "use router",
         "use <anonymous>",
         "use serveStatic",
@@ -84,6 +87,9 @@ describe("web server layer order", () => {
         "GET /api/health",
         "GET /api/public-config",
         "POST /api/join-ticket",
+        "POST /api/identity",
+        "POST /api/identity/validate",
+        "POST /api/identity/status",
         "use router",
         "use <anonymous>",
         "use <anonymous>",

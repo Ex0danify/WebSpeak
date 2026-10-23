@@ -1,0 +1,51 @@
+export const de: Record<string, string> = {
+  identityLabel: "Geräteidentität",
+  identityEphemeral: "Temporäre Identität",
+  identityManage: "Verwalten…",
+  identityUnnamed: "Unbenannte Identität",
+  identityDefault: "Standard",
+  identityMakeDefault: "Als Standardidentität festlegen",
+  identityMakeDefaultShort: "Als Standard nutzen",
+  identityIsDefault: "Standardidentität",
+  identityConcurrentWarning: "Diese Identität wird bereits von einer anderen, aktiven, Verbindung genutzt. Wähle eine andere.",
+
+  identityMintQueued: "Warten auf den Identitätsdienst…",
+  identityMintAhead: "{{count}} vor dir",
+  identityMintProgress: "Identität wird erstellt…",
+
+  identityManagerTitle: "Geräteidentitäten",
+  identityManagerDescription: "Identitäten werden nur auf diesem Gerät gespeichert.",
+  identityEmpty: "Noch keine gespeicherten Identitäten.",
+  identityAdd: "Identität hinzufügen",
+  identityCreatedOn: "Erstellt am {{date}}",
+
+  identityNewHeading: "Neue Identität erstellen",
+  identityNameLabel: "Name",
+  identityNamePlaceholder: "z. B. Gaming oder Arbeit",
+  identityCreate: "Erstellen",
+  identityCreating: "Wird erstellt…",
+  identityCancel: "Abbrechen",
+
+  identityRename: "Umbenennen",
+  identityRenameTitle: "Identität umbenennen",
+  identityDelete: "Löschen",
+  identityDeleteConfirm: "Diese Identität löschen? Dies lässt sich nicht rückgängig machen!",
+  identityExport: "Exportieren",
+  identityImport: "Importieren",
+  identitySave: "Speichern",
+
+  identityExportWarning: "Diese Datei ist ein privater Schlüssel. Halte ihn geheim!",
+  identityImportInvalid: "Diese Datei ist keine gültige Identität.",
+
+  identityCreatedToast: "Identität erstellt",
+  identityRenamedToast: "Identität umbenannt",
+  identityDeletedToast: "Identität gelöscht",
+  identityExportedToast: "Identität exportiert",
+  identityImportedToast: "Identität importiert",
+
+  identityErrorBusy: "Der Identitätsdienst ist ausgelastet. Versuche es später noch einmal.",
+  identityErrorLevelTooHigh: "Die angeforderte Sicherheitsstufe liegt über dem Gateway-Limit.",
+  identityErrorNotReady: "Das Gateway ist noch nicht bereit. Versuche es gleich noch einmal.",
+  identityErrorFailed: "Die Identität konnte nicht erstellt werden. Versuche es erneut.",
+  identityErrorSave: "Die Identität konnte auf diesem Gerät nicht gespeichert werden.",
+};

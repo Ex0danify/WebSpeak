@@ -17,6 +17,9 @@ export interface PersistedSettings {
   webRtcEnabled: boolean;
   webRtcUdpStart: number;
   webRtcUdpEnd: number;
+  identityMintMaxLevel: number;
+  identityMintConcurrency: number;
+  identityMintQueueDepth: number;
   relayConfigured: boolean;
   relayEnabled: boolean;
   relayName: string;
@@ -37,6 +40,9 @@ export interface SettingsUpdate {
   webRtcEnabled: boolean;
   webRtcUdpStart?: number;
   webRtcUdpEnd?: number;
+  identityMintMaxLevel?: number;
+  identityMintConcurrency?: number;
+  identityMintQueueDepth?: number;
   relayConfigured: boolean;
   relayEnabled: boolean;
   relayName: string;

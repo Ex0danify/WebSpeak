@@ -63,9 +63,67 @@ describe("identity", () => {
   });
 });
 
+describe("multi-identity accessors", () => {
+  const record = (id: string, lastUsedAt: number, label = id): Persistence.StoredIdentity => ({
+    id,
+    label,
+    privateMaterial: `material-${id}`,
+    createdAt: 1_000,
+    lastUsedAt,
+  });
+
+  it("lists nothing before anything is saved", async () => {
+    expect(await store.listIdentities()).toEqual([]);
+  });
+
+  it("holds many identities and lists them most-recently-used first", async () => {
+    await store.saveIdentity(record("a", 1_000));
+    await store.saveIdentity(record("b", 3_000));
+    await store.saveIdentity(record("c", 2_000));
+    expect((await store.listIdentities()).map((identity) => identity.id)).toEqual(["b", "c", "a"]);
+  });
+
+  it("gets one by id and null for a missing id", async () => {
+    await store.saveIdentity(record("a", 1_000, "Phone"));
+    expect(await store.getIdentity("a")).toMatchObject({ id: "a", label: "Phone", privateMaterial: "material-a" });
+    expect(await store.getIdentity("missing")).toBeNull();
+  });
+
+  it("renames an existing identity and refuses a missing one", async () => {
+    await store.saveIdentity(record("a", 1_000));
+    expect(await store.renameIdentity("a", "Work laptop")).toBe(true);
+    expect((await store.getIdentity("a"))?.label).toBe("Work laptop");
+    expect(await store.renameIdentity("missing", "x")).toBe(false);
+  });
+
+  it("removes one by id without touching the others", async () => {
+    await store.saveIdentity(record("a", 1_000));
+    await store.saveIdentity(record("b", 2_000));
+    await store.removeIdentity("a");
+    expect((await store.listIdentities()).map((identity) => identity.id)).toEqual(["b"]);
+  });
+
+  it("resolves the legacy default label in both get and list", async () => {
+    await store.saveIdentity(record("a", 1_000, "此设备"));
+    expect((await store.getIdentity("a"))?.label).toBe("This device");
+    expect((await store.listIdentities())[0]?.label).toBe("This device");
+  });
+
+  it("shares the 'current' slot with the single-slot accessors", async () => {
+    await store.saveStoredIdentity("legacy", "This device");
+    expect(await store.getIdentity("current")).toMatchObject({ id: "current", privateMaterial: "legacy" });
+    expect((await store.listIdentities()).map((identity) => identity.id)).toEqual(["current"]);
+  });
+});
+
 describe("preferences", () => {
   it("returns the defaults before anything was saved", async () => {
     expect(await store.loadLocalPreferences()).toEqual({ schemaVersion: 1, volumesByUid: {} });
+  });
+
+  it("round-trips the selected identity id", async () => {
+    await store.saveLocalPreferences({ schemaVersion: 1, selectedIdentityId: "abc" });
+    expect((await store.loadLocalPreferences()).selectedIdentityId).toBe("abc");
   });
 
   it("merges a save into what is stored, field by field", async () => {

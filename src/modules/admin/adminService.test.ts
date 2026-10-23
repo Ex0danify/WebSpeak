@@ -211,6 +211,19 @@ describe("updateSettings validation", () => {
     service.updateSettings(settingsInput({ webRtcEnabled: false, webRtcUdpStart: 41000, webRtcUdpEnd: 41010 }));
     expect(service.getWebRtcAudioOptions()).toEqual({ enabled: false, udpPortRange: [41000, 41010] });
   });
+
+  it("defaults the identity mint policy and persists admin changes", () => {
+    const service = ctx.create();
+    expect(service.getIdentityMintPolicy()).toEqual({ maxLevel: 8, concurrency: 2, queueDepth: 20 });
+    service.updateSettings(settingsInput({ identityMintMaxLevel: 12, identityMintConcurrency: 4, identityMintQueueDepth: 0 }));
+    expect(service.getIdentityMintPolicy()).toEqual({ maxLevel: 12, concurrency: 4, queueDepth: 0 });
+    expect(service.getAdminSettings()).toMatchObject({ identityMintMaxLevel: 12, identityMintConcurrency: 4, identityMintQueueDepth: 0 });
+  });
+
+  it("rejects an out-of-range identity mint limit", () => {
+    const service = ctx.create();
+    expect(rejection(() => service.updateSettings(settingsInput({ identityMintMaxLevel: 25 }))).code).toBe("INVALID_IDENTITY_MINT_LEVEL");
+  });
 });
 
 describe("server password", () => {

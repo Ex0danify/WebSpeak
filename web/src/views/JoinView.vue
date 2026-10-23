@@ -24,7 +24,6 @@
         v-model:acceleration-relay-id="accelerationRelayId"
         v-model:nickname="nickname"
         v-model:channel="channel"
-        v-model:remember-identity="rememberIdentity"
         :access-mode="accessMode"
         :favorite-servers="favoriteServers"
         :recent-servers="recentServers"
@@ -40,6 +39,8 @@
         :error="voiceState.error"
         :error-code="voiceState.errorCode"
         :identity-ready="identityReady"
+        :identity-manager="identityManager"
+        :identity-target="identityTarget"
         :can-join="canJoin"
         :connecting="voiceState.connecting"
         @select-local-server="selectLocalServer"
@@ -70,10 +71,12 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from "vue";
 import PasswordDialog from "@/shared/components/PasswordDialog.vue";
 import { useAppearance } from "@/shared/composables/useAppearance";
 import { useI18n } from "@/shared/i18n/useI18n";
 import { JoinFooter, JoinForm, JoinHeader, JoinHero, useJoinForm, useJoinIdentity, useJoinScreen } from "@/features/join";
+import { useIdentityManager } from "@/features/identity";
 import { useRoomContext } from "@/features/room";
 
 const room = useRoomContext();
@@ -82,6 +85,7 @@ const { checkSupport } = room.audio;
 
 const { t } = useI18n();
 const { themeIcon, themeLabel, cycleTheme, persistLanguage, setThemeMode } = useAppearance();
+const identityManager = useIdentityManager();
 const {
   nickname,
   channel,
@@ -120,12 +124,17 @@ const {
 } = useJoinForm({
   voiceState,
   identityMaterial,
+  selectedIdentityId: identityManager.selectedId,
   connect,
   disconnect,
   clearError,
   checkSupport,
   setThemeMode,
 });
-const { identityReady } = useJoinIdentity({ identityMaterial, rememberIdentity });
+const { identityReady } = useJoinIdentity({ manager: identityManager, identityMaterial, rememberIdentity });
 useJoinScreen({ voiceState, serverPasswordDialog, clearError });
+
+const identityTarget = computed(() =>
+  accessMode.value === "open" && serverHost.value.trim() ? `${serverHost.value.trim()}:${serverPort.value.trim()}` : "",
+);
 </script>

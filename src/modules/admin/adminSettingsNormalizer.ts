@@ -4,6 +4,15 @@ import type { AccessMode, PersistedRelayNode, SettingsUpdate, WebSpeakDatabase }
 import { decryptSecret, encryptSecret } from "../../infra/security/secretCrypto.js";
 import { DEFAULT_ACCELERATION_RELAY_PORT } from "../relay/index.js";
 import { DEFAULT_WEBRTC_UDP_PORT_RANGE, WEBRTC_UDP_PORT_MAX, WEBRTC_UDP_PORT_MIN } from "../../config/webrtcConfig.js";
+import {
+  DEFAULT_IDENTITY_MINT_POLICY,
+  IDENTITY_MINT_CONCURRENCY_MAX,
+  IDENTITY_MINT_CONCURRENCY_MIN,
+  IDENTITY_MINT_LEVEL_MAX,
+  IDENTITY_MINT_LEVEL_MIN,
+  IDENTITY_MINT_QUEUE_DEPTH_MAX,
+  IDENTITY_MINT_QUEUE_DEPTH_MIN,
+} from "../../config/identityMintConfig.js";
 import { AdminInputError } from "./adminErrors.js";
 
 const DEFAULT_RELAY_NAME = "Relay acceleration";
@@ -21,6 +30,9 @@ export interface AdminSettingsInput {
   webRtcEnabled: boolean;
   webRtcUdpStart?: number;
   webRtcUdpEnd?: number;
+  identityMintMaxLevel?: number;
+  identityMintConcurrency?: number;
+  identityMintQueueDepth?: number;
   relaySettingsAction?: "keep" | "replace" | "remove";
   relayEnabled?: boolean;
   relayName?: string;
@@ -41,6 +53,11 @@ export interface RelayNodeInput {
 
 /** Cap on distinct welcome-text languages, per request and in the stored map. */
 export const WELCOME_LANGUAGE_MAX = 16;
+
+function boundedInteger(value: number, min: number, max: number, code: string, message: string): number {
+  if (!Number.isInteger(value) || value < min || value > max) throw new AdminInputError(code, message);
+  return value;
+}
 
 function mergeWelcomeTexts(current: Record<string, string>, input: Record<string, string> | undefined): Record<string, string> {
   const merged = { ...current };
@@ -93,6 +110,28 @@ export function normalizeSettings(
   if (current.webRtcEnabled && (webRtcUdpStart !== current.webRtcUdpStart || webRtcUdpEnd !== current.webRtcUdpEnd)) {
     throw new AdminInputError("WEBRTC_PORT_LOCKED", "Disable WebRTC and save before changing its UDP port range");
   }
+
+  const identityMintMaxLevel = boundedInteger(
+    input.identityMintMaxLevel ?? current.identityMintMaxLevel ?? DEFAULT_IDENTITY_MINT_POLICY.maxLevel,
+    IDENTITY_MINT_LEVEL_MIN,
+    IDENTITY_MINT_LEVEL_MAX,
+    "INVALID_IDENTITY_MINT_LEVEL",
+    `Identity mint max level must be between ${IDENTITY_MINT_LEVEL_MIN} and ${IDENTITY_MINT_LEVEL_MAX}`,
+  );
+  const identityMintConcurrency = boundedInteger(
+    input.identityMintConcurrency ?? current.identityMintConcurrency ?? DEFAULT_IDENTITY_MINT_POLICY.concurrency,
+    IDENTITY_MINT_CONCURRENCY_MIN,
+    IDENTITY_MINT_CONCURRENCY_MAX,
+    "INVALID_IDENTITY_MINT_CONCURRENCY",
+    `Identity mint concurrency must be between ${IDENTITY_MINT_CONCURRENCY_MIN} and ${IDENTITY_MINT_CONCURRENCY_MAX}`,
+  );
+  const identityMintQueueDepth = boundedInteger(
+    input.identityMintQueueDepth ?? current.identityMintQueueDepth ?? DEFAULT_IDENTITY_MINT_POLICY.queueDepth,
+    IDENTITY_MINT_QUEUE_DEPTH_MIN,
+    IDENTITY_MINT_QUEUE_DEPTH_MAX,
+    "INVALID_IDENTITY_MINT_QUEUE_DEPTH",
+    `Identity mint queue depth must be between ${IDENTITY_MINT_QUEUE_DEPTH_MIN} and ${IDENTITY_MINT_QUEUE_DEPTH_MAX}`,
+  );
 
   let encryptedPassword = current.tsPasswordEncrypted;
   const action = input.passwordAction ?? (input.serverPassword === undefined ? "keep" : "replace");
@@ -159,6 +198,9 @@ export function normalizeSettings(
     webRtcEnabled: input.webRtcEnabled,
     webRtcUdpStart,
     webRtcUdpEnd,
+    identityMintMaxLevel,
+    identityMintConcurrency,
+    identityMintQueueDepth,
     relayConfigured,
     relayEnabled,
     relayName,
@@ -250,6 +292,9 @@ export function toSettingsUpdate(settings: StoredSettings): SettingsUpdate {
     webRtcEnabled: settings.webRtcEnabled,
     webRtcUdpStart: settings.webRtcUdpStart,
     webRtcUdpEnd: settings.webRtcUdpEnd,
+    identityMintMaxLevel: settings.identityMintMaxLevel,
+    identityMintConcurrency: settings.identityMintConcurrency,
+    identityMintQueueDepth: settings.identityMintQueueDepth,
     relayConfigured: settings.relayConfigured,
     relayEnabled: settings.relayEnabled,
     relayName: settings.relayName,

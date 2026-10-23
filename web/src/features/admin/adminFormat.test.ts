@@ -68,5 +68,7 @@ describe("createAdminFormat", () => {
     expect(format.errorText("nope")).toBe("The request failed. Check the fields and try again.");
     expect(format.connectionFailureText("TIMEOUT")).toBe("Network request timed out");
     expect(format.connectionFailureText("TARGET_NOT_ALLOWED")).toBe("This target is not allowed in open mode.");
+    expect(format.errorText("INVALID_IDENTITY_MINT_LEVEL")).toBe("The maximum security level is invalid. Use 1–24.");
+    expect(format.errorText("INVALID_IDENTITY_MINT_QUEUE_DEPTH")).toBe("The queue depth is invalid. Use 0–100.");
   });
 });
