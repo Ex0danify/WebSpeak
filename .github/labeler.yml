@@ -34,3 +34,9 @@
 "documentation":
   - changed-files:
       - any-glob-to-any-file: ["**/*.md", "docs/**"]
+
+# The dedicated test trees and runner config. Tests colocated with the code they cover (**/*.test.ts) are left
+# out, so this marks a pull request that is about tests rather than any one that happens to touch a test.
+"test":
+  - changed-files:
+      - any-glob-to-any-file: ["e2e/**", "test/**", "vitest.config.ts"]
