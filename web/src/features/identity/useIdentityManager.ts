@@ -62,8 +62,9 @@ export function useIdentityManager() {
     const resolvedDefault = has(preferences.defaultIdentityId) ? preferences.defaultIdentityId : identities.value[0]?.id;
     if (resolvedDefault !== preferences.defaultIdentityId) await setDefault(resolvedDefault);
     else defaultId.value = resolvedDefault;
-    const stored = preferences.selectedIdentityId;
-    selectedId.value = has(stored) ? stored : defaultId.value;
+    // Arrival always starts from the default: the dropdown is a per-connection override, not a remembered
+    // choice. Persisting it keeps the recents log tagging the identity that is actually shown.
+    await select(defaultId.value);
   }
 
   async function select(id: string | undefined): Promise<void> {

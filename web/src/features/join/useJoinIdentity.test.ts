@@ -14,6 +14,7 @@ const OTHER = "other-identity-material";
 
 type Manager = {
   selectedId: { value: string | undefined };
+  defaultId: { value: string | undefined };
   identities: { value: Persistence.StoredIdentity[] };
   select: (id: string | undefined) => Promise<void>;
   refresh: () => Promise<void>;
@@ -69,20 +70,24 @@ describe("binding the selected identity on mount", () => {
     expect(view.rememberIdentity).toBe(false);
   });
 
-  it("restores the persisted selection and loads its material", async () => {
-    await store.saveStoredIdentity(STORED);
-    await store.saveLocalPreferences({ schemaVersion: 1, selectedIdentityId: "current" });
+  it("arrives at the default identity, not the last session's pick", async () => {
+    const now = Date.now();
+    await store.saveStoredIdentity(STORED); // "current": newest, so the default
+    await store.saveIdentity({ id: "work", label: "Work", privateMaterial: OTHER, createdAt: now - 1000, lastUsedAt: now - 1000 });
+    // A previous session ended on the non-default identity.
+    await store.saveLocalPreferences({ schemaVersion: 1, selectedIdentityId: "work" });
     const view = await mountView();
+    expect(view.identityManager.defaultId.value).toBe("current");
     expect(view.identityManager.selectedId.value).toBe("current");
     expect(view.identityMaterial).toBe(STORED);
     expect(view.rememberIdentity).toBe(true);
   });
 
-  it("falls back to the first identity when nothing is persisted", async () => {
-    await store.saveStoredIdentity(STORED);
+  it("stays ephemeral on arrival when no identities are saved, so none is the default", async () => {
     const view = await mountView();
-    expect(view.identityManager.selectedId.value).toBe("current");
-    expect(view.identityMaterial).toBe(STORED);
+    expect(view.identityManager.defaultId.value).toBeUndefined();
+    expect(view.identityManager.selectedId.value).toBeUndefined();
+    expect(view.identityMaterial).toBe("");
   });
 });
 
@@ -98,20 +103,20 @@ describe("switching the selection", () => {
     expect((await store.loadLocalPreferences()).selectedIdentityId).toBeUndefined();
   });
 
-  it("loads the material of a newly selected identity", async () => {
+  it("loads the material of a newly selected identity, then returns to the default on reload", async () => {
     const now = Date.now();
-    await store.saveStoredIdentity(STORED);
-    await store.saveIdentity({ id: "work", label: "Work", privateMaterial: OTHER, createdAt: now, lastUsedAt: now });
+    await store.saveStoredIdentity(STORED); // "current": newest, so the default
+    await store.saveIdentity({ id: "work", label: "Work", privateMaterial: OTHER, createdAt: now - 1000, lastUsedAt: now - 1000 });
     const view = await mountView();
-    await view.identityManager.refresh();
     await view.identityManager.select("work");
     await flushPromises();
     expect(view.identityMaterial).toBe(OTHER);
     expect(view.rememberIdentity).toBe(true);
 
+    // The dropdown is a per-session override: a reload ignores it and returns to the default.
     wrapper?.unmount();
     const next = await mountView();
-    expect(next.identityManager.selectedId.value).toBe("work");
-    expect(next.identityMaterial).toBe(OTHER);
+    expect(next.identityManager.selectedId.value).toBe("current");
+    expect(next.identityMaterial).toBe(STORED);
   });
 });

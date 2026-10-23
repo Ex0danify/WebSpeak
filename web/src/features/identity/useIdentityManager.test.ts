@@ -36,7 +36,7 @@ async function seed(id: string, label?: string): Promise<void> {
 }
 
 describe("useIdentityManager", () => {
-  it("lists saved identities and restores the preferred selection on init", async () => {
+  it("lists saved identities and starts each visit from the default, ignoring the last pick", async () => {
     await seed("a", "Alpha");
     await seed("b", "Beta");
     const manager = useIdentityManager();
@@ -45,10 +45,12 @@ describe("useIdentityManager", () => {
     const restored = useIdentityManager();
     await restored.init();
     expect(restored.identities.value.map((entry) => entry.id).sort()).toEqual(["a", "b"]);
-    expect(restored.selectedId.value).toBe("b");
+    // The last pick ("b") is a per-session override, not remembered: arrival is the default ("a").
+    expect(restored.selectedId.value).toBe("a");
+    expect(restored.defaultId.value).toBe("a");
   });
 
-  it("falls back to the first identity when none is preferred", async () => {
+  it("selects the only identity, which is also its default", async () => {
     await seed("only");
     const manager = useIdentityManager();
     await manager.init();
