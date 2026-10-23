@@ -177,7 +177,7 @@ describe("codec preference", () => {
   it("puts VP8 first for the video transceiver", async () => {
     const setCodecPreferences = vi.fn();
     const codecs = [{ mimeType: "video/H264" }, { mimeType: "video/VP8" }, { mimeType: "video/VP9" }];
-    vi.stubGlobal("RTCRtpReceiver", { getCapabilities: () => ({ codecs }) });
+    vi.stubGlobal("RTCRtpSender", { getCapabilities: () => ({ codecs }) });
     vi.spyOn(StatsPeer.prototype, "getTransceivers").mockReturnValue([
       { sender: { track: null }, receiver: { track: { kind: "video" } }, setCodecPreferences },
     ]);
@@ -194,11 +194,11 @@ describe("codec preference", () => {
     vi.spyOn(StatsPeer.prototype, "getTransceivers").mockReturnValue([
       { sender: { track: null }, receiver: { track: { kind: "video" } }, setCodecPreferences },
     ]);
-    vi.stubGlobal("RTCRtpReceiver", { getCapabilities: () => ({ codecs: [{ mimeType: "video/VP9" }] }) });
+    vi.stubGlobal("RTCRtpSender", { getCapabilities: () => ({ codecs: [{ mimeType: "video/VP9" }] }) });
     const first = setupPeers();
     await first.module.startScreenShareViewer(register(first));
     expect(setCodecPreferences).not.toHaveBeenCalled();
-    vi.stubGlobal("RTCRtpReceiver", { getCapabilities: () => ({ codecs: [{ mimeType: "video/VP8" }] }) });
+    vi.stubGlobal("RTCRtpSender", { getCapabilities: () => ({ codecs: [{ mimeType: "video/VP8" }] }) });
     await first.module.startScreenShareViewer(register(first, { streamId: "s2" }));
     expect(setCodecPreferences).toHaveBeenCalledTimes(1);
     expect(first.store.screenShareViewing).toBe(true);
