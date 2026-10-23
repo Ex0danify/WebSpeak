@@ -186,10 +186,18 @@ describe("open access mode", () => {
     }
   });
 
-  it("still checks a target that equals the administrator's default", async () => {
+  it("accepts a loopback target that equals the administrator's default", async () => {
     const gateway = await gateways.start();
     configure(gateway, { target: "127.0.0.1:9987", accessMode: "open" });
-    expect(await post(gateway, { nickname: "a", target: "127.0.0.1:9987" })).toMatchObject({
+    expect(await issued(gateway, { nickname: "a", target: "127.0.0.1:9987" })).toMatchObject({
+      target: { host: "127.0.0.1", port: 9987 },
+    });
+  });
+
+  it("still refuses a loopback target the browser chose when it is not the default", async () => {
+    const gateway = await gateways.start();
+    configure(gateway, { target: "127.0.0.1:9987", accessMode: "open" });
+    expect(await post(gateway, { nickname: "a", target: "127.0.0.2:9987" })).toMatchObject({
       status: 400,
       body: { code: "TARGET_NOT_ALLOWED" },
     });
