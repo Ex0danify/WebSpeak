@@ -49,7 +49,7 @@ export class EndpointProtocolCache {
 export const endpointProtocolCache = new EndpointProtocolCache();
 
 export function detectTeamSpeakProtocol(versionText: string): TeamSpeakProtocol | null {
-  const text = versionText.trim().toLocaleLowerCase();
+  const text = versionText.trim().toLowerCase();
   if (/teamspeak\s*6|(?:^|[^\d.])6\.\d+/.test(text)) return "ts6";
   if (/teamspeak\s*3|(?:^|\D)3\.\d+/.test(text)) return "ts3";
   return null;
