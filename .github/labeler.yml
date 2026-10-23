@@ -1,0 +1,36 @@
+# Area labels applied to a pull request from the files it changes. Never the visual-change label: skipping
+# the visual job stays a deliberate choice, not a side effect of touching the web app.
+
+"area: web":
+  - changed-files:
+      - any-glob-to-any-file: ["web/**"]
+
+"area: lib-opus":
+  - changed-files:
+      - any-glob-to-any-file: ["src/lib/opus/**"]
+
+"area: lib-ts":
+  - changed-files:
+      - any-glob-to-any-file: ["src/lib/teamspeak/**"]
+
+"area: relay":
+  - changed-files:
+      - any-glob-to-any-file: ["src/relay.ts", "src/modules/relay/**"]
+
+# Excludes the lib and relay subtrees, so a change confined to them carries only its own label. A PR that
+# touches both the gateway and one of those subtrees is labelled for the subtree, not the gateway.
+"area: gateway":
+  - changed-files:
+      - any-glob-to-any-file: ["src/**"]
+      - all-globs-to-all-files:
+          - "!src/lib/**"
+          - "!src/modules/relay/**"
+          - "!src/relay.ts"
+
+"area: ci":
+  - changed-files:
+      - any-glob-to-any-file: [".github/workflows/**", ".github/actions/**"]
+
+"documentation":
+  - changed-files:
+      - any-glob-to-any-file: ["**/*.md", "docs/**"]
