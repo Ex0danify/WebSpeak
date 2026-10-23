@@ -20,9 +20,6 @@ const DEFAULT_RELAY_NAME = "Relay acceleration";
 type StoredSettings = ReturnType<WebSpeakDatabase["getSettings"]>;
 
 export interface AdminSettingsInput {
-  target: string;
-  serverPassword?: string;
-  passwordAction?: "keep" | "replace" | "remove";
   accessMode: AccessMode;
   siteName: string;
   /** Texts to store by language code, a language left out keeps its text and an empty one clears it. */
@@ -78,12 +75,6 @@ export function normalizeSettings(
   masterSecret: Buffer,
   relayNodes?: PersistedRelayNode[],
 ): SettingsUpdate {
-  let target: TeamSpeakTarget;
-  try {
-    target = parseTeamSpeakTarget(input.target);
-  } catch {
-    throw new AdminInputError("INVALID_TARGET", "TeamSpeak target is invalid");
-  }
   const siteName = input.siteName.trim();
   const welcomeTexts = mergeWelcomeTexts(current.welcomeTexts, input.welcomeTexts);
   if (!siteName || siteName.length > 80) throw new AdminInputError("INVALID_SITE_NAME", "Site name must contain 1 to 80 characters");
@@ -132,11 +123,6 @@ export function normalizeSettings(
     "INVALID_IDENTITY_MINT_QUEUE_DEPTH",
     `Identity mint queue depth must be between ${IDENTITY_MINT_QUEUE_DEPTH_MIN} and ${IDENTITY_MINT_QUEUE_DEPTH_MAX}`,
   );
-
-  let encryptedPassword = current.tsPasswordEncrypted;
-  const action = input.passwordAction ?? (input.serverPassword === undefined ? "keep" : "replace");
-  if (action === "remove") encryptedPassword = null;
-  if (action === "replace") encryptedPassword = input.serverPassword ? encryptSecret(input.serverPassword, masterSecret) : null;
 
   let relayConfigured = current.relayConfigured;
   let relayEnabled = current.relayEnabled;
@@ -192,9 +178,6 @@ export function normalizeSettings(
     siteName,
     welcomeTexts,
     accessMode: input.accessMode,
-    tsHost: target.host,
-    tsPort: target.port,
-    tsPasswordEncrypted: encryptedPassword,
     webRtcEnabled: input.webRtcEnabled,
     webRtcUdpStart,
     webRtcUdpEnd,
@@ -286,9 +269,6 @@ export function toSettingsUpdate(settings: StoredSettings): SettingsUpdate {
     siteName: settings.siteName,
     welcomeTexts: settings.welcomeTexts,
     accessMode: settings.accessMode,
-    tsHost: settings.tsHost,
-    tsPort: settings.tsPort,
-    tsPasswordEncrypted: settings.tsPasswordEncrypted,
     webRtcEnabled: settings.webRtcEnabled,
     webRtcUdpStart: settings.webRtcUdpStart,
     webRtcUdpEnd: settings.webRtcUdpEnd,

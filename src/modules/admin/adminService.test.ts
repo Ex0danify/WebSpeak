@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { BOOTSTRAP, settingsInput, useAdminService } from "../../../test/support/adminService.js";
+import { BOOTSTRAP, DEFAULT_SERVER_ID, serverInput, settingsInput, useAdminService } from "../../../test/support/adminService.js";
 import { DEFAULT_WELCOME_TEXTS } from "./siteCopy.js";
 import { AdminInputError } from "./adminService.js";
 
@@ -52,7 +52,7 @@ describe("initialize", () => {
   it("leaves the default settings in place", async () => {
     const service = ctx.create();
     await service.initialize(BOOTSTRAP);
-    expect(service.database.getSettings()).toMatchObject({ tsHost: "127.0.0.1", tsPort: 9987 });
+    expect(service.database.listServers()).toMatchObject([{ id: DEFAULT_SERVER_ID, host: "127.0.0.1", port: 9987 }]);
     expect(service.database.recentAudit(50).map((entry) => entry.event)).toContain("ADMIN_INITIALIZED");
   });
 
@@ -94,44 +94,47 @@ describe("admin password", () => {
 });
 
 describe("views", () => {
-  it("public config shows the site, target and access mode, with the welcome text in every language", () => {
+  it("public config shows the site, access mode and server names, with the welcome text in every language", () => {
     const service = ctx.create();
     service.updateSettings(settingsInput({ welcomeTexts: { en: "en text", fr: "fr text" } }));
+    service.updateServer(DEFAULT_SERVER_ID, serverInput({ name: "Home" }));
     const config = service.getPublicConfig() as { welcomeTexts: Record<string, string> } & Record<string, unknown>;
     expect(config).toMatchObject({
       version: "9.9.9",
       initialized: false,
       siteName: "Test site",
       accessMode: "open",
-      target: "ts.example.org:9988",
+      servers: [{ id: DEFAULT_SERVER_ID, name: "Home" }],
     });
+    expect(JSON.stringify(config)).not.toContain("ts.example.org");
     expect(config).not.toHaveProperty("welcomeText");
     expect(config).not.toHaveProperty("welcomeTextEn");
     expect(config.welcomeTexts).toMatchObject({ en: "en text", fr: "fr text", de: DEFAULT_WELCOME_TEXTS.de });
   });
 
-  it("public config leaks neither the server password nor relay data", () => {
+  it("public config leaks neither a server address or password nor relay data", () => {
     const service = ctx.create();
+    service.updateServer(DEFAULT_SERVER_ID, serverInput({ serverPassword: "very-secret-password" }));
     service.updateSettings(
-      settingsInput({
-        serverPassword: "very-secret-password",
-        relayNodes: [{ name: "R", target: "relay.example.org", enabled: true, token: "relay-token-1234567" }],
-      }),
+      settingsInput({ relayNodes: [{ name: "R", target: "relay.example.org", enabled: true, token: "relay-token-1234567" }] }),
     );
     const text = JSON.stringify(service.getPublicConfig());
-    for (const secret of ["very-secret-password", "relay-token-1234567", "relay.example.org", "v1:"]) expect(text).not.toContain(secret);
+    for (const secret of ["very-secret-password", "relay-token-1234567", "relay.example.org", "ts.example.org", "9988", "v1:"]) {
+      expect(text).not.toContain(secret);
+    }
   });
 
   it("admin settings report whether secrets exist but never their value or ciphertext", () => {
     const service = ctx.create();
+    service.updateServer(DEFAULT_SERVER_ID, serverInput({ serverPassword: "very-secret-password" }));
     service.updateSettings(
-      settingsInput({
-        serverPassword: "very-secret-password",
-        relayNodes: [{ name: "R", target: "relay.example.org", enabled: true, token: "relay-token-1234567" }],
-      }),
+      settingsInput({ relayNodes: [{ name: "R", target: "relay.example.org", enabled: true, token: "relay-token-1234567" }] }),
     );
     const view = service.getAdminSettings();
-    expect(view).toMatchObject({ hasPassword: true, target: "ts.example.org:9988", welcomeDefaults: DEFAULT_WELCOME_TEXTS });
+    expect(view).toMatchObject({
+      servers: [{ id: DEFAULT_SERVER_ID, hasPassword: true, target: "ts.example.org:9988" }],
+      welcomeDefaults: DEFAULT_WELCOME_TEXTS,
+    });
     expect((view.relayNodes as unknown[])[0]).toMatchObject({ name: "R", target: "relay.example.org#39087", hasToken: true });
     const text = JSON.stringify(view);
     for (const secret of ["very-secret-password", "relay-token-1234567", "v1:"]) expect(text).not.toContain(secret);
@@ -146,7 +149,6 @@ describe("views", () => {
 
 describe("updateSettings validation", () => {
   const cases: Array<[string, Parameters<typeof settingsInput>[0], string]> = [
-    ["an unparsable target", { target: "not a target:::" }, "INVALID_TARGET"],
     ["an empty site name", { siteName: "   " }, "INVALID_SITE_NAME"],
     ["a site name over 80 characters", { siteName: "x".repeat(81) }, "INVALID_SITE_NAME"],
     ["an English welcome text over 500 characters", { welcomeTexts: { en: "x".repeat(501) } }, "INVALID_WELCOME_TEXT"],
@@ -226,66 +228,21 @@ describe("updateSettings validation", () => {
   });
 });
 
-describe("server password", () => {
-  it("stores the password encrypted and returns it through the connection policy", () => {
+describe("access mode and the server list", () => {
+  it("refuses the server list only mode without a server, and keeps the settings", () => {
     const service = ctx.create();
-    service.updateSettings(settingsInput({ serverPassword: "pw-1" }));
-    const stored = service.database.getSettings().tsPasswordEncrypted;
-    expect(stored).toMatch(/^v1:/);
-    expect(stored).not.toContain("pw-1");
-    expect(service.getConnectionPolicy()).toEqual({
-      defaultTarget: { host: "ts.example.org", port: 9988 },
-      serverPassword: "pw-1",
-      accessMode: "open",
-    });
+    service.updateSettings(settingsInput({ accessMode: "open" }));
+    service.removeServer(DEFAULT_SERVER_ID);
+    expect(rejection(() => service.updateSettings(settingsInput({ accessMode: "fixed" }))).code).toBe("SERVERS_REQUIRED");
+    expect(service.getAccessMode()).toBe("open");
   });
 
-  it("keeps the stored password by default, and when the action is keep", () => {
+  it("keeps the last server while the list is the only way in, but lets open access go without", () => {
     const service = ctx.create();
-    service.updateSettings(settingsInput({ serverPassword: "pw-1" }));
-    service.updateSettings(settingsInput());
-    service.updateSettings(settingsInput({ passwordAction: "keep", serverPassword: "ignored" }));
-    expect(service.getConnectionPolicy().serverPassword).toBe("pw-1");
-  });
-
-  it("replaces, empties and removes the password", () => {
-    const service = ctx.create();
-    service.updateSettings(settingsInput({ serverPassword: "pw-1" }));
-    service.updateSettings(settingsInput({ passwordAction: "replace", serverPassword: "pw-2" }));
-    expect(service.getConnectionPolicy().serverPassword).toBe("pw-2");
-    service.updateSettings(settingsInput({ passwordAction: "replace", serverPassword: "" }));
-    expect(service.database.getSettings().tsPasswordEncrypted).toBeNull();
-    service.updateSettings(settingsInput({ serverPassword: "pw-3" }));
-    service.updateSettings(settingsInput({ passwordAction: "remove" }));
-    expect(service.database.getSettings().tsPasswordEncrypted).toBeNull();
-    expect(service.getAdminSettings().hasPassword).toBe(false);
-  });
-
-  it("returns an empty password and logs an error when the stored one cannot be decrypted (wrong master secret)", () => {
-    ctx.create().updateSettings(settingsInput({ serverPassword: "pw-1" }));
-    const other = ctx.create(Buffer.alloc(32, 9));
-    expect(other.getConnectionPolicy().serverPassword).toBe("");
-    expect(ctx.logger.error).toHaveBeenCalledTimes(1);
-    expect(JSON.stringify(ctx.logger.error.mock.calls)).not.toContain("pw-1");
-  });
-});
-
-describe("connection test result", () => {
-  it("is cleared when the target changes and kept when only other settings change", () => {
-    const service = ctx.create();
-    service.updateSettings(settingsInput());
-    service.database.recordConnectionTest({ protocol: "ts6", latencyMs: 12, error: null });
-    service.updateSettings(settingsInput({ siteName: "Renamed" }));
-    expect(service.database.getSettings().detectedProtocol).toBe("ts6");
-    service.updateSettings(settingsInput({ target: "other.example.org:9987" }));
-    expect(service.database.getSettings()).toMatchObject({ detectedProtocol: null, lastTestAt: null, lastTestLatencyMs: null });
-  });
-
-  it("is cleared when only the port changes", () => {
-    const service = ctx.create();
-    service.updateSettings(settingsInput());
-    service.database.recordConnectionTest({ protocol: "ts3", latencyMs: 5, error: null });
-    service.updateSettings(settingsInput({ target: "ts.example.org:9989" }));
-    expect(service.database.getSettings().detectedProtocol).toBeNull();
+    service.updateSettings(settingsInput({ accessMode: "fixed" }));
+    expect(rejection(() => service.removeServer(DEFAULT_SERVER_ID)).code).toBe("SERVERS_REQUIRED");
+    service.updateSettings(settingsInput({ accessMode: "open" }));
+    service.removeServer(DEFAULT_SERVER_ID);
+    expect(service.listServers()).toEqual([]);
   });
 });

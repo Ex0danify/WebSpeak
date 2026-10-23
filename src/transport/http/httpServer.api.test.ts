@@ -2,7 +2,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { settingsInput } from "../../../test/support/adminService.js";
+import { DEFAULT_SERVER_ID, serverInput, settingsInput } from "../../../test/support/adminService.js";
 import { useGateway } from "../../../test/support/gateway.js";
 
 const gateways = useGateway();
@@ -31,8 +31,8 @@ describe("/api/public-config", () => {
       "accelerationRelays",
       "accessMode",
       "initialized",
+      "servers",
       "siteName",
-      "target",
       "version",
       "visitorNumber",
       "visitorTotal",
@@ -56,28 +56,30 @@ describe("/api/public-config", () => {
       settingsInput({
         siteName: "Renamed",
         welcomeTexts: { de: "hallo", en: "hello" },
-        target: "voice.example.org:9988",
         accessMode: "fixed",
       }),
     );
     expect(saved.status).toBe(200);
+    expect((await admin.put(`servers/${DEFAULT_SERVER_ID}`, serverInput({ name: "Voice", target: "voice.example.org:9988" }))).status).toBe(
+      200,
+    );
     const config = await (await gateway.request("/api/public-config")).json();
     expect(config).toMatchObject({
       siteName: "Renamed",
       welcomeTexts: { de: "hallo", en: "hello" },
       accessMode: "fixed",
-      target: "voice.example.org:9988",
+      servers: [{ id: DEFAULT_SERVER_ID, name: "Voice" }],
     });
+    expect(JSON.stringify(config)).not.toContain("voice.example.org");
   });
 
   it("never contains the server password or a relay token after they are saved", async () => {
     const gateway = await gateways.start();
     const admin = await gateway.adminLogin();
+    await admin.put(`servers/${DEFAULT_SERVER_ID}`, serverInput({ passwordAction: "replace", serverPassword: "s3cret-server-pass" }));
     const saved = await admin.put(
       "server",
       settingsInput({
-        passwordAction: "replace",
-        serverPassword: "s3cret-server-pass",
         relaySettingsAction: "replace",
         relayEnabled: true,
         relayName: "Relay one",
@@ -87,7 +89,9 @@ describe("/api/public-config", () => {
       }),
     );
     expect(saved.status).toBe(200);
-    expect(gateway.adminService.getConnectionPolicy().serverPassword, "the password really was saved").toBe("s3cret-server-pass");
+    expect(gateway.adminService.resolveServer(DEFAULT_SERVER_ID)!.serverPassword, "the password really was saved").toBe(
+      "s3cret-server-pass",
+    );
     const text = await (await gateway.request("/api/public-config")).text();
     expect(text).not.toContain("s3cret-server-pass");
     expect(text).not.toContain("s3cret-relay-token");
@@ -161,7 +165,7 @@ describe("JSON body limit", () => {
     gateway.request("/api/join-ticket", {
       method: "POST",
       headers: JSON_HEADERS,
-      body: JSON.stringify({ nickname: "tester", pad: "x".repeat(bytes) }),
+      body: JSON.stringify({ nickname: "tester", serverId: DEFAULT_SERVER_ID, pad: "x".repeat(bytes) }),
     });
 
   it("accepts a body just under 100 kB and rejects one over it with 413", async () => {

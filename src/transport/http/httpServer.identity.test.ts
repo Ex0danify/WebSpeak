@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { generateIdentity, identityFromString } from "../../lib/teamspeak/index.js";
-import { settingsInput } from "../../../test/support/adminService.js";
+import { DEFAULT_SERVER_ID, settingsInput } from "../../../test/support/adminService.js";
 import { type Gateway, useGateway } from "../../../test/support/gateway.js";
 
 const gateways = useGateway();
@@ -125,6 +125,17 @@ describe("POST /api/identity/status", () => {
       status: 200,
       body: { ok: true, inUse: false },
     });
+  });
+
+  it("looks a configured server up by id, and treats an unknown one as not in use", async () => {
+    const gateway = await gateways.start();
+    const identity = generateIdentity(0).toString();
+    for (const serverId of [DEFAULT_SERVER_ID, "server-gone"]) {
+      expect(await postJson(gateway, "/api/identity/status", { identity, serverId })).toMatchObject({
+        status: 200,
+        body: { ok: true, inUse: false },
+      });
+    }
   });
 
   it("treats an unresolvable open-mode target as not in use", async () => {

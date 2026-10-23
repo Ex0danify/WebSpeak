@@ -1,4 +1,5 @@
 import { AdminInputError, type AdminSettingsInput, type RelayNodeInput } from "./adminService.js";
+import type { ServerInput } from "./adminServerService.js";
 import { WELCOME_LANGUAGE_MAX } from "./adminSettingsNormalizer.js";
 
 export function readSettingsInput(body: Record<string, unknown>): AdminSettingsInput {
@@ -16,9 +17,6 @@ export function readSettingsInput(body: Record<string, unknown>): AdminSettingsI
       })
     : undefined;
   return {
-    target: readString(body, "target", 300),
-    serverPassword: typeof body.serverPassword === "string" ? body.serverPassword.slice(0, 512) : undefined,
-    passwordAction: readPasswordAction(body.passwordAction),
     accessMode: body.accessMode === "open" ? "open" : body.accessMode === "fixed" ? "fixed" : (body.accessMode as never),
     siteName: readString(body, "siteName", 80),
     welcomeTexts: readWelcomeTexts(body.welcomeTexts),
@@ -35,6 +33,15 @@ export function readSettingsInput(body: Record<string, unknown>): AdminSettingsI
     relayToken: typeof body.relayToken === "string" ? body.relayToken.slice(0, 512) : undefined,
     relayTokenAction: readPasswordAction(body.relayTokenAction),
     relayNodes,
+  };
+}
+
+export function readServerInput(body: Record<string, unknown>): ServerInput {
+  return {
+    name: readString(body, "name", 80),
+    target: readString(body, "target", 300),
+    serverPassword: typeof body.serverPassword === "string" ? body.serverPassword.slice(0, 512) : undefined,
+    passwordAction: readPasswordAction(body.passwordAction),
   };
 }
 

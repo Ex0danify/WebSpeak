@@ -2,6 +2,7 @@ import type { ManagedInviteRecord } from "./databaseTypes.js";
 
 export interface ManagedInviteRow extends Record<string, unknown> {
   id: string;
+  server_id: string | null;
   token_hash: string;
   target_host: string;
   target_port: number;
@@ -17,13 +18,6 @@ export interface ManagedInviteRow extends Record<string, unknown> {
 export interface SettingsRow extends Record<string, unknown> {
   site_name: string;
   access_mode: string;
-  ts_host: string;
-  ts_port: number;
-  ts_password_encrypted: string | null;
-  detected_protocol: string | null;
-  last_test_at: string | null;
-  last_test_latency_ms: number | null;
-  last_test_error: string | null;
   webrtc_enabled: number;
   webrtc_public_host: string;
   webrtc_udp_start: number;
@@ -45,6 +39,20 @@ export interface WelcomeTextRow extends Record<string, unknown> {
   text: string;
 }
 
+export interface ServerRow extends Record<string, unknown> {
+  id: string;
+  name: string;
+  host: string;
+  port: number;
+  password_encrypted: string | null;
+  position: number;
+  last_test_at: string | null;
+  last_test_latency_ms: number | null;
+  last_test_error: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface RelayNodeRow extends Record<string, unknown> {
   id: string;
   name: string;
@@ -59,6 +67,7 @@ export interface RelayNodeRow extends Record<string, unknown> {
 export function mapManagedInviteRow(row: ManagedInviteRow): ManagedInviteRecord {
   return {
     id: row.id,
+    serverId: row.server_id,
     tokenHash: row.token_hash,
     targetHost: row.target_host,
     targetPort: row.target_port,

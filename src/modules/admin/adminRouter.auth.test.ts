@@ -243,6 +243,10 @@ describe("every mutating admin route needs the same origin, JSON and the CSRF to
     { method: "POST", path: "/invites/:id/revoke", guard: "admin" },
     { method: "PUT", path: "/server", guard: "admin" },
     { method: "POST", path: "/server/test", guard: "admin" },
+    { method: "POST", path: "/servers", guard: "admin" },
+    { method: "PUT", path: "/servers/:id", guard: "admin" },
+    { method: "DELETE", path: "/servers/:id", guard: "admin" },
+    { method: "POST", path: "/servers/:id/test", guard: "admin" },
   ] as const;
 
   it("has a row in this table for every POST and PUT route of the router, and for none that does not exist", async () => {

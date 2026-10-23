@@ -6,6 +6,7 @@ import { decryptSecret } from "../../infra/security/secretCrypto.js";
 import { AdminInputError } from "./adminErrors.js";
 
 export interface ManagedInviteInput {
+  serverId: string;
   channel: string;
   expiresInHours: number;
   maxUses: number;
@@ -13,6 +14,7 @@ export interface ManagedInviteInput {
 
 export interface ManagedInviteView {
   id: string;
+  serverId: string | null;
   target: string;
   channel: string;
   expiresAt: string;
@@ -39,19 +41,21 @@ export class AdminInviteService {
     if (!Number.isInteger(input.maxUses) || input.maxUses < 0 || input.maxUses > 10000) {
       throw new AdminInputError("INVALID_INVITE_USES", "Invite max uses must be between 0 and 10000");
     }
-    const settings = this.database.getSettings();
+    const server = typeof input.serverId === "string" ? this.database.getServer(input.serverId) : null;
+    if (!server) throw new AdminInputError("SERVER_NOT_FOUND", "Server not found");
     const token = randomBytes(32).toString("base64url");
     const record = this.database.createManagedInvite({
       id: `invite-${Date.now().toString(36)}-${randomBytes(4).toString("hex")}`,
+      serverId: server.id,
       tokenHash: hashInviteToken(token),
-      targetHost: settings.tsHost,
-      targetPort: settings.tsPort,
-      serverPasswordEncrypted: settings.tsPasswordEncrypted,
+      targetHost: server.host,
+      targetPort: server.port,
+      serverPasswordEncrypted: server.passwordEncrypted,
       channel,
       expiresAt: new Date(Date.now() + input.expiresInHours * 60 * 60 * 1000).toISOString(),
       maxUses: input.maxUses,
     });
-    this.database.addAudit("INVITE_CREATED", { id: record.id, channel, maxUses: input.maxUses });
+    this.database.addAudit("INVITE_CREATED", { id: record.id, serverId: server.id, channel, maxUses: input.maxUses });
     return { invite: toInviteView(record), token };
   }
 
@@ -90,6 +94,7 @@ export function toInviteView(record: ManagedInviteRecord): ManagedInviteView {
   const exhausted = record.maxUses > 0 && record.useCount >= record.maxUses;
   return {
     id: record.id,
+    serverId: record.serverId,
     target: formatTeamSpeakTarget({ host: record.targetHost, port: record.targetPort }),
     channel: record.channel,
     expiresAt: record.expiresAt,

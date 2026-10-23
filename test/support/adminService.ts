@@ -1,5 +1,5 @@
 import { type Mock, vi } from "vitest";
-import { AdminService, type AdminSettingsInput } from "../../src/modules/admin/adminService.js";
+import { AdminService, type AdminSettingsInput, type ServerInput } from "../../src/modules/admin/adminService.js";
 import type { Logger } from "../../src/shared/logger.js";
 import { useDatabaseFixture } from "./database.js";
 
@@ -22,12 +22,19 @@ export function stubLogger(): StubLogger {
 /** A settings form as the admin console sends it: valid, and different from the defaults. */
 export function settingsInput(overrides: Partial<AdminSettingsInput> = {}): AdminSettingsInput {
   return {
-    target: "ts.example.org:9988",
     accessMode: "open",
     siteName: "Test site",
     webRtcEnabled: false,
     ...overrides,
   };
+}
+
+/** The server a fresh database starts with. */
+export const DEFAULT_SERVER_ID = "server-default";
+
+/** A server form as the admin console sends it: valid, and different from the seeded default server. */
+export function serverInput(overrides: Partial<ServerInput> = {}): ServerInput {
+  return { name: "Test server", target: "ts.example.org:9988", ...overrides };
 }
 
 /** An `AdminService` on a temporary database with a fixed master secret, a stub probe and a stub host ping. */

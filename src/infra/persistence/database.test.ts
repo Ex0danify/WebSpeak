@@ -1,6 +1,6 @@
 import { DatabaseSync } from "node:sqlite";
 import { describe, expect, it } from "vitest";
-import { credential, settings, useDatabaseFixture } from "../../../test/support/database.js";
+import { credential, invite, settings, useDatabaseFixture } from "../../../test/support/database.js";
 import type { AdminCredential } from "../security/adminPassword.js";
 
 const fx = useDatabaseFixture();
@@ -21,7 +21,7 @@ describe("admin credential", () => {
     database.initializeAdmin(credential, settings());
     expect(database.hasAdmin()).toBe(true);
     expect(database.getAdminCredential()).toEqual(credential);
-    expect(database.getSettings()).toMatchObject({ siteName: "Test site", tsHost: "ts.example.org" });
+    expect(database.getSettings()).toMatchObject({ siteName: "Test site" });
     expect(database.recentAudit()[0]?.event).toBe("ADMIN_INITIALIZED");
   });
 
@@ -67,9 +67,6 @@ describe("settings", () => {
       siteName: "Test site",
       welcomeTexts: { de: "de", en: "en" },
       accessMode: "open",
-      tsHost: "ts.example.org",
-      tsPort: 9988,
-      tsPasswordEncrypted: "enc:password",
       webRtcEnabled: true,
       webRtcUdpStart: 41000,
       webRtcUdpEnd: 41010,
@@ -96,10 +93,10 @@ describe("settings", () => {
     expect(database.getSettings().welcomeTexts).toEqual({ en: "hi" });
   });
 
-  it("audits every save with the access mode and target, under the given event name", () => {
+  it("audits every save with the access mode, under the given event name", () => {
     const database = fx.open();
     database.updateSettings(settings());
-    database.updateSettings(settings({ tsPort: 9989 }), "LEGACY_CONFIG_IMPORTED");
+    database.updateSettings(settings({ accessMode: "fixed" }), "LEGACY_CONFIG_IMPORTED");
     const raw = new DatabaseSync(fx.path);
     try {
       const rows = raw.prepare("SELECT event, details_json FROM audit_events ORDER BY id").all() as Array<{
@@ -107,7 +104,7 @@ describe("settings", () => {
         details_json: string;
       }>;
       expect(rows.map((row) => row.event)).toEqual(["SETTINGS_CHANGED", "LEGACY_CONFIG_IMPORTED"]);
-      expect(JSON.parse(rows[1]!.details_json)).toEqual({ accessMode: "open", target: "ts.example.org:9989" });
+      expect(JSON.parse(rows[1]!.details_json)).toEqual({ accessMode: "fixed" });
     } finally {
       raw.close();
     }
@@ -116,40 +113,70 @@ describe("settings", () => {
   it("rolls back a rejected save: no partial settings and no audit entry", () => {
     const database = fx.open();
     database.updateSettings(settings());
-    expect(() => database.updateSettings(settings({ siteName: "Changed", tsPort: 70000 }))).toThrow();
-    expect(database.getSettings()).toMatchObject({ siteName: "Test site", tsPort: 9988 });
+    expect(() => database.updateSettings(settings({ siteName: "Changed", webRtcUdpStart: 70000 }))).toThrow();
+    expect(database.getSettings()).toMatchObject({ siteName: "Test site", webRtcUdpStart: 41000 });
     expect(database.recentAudit(50).filter((entry) => entry.event === "SETTINGS_CHANGED")).toHaveLength(1);
     // The failed transaction released its lock: the next write works.
     database.updateSettings(settings({ siteName: "Again" }));
     expect(database.getSettings().siteName).toBe("Again");
   });
+});
 
-  it("records a connection test and clears it again", () => {
-    const database = fx.open();
-    database.recordConnectionTest({ protocol: "ts6", latencyMs: 42, error: null });
-    expect(database.getSettings()).toMatchObject({ detectedProtocol: "ts6", lastTestLatencyMs: 42, lastTestError: null });
-    expect(Date.parse(database.getSettings().lastTestAt!)).not.toBeNaN();
-    database.recordConnectionTest({ protocol: null, latencyMs: null, error: "TIMEOUT" });
-    expect(database.getSettings()).toMatchObject({ detectedProtocol: null, lastTestLatencyMs: null, lastTestError: "TIMEOUT" });
-    database.clearConnectionTest();
-    expect(database.getSettings()).toMatchObject({
-      detectedProtocol: null,
-      lastTestAt: null,
-      lastTestLatencyMs: null,
-      lastTestError: null,
-    });
+describe("servers", () => {
+  const server = (id: string, overrides = {}) => ({
+    id,
+    name: id,
+    host: `${id}.example.org`,
+    port: 9987,
+    passwordEncrypted: null,
+    ...overrides,
   });
 
-  it("does not let a settings save clear the last connection test (the service does that on a target change)", () => {
-    const database = fx.open();
-    database.recordConnectionTest({ protocol: "ts3", latencyMs: 10, error: null });
-    database.updateSettings(settings({ tsHost: "other.example.org" }));
-    expect(database.getSettings().detectedProtocol).toBe("ts3");
+  it("starts with the default server the migration seeds", () => {
+    expect(fx.open().listServers()).toMatchObject([{ id: "server-default", host: "127.0.0.1", port: 9987 }]);
   });
 
-  it("rejects an unknown protocol in a connection test", () => {
+  it("records a connection test per server", () => {
     const database = fx.open();
-    expect(() => database.recordConnectionTest({ protocol: "ts5" as never, latencyMs: 1, error: null })).toThrow();
+    database.addServer(server("one"));
+    database.recordConnectionTest("one", { latencyMs: 42, error: null });
+    expect(database.getServer("one")).toMatchObject({ lastTestLatencyMs: 42, lastTestError: null });
+    expect(Date.parse(database.getServer("one")!.lastTestAt!)).not.toBeNaN();
+    expect(database.getServer("server-default")!.lastTestAt).toBeNull();
+    database.recordConnectionTest("one", { latencyMs: null, error: "TIMEOUT" });
+    expect(database.getServer("one")).toMatchObject({ lastTestLatencyMs: null, lastTestError: "TIMEOUT" });
+  });
+
+  it("audits adding, changing and removing a server", () => {
+    const database = fx.open();
+    database.addServer(server("one"));
+    database.updateServer(server("one", { name: "Renamed" }), false);
+    expect(database.removeServer("one")).toBe(true);
+    expect(database.removeServer("one")).toBe(false);
+    const events = database.recentAudit(10).map((entry) => entry.event);
+    expect(events).toEqual(expect.arrayContaining(["SERVER_ADDED", "SERVER_UPDATED", "SERVER_REMOVED"]));
+    expect(events.filter((event) => event === "SERVER_REMOVED")).toHaveLength(1);
+  });
+
+  it("revokes the invites of a removed server and leaves the others", () => {
+    const database = fx.open();
+    database.addServer(server("one"));
+    database.createManagedInvite(invite("invite-a", { serverId: "one" }));
+    database.createManagedInvite(invite("invite-b", { serverId: "server-default" }));
+    database.removeServer("one");
+    const byId = Object.fromEntries(database.listManagedInvites().map((entry) => [entry.id, entry.revokedAt]));
+    expect(byId["invite-a"]).not.toBeNull();
+    expect(byId["invite-b"]).toBeNull();
+  });
+
+  it("revokes invites on a changed connection but not on a rename", () => {
+    const database = fx.open();
+    database.addServer(server("one"));
+    database.createManagedInvite(invite("invite-a", { serverId: "one" }));
+    database.updateServer(server("one", { name: "Renamed" }), false);
+    expect(database.listManagedInvites()[0]!.revokedAt).toBeNull();
+    database.updateServer(server("one", { port: 9988 }), true);
+    expect(database.listManagedInvites()[0]!.revokedAt).not.toBeNull();
   });
 });
 

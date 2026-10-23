@@ -1,6 +1,6 @@
 import type { DatabaseSync } from "node:sqlite";
 
-export const DATABASE_SCHEMA_VERSION = 9;
+export const DATABASE_SCHEMA_VERSION = 10;
 
 /** Relay name earlier builds stored when none was given, as escapes to keep CJK out of the file. */
 const LEGACY_RELAY_NAME = "\u4e2d\u7ee7\u52a0\u901f";
@@ -224,6 +224,40 @@ const MIGRATIONS: Migration[] = [
           ALTER TABLE settings ADD COLUMN identity_mint_queue_depth INTEGER NOT NULL DEFAULT 20 CHECK (identity_mint_queue_depth BETWEEN 0 AND 100);
         `);
       database.exec("PRAGMA user_version = 9");
+    },
+  },
+  {
+    from: 9,
+    up(database) {
+      // The single target becomes a list. The old one moves over as the first server, named after the site.
+      database.exec(`
+          CREATE TABLE ts_servers (
+            id TEXT PRIMARY KEY,
+            name TEXT NOT NULL,
+            host TEXT NOT NULL,
+            port INTEGER NOT NULL CHECK (port BETWEEN 1 AND 65535),
+            password_encrypted TEXT,
+            position INTEGER NOT NULL,
+            last_test_at TEXT,
+            last_test_latency_ms INTEGER,
+            last_test_error TEXT,
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL
+          );
+          INSERT INTO ts_servers (id, name, host, port, password_encrypted, position, last_test_at, last_test_latency_ms, last_test_error, created_at, updated_at)
+            SELECT 'server-default', site_name, ts_host, ts_port, ts_password_encrypted, 0, last_test_at, last_test_latency_ms, last_test_error, updated_at, updated_at
+            FROM settings WHERE id = 1;
+          ALTER TABLE managed_invites ADD COLUMN server_id TEXT;
+          UPDATE managed_invites SET server_id = 'server-default';
+          ALTER TABLE settings DROP COLUMN ts_host;
+          ALTER TABLE settings DROP COLUMN ts_port;
+          ALTER TABLE settings DROP COLUMN ts_password_encrypted;
+          ALTER TABLE settings DROP COLUMN detected_protocol;
+          ALTER TABLE settings DROP COLUMN last_test_at;
+          ALTER TABLE settings DROP COLUMN last_test_latency_ms;
+          ALTER TABLE settings DROP COLUMN last_test_error;
+        `);
+      database.exec("PRAGMA user_version = 10");
     },
   },
 ];

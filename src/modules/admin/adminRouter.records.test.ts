@@ -1,7 +1,7 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { settingsInput } from "../../../test/support/adminService.js";
+import { DEFAULT_SERVER_ID, serverInput, settingsInput } from "../../../test/support/adminService.js";
 import type { FakeTSClient } from "../../../test/support/fakeTsClient.js";
 import { type AdminApi, type Gateway, TEST_ADMIN_PASSWORD, useGateway } from "../../../test/support/gateway.js";
 import { WebSpeakDatabase } from "../../infra/persistence/database.js";
@@ -87,13 +87,13 @@ describe("sessions", () => {
 
 describe("invites", () => {
   const create = async (admin: AdminApi, body: Record<string, unknown> = {}) => {
-    const response = await admin.post("invites", body);
+    const response = await admin.post("invites", { serverId: DEFAULT_SERVER_ID, ...body });
     return { status: response.status, body: await json(response) };
   };
 
-  it("creates an invite for the current target with a token that is shown once", async () => {
+  it("creates an invite for a server with a token that is shown once", async () => {
     const { gateway, admin } = await start();
-    gateway.adminService.updateSettings(settingsInput({ target: "8.8.8.8:9988" }));
+    gateway.adminService.updateServer(DEFAULT_SERVER_ID, serverInput({ target: "8.8.8.8:9988" }));
     const { status, body } = await create(admin, { channel: " Room A ", expiresInHours: 2, maxUses: 3 });
     expect(status).toBe(201);
     expect(body).toMatchObject({
@@ -101,6 +101,7 @@ describe("invites", () => {
       token: expect.stringMatching(/^[\w-]{43}$/),
       invite: {
         id: expect.stringMatching(/^invite-/),
+        serverId: DEFAULT_SERVER_ID,
         target: "8.8.8.8:9988",
         channel: "Room A",
         maxUses: 3,
@@ -114,6 +115,12 @@ describe("invites", () => {
     expect(listed).toContain(body.invite.id);
     expect(listed).not.toContain(body.token);
     expect(audit(gateway)[0]).toBe("INVITE_CREATED");
+  });
+
+  it("refuses an invite without a known server", async () => {
+    const { admin } = await start();
+    expect(await create(admin, { serverId: "server-gone" })).toMatchObject({ status: 400, body: { code: "SERVER_NOT_FOUND" } });
+    expect(await create(admin, { serverId: undefined })).toMatchObject({ status: 400, body: { code: "SERVER_NOT_FOUND" } });
   });
 
   it("defaults to one hour and unlimited uses, and cuts a long channel to 100 characters", async () => {
@@ -225,7 +232,8 @@ describe("audit", () => {
 describe("backup", () => {
   it("downloads a consistent copy of the database, without plaintext secrets, and audits it", async () => {
     const { gateway, admin } = await start();
-    await admin.put("server", settingsInput({ siteName: "Backed up", passwordAction: "replace", serverPassword: "s3cret-server-pass" }));
+    await admin.put("server", settingsInput({ siteName: "Backed up" }));
+    await admin.put(`servers/${DEFAULT_SERVER_ID}`, serverInput({ passwordAction: "replace", serverPassword: "s3cret-server-pass" }));
     const response = await admin.get("backup");
     expect(response.status).toBe(200);
     expect(response.headers.get("content-type")).toBe("application/octet-stream");
@@ -240,7 +248,8 @@ describe("backup", () => {
     const copy = new WebSpeakDatabase(join(copyDir, "webspeak.db"));
     try {
       expect(copy.hasAdmin()).toBe(true);
-      expect(copy.getSettings()).toMatchObject({ siteName: "Backed up", tsHost: "ts.example.org" });
+      expect(copy.getSettings()).toMatchObject({ siteName: "Backed up" });
+      expect(copy.listServers()).toMatchObject([{ host: "ts.example.org" }]);
     } finally {
       copy.close();
     }
@@ -254,10 +263,10 @@ describe("diagnostics", () => {
     const socket = await gateway.openVoice();
     await socket.waitForMessage("connected");
     const body = await json(await admin.get("diagnostics"));
-    expect(Object.keys(body).sort()).toEqual(["database", "gateway", "generatedAt", "logs", "sessions", "teamSpeak"]);
+    expect(Object.keys(body).sort()).toEqual(["database", "gateway", "generatedAt", "logs", "servers", "sessions"]);
     expect(body.gateway).toMatchObject({ version: "9.9.9", node: process.version, platform: process.platform, arch: process.arch });
     expect(body.sessions).toEqual({ active: 1, peak: 1, created: 1, limit: 100 });
-    expect(body.teamSpeak).toMatchObject({ status: "unknown" });
+    expect(body.servers).toMatchObject([{ status: "unknown" }]);
     expect(body.database).toEqual({ schemaVersion: gateway.database.schemaVersion });
     expect(body.logs).toEqual({ available: false });
     writeFileSync(gateway.logFile, "");
@@ -266,11 +275,10 @@ describe("diagnostics", () => {
 
   it("downloads a report that carries no secret", async () => {
     const { gateway, admin } = await start();
+    await admin.put(`servers/${DEFAULT_SERVER_ID}`, serverInput({ passwordAction: "replace", serverPassword: "s3cret-server-pass" }));
     await admin.put(
       "server",
       settingsInput({
-        passwordAction: "replace",
-        serverPassword: "s3cret-server-pass",
         relaySettingsAction: "replace",
         relayEnabled: true,
         relayName: "Relay",
@@ -284,7 +292,7 @@ describe("diagnostics", () => {
     expect(response.headers.get("content-disposition")).toBe('attachment; filename="webspeak-diagnostic-report.json"');
     const text = await response.text();
     const report = JSON.parse(text);
-    expect(Object.keys(report).sort()).toEqual(["audit", "database", "gateway", "generatedAt", "sessions", "teamSpeak"]);
+    expect(Object.keys(report).sort()).toEqual(["audit", "database", "gateway", "generatedAt", "servers", "sessions"]);
     expect(report.audit.map((entry: { event: string }) => entry.event)).toContain("SETTINGS_CHANGED");
     expect(text).toContain('\n  "gateway"');
     const credential = gateway.database.getAdminCredential()!;

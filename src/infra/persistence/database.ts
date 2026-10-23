@@ -3,18 +3,25 @@ import { randomBytes } from "node:crypto";
 import { dirname } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import type { AdminCredential } from "../security/adminPassword.js";
-import type { TeamSpeakProtocol } from "../../shared/teamSpeakProtocol.js";
 import { DATABASE_SCHEMA_VERSION, runMigrations } from "./databaseMigrations.js";
-import type { ManagedInviteRecord, PersistedRelayNode, PersistedSettings, SettingsUpdate } from "./databaseTypes.js";
+import type { ManagedInviteRecord, PersistedRelayNode, PersistedServer, PersistedSettings, SettingsUpdate } from "./databaseTypes.js";
 import { AdminCredentialRepository } from "./adminCredentialRepository.js";
 import { AuditRepository } from "./auditRepository.js";
 import { ManagedInviteRepository } from "./managedInviteRepository.js";
 import { MetaRepository } from "./metaRepository.js";
 import { RelayNodeRepository } from "./relayNodeRepository.js";
+import { ServerRepository } from "./serverRepository.js";
 import { SettingsRepository } from "./settingsRepository.js";
 
 export { DATABASE_SCHEMA_VERSION };
-export type { AccessMode, ManagedInviteRecord, PersistedRelayNode, PersistedSettings, SettingsUpdate } from "./databaseTypes.js";
+export type {
+  AccessMode,
+  ManagedInviteRecord,
+  PersistedRelayNode,
+  PersistedServer,
+  PersistedSettings,
+  SettingsUpdate,
+} from "./databaseTypes.js";
 
 const ADMIN_SESSION_EPOCH_KEY = "admin_session_epoch";
 
@@ -22,6 +29,7 @@ export class WebSpeakDatabase {
   private readonly database: DatabaseSync;
   private readonly adminCredentials: AdminCredentialRepository;
   private readonly settings: SettingsRepository;
+  private readonly servers: ServerRepository;
   private readonly relayNodes: RelayNodeRepository;
   private readonly managedInvites: ManagedInviteRepository;
   private readonly audit: AuditRepository;
@@ -36,6 +44,7 @@ export class WebSpeakDatabase {
       const context = { database: this.database, transaction: (action: () => void) => this.transaction(action) };
       this.adminCredentials = new AdminCredentialRepository(context);
       this.settings = new SettingsRepository(context);
+      this.servers = new ServerRepository(context);
       this.relayNodes = new RelayNodeRepository(context);
       this.managedInvites = new ManagedInviteRepository(context);
       this.audit = new AuditRepository(context);
@@ -70,7 +79,7 @@ export class WebSpeakDatabase {
       const now = new Date().toISOString();
       this.adminCredentials.insert(credential, now);
       this.settings.write(settings, now);
-      this.audit.insert("ADMIN_INITIALIZED", { accessMode: settings.accessMode, target: `${settings.tsHost}:${settings.tsPort}` }, now);
+      this.audit.insert("ADMIN_INITIALIZED", { accessMode: settings.accessMode }, now);
     });
   }
 
@@ -111,16 +120,55 @@ export class WebSpeakDatabase {
     const now = new Date().toISOString();
     this.transaction(() => {
       this.settings.write(settings, now);
-      this.audit.insert(auditEvent, { accessMode: settings.accessMode, target: `${settings.tsHost}:${settings.tsPort}` }, now);
+      this.audit.insert(auditEvent, { accessMode: settings.accessMode }, now);
     });
   }
 
-  recordConnectionTest(result: { protocol: TeamSpeakProtocol | null; latencyMs: number | null; error: string | null }): void {
-    this.settings.recordConnectionTest(result);
+  listServers(): PersistedServer[] {
+    return this.servers.list();
   }
 
-  clearConnectionTest(): void {
-    this.settings.clearConnectionTest();
+  getServer(id: string): PersistedServer | null {
+    return this.servers.get(id);
+  }
+
+  addServer(server: Pick<PersistedServer, "id" | "name" | "host" | "port" | "passwordEncrypted">): void {
+    const now = new Date().toISOString();
+    this.transaction(() => {
+      this.servers.insert(server, now);
+      this.audit.insert("SERVER_ADDED", { id: server.id, name: server.name, target: `${server.host}:${server.port}` }, now);
+    });
+  }
+
+  /** An edit of the address or password revokes the invites made for the server, they carry a copy of both. */
+  updateServer(server: Pick<PersistedServer, "id" | "name" | "host" | "port" | "passwordEncrypted">, connectionChanged: boolean): void {
+    const now = new Date().toISOString();
+    let revoked = 0;
+    this.transaction(() => {
+      this.servers.update(server, now, connectionChanged);
+      if (connectionChanged) revoked = this.managedInvites.revokeForServer(server.id);
+      this.audit.insert(
+        "SERVER_UPDATED",
+        { id: server.id, name: server.name, target: `${server.host}:${server.port}`, revokedInvites: revoked },
+        now,
+      );
+    });
+  }
+
+  removeServer(id: string): boolean {
+    const now = new Date().toISOString();
+    let removed = false;
+    this.transaction(() => {
+      removed = this.servers.delete(id);
+      if (!removed) return;
+      const revoked = this.managedInvites.revokeForServer(id);
+      this.audit.insert("SERVER_REMOVED", { id, revokedInvites: revoked }, now);
+    });
+    return removed;
+  }
+
+  recordConnectionTest(id: string, result: { latencyMs: number | null; error: string | null }): void {
+    this.servers.recordTest(id, result);
   }
 
   createManagedInvite(record: Omit<ManagedInviteRecord, "createdAt" | "revokedAt" | "useCount">): ManagedInviteRecord {

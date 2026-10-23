@@ -10,6 +10,7 @@ import { type WebRtcAudioOptions } from "../../config/webrtcConfig.js";
 import { type IdentityMintPolicy } from "../../config/identityMintConfig.js";
 import { DEFAULT_WELCOME_TEXTS, resolveWelcomeTexts } from "./siteCopy.js";
 import { AdminInputError } from "./adminErrors.js";
+import { AdminServerService, type ResolvedServer, type ServerInput, type ServerView } from "./adminServerService.js";
 import { AdminInviteService, type ManagedInviteInput, type ManagedInviteView } from "./adminInviteService.js";
 import { AdminBootstrapError, type AdminBootstrap } from "./adminBootstrap.js";
 import {
@@ -22,13 +23,8 @@ import {
 
 export { AdminInputError };
 export type { ManagedInviteInput, ManagedInviteView } from "./adminInviteService.js";
+export type { ResolvedServer, ServerInput, ServerView } from "./adminServerService.js";
 export type { AdminSettingsInput, RelayNodeInput } from "./adminSettingsNormalizer.js";
-
-export interface ConnectionPolicy {
-  defaultTarget: TeamSpeakTarget;
-  serverPassword: string;
-  accessMode: AccessMode;
-}
 
 type ProbeFunction = typeof probeTeamSpeak;
 type HostPingFunction = (host: string) => Promise<TeamSpeakPingResult>;
@@ -52,6 +48,7 @@ export interface ConnectionTestResult {
 
 export class AdminService {
   private readonly invites: AdminInviteService;
+  private readonly servers: AdminServerService;
 
   constructor(
     readonly database: WebSpeakDatabase,
@@ -64,6 +61,7 @@ export class AdminService {
     private readonly hostPing: HostPingFunction = (host) => pingTeamSpeakHost(host, { attempts: 4 }),
   ) {
     this.invites = new AdminInviteService(database, masterSecret, logger);
+    this.servers = new AdminServerService(database, masterSecret, logger);
   }
 
   /**
@@ -115,22 +113,19 @@ export class AdminService {
       // Complete map with the default filled in for every language without a stored text.
       welcomeTexts,
       accessMode: settings.accessMode,
-      target: formatTeamSpeakTarget({ host: settings.tsHost, port: settings.tsPort }),
+      // Names only, the addresses of the configured servers stay with the administrator.
+      servers: this.servers.list().map(({ id, name }) => ({ id, name })),
     };
   }
 
   getAdminSettings(): Record<string, unknown> {
     const settings = this.database.getSettings();
     return {
-      target: formatTeamSpeakTarget({ host: settings.tsHost, port: settings.tsPort }),
-      hasPassword: Boolean(settings.tsPasswordEncrypted),
+      servers: this.servers.list(),
       accessMode: settings.accessMode,
       siteName: settings.siteName,
       welcomeTexts: settings.welcomeTexts,
       welcomeDefaults: DEFAULT_WELCOME_TEXTS,
-      lastTestAt: settings.lastTestAt,
-      lastTestLatencyMs: settings.lastTestLatencyMs,
-      lastTestError: settings.lastTestError,
       webRtcEnabled: settings.webRtcEnabled,
       webRtcUdpStart: settings.webRtcUdpStart,
       webRtcUdpEnd: settings.webRtcUdpEnd,
@@ -191,39 +186,48 @@ export class AdminService {
     const relayNodes =
       input.relayNodes === undefined ? undefined : normalizeRelayNodes(input.relayNodes, this.database.listRelayNodes(), this.masterSecret);
     const settings = normalizeSettings(input, current, this.masterSecret, relayNodes);
-    const targetChanged = current.tsHost !== settings.tsHost || current.tsPort !== settings.tsPort;
+    if (settings.accessMode === "fixed" && this.servers.list().length === 0) {
+      throw new AdminInputError("SERVERS_REQUIRED", "Add a server before limiting access to the server list");
+    }
     this.database.updateSettings(settings);
     if (relayNodes !== undefined) {
       this.database.replaceRelayNodes(relayNodes);
     } else if (input.relaySettingsAction && input.relaySettingsAction !== "keep") {
       this.database.replaceRelayNodes(legacyRelayNodesFromSettings(settings, this.database.listRelayNodes()));
     }
-    if (targetChanged) this.database.clearConnectionTest();
   }
 
-  getConnectionPolicy(): ConnectionPolicy {
-    const settings = this.database.getSettings();
-    let serverPassword = "";
-    try {
-      serverPassword = decryptSecret(settings.tsPasswordEncrypted, this.masterSecret);
-    } catch (error: unknown) {
-      this.logger.error(
-        { err: error instanceof Error ? error.message : String(error) },
-        "Stored TeamSpeak password could not be decrypted",
-      );
-    }
-    return {
-      defaultTarget: { host: settings.tsHost, port: settings.tsPort },
-      serverPassword,
-      accessMode: settings.accessMode,
-    };
+  getAccessMode(): AccessMode {
+    return this.database.getSettings().accessMode;
+  }
+
+  listServers(): ServerView[] {
+    return this.servers.list();
+  }
+
+  createServer(input: ServerInput): ServerView {
+    return this.servers.create(input);
+  }
+
+  updateServer(id: string, input: ServerInput): ServerView {
+    return this.servers.update(id, input);
+  }
+
+  removeServer(id: string): void {
+    this.servers.remove(id, this.getAccessMode());
+  }
+
+  /** The configured server a visitor picked, null when it is gone. */
+  resolveServer(id: string): ResolvedServer | null {
+    return this.servers.resolve(id);
   }
 
   /**
    * Checks the voice port with the first handshake packets (no client, so nothing shows in a channel and no password
    * check) and pings the host next to it. A silent or wrong port gives ok: false with the reason in errorCode.
+   * The result is kept only when the test belongs to a saved server.
    */
-  async testConnection(targetText: string, persistResult: boolean): Promise<ConnectionTestResult> {
+  async testConnection(targetText: string, serverId?: string): Promise<ConnectionTestResult> {
     let target: TeamSpeakTarget;
     try {
       target = parseTeamSpeakTarget(targetText);
@@ -242,7 +246,7 @@ export class AdminService {
       ]);
     } catch (error: unknown) {
       const unexpected = new TeamSpeakProbeError("INTERNAL_ERROR", "Connection test failed", error);
-      this.recordConnectionTest(persistResult, null, unexpected.code, {});
+      this.recordConnectionTest(serverId, null, unexpected.code, {});
       throw unexpected;
     }
     const hostPing = {
@@ -255,22 +259,28 @@ export class AdminService {
     };
     const details = { hostPingOk: ping.ok, packetLossPercent: ping.packetLossPercent };
     if ("error" in handshake) {
-      this.recordConnectionTest(persistResult, null, handshake.error.code, details);
+      this.recordConnectionTest(serverId, null, handshake.error.code, details);
       return { ok: false, latencyMs: null, errorCode: handshake.error.code, hostPing };
     }
-    this.recordConnectionTest(persistResult, handshake.latencyMs, null, details);
+    this.recordConnectionTest(serverId, handshake.latencyMs, null, details);
     return { ok: true, latencyMs: handshake.latencyMs, hostPing };
   }
 
+  testServer(id: string): Promise<ConnectionTestResult> {
+    const { host, port } = this.servers.target(id);
+    return this.testConnection(formatTeamSpeakTarget({ host, port }), id);
+  }
+
   private recordConnectionTest(
-    persistResult: boolean,
+    serverId: string | undefined,
     latencyMs: number | null,
     code: string | null,
     details: Record<string, unknown>,
   ): void {
-    if (!persistResult) return;
-    this.database.recordConnectionTest({ protocol: null, latencyMs, error: code });
+    if (!serverId) return;
+    this.database.recordConnectionTest(serverId, { latencyMs, error: code });
     this.database.addAudit(code ? "CONNECTION_TEST_FAILED" : "CONNECTION_TEST_SUCCEEDED", {
+      serverId,
       ...(latencyMs === null ? {} : { latencyMs }),
       ...(code ? { code } : {}),
       ...details,
@@ -278,20 +288,21 @@ export class AdminService {
   }
 
   getOverview(activeSessions: number, peakSessions: number, startedAt: number): Record<string, unknown> {
-    const settings = this.database.getSettings();
     return {
       gateway: {
         status: "running",
         version: this.version,
         uptimeSeconds: Math.max(0, Math.floor((Date.now() - startedAt) / 1000)),
       },
-      teamSpeak: {
-        target: formatTeamSpeakTarget({ host: settings.tsHost, port: settings.tsPort }),
-        status: settings.lastTestError ? "unreachable" : settings.lastTestAt ? "reachable" : "unknown",
-        lastTestAt: settings.lastTestAt,
-        latencyMs: settings.lastTestLatencyMs,
-        lastError: settings.lastTestError,
-      },
+      servers: this.servers.list().map((server) => ({
+        id: server.id,
+        name: server.name,
+        target: server.target,
+        status: server.lastTestError ? "unreachable" : server.lastTestAt ? "reachable" : "unknown",
+        lastTestAt: server.lastTestAt,
+        latencyMs: server.lastTestLatencyMs,
+        lastError: server.lastTestError,
+      })),
       sessions: { active: activeSessions, peak: peakSessions, limit: 100 },
       recentEvents: this.database.recentAudit(),
     };

@@ -35,16 +35,13 @@ describe("adminRequestParsing", () => {
 
   it("readSettingsInput normalises actions and relay nodes", () => {
     const input = readSettingsInput({
-      target: "ts.example:9987",
       siteName: "Site",
-      passwordAction: "replace",
       relaySettingsAction: "bogus",
       relayNodes: [{ id: "n1", name: "N", target: "t", enabled: true, tokenAction: "remove" }],
     });
-    expect(input.passwordAction).toBe("replace");
     expect(input.relaySettingsAction).toBe("keep");
     expect(input.relayNodes).toEqual([{ id: "n1", name: "N", target: "t", enabled: true, token: undefined, tokenAction: "remove" }]);
-    expect(() => readSettingsInput({ siteName: "x" })).toThrow(AdminInputError);
+    expect(() => readSettingsInput({})).toThrow(AdminInputError);
   });
 
   it("readSettingsInput reads the identity mint limits and rejects non-integers", () => {

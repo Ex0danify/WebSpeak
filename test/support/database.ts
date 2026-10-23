@@ -65,9 +65,6 @@ export function settings(overrides: Partial<SettingsUpdate> = {}): SettingsUpdat
     siteName: "Test site",
     welcomeTexts: { en: "en", de: "de" },
     accessMode: "open",
-    tsHost: "ts.example.org",
-    tsPort: 9988,
-    tsPasswordEncrypted: "enc:password",
     webRtcEnabled: true,
     webRtcUdpStart: 41000,
     webRtcUdpEnd: 41010,
@@ -84,6 +81,7 @@ export function settings(overrides: Partial<SettingsUpdate> = {}): SettingsUpdat
 export function invite(id: string, overrides: Partial<Omit<ManagedInviteRecord, "createdAt" | "revokedAt" | "useCount">> = {}) {
   return {
     id,
+    serverId: null,
     tokenHash: `hash-${id}`,
     targetHost: "ts.example.org",
     targetPort: 9987,
