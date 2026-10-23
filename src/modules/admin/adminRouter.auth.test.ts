@@ -138,6 +138,14 @@ describe("login lockout", () => {
     expect(Number(response.headers.get("retry-after"))).toBeLessThanOrEqual(300);
   });
 
+  it("counts concurrent wrong passwords before hashing, so they cannot outrun the limit", async () => {
+    const gateway = await gateways.start();
+    const attempts = await Promise.all(Array.from({ length: 12 }, () => login(gateway, { username: "admin", password: "wrong" })));
+    const statuses = attempts.map(({ response }) => response.status);
+    expect(statuses.filter((status) => status === 401)).toHaveLength(5);
+    expect(statuses.filter((status) => status === 429)).toHaveLength(7);
+  });
+
   it("lets the peer in again after 5 minutes", async () => {
     const gateway = await gateways.start();
     await fail(gateway, 5);

@@ -37,8 +37,9 @@ export function registerAuthRoutes(router: Router, options: AdminRouterOptions, 
     const body = asRecord(request.body);
     const username = readString(body, "username", 64).trim();
     const password = readOptionalString(body, "password", 1024);
+    // Count the attempt before the slow hash so concurrent requests cannot outrun the limit; a success clears it.
+    const delayMs = limiter.recordFailure(peer);
     if (!(await options.service.verifyPassword(username, password))) {
-      const delayMs = limiter.recordFailure(peer);
       await waitFor(delayMs);
       options.service.database.addAudit("ADMIN_LOGIN_FAILED");
       logger.warn("Administrator login failed");
