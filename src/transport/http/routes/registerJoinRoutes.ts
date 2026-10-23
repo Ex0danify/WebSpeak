@@ -77,9 +77,10 @@ export function registerJoinRoutes(
         if (policy.accessMode === "open" && typeof body.target === "string" && body.target.trim()) {
           target = parseTeamSpeakTarget(body.target);
           const isDefault = teamSpeakTargetKey(target) === teamSpeakTargetKey(policy.defaultTarget);
-          // Open mode must protect the gateway even when the user submits the admin's default target. That
-          // target only prefills the form, it is no trust boundary and must not bypass SSRF protection.
-          target = await resolveSafeOpenTarget(target);
+          // The admin's default is a deliberate trust boundary, so it may point at a same-machine or local
+          // server. Echoing it back reaches the same target as sending none, which also skips the guard.
+          // Only a visitor-chosen target needs SSRF protection.
+          target = isDefault ? policy.defaultTarget : await resolveSafeOpenTarget(target);
           const typed = typeof body.serverPassword === "string" ? body.serverPassword.slice(0, 512) : "";
           if (!isDefault) serverPassword = typed;
           else if (typed.trim()) serverPassword = typed;
