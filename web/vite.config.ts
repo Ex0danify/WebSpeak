@@ -27,6 +27,8 @@ function languageTags(): Plugin {
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, fileURLToPath(new URL("..", import.meta.url)), "WEBSPEAK_");
   const gatewayPort = env.WEBSPEAK_PORT?.trim();
+  // 127.0.0.1, not localhost: a 127.0.0.1-bound gateway is unreachable once Node resolves localhost to ::1 first.
+  const gatewayHost = `127.0.0.1:${gatewayPort}`;
   return {
     plugins: [vue(), tailwindcss(), languageTags()],
     resolve: {
@@ -36,8 +38,16 @@ export default defineConfig(({ mode }) => {
       port: 5173,
       proxy: gatewayPort
         ? {
-            "/api": `http://localhost:${gatewayPort}`,
-            "/ws": { target: `ws://localhost:${gatewayPort}`, ws: true },
+            // The gateway gates its API on same origin. The browser's :5173 origin never matches, so the
+            // proxy presents the gateway's own origin; production keeps the real check across hosts.
+            "/api": {
+              target: `http://${gatewayHost}`,
+              changeOrigin: true,
+              configure: (proxy) => {
+                proxy.on("proxyReq", (proxyReq) => proxyReq.setHeader("origin", `http://${gatewayHost}`));
+              },
+            },
+            "/ws": { target: `ws://${gatewayHost}`, ws: true },
           }
         : {},
     },
