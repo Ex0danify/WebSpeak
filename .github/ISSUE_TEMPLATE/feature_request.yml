@@ -1,6 +1,6 @@
 name: Feature request
 description: Propose a specific, actionable change to WebSpeak
-labels: ["feature-request"]
+labels: ["type: feature-request"]
 body:
   - type: markdown
     attributes:
