@@ -1,8 +1,8 @@
 name: CI
 
 # The required check is `ci-pass`. Together the jobs cover `npm run test:full` plus format, lint and a packaged build on each target platform.
-# Add the label `ui` to a pull request that changes the look on purpose: the visual job is skipped, and the baseline is
-# rebuilt after the merge (visual-baseline.yml). The format job commits Prettier fixes to the branch first.
+# Add the label `visual-change` to a pull request that changes the look on purpose: the visual job is skipped, and the
+# baseline is rebuilt after the merge (visual-baseline.yml). The format job commits Prettier fixes to the branch first.
 on:
   pull_request:
     types: [opened, synchronize, reopened, labeled, unlabeled]
@@ -92,7 +92,7 @@ jobs:
 
   # Screenshots against the baseline committed on master (e2e/visual/baseline), made on this same runner image.
   visual:
-    if: ${{ !contains(github.event.pull_request.labels.*.name, 'ui') }}
+    if: ${{ !contains(github.event.pull_request.labels.*.name, 'visual-change') }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
@@ -175,7 +175,7 @@ jobs:
           done
           exit 1
 
-  # The one status to require in the branch protection. A skipped visual job (label ui) counts as passed.
+  # The one status to require in the branch protection. A skipped visual job (label visual-change) counts as passed.
   ci-pass:
     if: always()
     needs: [format, verify, e2e, visual, docker-smoke, security-audit, linux-build, windows-build]

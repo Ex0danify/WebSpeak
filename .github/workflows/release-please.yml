@@ -27,8 +27,8 @@ jobs:
           manifest-file: .release-please-manifest.json
       # The release PR only bumps the version and changelog, so it never carries a real UI change, but its visual job still
       # diffs against master's baseline, which the merge that triggered this run rebuilds in parallel (visual-baseline.yml).
-      # The two race, so the job can compare against the old baseline and fail. The `ui` label skips visual the same way it
-      # does on a source PR. CI_PUSH_TOKEN so the labeled event starts a fresh CI run (a GITHUB_TOKEN edit starts none).
+      # The two race, so the job can compare against the old baseline and fail. The `visual-change` label skips visual the
+      # same way it does on a source PR. CI_PUSH_TOKEN so the labeled event starts a fresh CI run (a GITHUB_TOKEN edit starts none).
       - name: Skip visual on the release PR
         if: ${{ steps.release.outputs.pr }}
         env:
@@ -36,4 +36,4 @@ jobs:
           PR_JSON: ${{ steps.release.outputs.pr }}
         # fromJSON lives in the shell, not the env template: a run with no PR leaves the output empty, and
         # fromJSON('') fails template validation even behind the if guard.
-        run: gh pr edit "$(printf '%s' "$PR_JSON" | jq -r '.number')" --add-label ui
+        run: gh pr edit "$(printf '%s' "$PR_JSON" | jq -r '.number')" --add-label visual-change
