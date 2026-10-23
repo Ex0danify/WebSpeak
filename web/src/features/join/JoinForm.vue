@@ -30,10 +30,7 @@
 
     <form v-if="initialized" class="grid gap-1.5" @submit.prevent="$emit('connect')">
       <Field v-if="showServerPicker" id="server-select" :label="t('server')">
-        <Select v-model="serverId"
-          ><option v-for="server in servers" :key="server.id" :value="server.id">{{ server.name }}</option>
-          <option v-if="accessMode === 'open'" value="">{{ t("otherServer") }}</option></Select
-        >
+        <ListSelect v-model="serverPick" :items="serverItems" />
       </Field>
       <div v-if="typedAddress" class="flex gap-3">
         <Field id="server-address" class="min-w-0 flex-1" :label="t('serverAddress')"
@@ -158,7 +155,7 @@ import { Button } from "@/shared/ui/button";
 import { Field } from "@/shared/ui/field";
 import { Icon } from "@/shared/ui/icon";
 import { Input } from "@/shared/ui/input";
-import { Select } from "@/shared/ui/select";
+import { ListSelect, Select, type ListSelectItem } from "@/shared/ui/select";
 import { IdentityPicker, type useIdentityManager } from "@/features/identity";
 import { useI18n } from "@/shared/i18n/useI18n.js";
 import { visibleErrorCode } from "@/features/session";
@@ -207,6 +204,19 @@ const nickname = defineModel<string>("nickname", { default: "" });
 const channel = defineModel<string>("channel", { default: "" });
 
 const { t } = useI18n();
+
+// reka's Select takes no empty value, so the typed address carries a sentinel here and maps back to "" at the model.
+const TYPED_ADDRESS = "\0typed-address";
+const serverItems = computed<ListSelectItem[]>(() => [
+  ...props.servers.map((server) => ({ value: server.id, label: server.name })),
+  ...(props.accessMode === "open" ? [{ value: TYPED_ADDRESS, label: t("otherServer") }] : []),
+]);
+const serverPick = computed({
+  get: () => serverId.value || TYPED_ADDRESS,
+  set: (value: string) => {
+    serverId.value = value === TYPED_ADDRESS ? "" : value;
+  },
+});
 
 // Open access offers the typed address next to the configured servers, picking none of them. Fixed access has only the list.
 const typedAddress = computed(() => props.accessMode === "open" && !serverId.value);

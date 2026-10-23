@@ -1,6 +1,6 @@
 import type { Page } from "@playwright/test";
 import { expect, test } from "./fixtures";
-import { poll } from "../helpers";
+import { pickServer, poll } from "../helpers";
 import { GUEST_IDENTITY as GUEST } from "./identities";
 import { channelIdOf } from "./ui";
 import { TEST_ADMIN_PASSWORD, type Gateway } from "../../test/support/gateway";
@@ -114,7 +114,7 @@ test("guest access set in the console reaches the guests, and a guest still join
   expect(await publicConfig(gateway)).toMatchObject({ accessMode: "open" });
   const guest = await person(GUEST, "admin-open", { gateway });
   await guest.page.goto("/");
-  await guest.page.getByLabel("Server", { exact: true }).selectOption({ label: "Other server…" });
+  await pickServer(guest.page, "Other server…");
   await expect(guest.page.getByLabel("TeamSpeak server address")).toBeVisible();
 
   await page.getByRole("radio", { name: /Only the configured servers/ }).click();

@@ -6,3 +6,4 @@ export { Session, type GatewayMessage } from "./session";
 export { toneWav, withAudioTone, type ToneOptions } from "./tone";
 export { openSettings, settingsDialog, settingsOpener } from "./settings";
 export { gallerySection, openGallery } from "./gallery";
+export { pickServer, serverOptions, serverPicker } from "./serverPicker";

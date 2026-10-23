@@ -1,6 +1,7 @@
 import type { Locator, Page } from "@playwright/test";
 import { expect, test } from "./fixtures";
 import { openServerPage, reloadServerPage } from "./helpers/admin";
+import { serverOptions } from "./helpers";
 import { TeamSpeakProbeError } from "../src/modules/teamspeak/teamSpeakProbe";
 
 // The server list of the admin console's Server page: adding, changing and removing servers, the status dot of each and the
@@ -261,7 +262,8 @@ test.describe("order", () => {
     await reloadServerPage(page, gateway);
     expect(await names(page)).toEqual(["LAN party", "WebSpeak", "Clan"]);
     await page.goto(`${gateway.url}/`);
-    await expect(page.getByLabel("Server", { exact: true }).locator("option")).toHaveText(["LAN party", "WebSpeak", "Clan"]);
+    await page.getByLabel("Your nickname").fill("order-check");
+    expect(await serverOptions(page)).toEqual(["LAN party", "WebSpeak", "Clan"]);
   });
 
   test("Escape puts a picked up server back, and nothing is saved", async ({ page, ownGateway, isMobile }) => {
