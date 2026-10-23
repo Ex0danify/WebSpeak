@@ -3,6 +3,4 @@ contact_links:
   - name: Questions and support
     url: https://github.com/Ex0danify/WebSpeak/discussions/categories/q-a
     about: Setup, deployment, and "is this supposed to work?" questions belong in Discussions, not issues.
-  - name: Report a security vulnerability
-    url: https://github.com/Ex0danify/WebSpeak/security/advisories/new
-    about: Report vulnerabilities privately through a security advisory. Do not open a public issue.
+  # GitHub adds its own "Report a security vulnerability" entry from SECURITY.md, so we do not repeat it here.
