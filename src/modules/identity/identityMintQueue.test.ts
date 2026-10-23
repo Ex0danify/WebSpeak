@@ -8,12 +8,14 @@ const SAMPLE = generateIdentity(0);
 /** Lets the mint promise's `.then`/`.finally` chain settle before the next assertion. */
 const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
 
-const policy = (over: Partial<IdentityMintPolicy> = {}) => (): IdentityMintPolicy => ({
-  maxLevel: 24,
-  concurrency: 1,
-  queueDepth: 10,
-  ...over,
-});
+const policy =
+  (over: Partial<IdentityMintPolicy> = {}) =>
+  (): IdentityMintPolicy => ({
+    maxLevel: 24,
+    concurrency: 1,
+    queueDepth: 10,
+    ...over,
+  });
 
 /** A mint whose promises stay pending until the test resolves them, so timing is deterministic. */
 function deferredMint() {
