@@ -93,9 +93,14 @@
       </Field>
 
       <Field id="nickname" :label="t('nickname')" class="mt-1.5">
-        <Input v-model="nickname" autocomplete="nickname" maxlength="30" :placeholder="t('nicknamePlaceholder')" autofocus
-          ><template #leading><Icon name="users" /></template
-        ></Input>
+        <Input v-model="nickname" autocomplete="nickname" maxlength="30" :placeholder="t('nicknamePlaceholder')" autofocus>
+          <template #leading><Icon name="users" /></template>
+          <template #trailing>
+            <span v-if="nickname.trim() && connectAsLabel" class="max-w-36 truncate text-2xs text-fg-muted italic">
+              ({{ t("connectAs", { identity: connectAsLabel }) }})
+            </span>
+          </template>
+        </Input>
       </Field>
 
       <Field id="channel" class="mt-1.5">
@@ -137,6 +142,7 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from "vue";
 import { Banner } from "@/shared/ui/banner";
 import GatewayStatus from "@/features/join/GatewayStatus.vue";
 import type { GatewayStatus as GatewayStatusValue } from "@/features/join/useGatewayStatus";
@@ -152,7 +158,7 @@ import { resolveText, type MaybeLocalizedText } from "@/shared/i18n/localizedTex
 import { isLocalPersistenceAvailable } from "@/shared/services/localPersistence.js";
 import type { FavoriteServer, RecentServer } from "@/shared/services/localPersistence.js";
 
-defineProps<{
+const props = defineProps<{
   accessMode: "fixed" | "open";
   favoriteServers: FavoriteServer[];
   recentServers: RecentServer[];
@@ -190,6 +196,15 @@ const nickname = defineModel<string>("nickname", { default: "" });
 const channel = defineModel<string>("channel", { default: "" });
 
 const { t } = useI18n();
+
+// The saved identity the connection will use, for the faint hint in the nickname field. Empty for the
+// ephemeral choice, which carries no identity to name.
+const connectAsLabel = computed(() => {
+  const id = props.identityManager.selectedId.value;
+  if (!id) return "";
+  const identity = props.identityManager.identities.value.find((entry) => entry.id === id);
+  return identity ? identity.label || t("identityUnnamed") : "";
+});
 
 const localPersistenceAvailable = isLocalPersistenceAvailable();
 </script>

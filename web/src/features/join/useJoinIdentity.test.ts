@@ -120,3 +120,32 @@ describe("switching the selection", () => {
     expect(next.identityMaterial).toBe(STORED);
   });
 });
+
+describe("the connect-as hint", () => {
+  // The nickname field only renders once the gateway reports it is initialized.
+  const initializedGateway = () =>
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(
+        async () => new Response(JSON.stringify({ initialized: true }), { status: 200, headers: { "content-type": "application/json" } }),
+      ),
+    );
+
+  it("names the selected identity in the nickname field once it has a value", async () => {
+    initializedGateway();
+    await store.saveIdentity({ id: "work", label: "Work", privateMaterial: STORED, createdAt: 1, lastUsedAt: 1 });
+    await mountView();
+    expect(wrapper!.text()).not.toContain("connect as");
+    await wrapper!.find('input[autocomplete="nickname"]').setValue("Alex");
+    expect(wrapper!.text()).toContain("connect as Work");
+  });
+
+  it("stays hidden for the ephemeral choice", async () => {
+    initializedGateway();
+    await store.saveIdentity({ id: "work", label: "Work", privateMaterial: STORED, createdAt: 1, lastUsedAt: 1 });
+    const view = await mountView();
+    await view.identityManager.select(undefined);
+    await wrapper!.find('input[autocomplete="nickname"]').setValue("Alex");
+    expect(wrapper!.text()).not.toContain("connect as");
+  });
+});

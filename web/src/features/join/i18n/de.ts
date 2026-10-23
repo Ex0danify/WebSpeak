@@ -30,6 +30,7 @@ export const de: Record<string, string> = {
   relayAccelerationHint: "Wähle ein konfiguriertes Relay, wenn eine direktverbindung nicht möglich ist.",
   nickname: "Dein Name",
   nicknamePlaceholder: "z. B. Alex Rivera",
+  connectAs: "Verbinden als {{identity}}",
   targetChannel: "Zielkanal",
   emptyDefault: "Leer lassen, um den Standardkanal zu verwenden",
   identityOptions: "Identitätsoptionen des Geräts",

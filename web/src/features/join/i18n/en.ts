@@ -30,6 +30,7 @@ export const en = {
   relayAccelerationHint: "Choose a configured relay when the direct path is unstable or blocked.",
   nickname: "Your nickname",
   nicknamePlaceholder: "e.g. Alex Rivera",
+  connectAs: "connect as {{identity}}",
   targetChannel: "Target channel",
   emptyDefault: "Leave empty to use the default channel",
   identityOptions: "Device identity options",
