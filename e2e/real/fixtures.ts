@@ -69,10 +69,13 @@ async function startRealGateway(server: RealServer, options: { webRtc?: boolean;
   assertFreshBuild();
   const gateway = await startGateway({ staticDir, realTeamSpeak: true });
   gateway.adminService.updateSettings({
-    target: options.target ?? `${server.host}:${server.voicePort}`,
     accessMode: "fixed",
     siteName: "WebSpeak real-server test",
     webRtcEnabled: options.webRtc === true,
+  });
+  gateway.adminService.updateServer("server-default", {
+    name: "Real server",
+    target: options.target ?? `${server.host}:${server.voicePort}`,
   });
   return gateway;
 }

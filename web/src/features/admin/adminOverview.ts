@@ -4,16 +4,25 @@ import type { ApiError } from "@/features/admin/adminApi.js";
 import { adminSiblings } from "@/features/admin/adminSiblings.js";
 import { useAdminSessionStore } from "@/features/admin/adminSession.js";
 
+interface OverviewServer {
+  id: string;
+  name: string;
+  target: string;
+  status: "reachable" | "unreachable" | "unknown";
+  lastTestAt: string | null;
+  latencyMs: number | null;
+}
+
 function initialOverview() {
   return {
     gateway: { version: "", uptimeSeconds: 0 },
-    teamSpeak: { target: "", status: "unknown", lastTestAt: null as string | null, latencyMs: null as number | null },
+    servers: [] as OverviewServer[],
     sessions: { active: 0, peak: 0, limit: 100 },
     recentEvents: [] as Array<{ event: string; createdAt: string }>,
   };
 }
 
-/** The overview page's data: gateway/TeamSpeak/session status and recent events, plus the database backup download that hangs off the diagnostics card. */
+/** The overview page's data: gateway/server/session status and recent events, plus the database backup download that hangs off the diagnostics card. */
 export const useAdminOverviewStore = defineStore("adminOverview", () => {
   const session = useAdminSessionStore();
 

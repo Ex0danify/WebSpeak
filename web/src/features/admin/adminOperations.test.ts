@@ -110,7 +110,12 @@ describe("useAdminOperationsStore", () => {
     s.sendJson.mockResolvedValue({ token: "t k" } as never);
     s.ops.inviteForm.channel = "Lobby";
     await s.ops.createInvite();
-    expect(s.sendJson).toHaveBeenCalledWith("/api/admin/invites", "POST", { channel: "Lobby", expiresInHours: 24, maxUses: 0 });
+    expect(s.sendJson).toHaveBeenCalledWith("/api/admin/invites", "POST", {
+      serverId: "",
+      channel: "Lobby",
+      expiresInHours: 24,
+      maxUses: 0,
+    });
     expect(s.ops.createdInvite?.link).toBe(`${location.origin}/?invite=t%20k`);
     expect(s.ops.inviteForm.channel).toBe("");
     expect(s.admin.submitting).toBe(false);
