@@ -1,13 +1,13 @@
 import express from "express";
-import { resolveSafeOpenTarget } from "../../../infra/security/openTargetPolicy.js";
 import type { JoinRateLimiter, ServerPasswordBackoff } from "../../../modules/join/index.js";
 import { identityFromString } from "../../../modules/teamspeak/index.js";
 import { isRecord } from "../../../shared/typeGuards.js";
 import { clientRateLimitKey } from "../../../shared/http/clientIp.js";
 import { isSameOrigin } from "../../../shared/http/sameOrigin.js";
-import { parseTeamSpeakTarget, teamSpeakTargetKey } from "../../../shared/teamSpeakTarget.js";
+import { teamSpeakTargetKey } from "../../../shared/teamSpeakTarget.js";
 import type { WebServerOptions } from "../webServerOptions.js";
 import { resolveAccelerationOptions } from "./accelerationOptions.js";
+import { resolveVisitorTarget } from "./visitorTarget.js";
 
 /** `POST /api/join-ticket`: validates the request, applies the access policy and issues a ticket. */
 export function registerJoinRoutes(
@@ -62,39 +62,31 @@ export function registerJoinRoutes(
       return;
     }
 
-    const policy = options.adminService.getConnectionPolicy();
     const managedInvite = inviteToken ? options.adminService.consumeManagedInvite(inviteToken) : null;
     if (inviteToken && !managedInvite) {
       response.status(400).json({ ok: false, code: "INVITE_INVALID" });
       return;
     }
-    let target = managedInvite?.target ?? policy.defaultTarget;
-    let serverPassword = managedInvite?.serverPassword ?? policy.serverPassword;
+    let target = managedInvite?.target;
+    let serverPassword = managedInvite?.serverPassword ?? "";
     let passwordFromVisitor = false;
     const channel = requestedChannel || managedInvite?.channel || "";
     if (!managedInvite) {
       try {
-        if (policy.accessMode === "open" && typeof body.target === "string" && body.target.trim()) {
-          target = parseTeamSpeakTarget(body.target);
-          const isDefault = teamSpeakTargetKey(target) === teamSpeakTargetKey(policy.defaultTarget);
-          // The admin's default is a deliberate trust boundary, so it may point at a same-machine or local
-          // server. Echoing it back reaches the same target as sending none, which also skips the guard.
-          // Only a visitor-chosen target needs SSRF protection.
-          target = isDefault ? policy.defaultTarget : await resolveSafeOpenTarget(target);
-          const typed = typeof body.serverPassword === "string" ? body.serverPassword.slice(0, 512) : "";
-          if (!isDefault) serverPassword = typed;
-          else if (typed.trim()) serverPassword = typed;
-          passwordFromVisitor = typed.trim() !== "" && serverPassword === typed;
-        } else if (policy.accessMode === "fixed" && typeof body.serverPassword === "string" && body.serverPassword.trim()) {
-          // The fixed target stays admin-controlled, but a user may retry its server password when the
-          // gateway asks for one. The target itself never comes from this request.
-          serverPassword = body.serverPassword.slice(0, 512);
-          passwordFromVisitor = true;
-        }
+        const visitor = await resolveVisitorTarget(options.adminService, body);
+        const typed = typeof body.serverPassword === "string" ? body.serverPassword.slice(0, 512) : "";
+        target = visitor.target;
+        // A configured server keeps its saved password unless the visitor retries with another one.
+        serverPassword = visitor.listed && !typed.trim() ? visitor.serverPassword : typed;
+        passwordFromVisitor = typed.trim() !== "";
       } catch {
         response.status(400).json({ ok: false, code: "TARGET_NOT_ALLOWED" });
         return;
       }
+    }
+    if (!target) {
+      response.status(400).json({ ok: false, code: "TARGET_NOT_ALLOWED" });
+      return;
     }
 
     const targetKey = teamSpeakTargetKey(target);

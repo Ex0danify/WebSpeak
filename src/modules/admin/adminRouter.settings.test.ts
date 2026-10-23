@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { settingsInput } from "../../../test/support/adminService.js";
+import { DEFAULT_SERVER_ID, serverInput, settingsInput } from "../../../test/support/adminService.js";
 import { type AdminApi, type Gateway, useGateway } from "../../../test/support/gateway.js";
 import { TeamSpeakProbeError } from "../teamspeak/teamSpeakProbe.js";
 
@@ -22,22 +22,18 @@ describe("GET /server", () => {
     const settings = await json(await admin.get("server"));
     expect(Object.keys(settings).sort()).toEqual([
       "accessMode",
-      "hasPassword",
       "hasRelayToken",
       "identityMintConcurrency",
       "identityMintMaxLevel",
       "identityMintQueueDepth",
       "internalPort",
-      "lastTestAt",
-      "lastTestError",
-      "lastTestLatencyMs",
       "relayConfigured",
       "relayEnabled",
       "relayName",
       "relayNodes",
       "relayTarget",
+      "servers",
       "siteName",
-      "target",
       "updatedAt",
       "webRtcEnabled",
       "webRtcUdpEnd",
@@ -46,7 +42,7 @@ describe("GET /server", () => {
       "welcomeTexts",
     ]);
     expect(settings).toMatchObject({
-      hasPassword: false,
+      servers: [{ id: DEFAULT_SERVER_ID, hasPassword: false }],
       hasRelayToken: false,
       webRtcEnabled: false,
       siteName: "WebSpeak",
@@ -69,7 +65,6 @@ describe("PUT /server", () => {
       ok: true,
       settings: {
         siteName: "Renamed",
-        target: "ts.example.org:9988",
         accessMode: "open",
         welcomeTexts: { en: "hello", de: "hallo de", fr: "salut" },
       },
@@ -80,10 +75,9 @@ describe("PUT /server", () => {
 
   it("round-trips: the values the console reads can be written back unchanged, and the password survives", async () => {
     const { gateway, admin } = await start();
-    await admin.put("server", settingsInput({ passwordAction: "replace", serverPassword: "keep-me" }));
+    await admin.put(`servers/${DEFAULT_SERVER_ID}`, serverInput({ passwordAction: "replace", serverPassword: "keep-me" }));
     const before = await json(await admin.get("server"));
     const body = {
-      target: before.target,
       accessMode: before.accessMode,
       siteName: before.siteName,
       welcomeTexts: before.welcomeTexts,
@@ -94,16 +88,15 @@ describe("PUT /server", () => {
     expect((await admin.put("server", body)).status).toBe(200);
     const after = await json(await admin.get("server"));
     expect({ ...after, updatedAt: null }).toEqual({ ...before, updatedAt: null });
-    expect(gateway.adminService.getConnectionPolicy().serverPassword).toBe("keep-me");
+    expect(gateway.adminService.resolveServer(DEFAULT_SERVER_ID)!.serverPassword).toBe("keep-me");
   });
 
   it("never returns the server password or the relay token, in the answer or later", async () => {
     const { admin } = await start();
+    await admin.put(`servers/${DEFAULT_SERVER_ID}`, serverInput({ passwordAction: "replace", serverPassword: "s3cret-server-pass" }));
     const saved = await admin.put(
       "server",
       settingsInput({
-        passwordAction: "replace",
-        serverPassword: "s3cret-server-pass",
         relaySettingsAction: "replace",
         relayEnabled: true,
         relayName: "Relay",
@@ -115,30 +108,18 @@ describe("PUT /server", () => {
     const texts = [await saved.text(), await (await admin.get("server")).text()];
     for (const text of texts) {
       expect(text).not.toContain("s3cret");
-      expect(JSON.parse(text).settings ?? JSON.parse(text)).toMatchObject({ hasPassword: true, hasRelayToken: true, relayEnabled: true });
+      expect(JSON.parse(text).settings ?? JSON.parse(text)).toMatchObject({
+        servers: [{ hasPassword: true }],
+        hasRelayToken: true,
+        relayEnabled: true,
+      });
     }
-  });
-
-  it("keeps, replaces or removes the password by passwordAction (keep is the default)", async () => {
-    const { gateway, admin } = await start();
-    const password = () => gateway.adminService.getConnectionPolicy().serverPassword;
-    await admin.put("server", settingsInput({ passwordAction: "replace", serverPassword: "one" }));
-    await admin.put("server", settingsInput({ serverPassword: "ignored without an action" }));
-    expect(password()).toBe("one");
-    await admin.put("server", settingsInput({ passwordAction: "replace", serverPassword: "two" }));
-    expect(password()).toBe("two");
-    await admin.put("server", settingsInput({ passwordAction: "remove" }));
-    expect(password()).toBe("");
-    expect(await json(await admin.get("server"))).toMatchObject({ hasPassword: false });
   });
 
   it("answers a bad value with 400 and the code of the rule, and changes nothing", async () => {
     const { admin } = await start();
     const before = await json(await admin.get("server"));
     const cases: [string, Record<string, unknown>, string][] = [
-      ["no target", { target: undefined }, "INVALID_REQUEST"],
-      ["target over 300 characters", { target: "t".repeat(301) }, "INVALID_REQUEST"],
-      ["target that is not one", { target: "not a target:::" }, "INVALID_TARGET"],
       ["no site name", { siteName: undefined }, "INVALID_REQUEST"],
       ["empty site name", { siteName: "" }, "INVALID_SITE_NAME"],
       ["site name over 80 characters", { siteName: "s".repeat(81) }, "INVALID_REQUEST"],
@@ -220,7 +201,7 @@ describe("POST /server/test", () => {
 
   it("does not use the server password: the request needs none and the handshake is not given one", async () => {
     const { gateway, admin } = await start();
-    await admin.put("server", settingsInput({ passwordAction: "replace", serverPassword: "stored" }));
+    await admin.put(`servers/${DEFAULT_SERVER_ID}`, serverInput({ passwordAction: "replace", serverPassword: "stored" }));
     await post(admin, { target: "ts.example.org:9988", serverPassword: "typed", passwordAction: "replace" });
     expect(JSON.stringify(gateway.probe.mock.calls)).not.toMatch(/stored|typed/);
     expect(gateway.probe.mock.lastCall).toEqual([{ host: "ts.example.org", port: 9988 }]);
@@ -270,32 +251,23 @@ describe("POST /server/test", () => {
     expect(gateway.ping).not.toHaveBeenCalled();
   });
 
-  it("records the result, shows it in the overview, and forgets it when the target changes", async () => {
+  it("keeps nothing, the dialog tests values that are not saved", async () => {
     const { gateway, admin } = await start();
-    expect((await json(await admin.get("overview"))).teamSpeak).toMatchObject({ status: "unknown", lastTestAt: null });
     await post(admin);
-    expect((await json(await admin.get("overview"))).teamSpeak).toMatchObject({ status: "reachable", latencyMs: 12, lastError: null });
-    gateway.probe.mockRejectedValueOnce(new TeamSpeakProbeError("NO_ANSWER", "silent"));
-    await post(admin);
-    expect((await json(await admin.get("overview"))).teamSpeak).toMatchObject({ status: "unreachable", lastError: "NO_ANSWER" });
-    expect(audit(gateway).slice(0, 2)).toEqual(["CONNECTION_TEST_FAILED", "CONNECTION_TEST_SUCCEEDED"]);
-    await admin.put("server", settingsInput({ target: "other.example.org:9987" }));
-    expect((await json(await admin.get("overview"))).teamSpeak).toMatchObject({
-      target: "other.example.org:9987",
-      status: "unknown",
-      lastTestAt: null,
-      lastError: null,
-    });
+    expect((await json(await admin.get("overview"))).servers[0]).toMatchObject({ status: "unknown", lastTestAt: null });
+    expect(audit(gateway)).not.toContain("CONNECTION_TEST_SUCCEEDED");
   });
 });
 
 describe("GET /overview", () => {
-  it("describes the gateway, the target, the sessions and the recent audit events", async () => {
+  it("describes the gateway, the servers, the sessions and the recent audit events", async () => {
     const { admin } = await start();
     const overview = await json(await admin.get("overview"));
     expect(overview).toMatchObject({
       gateway: { status: "running", version: "9.9.9" },
-      teamSpeak: { target: expect.any(String), status: "unknown", lastTestAt: null, latencyMs: null, lastError: null },
+      servers: [
+        { id: DEFAULT_SERVER_ID, target: expect.any(String), status: "unknown", lastTestAt: null, latencyMs: null, lastError: null },
+      ],
       sessions: { active: 0, peak: 0, limit: 100 },
     });
     expect(overview.gateway.uptimeSeconds).toBeGreaterThanOrEqual(0);

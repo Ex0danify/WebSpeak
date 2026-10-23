@@ -4,6 +4,8 @@ export const de: Record<string, string> = {
   errorCode: "Fehlercode",
   viewChangelog: "Änderungsprotokoll ansehen",
   notConfigured: "Der standard TeamSpeak Server wurde noch nicht konfiguriert.",
+  noServersAvailable: "Es ist noch kein TeamSpeak-Server verfügbar. Bitte den Administrator, einen einzurichten.",
+  otherServer: "Anderer Server…",
   configLoadFailed: "Die Servereinstellungen konnten nicht geladen werden. Prüfe deine Verbindung und versuche es erneut.",
   retry: "Erneut versuchen",
   configureNow: "Administrationskonsole öffnen",

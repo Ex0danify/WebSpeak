@@ -11,12 +11,13 @@ export class ManagedInviteRepository {
       this.context.database
         .prepare(
           `INSERT INTO managed_invites (
-           id, token_hash, target_host, target_port, server_password_encrypted,
+           id, server_id, token_hash, target_host, target_port, server_password_encrypted,
            channel, expires_at, max_uses, use_count, created_at, revoked_at
-         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, ?, NULL)`,
+         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, NULL)`,
         )
         .run(
           record.id,
+          record.serverId,
           record.tokenHash,
           record.targetHost,
           record.targetPort,
@@ -40,6 +41,13 @@ export class ManagedInviteRepository {
       .prepare("UPDATE managed_invites SET revoked_at = ? WHERE id = ? AND revoked_at IS NULL")
       .run(new Date().toISOString(), id) as { changes?: number | bigint };
     return Number(result.changes ?? 0) === 1;
+  }
+
+  revokeForServer(serverId: string): number {
+    const result = this.context.database
+      .prepare("UPDATE managed_invites SET revoked_at = ? WHERE server_id = ? AND revoked_at IS NULL")
+      .run(new Date().toISOString(), serverId) as { changes?: number | bigint };
+    return Number(result.changes ?? 0);
   }
 
   consume(tokenHash: string, now = Date.now()): ManagedInviteRecord | null {

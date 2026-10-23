@@ -1,5 +1,4 @@
 import { LANGUAGES, type Language } from "@/shared/i18n/languages.js";
-import { splitTeamSpeakTarget } from "@/shared/lib/teamspeakTarget.js";
 
 export type AccessMode = "fixed" | "open";
 export interface HostPing {
@@ -32,6 +31,22 @@ export const DEFAULT_WELCOME_TEXTS: Record<string, string> = {
   en: "No TeamSpeak client installation required. Open your browser and join a voice channel with low-latency audio built for conversation.",
   de: "Keine Installation des TeamSpeak-Clients nötig. Öffne den Browser und tritt einem Sprachkanal bei – leichtgewichtig und mit geringer Latenz.",
 };
+
+/** The add and edit dialog of the server list. An empty id means a new server. */
+export function initialServerDialog() {
+  return {
+    open: false,
+    id: "",
+    name: "",
+    address: "",
+    port: "9987",
+    serverPassword: "",
+    passwordAction: "replace" as "keep" | "replace" | "remove",
+    hasPassword: false,
+    saving: false,
+    error: "",
+  };
+}
 
 /** One option per discovered language, so adding a language file adds it to the admin form. */
 export const welcomeLanguageOptions: Array<{ value: WelcomeLanguage; label: string }> = LANGUAGES.map((info) => ({
@@ -78,11 +93,6 @@ export function createRelayNode(): RelayNodeForm {
 
 export function initialServerForm() {
   return {
-    address: "",
-    port: "9987",
-    serverPassword: "",
-    passwordAction: "keep" as "keep" | "replace" | "remove",
-    hasPassword: false,
     accessMode: "fixed" as AccessMode,
     siteName: "WebSpeak",
     welcomeTexts: {} as Record<string, string>,
@@ -102,8 +112,6 @@ export function initialServerForm() {
     hasRelayToken: false,
     relaySettingsTouched: false,
     relayNodes: [] as RelayNodeForm[],
-    lastTestAt: null as string | null,
-    lastTestLatencyMs: null as number | null,
     internalPort: null as number | null,
   };
 }
@@ -111,12 +119,7 @@ export function initialServerForm() {
 /** The form fields a settings response (from GET or from the PUT that saved it) sets, secrets cleared and touched flags reset. */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- admin JSON bodies are read field by field, the gateway owns their shape
 export function formFieldsFromSettings(value: Record<string, any>) {
-  const target = splitTeamSpeakTarget(value.target);
   return {
-    address: target.address,
-    port: target.port,
-    serverPassword: "",
-    passwordAction: "keep",
     welcomeTexts: mapWelcomeTexts(value.welcomeTexts),
     welcomeDefaults: {
       ...DEFAULT_WELCOME_TEXTS,

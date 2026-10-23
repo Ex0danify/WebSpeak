@@ -39,7 +39,7 @@ import IdentityManagerDialog from "@/features/identity/IdentityManagerDialog.vue
 import { checkIdentityStatus } from "@/features/identity/identityMintClient.js";
 import type { useIdentityManager } from "@/features/identity/useIdentityManager.js";
 
-const props = defineProps<{ manager: ReturnType<typeof useIdentityManager>; target?: string }>();
+const props = defineProps<{ manager: ReturnType<typeof useIdentityManager>; target?: string; serverId?: string }>();
 
 const { t } = useI18n();
 const dialogOpen = ref(false);
@@ -51,8 +51,8 @@ let statusTimer: ReturnType<typeof setTimeout> | undefined;
 let statusAbort: AbortController | undefined;
 
 watch(
-  [() => props.manager.selectedId.value, () => props.target, () => props.manager.identities.value],
-  ([id, target]) => {
+  [() => props.manager.selectedId.value, () => props.target, () => props.serverId, () => props.manager.identities.value],
+  ([id, target, serverId]) => {
     identityInUse.value = false;
     statusAbort?.abort();
     clearTimeout(statusTimer);
@@ -60,7 +60,7 @@ watch(
     if (!material) return;
     statusTimer = setTimeout(() => {
       statusAbort = new AbortController();
-      void checkIdentityStatus(material, target ?? "", statusAbort.signal).then((inUse) => {
+      void checkIdentityStatus(material, target ?? "", statusAbort.signal, serverId ?? "").then((inUse) => {
         identityInUse.value = inUse;
       });
     }, 400);

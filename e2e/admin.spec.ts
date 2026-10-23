@@ -103,7 +103,7 @@ test.describe("first sign in", () => {
 });
 
 test.describe("overview", () => {
-  test("shows the status, the target and the recent events, and links to the settings and the guest page", async ({
+  test("shows the status, the servers and the recent events, and links to the settings and the guest page", async ({
     page,
     ownGateway,
     isMobile,
@@ -111,7 +111,7 @@ test.describe("overview", () => {
     const gateway = await ownGateway();
     await login(page, gateway);
     await expect(page.getByRole("heading", { name: "WebSpeak is running" })).toBeVisible();
-    await expect(page.getByRole("heading", { name: "Target health" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Server health" })).toBeVisible();
     await expect(page.getByRole("heading", { name: "Recent events" })).toBeVisible();
     await expect(page.getByText("Administrator signed in")).toBeVisible();
     // A phone's narrow sidebar leaves the guest page link out.

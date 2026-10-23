@@ -1,4 +1,3 @@
-import type { TeamSpeakProtocol } from "../../shared/teamSpeakProtocol.js";
 import { DEFAULT_WEBRTC_UDP_PORT_RANGE } from "../../config/webrtcConfig.js";
 import { DEFAULT_IDENTITY_MINT_POLICY } from "../../config/identityMintConfig.js";
 import type { SettingsRow, WelcomeTextRow } from "./databaseRows.js";
@@ -14,13 +13,6 @@ export class SettingsRepository {
       siteName: row.site_name,
       welcomeTexts: this.readWelcomeTexts(),
       accessMode: row.access_mode === "open" ? "open" : "fixed",
-      tsHost: row.ts_host,
-      tsPort: row.ts_port,
-      tsPasswordEncrypted: row.ts_password_encrypted,
-      detectedProtocol: row.detected_protocol === "ts3" || row.detected_protocol === "ts6" ? row.detected_protocol : null,
-      lastTestAt: row.last_test_at,
-      lastTestLatencyMs: row.last_test_latency_ms,
-      lastTestError: row.last_test_error,
       webRtcEnabled: row.webrtc_enabled === 1,
       webRtcUdpStart: row.webrtc_udp_start,
       webRtcUdpEnd: row.webrtc_udp_end,
@@ -37,28 +29,11 @@ export class SettingsRepository {
     };
   }
 
-  recordConnectionTest(result: { protocol: TeamSpeakProtocol | null; latencyMs: number | null; error: string | null }): void {
-    this.context.database
-      .prepare(
-        `UPDATE settings
-       SET detected_protocol = ?, last_test_at = ?, last_test_latency_ms = ?, last_test_error = ?
-       WHERE id = 1`,
-      )
-      .run(result.protocol, new Date().toISOString(), result.latencyMs, result.error);
-  }
-
-  clearConnectionTest(): void {
-    this.context.database.exec(
-      "UPDATE settings SET detected_protocol = NULL, last_test_at = NULL, last_test_latency_ms = NULL, last_test_error = NULL WHERE id = 1",
-    );
-  }
-
   write(settings: SettingsUpdate, now: string): void {
     this.context.database
       .prepare(
         `UPDATE settings SET
-         site_name = ?, access_mode = ?, ts_host = ?, ts_port = ?,
-         ts_password_encrypted = ?, webrtc_enabled = ?, webrtc_udp_start = ?,
+         site_name = ?, access_mode = ?, webrtc_enabled = ?, webrtc_udp_start = ?,
          webrtc_udp_end = ?, identity_mint_max_level = ?, identity_mint_concurrency = ?,
          identity_mint_queue_depth = ?, relay_configured = ?, relay_enabled = ?, relay_name = ?,
          relay_host = ?, relay_port = ?, relay_token_encrypted = ?, updated_at = ?
@@ -67,9 +42,6 @@ export class SettingsRepository {
       .run(
         settings.siteName,
         settings.accessMode,
-        settings.tsHost,
-        settings.tsPort,
-        settings.tsPasswordEncrypted,
         settings.webRtcEnabled ? 1 : 0,
         settings.webRtcUdpStart ?? DEFAULT_WEBRTC_UDP_PORT_RANGE[0],
         settings.webRtcUdpEnd ?? DEFAULT_WEBRTC_UDP_PORT_RANGE[1],

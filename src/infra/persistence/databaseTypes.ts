@@ -1,5 +1,4 @@
-import type { TeamSpeakProtocol } from "../../shared/teamSpeakProtocol.js";
-
+/** "fixed" offers the configured server list only, "open" also takes an address typed by the visitor. */
 export type AccessMode = "fixed" | "open";
 
 export interface PersistedSettings {
@@ -7,13 +6,6 @@ export interface PersistedSettings {
   /** Non-empty welcome texts by language code. */
   welcomeTexts: Record<string, string>;
   accessMode: AccessMode;
-  tsHost: string;
-  tsPort: number;
-  tsPasswordEncrypted: string | null;
-  detectedProtocol: TeamSpeakProtocol | null;
-  lastTestAt: string | null;
-  lastTestLatencyMs: number | null;
-  lastTestError: string | null;
   webRtcEnabled: boolean;
   webRtcUdpStart: number;
   webRtcUdpEnd: number;
@@ -34,9 +26,6 @@ export interface SettingsUpdate {
   /** Replaces the stored welcome texts, empty values are not stored. */
   welcomeTexts?: Record<string, string>;
   accessMode: AccessMode;
-  tsHost: string;
-  tsPort: number;
-  tsPasswordEncrypted: string | null;
   webRtcEnabled: boolean;
   webRtcUdpStart?: number;
   webRtcUdpEnd?: number;
@@ -49,6 +38,19 @@ export interface SettingsUpdate {
   relayHost: string;
   relayPort: number;
   relayTokenEncrypted: string | null;
+}
+
+export interface PersistedServer {
+  id: string;
+  name: string;
+  host: string;
+  port: number;
+  passwordEncrypted: string | null;
+  lastTestAt: string | null;
+  lastTestLatencyMs: number | null;
+  lastTestError: string | null;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface PersistedRelayNode {
@@ -64,6 +66,8 @@ export interface PersistedRelayNode {
 
 export interface ManagedInviteRecord {
   id: string;
+  /** The server the invite was made for, revoking follows its removal or change. */
+  serverId: string | null;
   tokenHash: string;
   targetHost: string;
   targetPort: number;

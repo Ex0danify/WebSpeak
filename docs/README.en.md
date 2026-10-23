@@ -23,7 +23,7 @@ The public demo is hosted in Hong Kong and its network conditions and load may b
 | Browser-side noise suppression | Optional microphone noise suppression runs at the browser capture stage, without adding server-side audio processing. |
 | Messaging and actions | Channel chat, server chat, private messages, poke actions, and whisper targets. |
 | Desktop accompaniment | Select an audio-enabled window or browser tab and share its sound with the current channel. |
-| Identity and access | Remembered identity, visitor-defined targets, and revocable expiring invite links. |
+| Identity and access | Remembered identity, a list of servers visitors pick by name, optional visitor-defined targets, and revocable expiring invite links. |
 | Administration | Manage targets, access policy, WebRTC, relays, invites, sessions, logs, diagnostics, and backups. |
 | User experience | English and German UI, light/dark themes, and responsive desktop/mobile layouts. |
 | Self-hosting | Data stays with the operator; Docker, Windows x64, and Linux x64 deployment options are provided. |
@@ -227,12 +227,12 @@ npm start
 
 1. Open `http://<your-host>:3040/admin`.
 2. Sign in with `WEBSPEAK_ADMIN_USERNAME` and the `WEBSPEAK_ADMIN_PASSWORD` from your `.env`, then set a new password of at least 12 characters. That `.env` value only creates the account on a fresh database; changing it later has no effect, and you can remove it once you have signed in.
-3. Configure the TeamSpeak target and access mode under **Servers**, for example `voice.example.com#9987`.
+3. Add your TeamSpeak servers under **Servers**, for example `voice.example.com#9987`, and choose the access mode. Visitors pick a server by name and never see its address, so a server on a LAN or loopback address is reachable for visitors without opening the gateway to those networks. Open access additionally lets visitors type a public address.
 4. Configure HTTPS for public access; when WebRTC is enabled, allow the UDP range shown in the console.
 
 ### Configuration: `.env` and the admin console
 
-`.env` (copied from [`.env.example`](../.env.example), which also holds every default) holds the deployment settings the process needs before it can serve anything: the bootstrap admin account, `WEBSPEAK_HOST`, `WEBSPEAK_PORT`, `WEBSPEAK_DATA_DIR`, `WEBSPEAK_TRUST_PROXY`, `WEBSPEAK_SCREEN_SHARE_ICE_SERVERS` and the relay variables. WebSpeak has no built-in defaults: it refuses to start if a variable is not set at all (an empty value is fine where `.env.example` leaves it empty). A variable set in the real environment wins over `.env`. Everything an administrator manages (TeamSpeak target and password, access mode, WebRTC, relays, site texts) lives in the admin console. The old `config.json` is no longer read.
+`.env` (copied from [`.env.example`](../.env.example), which also holds every default) holds the deployment settings the process needs before it can serve anything: the bootstrap admin account, `WEBSPEAK_HOST`, `WEBSPEAK_PORT`, `WEBSPEAK_DATA_DIR`, `WEBSPEAK_TRUST_PROXY`, `WEBSPEAK_SCREEN_SHARE_ICE_SERVERS` and the relay variables. WebSpeak has no built-in defaults: it refuses to start if a variable is not set at all (an empty value is fine where `.env.example` leaves it empty). A variable set in the real environment wins over `.env`. Everything an administrator manages (TeamSpeak servers and their passwords, access mode, WebRTC, relays, site texts) lives in the admin console. The old `config.json` is no longer read.
 
 ### Lost administrator password
 

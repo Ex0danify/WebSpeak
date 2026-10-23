@@ -111,6 +111,16 @@ describe("checkIdentityStatus", () => {
     expect(JSON.parse(fetchMock.mock.calls[1][1].body as string)).toEqual({ identity: "material", target: "host:9987" });
   });
 
+  it("asks about a configured server by id instead of an address", async () => {
+    const fetchMock = vi.fn(async (_url: string, init: RequestInit) => {
+      void init;
+      return jsonResponse({ ok: true, inUse: false }, 200);
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    await checkIdentityStatus("material", "host:9987", undefined, "server-a");
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body as string)).toEqual({ identity: "material", serverId: "server-a" });
+  });
+
   it("treats a failed request as not in use rather than throwing", async () => {
     vi.stubGlobal(
       "fetch",

@@ -7,7 +7,10 @@ const at = (minutes: number) => new Date(Date.UTC(2026, 0, 15, 12, 0) - minutes 
 
 const overview = {
   gateway: { version: "0.0.0-snapshot", uptimeSeconds: 93_784 },
-  teamSpeak: { target: "ts.example.com:9987", status: "ok", lastTestAt: at(12), latencyMs: 32 },
+  servers: [
+    { id: "server-main", name: "Main server", target: "ts.example.com:9987", status: "reachable", lastTestAt: at(12), latencyMs: 32 },
+    { id: "server-lan", name: "LAN party", target: "192.168.1.20:9987", status: "unreachable", lastTestAt: at(12), latencyMs: null },
+  ],
   sessions: { active: 3, peak: 7, limit: 100 },
   recentEvents: [
     { event: "session.created", createdAt: at(4) },
@@ -16,9 +19,31 @@ const overview = {
   ],
 };
 
+const servers = {
+  servers: [
+    {
+      id: "server-main",
+      name: "Main server",
+      target: "ts.example.com:9987",
+      hasPassword: true,
+      lastTestAt: at(12),
+      lastTestLatencyMs: 32,
+      lastTestError: null,
+    },
+    {
+      id: "server-lan",
+      name: "LAN party",
+      target: "192.168.1.20:9987",
+      hasPassword: false,
+      lastTestAt: at(12),
+      lastTestLatencyMs: null,
+      lastTestError: "TIMEOUT",
+    },
+  ],
+};
+
 const server = {
-  target: "ts.example.com:9987",
-  hasPassword: true,
+  ...servers,
   accessMode: "fixed",
   siteName: "WebSpeak",
   welcomeTexts: { en: "Welcome to WebSpeak", de: "Willkommen bei WebSpeak" },
@@ -34,8 +59,6 @@ const server = {
     { id: "fra", name: "Frankfurt relay", enabled: true, target: "relay.example.com:9987", hasToken: true },
     { id: "tyo", name: "Tokyo relay", enabled: false, target: "tokyo.example.com:9987", hasToken: false },
   ],
-  lastTestAt: at(12),
-  lastTestLatencyMs: 32,
   internalPort: 3040,
 };
 
@@ -183,7 +206,10 @@ export const publicConfig = {
     de: "Willkommen bei WebSpeak",
   },
   accessMode: "fixed",
-  target: "ts.example.com:9987",
+  servers: [
+    { id: "server-main", name: "Main server" },
+    { id: "server-lan", name: "LAN party" },
+  ],
   visitorNumber: 1234,
   visitorTotal: 5678,
   accelerationAvailable: false,
@@ -208,6 +234,10 @@ export function adminApi(pathname: string): [number, unknown] | null {
   if (pathname === "/api/admin/session") return [200, { authenticated: true, mustChangePassword: false, csrfToken: "snapshot-csrf" }];
   if (pathname === "/api/admin/overview") return [200, overview];
   if (pathname === "/api/admin/server") return [200, server];
+  if (pathname === "/api/admin/servers") return [200, servers];
+  // The probes of the server list: the first answers, the second stays silent.
+  if (pathname === "/api/admin/servers/server-main/test") return [200, { ok: true, latencyMs: 32 }];
+  if (pathname === "/api/admin/servers/server-lan/test") return [200, { ok: false, latencyMs: null, errorCode: "TIMEOUT" }];
   if (pathname === "/api/admin/sessions") return [200, sessions];
   if (pathname === "/api/admin/invites") return [200, invites];
   if (pathname === "/api/admin/diagnostics") return [200, diagnostics];

@@ -66,11 +66,6 @@ describe("migrations", () => {
       siteName: "WebSpeak",
       welcomeTexts: {},
       accessMode: "fixed",
-      tsHost: "127.0.0.1",
-      tsPort: 9987,
-      tsPasswordEncrypted: null,
-      detectedProtocol: null,
-      lastTestAt: null,
       webRtcEnabled: false,
       webRtcUdpStart: 40000,
       webRtcUdpEnd: 40099,
@@ -80,6 +75,12 @@ describe("migrations", () => {
       relayConfigured: false,
       relayPort: 39087,
     });
+  });
+
+  it("seeds the default server on first use", () => {
+    expect(fx.open().listServers()).toMatchObject([
+      { id: "server-default", name: "WebSpeak", host: "127.0.0.1", port: 9987, passwordEncrypted: null, lastTestAt: null },
+    ]);
   });
 
   it("does not write a schema backup for a database it just created", () => {
@@ -105,14 +106,13 @@ describe("migrations", () => {
       siteName: "Legacy site",
       welcomeTexts: {},
       accessMode: "open",
-      tsHost: "legacy.example.org",
-      tsPort: 9000,
       webRtcUdpStart: 40000,
       identityMintMaxLevel: 8,
       identityMintConcurrency: 2,
       identityMintQueueDepth: 20,
       relayConfigured: false,
     });
+    expect(database.listServers()).toMatchObject([{ id: "server-default", name: "Legacy site", host: "legacy.example.org", port: 9000 }]);
     expect(database.listRelayNodes()).toEqual([]);
     // The tables added by later migrations are usable.
     expect(database.listManagedInvites()).toEqual([]);

@@ -4,6 +4,8 @@ export const en = {
   errorCode: "Error code",
   viewChangelog: "View changelog",
   notConfigured: "The WebSpeak TeamSpeak target has not been configured.",
+  noServersAvailable: "No TeamSpeak server is available yet. Ask the administrator to add one.",
+  otherServer: "Other server…",
   configLoadFailed: "The server settings could not be loaded. Check your connection and try again.",
   retry: "Try again",
   configureNow: "Open admin console",

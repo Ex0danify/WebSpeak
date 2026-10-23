@@ -29,7 +29,7 @@ describe("startGateway", () => {
 
   it("sends same-origin requests, and the join-ticket route rejects the same request without an origin", async () => {
     const gateway = await gateways.start();
-    const body = JSON.stringify({ nickname: "tester" });
+    const body = JSON.stringify({ nickname: "tester", serverId: "server-default" });
     const withOrigin = await gateway.request("/api/join-ticket", { method: "POST", headers: { "content-type": "application/json" }, body });
     expect(withOrigin.status).toBe(201);
     const withoutOrigin = await fetch(`${gateway.url}/api/join-ticket`, {

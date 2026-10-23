@@ -75,6 +75,7 @@
     />
     <path v-else-if="name === 'close'" d="m6 6 12 12M18 6 6 18" />
     <path v-else-if="name === 'more'" d="M5 12h.01M12 12h.01M19 12h.01" stroke-width="3" />
+    <path v-else-if="name === 'grip'" d="M9 6h.01M15 6h.01M9 12h.01M15 12h.01M9 18h.01M15 18h.01" stroke-width="3" />
     <path v-else-if="name === 'refresh'" d="M20 11a8 8 0 0 0-14-4L4 9m0-4v4h4M4 13a8 8 0 0 0 14 4l2-2m0 4v-4h-4" />
     <path v-else-if="name === 'lock'" d="M6 10h12v10H6zM8 10V7a4 4 0 0 1 8 0v3" />
     <template v-else-if="name === 'user'">

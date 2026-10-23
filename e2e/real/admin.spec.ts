@@ -1,6 +1,6 @@
 import type { Page } from "@playwright/test";
 import { expect, test } from "./fixtures";
-import { poll } from "../helpers";
+import { pickServer, poll } from "../helpers";
 import { GUEST_IDENTITY as GUEST } from "./identities";
 import { channelIdOf } from "./ui";
 import { TEST_ADMIN_PASSWORD, type Gateway } from "../../test/support/gateway";
@@ -22,8 +22,14 @@ async function openAdmin(page: Page, gateway: Gateway, path: "/server" | "/opera
   await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
 }
 
-const publicConfig = async (gateway: Gateway): Promise<{ accessMode: string; target: string }> =>
+const publicConfig = async (gateway: Gateway): Promise<{ accessMode: string; servers: Array<{ id: string; name: string }> }> =>
   (await gateway.request("/api/public-config")).json();
+
+/** The edit dialog of the real server, which the dialog's own connection test then checks without saving anything. */
+async function openRealServerDialog(page: Page): Promise<void> {
+  await page.getByRole("button", { name: "Edit Real server" }).click();
+  await expect(page.getByRole("dialog", { name: "Edit server" })).toBeVisible();
+}
 
 test.describe("test connection", () => {
   // The console's test sends the first packet of the TeamSpeak handshake to the voice port and waits for the answer
@@ -32,6 +38,7 @@ test.describe("test connection", () => {
   test("reports the real server's answer to the handshake, and the ping of its host", async ({ page, ownGateway, server }) => {
     const gateway = await ownGateway();
     await openAdmin(page, gateway, "/server");
+    await openRealServerDialog(page);
     await expect(page.getByLabel("TeamSpeak server address")).toHaveValue(server.host);
     await expect(page.getByLabel("Voice port")).toHaveValue(String(server.voicePort));
 
@@ -51,6 +58,7 @@ test.describe("test connection", () => {
   test("fails for a voice port that nothing listens on, although the host answers ping", async ({ page, ownGateway }) => {
     const gateway = await ownGateway();
     await openAdmin(page, gateway, "/server");
+    await openRealServerDialog(page);
     await page.getByLabel("Voice port").fill("1");
     const answer = page.waitForResponse((response) => response.url().endsWith("/api/admin/server/test"));
     await page.getByRole("button", { name: "Test connection" }).click();
@@ -68,6 +76,7 @@ test.describe("test connection", () => {
   test("reports a host that does not answer as a failure", async ({ page, ownGateway }) => {
     const gateway = await ownGateway();
     await openAdmin(page, gateway, "/server");
+    await openRealServerDialog(page);
     // 192.0.2.0/24 is reserved for documentation (TEST-NET-1): nothing answers there, neither ping
     // nor the handshake (which is silent, or refused by a router that has no route).
     await page.getByLabel("TeamSpeak server address").fill("192.0.2.1");
@@ -87,11 +96,10 @@ test("guest access set in the console reaches the guests, and a guest still join
   page,
   person,
   ownGateway,
-  server,
   query,
 }) => {
   const gateway = await ownGateway();
-  expect(await publicConfig(gateway)).toMatchObject({ accessMode: "fixed", target: `${server.host}:${server.voicePort}` });
+  expect(await publicConfig(gateway)).toMatchObject({ accessMode: "fixed", servers: [{ name: "Real server" }] });
   await openAdmin(page, gateway, "/server");
   const save = async () => {
     const answer = page.waitForResponse(
@@ -101,14 +109,15 @@ test("guest access set in the console reaches the guests, and a guest still join
     expect((await answer).status()).toBe(200);
   };
 
-  await page.getByRole("radio", { name: /Allow other TeamSpeak servers/ }).click();
+  await page.getByRole("radio", { name: /Also allow other TeamSpeak servers/ }).click();
   await save();
   expect(await publicConfig(gateway)).toMatchObject({ accessMode: "open" });
   const guest = await person(GUEST, "admin-open", { gateway });
   await guest.page.goto("/");
+  await pickServer(guest.page, "Other server…");
   await expect(guest.page.getByLabel("TeamSpeak server address")).toBeVisible();
 
-  await page.getByRole("radio", { name: /Only this TeamSpeak server/ }).click();
+  await page.getByRole("radio", { name: /Only the configured servers/ }).click();
   await save();
   expect(await publicConfig(gateway)).toMatchObject({ accessMode: "fixed" });
   await guest.join();

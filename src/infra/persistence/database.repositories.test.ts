@@ -8,6 +8,7 @@ import { ManagedInviteRepository } from "./managedInviteRepository.js";
 import { MetaRepository } from "./metaRepository.js";
 import type { PersistenceContext } from "./persistenceContext.js";
 import { RelayNodeRepository } from "./relayNodeRepository.js";
+import { ServerRepository } from "./serverRepository.js";
 import { SettingsRepository } from "./settingsRepository.js";
 
 let context: PersistenceContext;
@@ -50,19 +51,47 @@ describe("SettingsRepository", () => {
       accessMode: "open",
       webRtcEnabled: false,
       relayEnabled: true,
-      detectedProtocol: null,
       updatedAt: "2026-01-01T00:00:00.000Z",
     });
   });
+});
 
-  it("records and clears the connection test result", () => {
-    const repo = new SettingsRepository(context);
-    repo.write(settings(), "2026-01-01T00:00:00.000Z");
-    repo.recordConnectionTest({ protocol: "ts6", latencyMs: 12, error: null });
-    expect(repo.get()).toMatchObject({ detectedProtocol: "ts6", lastTestLatencyMs: 12, lastTestError: null });
-    expect(repo.get().lastTestAt).not.toBeNull();
-    repo.clearConnectionTest();
-    expect(repo.get()).toMatchObject({ detectedProtocol: null, lastTestAt: null, lastTestLatencyMs: null });
+describe("ServerRepository", () => {
+  const server = (id: string, name = id) => ({ id, name, host: `${id}.example.org`, port: 9987, passwordEncrypted: null });
+
+  it("lists in insertion order and appends each new server last", () => {
+    const repo = new ServerRepository(context);
+    const before = repo.list().length;
+    repo.insert(server("one"), "2026-01-01T00:00:00.000Z");
+    repo.insert(server("two"), "2026-01-01T00:00:00.000Z");
+    expect(
+      repo
+        .list()
+        .slice(before)
+        .map((entry) => entry.id),
+    ).toEqual(["one", "two"]);
+    expect(repo.get("two")).toMatchObject({ host: "two.example.org", lastTestAt: null });
+    expect(repo.get("missing")).toBeNull();
+  });
+
+  it("keeps the test result on a rename and clears it when asked", () => {
+    const repo = new ServerRepository(context);
+    repo.insert(server("one"), "2026-01-01T00:00:00.000Z");
+    repo.recordTest("one", { latencyMs: 12, error: null });
+    repo.update({ ...server("one"), name: "Renamed" }, "2026-01-02T00:00:00.000Z", false);
+    expect(repo.get("one")).toMatchObject({ name: "Renamed", lastTestLatencyMs: 12 });
+    expect(repo.get("one")!.lastTestAt).not.toBeNull();
+    repo.update({ ...server("one"), host: "moved.example.org" }, "2026-01-03T00:00:00.000Z", true);
+    expect(repo.get("one")).toMatchObject({ host: "moved.example.org", lastTestAt: null, lastTestLatencyMs: null, lastTestError: null });
+  });
+
+  it("records a failed test and deletes", () => {
+    const repo = new ServerRepository(context);
+    repo.insert(server("one"), "2026-01-01T00:00:00.000Z");
+    repo.recordTest("one", { latencyMs: null, error: "TIMEOUT" });
+    expect(repo.get("one")).toMatchObject({ lastTestLatencyMs: null, lastTestError: "TIMEOUT" });
+    expect(repo.delete("one")).toBe(true);
+    expect(repo.delete("one")).toBe(false);
   });
 });
 

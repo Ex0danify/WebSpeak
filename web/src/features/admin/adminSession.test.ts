@@ -5,6 +5,7 @@ import { routeLocationKey, routerKey } from "vue-router";
 import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from "vitest";
 import { useAdminOperationsStore } from "@/features/admin/adminOperations";
 import { useAdminOverviewStore } from "@/features/admin/adminOverview";
+import { useAdminServersStore } from "@/features/admin/adminServers";
 import { useAdminServerSettingsStore } from "@/features/admin/adminServerSettings";
 import { useAdminSessionStore } from "@/features/admin/adminSession";
 
@@ -29,6 +30,7 @@ function setup(path = "/admin") {
   const loadAdminData = vi.fn(async () => {});
   Object.assign(useAdminOverviewStore(), { loadOverview: loadAdminData });
   Object.assign(useAdminServerSettingsStore(), { loadServerSettings: vi.fn(async () => {}) });
+  Object.assign(useAdminServersStore(), { loadServers: vi.fn(async () => {}) });
   return { session: store, route, router, loadAdminData };
 }
 
@@ -144,16 +146,19 @@ describe("useAdminSessionStore", () => {
     overview.overview.gateway.version = "1.2.3";
     operations.operations.sessions = [{ id: "s1" } as never];
     operations.createdInvite = { token: "t", link: "l" };
-    server.serverForm.address = "ts.example.com";
+    const servers = useAdminServersStore();
+    server.serverForm.siteName = "Night Owls";
     server.welcomeLanguage = "de";
-    server.testResult = { ok: true };
+    servers.servers = [{ id: "server-1" } as never];
+    servers.testResult = { ok: true };
     await session.logout();
     expect(overview.overview.gateway.version).toBe("");
     expect(operations.operations.sessions).toEqual([]);
     expect(operations.createdInvite).toBeNull();
-    expect(server.serverForm.address).toBe("");
+    expect(server.serverForm.siteName).toBe("WebSpeak");
     expect(server.welcomeLanguage).toBe("en");
-    expect(server.testResult).toBeNull();
+    expect(servers.servers).toEqual([]);
+    expect(servers.testResult).toBeNull();
   });
 
   it("a 401 while in the console falls back to login; elsewhere it does not redirect", async () => {

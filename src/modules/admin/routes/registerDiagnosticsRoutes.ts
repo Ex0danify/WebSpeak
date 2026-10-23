@@ -6,13 +6,14 @@ import type { AdminRouterOptions } from "../adminRouterOptions.js";
 
 interface AdminOverview {
   gateway: { uptimeSeconds: number };
-  teamSpeak: {
+  servers: Array<{
+    name: string;
     target: string;
     status: string;
     lastTestAt: string | null;
     latencyMs: number | null;
     lastError: string | null;
-  };
+  }>;
 }
 
 /** Audit trail, log tail, diagnostics, the downloadable report and the database backup. */
@@ -51,7 +52,7 @@ export function registerDiagnosticsRoutes(router: Router, options: AdminRouterOp
         created: options.getCreatedSessions?.() ?? 0,
         limit: 100,
       },
-      teamSpeak: overview.teamSpeak,
+      servers: overview.servers,
       database: { schemaVersion: options.service.database.schemaVersion },
       logs: { available: Boolean(options.logFile && existsSync(options.logFile)) },
     });
@@ -78,12 +79,13 @@ export function registerDiagnosticsRoutes(router: Router, options: AdminRouterOp
         created: options.getCreatedSessions?.() ?? 0,
         limit: 100,
       },
-      teamSpeak: {
-        status: overview.teamSpeak.status,
-        lastTestAt: overview.teamSpeak.lastTestAt,
-        latencyMs: overview.teamSpeak.latencyMs,
-        lastError: overview.teamSpeak.lastError,
-      },
+      servers: overview.servers.map(({ name, status, lastTestAt, latencyMs, lastError }) => ({
+        name,
+        status,
+        lastTestAt,
+        latencyMs,
+        lastError,
+      })),
       database: { schemaVersion: options.service.database.schemaVersion },
       audit: options.service.database.recentAudit(50),
     };

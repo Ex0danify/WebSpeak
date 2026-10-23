@@ -1,9 +1,9 @@
 import { generateIdentity } from "../../lib/teamspeak/index.js";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { settingsInput } from "../../../test/support/adminService.js";
+import { DEFAULT_SERVER_ID, serverInput } from "../../../test/support/adminService.js";
 import { type Gateway, useGateway } from "../../../test/support/gateway.js";
 import type { FakeTSClient } from "../../../test/support/fakeTsClient.js";
-import type { JoinTicketPayload } from "../../modules/join/joinTicket.js";
+import { configure, issued, post } from "../../../test/support/joinTicket.js";
 
 const gateways = useGateway();
 const JSON_HEADERS = { "content-type": "application/json" };
@@ -12,24 +12,6 @@ const HOUR_MS = 60 * 60 * 1000;
 afterEach(() => {
   vi.useRealTimers();
 });
-
-async function post(gateway: Gateway, body: unknown, headers: Record<string, string> = JSON_HEADERS) {
-  const response = await gateway.request("/api/join-ticket", { method: "POST", headers, body: JSON.stringify(body) });
-  return { status: response.status, headers: response.headers, body: (await response.json()) as Record<string, unknown> };
-}
-
-/** Asks for a ticket, expects one, and returns what the gateway stored behind it. */
-async function issued(gateway: Gateway, body: unknown): Promise<JoinTicketPayload> {
-  const { status, body: result } = await post(gateway, body);
-  expect(status, JSON.stringify(result)).toBe(201);
-  const payload = gateway.joinTickets.consume(result.ticket as string);
-  expect(payload).not.toBeNull();
-  return payload!;
-}
-
-function configure(gateway: Gateway, overrides: Parameters<typeof settingsInput>[0]) {
-  gateway.adminService.updateSettings(settingsInput(overrides));
-}
 
 describe("a normal join", () => {
   it("issues a single-use ticket for the configured target and password, uncached", async () => {
@@ -134,101 +116,13 @@ describe("nickname, channel and identity", () => {
   });
 });
 
-describe("fixed access mode", () => {
-  it("ignores a target from the browser, and takes a non-blank server password from it", async () => {
-    const gateway = await gateways.start();
-    configure(gateway, { target: "8.8.8.8:9988", accessMode: "fixed", passwordAction: "replace", serverPassword: "admin-pass" });
-    const withTarget = await issued(gateway, { nickname: "a", target: "1.1.1.1:1111", serverPassword: "typed" });
-    expect(withTarget).toMatchObject({ target: { host: "8.8.8.8", port: 9988 }, serverPassword: "typed" });
-    expect((await issued(gateway, { nickname: "a", serverPassword: "   " })).serverPassword).toBe("admin-pass");
-  });
-});
-
-describe("a typed server password", () => {
-  it("is refused for a while after the server rejected one, and the admin's own password is not slowed", async () => {
-    const gateway = await gateways.start();
-    configure(gateway, { target: "8.8.8.8:9988", accessMode: "fixed", passwordAction: "replace", serverPassword: "admin-pass" });
-    const first = await issued(gateway, { nickname: "a", serverPassword: "guess" });
-    first.reportPasswordOutcome?.(false);
-    const retry = await post(gateway, { nickname: "a", serverPassword: "guess2" });
-    expect(retry.status).toBe(429);
-    expect(Number(retry.headers.get("retry-after"))).toBeGreaterThan(0);
-    expect((await issued(gateway, { nickname: "a" })).serverPassword).toBe("admin-pass");
-  });
-});
-
-describe("open access mode", () => {
-  const openMode = (gateway: Gateway) =>
-    configure(gateway, { target: "8.8.8.8:9988", accessMode: "open", passwordAction: "replace", serverPassword: "admin-pass" });
-
-  it("accepts a public target from the browser", async () => {
-    const gateway = await gateways.start();
-    openMode(gateway);
-    expect(await issued(gateway, { nickname: "a", target: "1.1.1.1:5555" })).toMatchObject({ target: { host: "1.1.1.1", port: 5555 } });
-  });
-
-  it("refuses private, loopback, link-local and unparsable targets with 400 TARGET_NOT_ALLOWED", async () => {
-    const gateway = await gateways.start();
-    openMode(gateway);
-    for (const target of [
-      "10.0.0.5:9987",
-      "127.0.0.1:9987",
-      "192.168.1.5",
-      "169.254.169.254:80",
-      "[::1]:9987",
-      "localhost",
-      "not a target:::",
-    ]) {
-      expect(await post(gateway, { nickname: "a", target }), target).toMatchObject({
-        status: 400,
-        body: { ok: false, code: "TARGET_NOT_ALLOWED" },
-      });
-    }
-  });
-
-  it("accepts a loopback target that equals the administrator's default", async () => {
-    const gateway = await gateways.start();
-    configure(gateway, { target: "127.0.0.1:9987", accessMode: "open" });
-    expect(await issued(gateway, { nickname: "a", target: "127.0.0.1:9987" })).toMatchObject({
-      target: { host: "127.0.0.1", port: 9987 },
-    });
-  });
-
-  it("still refuses a loopback target the browser chose when it is not the default", async () => {
-    const gateway = await gateways.start();
-    configure(gateway, { target: "127.0.0.1:9987", accessMode: "open" });
-    expect(await post(gateway, { nickname: "a", target: "127.0.0.2:9987" })).toMatchObject({
-      status: 400,
-      body: { code: "TARGET_NOT_ALLOWED" },
-    });
-  });
-
-  it("never sends the administrator's server password to a target the browser chose", async () => {
-    const gateway = await gateways.start();
-    openMode(gateway);
-    expect((await issued(gateway, { nickname: "a", target: "1.1.1.1:5555" })).serverPassword).toBe("");
-    expect((await issued(gateway, { nickname: "a", target: "1.1.1.1:5555", serverPassword: "typed" })).serverPassword).toBe("typed");
-    expect((await issued(gateway, { nickname: "a", target: "1.1.1.1:5555", serverPassword: "p".repeat(600) })).serverPassword).toBe(
-      "p".repeat(512),
-    );
-  });
-
-  it("keeps the administrator's password for the default target, unless the browser sends its own", async () => {
-    const gateway = await gateways.start();
-    openMode(gateway);
-    expect((await issued(gateway, { nickname: "a", target: "8.8.8.8:9988" })).serverPassword).toBe("admin-pass");
-    expect((await issued(gateway, { nickname: "a", target: "8.8.8.8:9988", serverPassword: "typed" })).serverPassword).toBe("typed");
-    expect(await issued(gateway, { nickname: "a" })).toMatchObject({
-      target: { host: "8.8.8.8", port: 9988 },
-      serverPassword: "admin-pass",
-    });
-  });
-});
-
 describe("managed invites", () => {
   async function invite(gateway: Gateway, body: Record<string, unknown> = { channel: "Room A", expiresInHours: 24, maxUses: 1 }) {
     const admin = await gateway.adminLogin();
-    const created = (await (await admin.post("invites", body)).json()) as { invite: { id: string }; token: string };
+    const created = (await (await admin.post("invites", { serverId: DEFAULT_SERVER_ID, ...body })).json()) as {
+      invite: { id: string };
+      token: string;
+    };
     return { admin, id: created.invite.id, token: created.token };
   }
 
@@ -236,8 +130,8 @@ describe("managed invites", () => {
     const gateway = await gateways.start();
     configure(gateway, { target: "8.8.8.8:9988", accessMode: "open", passwordAction: "replace", serverPassword: "admin-pass" });
     const { token } = await invite(gateway);
-    configure(gateway, { target: "1.1.1.1:1111", accessMode: "open", passwordAction: "remove" });
-    const payload = await issued(gateway, { nickname: "a", invite: token, target: "9.9.9.9:9", channel: "" });
+    const other = gateway.adminService.createServer(serverInput({ name: "Other", target: "1.1.1.1:1111" }));
+    const payload = await issued(gateway, { nickname: "a", invite: token, serverId: other.id, target: "9.9.9.9:9", channel: "" });
     expect(payload).toMatchObject({ target: { host: "8.8.8.8", port: 9988 }, serverPassword: "admin-pass", channel: "Room A" });
   });
 
@@ -271,6 +165,18 @@ describe("managed invites", () => {
     expect(await post(gateway, { nickname: "a", invite: token })).toMatchObject({ status: 400, body: { code: "INVITE_INVALID" } });
   });
 
+  it("refuses an invite once its server was removed or moved", async () => {
+    const gateway = await gateways.start();
+    configure(gateway, { accessMode: "open" });
+    const removed = gateway.adminService.createServer(serverInput({ name: "Gone", target: "2.2.2.2:2" }));
+    const moved = await invite(gateway, { serverId: removed.id, channel: "", expiresInHours: 1, maxUses: 5 });
+    const kept = await invite(gateway, { channel: "", expiresInHours: 1, maxUses: 5 });
+    gateway.adminService.removeServer(removed.id);
+    gateway.adminService.updateServer(DEFAULT_SERVER_ID, serverInput({ target: "3.3.3.3:3" }));
+    expect(await post(gateway, { nickname: "a", invite: moved.token })).toMatchObject({ status: 400, body: { code: "INVITE_INVALID" } });
+    expect(await post(gateway, { nickname: "a", invite: kept.token })).toMatchObject({ status: 400, body: { code: "INVITE_INVALID" } });
+  });
+
   it("refuses a revoked invite", async () => {
     const gateway = await gateways.start();
     const { admin, id, token } = await invite(gateway, { channel: "", expiresInHours: 1, maxUses: 5 });
@@ -287,8 +193,8 @@ describe("managed invites", () => {
 
   it("skips the open-mode target check for an invite, because the invite fixes the target", async () => {
     const gateway = await gateways.start();
-    const { token } = await invite(gateway);
     configure(gateway, { target: "8.8.8.8:9988", accessMode: "open" });
+    const { token } = await invite(gateway);
     expect((await post(gateway, { nickname: "a", invite: token, target: "127.0.0.1:9987" })).status).toBe(201);
   });
 });
@@ -324,7 +230,9 @@ describe("acceleration", () => {
   it("a request refused for acceleration leaves the invite usable", async () => {
     const gateway = await gateways.start();
     const admin = await gateway.adminLogin();
-    const { token } = (await (await admin.post("invites", { channel: "", expiresInHours: 1, maxUses: 1 })).json()) as { token: string };
+    const { token } = (await (
+      await admin.post("invites", { serverId: DEFAULT_SERVER_ID, channel: "", expiresInHours: 1, maxUses: 1 })
+    ).json()) as { token: string };
     expect((await post(gateway, { nickname: "a", invite: token, accelerated: true })).body.code).toBe("ACCELERATION_UNAVAILABLE");
     expect((await post(gateway, { nickname: "a", invite: token, accelerationRelayId: "nope" })).body.code).toBe("ACCELERATION_UNAVAILABLE");
     expect((await post(gateway, { nickname: "a", invite: token })).status).toBe(201);
@@ -333,7 +241,9 @@ describe("acceleration", () => {
   it("an invite that is used by a request that is accepted is still used up", async () => {
     const gateway = await gateways.start();
     const admin = await gateway.adminLogin();
-    const { token } = (await (await admin.post("invites", { channel: "", expiresInHours: 1, maxUses: 1 })).json()) as { token: string };
+    const { token } = (await (
+      await admin.post("invites", { serverId: DEFAULT_SERVER_ID, channel: "", expiresInHours: 1, maxUses: 1 })
+    ).json()) as { token: string };
     expect((await post(gateway, { nickname: "a", invite: token })).status).toBe(201);
     expect((await post(gateway, { nickname: "a", invite: token })).body.code).toBe("INVITE_INVALID");
   });

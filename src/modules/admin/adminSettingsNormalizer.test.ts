@@ -12,13 +12,6 @@ const stored = (overrides: Partial<PersistedSettings> = {}): PersistedSettings =
   siteName: "Old",
   welcomeTexts: { en: "en", de: "de" },
   accessMode: "fixed",
-  tsHost: "127.0.0.1",
-  tsPort: 9987,
-  tsPasswordEncrypted: null,
-  detectedProtocol: null,
-  lastTestAt: null,
-  lastTestLatencyMs: null,
-  lastTestError: null,
   webRtcEnabled: false,
   webRtcUdpStart: 40000,
   webRtcUdpEnd: 40100,
@@ -58,13 +51,11 @@ function codeOf(action: () => unknown): string {
 }
 
 describe("normalizeSettings", () => {
-  it("trims text, parses the target and keeps current values for omitted fields", () => {
+  it("trims text and keeps current values for omitted fields", () => {
     const result = normalizeSettings(settingsInput({ siteName: "  Site  ", welcomeTexts: { en: " hi " } }), stored(), MASTER_SECRET);
     expect(result).toMatchObject({
       siteName: "Site",
       welcomeTexts: { en: "hi", de: "de" },
-      tsHost: "ts.example.org",
-      tsPort: 9988,
       accessMode: "open",
       webRtcUdpStart: 40000,
       webRtcUdpEnd: 40100,
@@ -72,7 +63,6 @@ describe("normalizeSettings", () => {
   });
 
   const rejects: Array<[string, Parameters<typeof settingsInput>[0], string]> = [
-    ["a bad target", { target: "bad target:::" }, "INVALID_TARGET"],
     ["an empty site name", { siteName: "  " }, "INVALID_SITE_NAME"],
     ["a site name over 80", { siteName: "x".repeat(81) }, "INVALID_SITE_NAME"],
     ["an English welcome over 500", { welcomeTexts: { en: "x".repeat(501) } }, "INVALID_WELCOME_TEXT"],
@@ -132,17 +122,6 @@ describe("normalizeSettings", () => {
       "WEBRTC_PORT_LOCKED",
     );
     expect(normalizeSettings(settingsInput({ webRtcEnabled: true }), current, MASTER_SECRET).webRtcUdpStart).toBe(40000);
-  });
-
-  it("keeps, replaces and removes the server password", () => {
-    const current = stored({ tsPasswordEncrypted: "enc" });
-    expect(normalizeSettings(settingsInput(), current, MASTER_SECRET).tsPasswordEncrypted).toBe("enc");
-    expect(normalizeSettings(settingsInput({ passwordAction: "remove" }), current, MASTER_SECRET).tsPasswordEncrypted).toBeNull();
-    const replaced = normalizeSettings(settingsInput({ serverPassword: "secret" }), current, MASTER_SECRET).tsPasswordEncrypted;
-    expect(decryptSecret(replaced!, MASTER_SECRET)).toBe("secret");
-    expect(
-      normalizeSettings(settingsInput({ passwordAction: "replace", serverPassword: "" }), current, MASTER_SECRET).tsPasswordEncrypted,
-    ).toBeNull();
   });
 
   it("replaces the legacy relay fields and validates them", () => {
@@ -308,8 +287,6 @@ describe("toSettingsUpdate", () => {
   it("copies the writable fields and drops the read-only ones", () => {
     const result = toSettingsUpdate(stored());
     expect(result).not.toHaveProperty("updatedAt");
-    expect(result).not.toHaveProperty("lastTestAt");
-    expect(result).not.toHaveProperty("detectedProtocol");
-    expect(result).toMatchObject({ siteName: "Old", tsHost: "127.0.0.1", webRtcUdpEnd: 40100 });
+    expect(result).toMatchObject({ siteName: "Old", webRtcUdpEnd: 40100 });
   });
 });

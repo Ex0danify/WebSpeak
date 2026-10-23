@@ -65,7 +65,7 @@
       ]
     },
     {
-      "file": "features/admin/adminServerSettings.ts",
+      "file": "features/admin/adminProbe.ts",
       "keys": [
         "serverAddress",
         "invalidNicknameError",

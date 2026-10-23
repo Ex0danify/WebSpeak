@@ -1,9 +1,7 @@
-import { nextTick } from "vue";
 import { registerAdminStores } from "@/features/admin/adminStores";
 import { createPinia, setActivePinia } from "pinia";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useI18n } from "@/shared/i18n/useI18n";
-import { createAdminFormat } from "@/features/admin/adminFormat";
 import { createRelayNode, DEFAULT_WELCOME_TEXTS, mapRelayNodes, welcomeLanguageOptions } from "@/features/admin/adminServerForm";
 import { useAdminServerSettingsStore } from "@/features/admin/adminServerSettings";
 import { LANGUAGES } from "@/shared/i18n/languages";
@@ -12,16 +10,15 @@ import { useAdminSessionStore } from "@/features/admin/adminSession";
 
 vi.mock("vue-router", () => ({ useRoute: () => ({ path: "/admin" }), useRouter: () => ({ replace: vi.fn() }) }));
 
-const { language, t } = useI18n();
-const { connectionFailureText } = createAdminFormat(language, t);
+const { t } = useI18n();
 
-function setup(adminScreen = true) {
+function setup() {
   const admin = useAdminSessionStore();
   const getJson = vi.fn();
   const sendJson = vi.fn();
   const notify = vi.fn();
   // The stores look these up on each other at call time, so replacing them observes the calls.
-  Object.assign(admin, { getJson, sendJson, notify, screen: adminScreen ? "admin" : "login" });
+  Object.assign(admin, { getJson, sendJson, notify, screen: "admin" });
   const loadOverview = vi.fn(async () => {});
   Object.assign(useAdminOverviewStore(), { loadOverview });
   return { st: useAdminServerSettingsStore(), admin, getJson, sendJson, loadOverview, notify };
@@ -47,10 +44,9 @@ describe("mapRelayNodes / createRelayNode", () => {
 });
 
 describe("useAdminServerSettingsStore", () => {
-  it("loadServerSettings splits the target and fills defaults", async () => {
+  it("loadServerSettings fills defaults for what the response leaves out", async () => {
     const s = setup();
     s.getJson.mockResolvedValue({
-      target: "ts.example.com:9988",
       accessMode: "open",
       welcomeTexts: { de: "Hallo" },
       webRtcUdpStart: 0,
@@ -61,15 +57,12 @@ describe("useAdminServerSettingsStore", () => {
     await s.st.loadServerSettings();
     expect(s.getJson).toHaveBeenCalledWith("/api/admin/server");
     expect(s.st.serverForm).toMatchObject({
-      address: "ts.example.com",
-      port: "9988",
       accessMode: "open",
       welcomeTexts: { de: "Hallo" },
       webRtcUdpStart: 40000,
       identityMintMaxLevel: 12,
       identityMintConcurrency: 2,
       identityMintQueueDepth: 0,
-      passwordAction: "keep",
     });
     expect(s.st.serverForm.relayNodes).toHaveLength(1);
     expect(s.st.serverForm.welcomeDefaults.en).toBe(DEFAULT_WELCOME_TEXTS.en);
@@ -113,41 +106,27 @@ describe("useAdminServerSettingsStore", () => {
 
   it("saveServerSettings sends the payload, applies the response and announces it", async () => {
     const s = setup();
-    s.st.serverForm.address = "h";
-    s.st.serverForm.port = "1";
-    s.st.serverForm.passwordAction = "replace";
-    s.st.serverForm.serverPassword = "pw";
     s.st.serverForm.identityMintMaxLevel = 10;
     s.st.serverForm.identityMintConcurrency = 3;
     s.st.serverForm.identityMintQueueDepth = 0;
     s.st.serverForm.relayNodes = [
       { id: "n", name: "N", enabled: true, target: "t", token: "tok", tokenAction: "replace", hasToken: false },
     ];
-    s.sendJson.mockResolvedValue({ settings: { target: "h2:2", siteName: "Saved" } });
+    s.sendJson.mockResolvedValue({ settings: { siteName: "Saved", accessMode: "open" } });
     await s.st.saveServerSettings();
     const [url, method, body] = s.sendJson.mock.calls[0];
     expect([url, method]).toEqual(["/api/admin/server", "PUT"]);
     expect(body).toMatchObject({
-      target: expect.stringContaining("h"),
-      serverPassword: "pw",
-      passwordAction: "replace",
       identityMintMaxLevel: 10,
       identityMintConcurrency: 3,
       identityMintQueueDepth: 0,
       relayNodes: [{ id: "n", tokenAction: "replace", token: "tok" }],
     });
-    expect(s.st.serverForm).toMatchObject({ address: "h2", port: "2", siteName: "Saved", serverPassword: "", passwordAction: "keep" });
+    expect(s.st.serverForm).toMatchObject({ siteName: "Saved", accessMode: "open" });
+    expect(body).not.toHaveProperty("target");
     expect(s.loadOverview).toHaveBeenCalled();
     expect(s.notify).toHaveBeenCalledWith(t("settingsSaved"));
     expect(s.admin.submitting).toBe(false);
-  });
-
-  it("saveServerSettings does not send a password unless it is being replaced", async () => {
-    const s = setup();
-    s.st.serverForm.serverPassword = "stale";
-    s.sendJson.mockResolvedValue({ settings: {} });
-    await s.st.saveServerSettings();
-    expect(s.sendJson.mock.calls[0][2].serverPassword).toBeUndefined();
   });
 
   it("saveServerSettings reports a failure in the banner", async () => {
@@ -157,41 +136,6 @@ describe("useAdminServerSettingsStore", () => {
     expect(s.admin.errorMessage).toBe(s.admin.errorText("INVALID_WEBRTC_PORT_RANGE"));
     expect(s.notify).not.toHaveBeenCalled();
     expect(s.admin.submitting).toBe(false);
-  });
-
-  it("testServerConnection records the result and the latency", async () => {
-    const s = setup();
-    s.sendJson.mockResolvedValue({ ok: true, latencyMs: 12 });
-    await s.st.testServerConnection();
-    expect(s.sendJson.mock.calls[0][0]).toBe("/api/admin/server/test");
-    expect(s.st.testResult?.ok).toBe(true);
-    expect(s.st.serverForm.lastTestLatencyMs).toBe(12);
-    expect(s.st.serverForm.lastTestAt).not.toBeNull();
-    expect(s.loadOverview).toHaveBeenCalled();
-    expect(s.st.testing).toBe(false);
-  });
-
-  it("testServerConnection turns a thrown error into a failed result", async () => {
-    const s = setup();
-    s.sendJson.mockRejectedValue({ code: "TIMEOUT" });
-    await s.st.testServerConnection();
-    expect(s.st.testResult).toEqual({ ok: false, code: "TIMEOUT" });
-    expect(s.st.serverForm.lastTestLatencyMs).toBeNull();
-    expect(s.st.testResultText).toContain(connectionFailureText("TIMEOUT"));
-  });
-
-  it("clears a stale test result when the target is edited, but only on the open console", async () => {
-    const open = setup(true);
-    open.st.testResult = { ok: true };
-    open.st.serverForm.address = "other";
-    await nextTick();
-    expect(open.st.testResult).toBeNull();
-
-    const closed = setup(false);
-    closed.st.testResult = { ok: true };
-    closed.st.serverForm.address = "other";
-    await nextTick();
-    expect(closed.st.testResult).toEqual({ ok: true });
   });
 
   it("exposes the WebRTC range as text", () => {

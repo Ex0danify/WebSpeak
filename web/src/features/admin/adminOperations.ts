@@ -8,7 +8,7 @@ import { adminSiblings } from "@/features/admin/adminSiblings.js";
 import { useAdminSessionStore } from "@/features/admin/adminSession.js";
 
 function initialInviteForm() {
-  return { channel: "", expiresInHours: 24, maxUses: 0 };
+  return { serverId: "", channel: "", expiresInHours: 24, maxUses: 0 };
 }
 
 interface AdminAuditEvent {
@@ -136,6 +136,7 @@ export const useAdminOperationsStore = defineStore("adminOperations", () => {
     await attempt(
       async () => {
         const result = await admin.sendJson("/api/admin/invites", "POST", {
+          serverId: inviteForm.serverId,
           channel: inviteForm.channel,
           expiresInHours: inviteForm.expiresInHours,
           maxUses: inviteForm.maxUses,

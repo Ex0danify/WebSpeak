@@ -118,10 +118,12 @@ function dumpUntouchedTables(file: string): Record<string, unknown[]> {
       metadata: rows("SELECT * FROM metadata ORDER BY key"),
       admin_credentials: rows("SELECT * FROM admin_credentials"),
       audit_events: rows("SELECT * FROM audit_events ORDER BY id"),
-      managed_invites: rows("SELECT * FROM managed_invites ORDER BY id"),
+      managed_invites: rows(
+        `SELECT id, token_hash, target_host, target_port, server_password_encrypted, channel, expires_at, max_uses, use_count, created_at, revoked_at
+         FROM managed_invites ORDER BY id`,
+      ),
       settings:
-        rows(`SELECT id, site_name, access_mode, ts_host, ts_port, ts_password_encrypted, detected_protocol, last_test_at, last_test_latency_ms,
-        last_test_error, updated_at, webrtc_enabled, webrtc_public_host, webrtc_udp_start, webrtc_udp_end, relay_configured, relay_enabled,
+        rows(`SELECT id, site_name, access_mode, updated_at, webrtc_enabled, webrtc_public_host, webrtc_udp_start, webrtc_udp_end, relay_configured, relay_enabled,
         relay_host, relay_port, relay_token_encrypted FROM settings`),
       relay_nodes: rows("SELECT id, enabled, host, port, token_encrypted, created_at, updated_at FROM relay_nodes ORDER BY id"),
     };
@@ -191,6 +193,26 @@ describe("schema 8 migration (welcome texts as rows, no Chinese in the database)
     const before = dumpUntouchedTables(fx.path);
     fx.open().close();
     expect(dumpUntouchedTables(fx.path)).toEqual(before);
+  });
+
+  it("moves the single TeamSpeak target into the first server and ties the invites to it", () => {
+    createSchema7Database(fx.path);
+    const database = fx.open();
+    expect(database.listServers()).toEqual([
+      {
+        id: "server-default",
+        name: "Seven",
+        host: "seven.example.org",
+        port: 9007,
+        passwordEncrypted: "enc:ts-password",
+        lastTestAt: "2024-03-03T00:00:00.000Z",
+        lastTestLatencyMs: 12,
+        lastTestError: null,
+        createdAt: "2024-03-04T00:00:00.000Z",
+        updatedAt: "2024-03-04T00:00:00.000Z",
+      },
+    ]);
+    expect(database.listManagedInvites().map((entry) => [entry.id, entry.serverId])).toEqual([["invite-1", "server-default"]]);
   });
 
   it("writes the schema 7 backup first, and it still holds the old data", () => {

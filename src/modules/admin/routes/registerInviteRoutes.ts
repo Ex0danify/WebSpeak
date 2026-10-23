@@ -13,6 +13,7 @@ export function registerInviteRoutes(router: Router, options: AdminRouterOptions
     try {
       const body = asRecord(request.body);
       const created = options.service.createManagedInvite({
+        serverId: readOptionalString(body, "serverId", 100),
         channel: readOptionalString(body, "channel", 100),
         expiresInHours: readOptionalNumber(body, "expiresInHours", 1),
         maxUses: readOptionalNumber(body, "maxUses", 0),

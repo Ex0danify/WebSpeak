@@ -18,7 +18,7 @@
     "src/features/admin/RelayNodesCard.vue": {
       "arbitrary": 2
     },
-    "src/features/admin/TeamSpeakTargetCard.vue": {
+    "src/features/admin/ServerDialog.vue": {
       "arbitrary": 2
     },
     "src/features/admin/adminPage.ts": {

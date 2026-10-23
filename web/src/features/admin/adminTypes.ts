@@ -9,6 +9,15 @@ export interface AdminSession {
   channelId: string | null;
   memberCount: number;
 }
+export interface AdminServer {
+  id: string;
+  name: string;
+  target: string;
+  hasPassword: boolean;
+  lastTestAt: string | null;
+  lastTestLatencyMs: number | null;
+  lastTestError: string | null;
+}
 export interface ManagedInvite {
   id: string;
   target: string;

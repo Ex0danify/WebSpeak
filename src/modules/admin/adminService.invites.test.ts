@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { DatabaseSync } from "node:sqlite";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { settingsInput, useAdminService } from "../../../test/support/adminService.js";
+import { DEFAULT_SERVER_ID, serverInput, useAdminService } from "../../../test/support/adminService.js";
 import { TeamSpeakProbeError } from "../teamspeak/teamSpeakProbe.js";
 import { AdminInputError } from "./adminService.js";
 
@@ -27,26 +27,31 @@ describe("testConnection with an injected probe and host ping", () => {
   it("returns the handshake's round trip with the host ping, and records the result and an audit entry", async () => {
     ctx.probe.mockResolvedValue({ ok: true, latencyMs: 31 });
     const service = ctx.create();
-    expect(await service.testConnection("ts.example.org:9988", true)).toEqual({ ok: true, latencyMs: 31, hostPing });
+    expect(await service.testConnection("ts.example.org:9988", DEFAULT_SERVER_ID)).toEqual({ ok: true, latencyMs: 31, hostPing });
     expect(ctx.probe).toHaveBeenCalledWith({ host: "ts.example.org", port: 9988 });
     expect(ctx.ping).toHaveBeenCalledWith("ts.example.org");
-    expect(service.database.getSettings()).toMatchObject({ detectedProtocol: null, lastTestLatencyMs: 31, lastTestError: null });
+    expect(service.database.getServer(DEFAULT_SERVER_ID)).toMatchObject({ lastTestLatencyMs: 31, lastTestError: null });
     expect(service.database.recentAudit()[0]).toMatchObject({ event: "CONNECTION_TEST_SUCCEEDED" });
   });
 
-  it("records nothing when persistResult is false", async () => {
+  it("records nothing when the test belongs to no saved server", async () => {
     ctx.probe.mockResolvedValue({ ok: true, latencyMs: 31 });
     const service = ctx.create();
-    await service.testConnection("ts.example.org", false);
-    expect(service.database.getSettings()).toMatchObject({ lastTestAt: null, lastTestLatencyMs: null });
+    await service.testConnection("ts.example.org");
+    expect(service.database.getServer(DEFAULT_SERVER_ID)).toMatchObject({ lastTestAt: null, lastTestLatencyMs: null });
     expect(service.database.recentAudit()).toEqual([]);
   });
 
   it("reports a failed handshake as ok false with its code, next to the host ping, and records the code", async () => {
     ctx.probe.mockRejectedValue(new TeamSpeakProbeError("NO_ANSWER", "silent"));
     const service = ctx.create();
-    expect(await service.testConnection("ts.example.org", true)).toEqual({ ok: false, latencyMs: null, errorCode: "NO_ANSWER", hostPing });
-    expect(service.database.getSettings()).toMatchObject({ lastTestLatencyMs: null, lastTestError: "NO_ANSWER" });
+    expect(await service.testConnection("ts.example.org", DEFAULT_SERVER_ID)).toEqual({
+      ok: false,
+      latencyMs: null,
+      errorCode: "NO_ANSWER",
+      hostPing,
+    });
+    expect(service.database.getServer(DEFAULT_SERVER_ID)).toMatchObject({ lastTestLatencyMs: null, lastTestError: "NO_ANSWER" });
     expect(service.database.recentAudit()[0]).toMatchObject({ event: "CONNECTION_TEST_FAILED" });
   });
 
@@ -61,7 +66,7 @@ describe("testConnection with an injected probe and host ping", () => {
       samples: [],
       errorCode: "UNREACHABLE",
     });
-    const result = await ctx.create().testConnection("ts.example.org", true);
+    const result = await ctx.create().testConnection("ts.example.org", DEFAULT_SERVER_ID);
     expect(result).toEqual({
       ok: true,
       latencyMs: 31,
@@ -79,7 +84,7 @@ describe("testConnection with an injected probe and host ping", () => {
       started.push("ping");
       return ping;
     });
-    void ctx.create().testConnection("ts.example.org", false);
+    void ctx.create().testConnection("ts.example.org");
     await new Promise((resolve) => setImmediate(resolve));
     expect(started).toEqual(["probe", "ping"]);
   });
@@ -88,43 +93,60 @@ describe("testConnection with an injected probe and host ping", () => {
     const cause = new Error("socket exploded with details");
     ctx.probe.mockRejectedValue(cause);
     const service = ctx.create();
-    const error = await service.testConnection("ts.example.org", true).catch((thrown: unknown) => thrown as TeamSpeakProbeError);
+    const error = await service
+      .testConnection("ts.example.org", DEFAULT_SERVER_ID)
+      .catch((thrown: unknown) => thrown as TeamSpeakProbeError);
     expect(error).toBeInstanceOf(TeamSpeakProbeError);
     expect(error).toMatchObject({ code: "INTERNAL_ERROR", message: "Connection test failed", cause });
-    expect(service.database.getSettings()).toMatchObject({ lastTestError: "INTERNAL_ERROR" });
+    expect(service.database.getServer(DEFAULT_SERVER_ID)).toMatchObject({ lastTestError: "INTERNAL_ERROR" });
+  });
+
+  it("tests a saved server by id, at its saved address", async () => {
+    ctx.probe.mockResolvedValue({ ok: true, latencyMs: 8 });
+    const service = ctx.create();
+    service.updateServer(DEFAULT_SERVER_ID, serverInput());
+    await service.testServer(DEFAULT_SERVER_ID);
+    expect(ctx.probe).toHaveBeenCalledWith({ host: "ts.example.org", port: 9988 });
+    expect(service.database.getServer(DEFAULT_SERVER_ID)).toMatchObject({ lastTestLatencyMs: 8 });
+  });
+
+  it("rejects testing a server that does not exist", () => {
+    expect(() => ctx.create().testServer("server-gone")).toThrow(expect.objectContaining({ code: "SERVER_NOT_FOUND" }));
   });
 
   it("rejects an invalid target before probing or pinging", async () => {
-    await expect(ctx.create().testConnection("bad target:::", true)).rejects.toMatchObject({ code: "INVALID_TARGET" });
+    await expect(ctx.create().testConnection("bad target:::", DEFAULT_SERVER_ID)).rejects.toMatchObject({ code: "INVALID_TARGET" });
     expect(ctx.probe).not.toHaveBeenCalled();
     expect(ctx.ping).not.toHaveBeenCalled();
   });
 });
 
 describe("overview", () => {
-  it("reports the target, session counts, uptime and the recent events", () => {
+  it("reports the servers, session counts, uptime and the recent events", () => {
     vi.useFakeTimers({ toFake: ["Date"] });
     vi.setSystemTime(new Date("2026-01-01T00:10:00.500Z"));
     const service = ctx.create();
-    service.updateSettings(settingsInput());
+    service.updateServer(DEFAULT_SERVER_ID, serverInput());
     const overview = service.getOverview(3, 7, Date.parse("2026-01-01T00:00:00Z")) as Record<string, any>;
     expect(overview.gateway).toEqual({ status: "running", version: "9.9.9", uptimeSeconds: 600 });
     expect(overview.sessions).toEqual({ active: 3, peak: 7, limit: 100 });
-    expect(overview.teamSpeak).toMatchObject({ target: "ts.example.org:9988", status: "unknown", lastTestAt: null });
-    expect(overview.recentEvents[0]).toMatchObject({ event: "SETTINGS_CHANGED" });
+    expect(overview.servers).toMatchObject([
+      { id: DEFAULT_SERVER_ID, name: "Test server", target: "ts.example.org:9988", status: "unknown", lastTestAt: null },
+    ]);
+    expect(overview.recentEvents[0]).toMatchObject({ event: "SERVER_UPDATED" });
   });
 
   it("never reports a negative uptime", () => {
     expect((ctx.create().getOverview(0, 0, Date.now() + 60_000).gateway as { uptimeSeconds: number }).uptimeSeconds).toBe(0);
   });
 
-  it("derives the TeamSpeak status from the last connection test", () => {
+  it("derives the status of each server from the last connection test", () => {
     const service = ctx.create();
-    const status = () => (service.getOverview(0, 0, 0).teamSpeak as { status: string }).status;
+    const status = () => (service.getOverview(0, 0, 0).servers as Array<{ status: string }>)[0]!.status;
     expect(status()).toBe("unknown");
-    service.database.recordConnectionTest({ protocol: null, latencyMs: 20, error: null });
+    service.database.recordConnectionTest(DEFAULT_SERVER_ID, { latencyMs: 20, error: null });
     expect(status()).toBe("reachable");
-    service.database.recordConnectionTest({ protocol: null, latencyMs: null, error: "TIMEOUT" });
+    service.database.recordConnectionTest(DEFAULT_SERVER_ID, { latencyMs: null, error: "TIMEOUT" });
     expect(status()).toBe("unreachable");
   });
 });
@@ -136,8 +158,13 @@ describe("managed invites", () => {
     vi.useFakeTimers({ toFake: ["Date"] });
     vi.setSystemTime(new Date("2026-01-01T00:00:00Z"));
     const service = ctx.create();
-    service.updateSettings(settingsInput({ serverPassword: "pw-1" }));
-    const { invite, token } = service.createManagedInvite({ channel: "  Lobby  ", expiresInHours: 2, maxUses: 3 });
+    service.updateServer(DEFAULT_SERVER_ID, serverInput({ serverPassword: "pw-1" }));
+    const { invite, token } = service.createManagedInvite({
+      serverId: DEFAULT_SERVER_ID,
+      channel: "  Lobby  ",
+      expiresInHours: 2,
+      maxUses: 3,
+    });
     expect(token).toMatch(/^[A-Za-z0-9_-]{43}$/);
     expect(invite).toMatchObject({
       target: "ts.example.org:9988",
@@ -154,12 +181,15 @@ describe("managed invites", () => {
       const row = raw.prepare("SELECT * FROM managed_invites").get() as Record<string, string>;
       expect(row.token_hash).toBe(sha256(token));
       expect(JSON.stringify(row)).not.toContain(token);
-      expect(row.server_password_encrypted).toBe(service.database.getSettings().tsPasswordEncrypted);
+      expect(row.server_password_encrypted).toBe(service.database.getServer(DEFAULT_SERVER_ID)!.passwordEncrypted);
+      expect(row.server_id).toBe(DEFAULT_SERVER_ID);
     } finally {
       raw.close();
     }
     expect(service.database.recentAudit()[0]?.event).toBe("INVITE_CREATED");
-    expect(ctx.create().createManagedInvite({ channel: "", expiresInHours: 1, maxUses: 0 }).token).not.toBe(token);
+    expect(ctx.create().createManagedInvite({ serverId: DEFAULT_SERVER_ID, channel: "", expiresInHours: 1, maxUses: 0 }).token).not.toBe(
+      token,
+    );
   });
 
   it.each([
@@ -172,21 +202,21 @@ describe("managed invites", () => {
     ["more than 10000 uses", { channel: "", expiresInHours: 1, maxUses: 10001 }, "INVALID_INVITE_USES"],
   ])("rejects %s and stores nothing", (_name, input, code) => {
     const service = ctx.create();
-    expect(rejection(() => service.createManagedInvite(input)).code).toBe(code);
+    expect(rejection(() => service.createManagedInvite({ serverId: DEFAULT_SERVER_ID, ...input })).code).toBe(code);
     expect(service.listManagedInvites()).toEqual([]);
   });
 
   it("accepts the limits: 100 character channel, 1 and 720 hours, 0 and 10000 uses", () => {
     const service = ctx.create();
-    service.createManagedInvite({ channel: "x".repeat(100), expiresInHours: 1, maxUses: 0 });
-    service.createManagedInvite({ channel: "", expiresInHours: 720, maxUses: 10000 });
+    service.createManagedInvite({ serverId: DEFAULT_SERVER_ID, channel: "x".repeat(100), expiresInHours: 1, maxUses: 0 });
+    service.createManagedInvite({ serverId: DEFAULT_SERVER_ID, channel: "", expiresInHours: 720, maxUses: 10000 });
     expect(service.listManagedInvites()).toHaveLength(2);
   });
 
   it("consumes a token once: target, decrypted password and channel come back, the use is counted and audited", () => {
     const service = ctx.create();
-    service.updateSettings(settingsInput({ serverPassword: "pw-1" }));
-    const { token } = service.createManagedInvite({ channel: "Lobby", expiresInHours: 1, maxUses: 1 });
+    service.updateServer(DEFAULT_SERVER_ID, serverInput({ serverPassword: "pw-1" }));
+    const { token } = service.createManagedInvite({ serverId: DEFAULT_SERVER_ID, channel: "Lobby", expiresInHours: 1, maxUses: 1 });
     expect(service.consumeManagedInvite(token)).toEqual({
       target: { host: "ts.example.org", port: 9988 },
       serverPassword: "pw-1",
@@ -197,17 +227,35 @@ describe("managed invites", () => {
     expect(service.consumeManagedInvite(token)).toBeNull();
   });
 
-  it("keeps the target and password of the moment the invite was created", () => {
+  it("stops honoring an invite once its server changed address or was removed", () => {
     const service = ctx.create();
-    service.updateSettings(settingsInput({ serverPassword: "pw-1" }));
-    const { token } = service.createManagedInvite({ channel: "", expiresInHours: 1, maxUses: 0 });
-    service.updateSettings(settingsInput({ target: "moved.example.org:1", passwordAction: "remove" }));
-    expect(service.consumeManagedInvite(token)).toMatchObject({ target: { host: "ts.example.org", port: 9988 }, serverPassword: "pw-1" });
+    const changed = service.createManagedInvite({ serverId: DEFAULT_SERVER_ID, channel: "", expiresInHours: 1, maxUses: 0 });
+    const kept = service.createServer(serverInput({ name: "Other", target: "other.example.org" }));
+    const removed = service.createManagedInvite({ serverId: kept.id, channel: "", expiresInHours: 1, maxUses: 0 });
+    service.updateServer(DEFAULT_SERVER_ID, serverInput({ target: "moved.example.org:1" }));
+    service.removeServer(kept.id);
+    expect(service.consumeManagedInvite(changed.token)).toBeNull();
+    expect(service.consumeManagedInvite(removed.token)).toBeNull();
+    expect(service.listManagedInvites().map((entry) => entry.status)).toEqual(["revoked", "revoked"]);
+  });
+
+  it("keeps an invite when the server is only renamed", () => {
+    const service = ctx.create();
+    const { token } = service.createManagedInvite({ serverId: DEFAULT_SERVER_ID, channel: "", expiresInHours: 1, maxUses: 0 });
+    service.updateServer(DEFAULT_SERVER_ID, { name: "Renamed", target: "127.0.0.1:9987" });
+    expect(service.consumeManagedInvite(token)).toMatchObject({ target: { host: "127.0.0.1", port: 9987 } });
+  });
+
+  it("refuses an invite for a server that does not exist", () => {
+    const service = ctx.create();
+    expect(rejection(() => service.createManagedInvite({ serverId: "server-gone", channel: "", expiresInHours: 1, maxUses: 0 })).code).toBe(
+      "SERVER_NOT_FOUND",
+    );
   });
 
   it("refuses tokens with the wrong shape without touching the invites", () => {
     const service = ctx.create();
-    const { token } = service.createManagedInvite({ channel: "", expiresInHours: 1, maxUses: 0 });
+    const { token } = service.createManagedInvite({ serverId: DEFAULT_SERVER_ID, channel: "", expiresInHours: 1, maxUses: 0 });
     for (const bad of ["", "short", `${token}!`, "x".repeat(129), " ".repeat(40)])
       expect(service.consumeManagedInvite(bad), JSON.stringify(bad)).toBeNull();
     expect(service.listManagedInvites()[0]?.useCount).toBe(0);
@@ -221,7 +269,8 @@ describe("managed invites", () => {
     vi.useFakeTimers({ toFake: ["Date"] });
     vi.setSystemTime(new Date("2026-01-01T00:00:00Z"));
     const service = ctx.create();
-    const create = (maxUses: number) => service.createManagedInvite({ channel: "", expiresInHours: 1, maxUses });
+    const create = (maxUses: number) =>
+      service.createManagedInvite({ serverId: DEFAULT_SERVER_ID, channel: "", expiresInHours: 1, maxUses });
     const active = create(0);
     const exhausted = create(1);
     const revoked = create(0);
@@ -236,7 +285,7 @@ describe("managed invites", () => {
 
   it("revokes once, audits only a real revoke, and refuses ids of the wrong shape", () => {
     const service = ctx.create();
-    const { invite, token } = service.createManagedInvite({ channel: "", expiresInHours: 1, maxUses: 0 });
+    const { invite, token } = service.createManagedInvite({ serverId: DEFAULT_SERVER_ID, channel: "", expiresInHours: 1, maxUses: 0 });
     expect(service.revokeManagedInvite(invite.id)).toBe(true);
     expect(service.revokeManagedInvite(invite.id)).toBe(false);
     expect(service.revokeManagedInvite("invite-unknown")).toBe(false);
@@ -249,8 +298,8 @@ describe("managed invites", () => {
 
   it("still returns the invite with an empty password when its stored password cannot be decrypted (current behavior)", () => {
     const creator = ctx.create();
-    creator.updateSettings(settingsInput({ serverPassword: "pw-1" }));
-    const { token } = creator.createManagedInvite({ channel: "Lobby", expiresInHours: 1, maxUses: 0 });
+    creator.updateServer(DEFAULT_SERVER_ID, serverInput({ serverPassword: "pw-1" }));
+    const { token } = creator.createManagedInvite({ serverId: DEFAULT_SERVER_ID, channel: "Lobby", expiresInHours: 1, maxUses: 0 });
     const other = ctx.create(Buffer.alloc(32, 9));
     expect(other.consumeManagedInvite(token)).toMatchObject({ serverPassword: "", channel: "Lobby" });
     expect(ctx.logger.error).toHaveBeenCalledTimes(1);

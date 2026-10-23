@@ -37,22 +37,30 @@ describe("admin router layer order", () => {
 
   it("puts every administrator route behind the guard", () => {
     // Paths are distinct, so the order inside the guarded part does not change which handler matches.
-    expect(stack.slice(guard + 1, -1).sort()).toEqual([
-      "GET /audit",
-      "GET /backup",
-      "GET /diagnostics",
-      "GET /diagnostics/report",
-      "GET /invites",
-      "GET /logs",
-      "GET /overview",
-      "GET /server",
-      "GET /sessions",
-      "POST /invites",
-      "POST /invites/:id/revoke",
-      "POST /server/test",
-      "POST /sessions/:id/terminate",
-      "PUT /server",
-    ]);
-    expect(stack).toHaveLength(guard + 1 + 14 + 1);
+    expect(stack.slice(guard + 1, -1).sort()).toEqual(
+      [
+        "GET /audit",
+        "GET /backup",
+        "GET /diagnostics",
+        "GET /diagnostics/report",
+        "GET /invites",
+        "GET /logs",
+        "GET /overview",
+        "GET /server",
+        "GET /servers",
+        "GET /sessions",
+        "POST /invites",
+        "POST /invites/:id/revoke",
+        "POST /server/test",
+        "POST /servers",
+        "POST /servers/:id/test",
+        "POST /sessions/:id/terminate",
+        "PUT /server",
+        "PUT /servers/:id",
+        "PUT /servers/order",
+        "DELETE /servers/:id",
+      ].sort(),
+    );
+    expect(stack).toHaveLength(guard + 1 + 20 + 1);
   });
 });

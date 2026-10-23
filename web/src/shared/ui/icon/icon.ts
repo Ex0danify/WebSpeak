@@ -24,6 +24,7 @@ export const iconNames = [
   "plus",
   "close",
   "more",
+  "grip",
   "refresh",
   "chevron-down",
   "chevron-right",

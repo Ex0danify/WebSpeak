@@ -6,6 +6,7 @@ export interface AdminSiblings {
   loadOverview(): Promise<void>;
   loadOperations(): Promise<void>;
   loadServerSettings(): Promise<void>;
+  loadServers(): Promise<void>;
   /** Back to the empty state, for logout. */
   resetAll(): void;
 }

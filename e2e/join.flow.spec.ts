@@ -7,7 +7,12 @@ import type { Gateway } from "../test/support/gateway";
 
 test.describe("invite link", () => {
   test("joins with the channel the invite names, without asking for anything else", async ({ page, gateway }) => {
-    const { token } = gateway.adminService.createManagedInvite({ channel: "Room B", expiresInHours: 1, maxUses: 1 });
+    const { token } = gateway.adminService.createManagedInvite({
+      serverId: "server-default",
+      channel: "Room B",
+      expiresInHours: 1,
+      maxUses: 1,
+    });
     await page.goto(`/?invite=${token}`);
     await page.getByLabel("Your nickname").fill("invite-channel");
     await page.getByRole("button", { name: "Enter voice space" }).click();
@@ -21,7 +26,7 @@ test.describe("invite link", () => {
     openSession,
     gateway,
   }) => {
-    const { token } = gateway.adminService.createManagedInvite({ channel: "", expiresInHours: 1, maxUses: 1 });
+    const { token } = gateway.adminService.createManagedInvite({ serverId: "server-default", channel: "", expiresInHours: 1, maxUses: 1 });
     const link = `/?invite=${token}`;
     await page.goto(link);
     await page.getByLabel("Your nickname").fill("invite-first");
@@ -37,7 +42,12 @@ test.describe("invite link", () => {
   });
 
   test("a revoked invite is refused", async ({ page, gateway }) => {
-    const { invite, token } = gateway.adminService.createManagedInvite({ channel: "", expiresInHours: 1, maxUses: 0 });
+    const { invite, token } = gateway.adminService.createManagedInvite({
+      serverId: "server-default",
+      channel: "",
+      expiresInHours: 1,
+      maxUses: 0,
+    });
     gateway.adminService.revokeManagedInvite(invite.id);
     await page.goto(`/?invite=${token}`);
     await page.getByLabel("Your nickname").fill("invite-revoked");

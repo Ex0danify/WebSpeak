@@ -31,4 +31,19 @@ describe("doShare", () => {
     expect(invite).toContain("channel=lobby");
     expect(invite).toContain("server=voice.example.com");
   });
+
+  it("names a configured server by id and leaves its address out", async () => {
+    const writeText = vi.fn((_text: string) => Promise.resolve());
+    Object.defineProperty(navigator, "clipboard", { value: { writeText }, configurable: true });
+    const store = useJoinFormStore();
+    store.accessMode = "open";
+    store.serverId = "server-a";
+    store.serverHost = "voice.example.com";
+    const wrapper = mount(defineComponent({ setup: () => useShareInvite(), template: "<div/>" }));
+    (wrapper.vm as unknown as { doShare: () => void }).doShare();
+    await flushPromises();
+    const invite = writeText.mock.calls[0][0] as string;
+    expect(invite).toContain("serverId=server-a");
+    expect(invite).not.toContain("voice.example.com");
+  });
 });

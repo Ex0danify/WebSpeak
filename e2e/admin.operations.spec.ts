@@ -73,6 +73,19 @@ test.describe("invites", () => {
     await expect(item).toContainText("0/∞");
   });
 
+  test("an invite is made for the server picked in the form, and the first one is the default", async ({ page, ownGateway }) => {
+    const gateway = await ownGateway();
+    gateway.adminService.createServer({ name: "Clan", target: "clan.example.test:9988" });
+    await openAdmin(page, gateway, "/operations");
+    const server = page.getByLabel("Server", { exact: true });
+    await expect(server.locator("option")).toHaveText(["WebSpeak", "Clan"]);
+    await expect(server.locator("option:checked")).toHaveText("WebSpeak");
+    await server.selectOption({ label: "Clan" });
+    await page.getByLabel("Target channel").fill("Clan room");
+    await page.getByRole("button", { name: "Create invite link" }).click();
+    await expect(page.locator(".invite-row").filter({ hasText: "Clan room" })).toContainText("clan.example.test:9988");
+  });
+
   test("the link takes a guest into the invite's channel and uses one up; Copy link copies it", async ({ page, context, ownGateway }) => {
     await context.grantPermissions(["clipboard-read", "clipboard-write"]);
     const gateway = await ownGateway();

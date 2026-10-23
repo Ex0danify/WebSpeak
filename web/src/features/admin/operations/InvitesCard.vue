@@ -7,6 +7,11 @@
       </div>
     </header>
     <form class="mt-2 grid gap-1.5" @submit.prevent="createInvite()">
+      <Field :label="t('server')" class="gap-1">
+        <Select v-model="inviteForm.serverId" :select-class="inviteInputClass"
+          ><option v-for="server in servers" :key="server.id" :value="server.id">{{ server.name }}</option></Select
+        >
+      </Field>
       <Field :label="t('inviteChannel')" class="gap-1">
         <Input
           v-model.trim="inviteForm.channel"
@@ -61,21 +66,34 @@
 </template>
 
 <script setup lang="ts">
+import { watch } from "vue";
 import { storeToRefs } from "pinia";
 import { Button } from "@/shared/ui/button";
 import { Card } from "@/shared/ui/card";
 import { Chip } from "@/shared/ui/chip";
 import { Field } from "@/shared/ui/field";
 import { Input } from "@/shared/ui/input";
+import { Select } from "@/shared/ui/select";
 import { useI18n } from "@/shared/i18n/useI18n";
 import { createAdminFormat } from "@/features/admin/adminFormat";
 import { useAdminOperationsStore } from "@/features/admin/adminOperations";
+import { useAdminServersStore } from "@/features/admin/adminServers";
 import { useAdminSessionStore } from "@/features/admin/adminSession";
 
 const { submitting } = storeToRefs(useAdminSessionStore());
 const operationsStore = useAdminOperationsStore();
 const { operations, inviteForm, createdInvite } = storeToRefs(operationsStore);
 const { createInvite, revokeInvite, copyInviteLink } = operationsStore;
+const { servers } = storeToRefs(useAdminServersStore());
+
+// An invite is made for one server, the first is the default and a removed one cannot stay selected.
+watch(
+  servers,
+  (list) => {
+    if (!list.some((server) => server.id === inviteForm.value.serverId)) inviteForm.value.serverId = list[0]?.id ?? "";
+  },
+  { immediate: true },
+);
 
 const { language, t } = useI18n();
 const { formatDate, inviteStatusLabel } = createAdminFormat(language, t);

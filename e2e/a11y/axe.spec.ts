@@ -14,6 +14,8 @@ interface State {
   id: string;
   /** The panels of a phone's room exist only there; a desktop shows them all at once. */
   phoneOnly?: boolean;
+  /** Needs the signed-in console's canned answers, the admin screens get them without saying so. */
+  admin?: boolean;
   prepare(page: Page): Promise<void>;
 }
 
@@ -62,6 +64,15 @@ const states: State[] = [
   { id: "demo", prepare: visit("/demo") },
   { id: "admin-login", prepare: visit("/admin/login") },
   ...adminScreens.map((screen) => ({ id: screen.id, prepare: visit(screen.path) })),
+  {
+    id: "admin-server-dialog",
+    admin: true,
+    async prepare(page) {
+      await page.goto("/admin/server", { waitUntil: "networkidle" });
+      await page.getByRole("button", { name: "Edit Main server" }).click();
+      await expect(page.getByRole("dialog", { name: "Edit server" })).toBeVisible();
+    },
+  },
   { id: "room", prepare: async (page) => void (await inRoom(page)) },
   {
     id: "room-settings-dialog",
@@ -120,7 +131,7 @@ for (const theme of ["light", "dark"] as const) {
     for (const state of states) {
       test(state.id, async ({ page }, { project }) => {
         test.skip(state.phoneOnly === true && project.name !== "mobile", "a desktop shows every panel at once");
-        await useCannedApi(page, { lang: "en", theme, admin: adminScreens.some((screen) => screen.id === state.id) });
+        await useCannedApi(page, { lang: "en", theme, admin: state.admin ?? adminScreens.some((screen) => screen.id === state.id) });
         await state.prepare(page);
         const { violations, passes } = await new AxeBuilder({ page }).analyze();
         // The contrast rule has to have looked at text, or "no violation" says nothing.

@@ -26,8 +26,13 @@
     >
     <Banner v-if="!localPersistenceAvailable" variant="warning" class="mb-2.5">{{ t("localPersistenceUnavailable") }}</Banner>
 
+    <Banner v-if="noServers" variant="warning" class="mb-2.5">{{ t("noServersAvailable") }}</Banner>
+
     <form v-if="initialized" class="grid gap-1.5" @submit.prevent="$emit('connect')">
-      <div v-if="accessMode === 'open'" class="flex gap-3">
+      <Field v-if="showServerPicker" id="server-select" :label="t('server')">
+        <ListSelect v-model="serverPick" :items="serverItems" />
+      </Field>
+      <div v-if="typedAddress" class="flex gap-3">
         <Field id="server-address" class="min-w-0 flex-1" :label="t('serverAddress')"
           ><Input v-model="serverHost" autocomplete="url" :placeholder="t('serverAddressPlaceholder')"
             ><template #leading><Icon name="server" /></template></Input
@@ -50,7 +55,7 @@
           <option v-for="relay in accelerationRelays" :key="relay.id" :value="relay.id">{{ relay.name }}</option></Select
         >
       </div>
-      <div v-if="accessMode === 'open' && (favoriteServers.length || recentServers.length)" class="mt-px mb-1.25 grid gap-2">
+      <div v-if="typedAddress && (favoriteServers.length || recentServers.length)" class="mt-px mb-1.25 grid gap-2">
         <div v-if="favoriteServers.length" class="flex flex-wrap items-center gap-1.25">
           <span class="w-full text-2xs font-bold text-fg-muted">{{ t("favoriteServers") }}</span
           ><Button
@@ -75,7 +80,7 @@
         </div>
       </div>
       <Button
-        v-if="accessMode === 'open' && serverHost.trim()"
+        v-if="typedAddress && serverHost.trim()"
         variant="tinted"
         size="sm"
         class="justify-self-start"
@@ -83,7 +88,7 @@
         >{{ isFavorite ? t("removeFavorite") : t("saveFavorite") }}</Button
       >
 
-      <Field v-if="accessMode === 'open'" id="server-password" class="mt-1.5">
+      <Field v-if="typedAddress" id="server-password" class="mt-1.5">
         <template #label
           >{{ t("serverPassword") }} <span class="font-normal text-fg-muted">{{ t("optional") }}</span></template
         >
@@ -118,7 +123,7 @@
         >
           {{ t("identityOptions") }}
         </summary>
-        <IdentityPicker :manager="identityManager" :target="identityTarget" />
+        <IdentityPicker :manager="identityManager" :target="identityTarget" :server-id="serverId" />
       </details>
 
       <GatewayStatus :status="gatewayStatus" :retry-in="gatewayRetryIn" />
@@ -150,16 +155,18 @@ import { Button } from "@/shared/ui/button";
 import { Field } from "@/shared/ui/field";
 import { Icon } from "@/shared/ui/icon";
 import { Input } from "@/shared/ui/input";
-import { Select } from "@/shared/ui/select";
+import { ListSelect, Select, type ListSelectItem } from "@/shared/ui/select";
 import { IdentityPicker, type useIdentityManager } from "@/features/identity";
 import { useI18n } from "@/shared/i18n/useI18n.js";
 import { visibleErrorCode } from "@/features/session";
 import { resolveText, type MaybeLocalizedText } from "@/shared/i18n/localizedText.js";
 import { isLocalPersistenceAvailable } from "@/shared/services/localPersistence.js";
 import type { FavoriteServer, RecentServer } from "@/shared/services/localPersistence.js";
+import type { PublicServer } from "@/features/join/stores/joinFormStore";
 
 const props = defineProps<{
   accessMode: "fixed" | "open";
+  servers: PublicServer[];
   favoriteServers: FavoriteServer[];
   recentServers: RecentServer[];
   isFavorite: boolean;
@@ -188,6 +195,7 @@ defineEmits<{
   (e: "disconnect"): void;
 }>();
 
+const serverId = defineModel<string>("serverId", { default: "" });
 const serverHost = defineModel<string>("serverHost", { default: "" });
 const serverPort = defineModel<string>("serverPort", { default: "" });
 const serverPassword = defineModel<string>("serverPassword", { default: "" });
@@ -196,6 +204,27 @@ const nickname = defineModel<string>("nickname", { default: "" });
 const channel = defineModel<string>("channel", { default: "" });
 
 const { t } = useI18n();
+
+// reka's Select takes no empty value, so the typed address carries a sentinel here and maps back to "" at the model.
+const TYPED_ADDRESS = "\0typed-address";
+const serverItems = computed<ListSelectItem[]>(() => [
+  ...props.servers.map((server) => ({ value: server.id, label: server.name })),
+  ...(props.accessMode === "open" ? [{ value: TYPED_ADDRESS, label: t("otherServer") }] : []),
+]);
+const serverPick = computed({
+  get: () => serverId.value || TYPED_ADDRESS,
+  set: (value: string) => {
+    serverId.value = value === TYPED_ADDRESS ? "" : value;
+  },
+});
+
+// Open access offers the typed address next to the configured servers, picking none of them. Fixed access has only the list.
+const typedAddress = computed(() => props.accessMode === "open" && !serverId.value);
+const showServerPicker = computed(() => props.servers.length > 1 || (props.accessMode === "open" && props.servers.length > 0));
+const noServers = computed(
+  () =>
+    props.initialized && !props.serverConfigLoading && !props.serverConfigFailed && props.accessMode === "fixed" && !props.servers.length,
+);
 
 // The saved identity the connection will use, for the faint hint in the nickname field. Empty for the
 // ephemeral choice, which carries no identity to name.

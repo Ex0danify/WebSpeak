@@ -51,6 +51,7 @@ export interface AdminApi {
   get(path: string): Promise<Response>;
   post(path: string, body?: unknown): Promise<Response>;
   put(path: string, body?: unknown): Promise<Response>;
+  delete(path: string): Promise<Response>;
 }
 
 export interface Gateway {
@@ -173,6 +174,7 @@ export async function startGateway(options: GatewayOptions = {}): Promise<Gatewa
         get: (path) => call("GET", path),
         post: (path, payload) => call("POST", path, payload ?? {}),
         put: (path, payload) => call("PUT", path, payload ?? {}),
+        delete: (path) => call("DELETE", path, {}),
       };
     },
     stop: () => webServer.stop(),

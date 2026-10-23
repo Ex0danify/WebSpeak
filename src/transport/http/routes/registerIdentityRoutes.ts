@@ -4,12 +4,12 @@ import type { IdentityMintQueue } from "../../../modules/identity/index.js";
 import { QueueFullError } from "../../../modules/identity/index.js";
 import type { JoinRateLimiter } from "../../../modules/join/index.js";
 import { identityFromString } from "../../../modules/teamspeak/index.js";
-import { resolveSafeOpenTarget } from "../../../infra/security/openTargetPolicy.js";
-import { parseTeamSpeakTarget, teamSpeakTargetKey } from "../../../shared/teamSpeakTarget.js";
+import { teamSpeakTargetKey } from "../../../shared/teamSpeakTarget.js";
 import { clientRateLimitKey } from "../../../shared/http/clientIp.js";
 import { isSameOrigin } from "../../../shared/http/sameOrigin.js";
 import { isRecord } from "../../../shared/typeGuards.js";
 import type { WebServerOptions } from "../webServerOptions.js";
+import { resolveVisitorTarget } from "./visitorTarget.js";
 
 // Matches the web client baseline so a freshly minted identity needs no later upgrade to connect.
 const DEFAULT_MINT_LEVEL = 8;
@@ -120,12 +120,9 @@ export function registerIdentityRoutes(
       response.status(400).json({ ok: false, code: "INVALID_IDENTITY" });
       return;
     }
-    const policy = options.adminService.getConnectionPolicy();
-    let target = policy.defaultTarget;
+    let target;
     try {
-      if (policy.accessMode === "open" && typeof body.target === "string" && body.target.trim()) {
-        target = await resolveSafeOpenTarget(parseTeamSpeakTarget(body.target));
-      }
+      target = (await resolveVisitorTarget(options.adminService, body)).target;
     } catch {
       // An unresolvable or disallowed target cannot hold a lease we would recognise.
       response.status(200).json({ ok: true, inUse: false });
