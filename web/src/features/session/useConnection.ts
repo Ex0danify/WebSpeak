@@ -59,6 +59,7 @@ export function useConnection(deps: ConnectionDeps) {
     rememberIdentity: boolean;
     accelerated: boolean;
     accelerationRelayId: string;
+    serverId: string;
   } | null = null;
 
   function connect(
@@ -71,6 +72,7 @@ export function useConnection(deps: ConnectionDeps) {
     inviteToken = "",
     accelerated = false,
     accelerationRelayId = "",
+    serverId = "",
   ): void {
     disconnect(true);
     lastConnection = {
@@ -82,6 +84,7 @@ export function useConnection(deps: ConnectionDeps) {
       rememberIdentity,
       accelerated,
       accelerationRelayId,
+      serverId,
     };
     deps.identityMaterial.value = identity;
     const sequence = ++connectionSequence;
@@ -97,7 +100,7 @@ export function useConnection(deps: ConnectionDeps) {
     state.reconnectFailed = false;
     void deps.audioPreferencesReady.then(() => {
       if (sequence !== connectionSequence) return;
-      void openTicketedConnection(sequence, target, channel, nickname, serverPassword, inviteToken, accelerated);
+      void openTicketedConnection(sequence, target, channel, nickname, serverPassword, inviteToken, accelerated, serverId);
     });
   }
 
@@ -109,13 +112,15 @@ export function useConnection(deps: ConnectionDeps) {
     serverPassword: string,
     inviteToken: string,
     accelerated: boolean,
+    serverId: string,
   ): Promise<void> {
     try {
       const response = await fetch("/api/join-ticket", {
         method: "POST",
         headers: { "content-type": "application/json", accept: "application/json" },
         body: JSON.stringify({
-          target,
+          // A configured server is named by id, its address never reaches the browser.
+          ...(serverId ? { serverId } : { target }),
           nickname,
           channel,
           serverPassword,
@@ -245,6 +250,7 @@ export function useConnection(deps: ConnectionDeps) {
       "",
       lastConnection.accelerated,
       lastConnection.accelerationRelayId,
+      lastConnection.serverId,
     );
   }
 

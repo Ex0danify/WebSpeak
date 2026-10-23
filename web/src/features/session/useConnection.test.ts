@@ -160,6 +160,19 @@ describe("connect", () => {
     expect(session.state.connecting).toBe(true);
   });
 
+  it("names a configured server by id and sends no address, also when reconnecting", async () => {
+    const { connection, session } = setup();
+    connection.connect("ignored.example:9987", "1", "guest", "", "", false, "", false, "", "server-a");
+    await vi.waitFor(() => expect(FakeWebSocket.instances).toHaveLength(1));
+    const body = () => JSON.parse((fetch as ReturnType<typeof vi.fn>).mock.calls.at(-1)![1].body);
+    expect(body()).toEqual({ serverId: "server-a", nickname: "guest", channel: "1", serverPassword: "" });
+    session.state.connecting = false;
+    connection.reconnectNow();
+    await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(2));
+    expect(body()).toMatchObject({ serverId: "server-a" });
+    expect(body()).not.toHaveProperty("target");
+  });
+
   it("reports a refused ticket with its mapped message and code", async () => {
     vi.stubGlobal(
       "fetch",

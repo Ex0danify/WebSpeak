@@ -36,6 +36,7 @@ export interface UseJoinFormOptions {
     inviteToken?: string,
     accelerated?: boolean,
     accelerationRelayId?: string,
+    serverId?: string,
   ) => void;
   disconnect: (preserveConnection?: boolean) => void;
   clearError: () => void;
@@ -60,7 +61,8 @@ export function useJoinForm(options: UseJoinFormOptions) {
   const query = new URLSearchParams(location.search);
   const inviteToken = query.get("invite") ?? "";
 
-  const { nickname, channel, serverHost, serverPort, rememberIdentity, accessMode, serverTarget } = storeToRefs(useJoinFormStore());
+  const { nickname, channel, serverHost, serverPort, serverId, servers, rememberIdentity, accessMode, serverTarget } =
+    storeToRefs(useJoinFormStore());
   const serverPassword = ref("");
   const favoriteServers = ref<FavoriteServer[]>([]);
   const recentServers = ref<RecentServer[]>([]);
@@ -100,12 +102,13 @@ export function useJoinForm(options: UseJoinFormOptions) {
       gatewayStatus.value !== "offline" &&
       initialized.value &&
       nickname.value.trim() &&
-      (accessMode.value === "fixed" || (serverHost.value.trim() && isValidTeamSpeakPort(serverPort.value))),
+      (serverId.value || (accessMode.value === "open" && serverHost.value.trim() && isValidTeamSpeakPort(serverPort.value))),
     ),
   );
   const isFavorite = computed(() => favoriteServers.value.some((favorite) => favorite.id === serverKey(currentServerTarget())));
 
   function selectLocalServer(address: string, savedNickname?: string): void {
+    serverId.value = "";
     const target = splitTeamSpeakTarget(address);
     serverHost.value = target.address;
     serverPort.value = target.port;
@@ -177,7 +180,7 @@ export function useJoinForm(options: UseJoinFormOptions) {
         siteName?: unknown;
         welcomeTexts?: unknown;
         accessMode?: unknown;
-        target?: unknown;
+        servers?: unknown;
         visitorNumber?: unknown;
         visitorTotal?: unknown;
         accelerationAvailable?: unknown;
@@ -212,12 +215,19 @@ export function useJoinForm(options: UseJoinFormOptions) {
         : [];
       if (!accelerationAvailable.value || !accelerationRelays.value.some((relay) => relay.id === accelerationRelayId.value))
         accelerationRelayId.value = "";
-      const hasInviteTarget = query.has("server") || query.has("target") || query.has("tsHost") || query.has("tsPort");
-      if (!hasInviteTarget && typeof config.target === "string" && config.target.trim()) {
-        const target = splitTeamSpeakTarget(config.target);
-        serverHost.value = target.address;
-        serverPort.value = target.port;
-      }
+      servers.value = Array.isArray(config.servers)
+        ? config.servers.flatMap((value) => {
+            if (!value || typeof value !== "object") return [];
+            const server = value as { id?: unknown; name?: unknown };
+            return typeof server.id === "string" && typeof server.name === "string" && server.id && server.name
+              ? [{ id: server.id, name: server.name }]
+              : [];
+          })
+        : [];
+      // A link to an address (open access) picks the typed address, anything else starts on a configured server.
+      const hasInviteTarget = accessMode.value === "open" && (query.has("server") || query.has("target"));
+      if (hasInviteTarget) serverId.value = "";
+      else if (!servers.value.some((server) => server.id === serverId.value)) serverId.value = servers.value[0]?.id ?? "";
     } catch {
       // Joining stays disabled until the gateway has confirmed its initialized policy once. After
       // that the last answer holds, so the form survives the gateway going away under a live page.
@@ -234,12 +244,11 @@ export function useJoinForm(options: UseJoinFormOptions) {
     nickname.value = nickname.value.trim();
     writeStorage("webspeak:nickname", nickname.value);
     void saveLocalPreferences({ schemaVersion: 1, lastNickname: nickname.value });
-    if (accessMode.value === "open") {
+    if (!serverId.value) {
       serverHost.value = serverHost.value.trim();
       serverPort.value = serverPort.value.trim();
     }
-    // Keep the password field available for a retry even when the target is administrator-managed. In fixed mode the gateway
-    // still controls the target and only accepts a non-empty retry password for it.
+    // A configured server keeps its saved password, the password dialog sends one only as a retry.
     connect(
       currentServerTarget(),
       channel.value.trim(),
@@ -250,6 +259,7 @@ export function useJoinForm(options: UseJoinFormOptions) {
       inviteToken,
       Boolean(accelerationRelayId.value),
       accelerationRelayId.value,
+      serverId.value,
     );
   }
 
@@ -292,6 +302,8 @@ export function useJoinForm(options: UseJoinFormOptions) {
     serverHost,
     serverPort,
     serverPassword,
+    serverId,
+    servers,
     accessMode,
     rememberIdentity,
     favoriteServers,

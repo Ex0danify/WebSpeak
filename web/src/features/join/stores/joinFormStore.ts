@@ -3,6 +3,11 @@ import { computed, ref } from "vue";
 import { readStorage } from "@/shared/services/safeStorage";
 import { combineTeamSpeakTarget, DEFAULT_TEAM_SPEAK_PORT, splitTeamSpeakTarget } from "@/shared/lib/teamspeakTarget";
 
+export interface PublicServer {
+  id: string;
+  name: string;
+}
+
 function initialServerTarget(query: URLSearchParams) {
   const explicit = query.get("server") ?? query.get("target");
   if (explicit?.trim()) return splitTeamSpeakTarget(explicit);
@@ -22,9 +27,13 @@ export const useJoinFormStore = defineStore("joinForm", () => {
   const serverHost = ref(initialTarget.address);
   const serverPort = ref(initialTarget.port);
   const rememberIdentity = ref(readStorage("webspeak:remember-identity") !== "0");
+  /** The configured server picked on the join page. Empty means the address typed above, which only open access allows. */
+  const serverId = ref(query.get("serverId") ?? "");
+  /** The names of the configured servers from the gateway's public config, their addresses stay on the gateway. */
+  const servers = ref<PublicServer[]>([]);
   /** From the gateway's public config; the room's invite link needs it after the join page is gone. */
   const accessMode = ref<"fixed" | "open">("fixed");
   const serverTarget = computed(() => combineTeamSpeakTarget(serverHost.value, serverPort.value));
 
-  return { nickname, channel, serverHost, serverPort, rememberIdentity, accessMode, serverTarget };
+  return { nickname, channel, serverHost, serverPort, serverId, servers, rememberIdentity, accessMode, serverTarget };
 });

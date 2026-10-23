@@ -18,6 +18,7 @@
       <JoinHero :welcome-text="localizedWelcomeText" :visitor-number="visitorNumber" :visitor-total="visitorTotal" />
 
       <JoinForm
+        v-model:server-id="serverId"
         v-model:server-host="serverHost"
         v-model:server-port="serverPort"
         v-model:server-password="serverPassword"
@@ -25,6 +26,7 @@
         v-model:nickname="nickname"
         v-model:channel="channel"
         :access-mode="accessMode"
+        :servers="servers"
         :favorite-servers="favoriteServers"
         :recent-servers="recentServers"
         :is-favorite="isFavorite"
@@ -92,6 +94,8 @@ const {
   serverHost,
   serverPort,
   serverPassword,
+  serverId,
+  servers,
   accessMode,
   rememberIdentity,
   favoriteServers,
@@ -135,6 +139,6 @@ const { identityReady } = useJoinIdentity({ manager: identityManager, identityMa
 useJoinScreen({ voiceState, serverPasswordDialog, clearError });
 
 const identityTarget = computed(() =>
-  accessMode.value === "open" && serverHost.value.trim() ? `${serverHost.value.trim()}:${serverPort.value.trim()}` : "",
+  accessMode.value === "open" && !serverId.value && serverHost.value.trim() ? `${serverHost.value.trim()}:${serverPort.value.trim()}` : "",
 );
 </script>

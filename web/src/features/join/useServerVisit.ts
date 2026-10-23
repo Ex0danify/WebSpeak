@@ -15,7 +15,8 @@ export function useServerVisit({ voiceState }: UseServerVisitOptions): void {
   const form = useJoinFormStore();
 
   async function recordServerVisit(): Promise<void> {
-    const address = form.serverTarget;
+    // A configured server has no address in the browser, and a recent entry could not reconnect to it anyway.
+    const address = form.serverId ? "" : form.serverTarget;
     if (!address) return;
     const nickname = form.nickname.trim();
     const channel = form.channel.trim();

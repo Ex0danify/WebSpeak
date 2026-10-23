@@ -59,6 +59,15 @@ describe("useServerVisit", () => {
     expect(recent?.identityId).toBeUndefined();
   });
 
+  it("records nothing for a configured server, whose address the browser does not have", async () => {
+    const { voiceState, form } = setup();
+    form.serverId = "server-a";
+    form.serverHost = "voice.example.com";
+    voiceState.connected = true;
+    await flushPromises();
+    expect(await listRecentServers()).toEqual([]);
+  });
+
   it("does nothing without a target", async () => {
     const { voiceState, form } = setup();
     form.serverHost = "";

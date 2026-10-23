@@ -1,91 +1,13 @@
 import { flushPromises, mount } from "@vue/test-utils";
-import { IDBFactory } from "fake-indexeddb";
-import { createPinia, setActivePinia } from "pinia";
-import { defineComponent, reactive, ref } from "vue";
+import { defineComponent, ref } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { VoiceState } from "@/features/session";
+import { makeVoiceState, mountUseJoinForm, publicConfig, resetJoinFormEnvironment, type Exposed } from "@/testSupport/joinForm";
 
 const dialog = vi.hoisted(() => ({ prompt: vi.fn(), confirm: vi.fn(), alert: vi.fn() }));
 vi.mock("@/shared/composables/useDialog", () => ({ useDialog: () => dialog }));
 
-type Exposed = {
-  nickname: string;
-  channel: string;
-  serverHost: string;
-  serverPort: string;
-  serverPassword: string;
-  accessMode: "fixed" | "open";
-  rememberIdentity: boolean;
-  favoriteServers: Array<{ id: string; label: string; address: string }>;
-  recentServers: Array<{ id: string; address: string }>;
-  initialized: boolean;
-  browserError: string;
-  serverConfigLoading: boolean;
-  serverConfigFailed: boolean;
-  loadPublicConfig: () => Promise<void>;
-  serverPasswordDialog: { open: boolean; password: string; errorCode: string };
-  canJoin: boolean;
-  isFavorite: boolean;
-  currentServerTarget: () => string;
-  selectLocalServer: (address: string, savedNickname?: string) => void;
-  toggleFavorite: () => Promise<void>;
-  doConnect: () => void;
-  doDisconnect: () => void;
-  submitServerPassword: () => void;
-  cancelServerPassword: () => void;
-  clearBrowserData: () => Promise<void>;
-};
-
-function makeVoiceState(): VoiceState {
-  return reactive({
-    connected: false,
-    connecting: false,
-    reconnecting: false,
-    reconnectAttempt: 0,
-    reconnectFailed: false,
-    tsClientId: 0,
-    error: "",
-    errorCode: "",
-    microphoneError: "",
-    microphoneErrorCode: "",
-    audioNotice: "",
-    audioNoticeCode: "",
-    channelSwitchedChannelId: "",
-  }) as VoiceState;
-}
-
-/** Mounts a bare component whose setup is `useJoinForm(options)`, so onMounted (loadPublicConfig,
- *  checkSupport, the favorites/recents load) runs through the real Vue lifecycle. */
-async function mountUseJoinForm(overrides: Partial<Parameters<typeof import("@/features/join/useJoinForm").useJoinForm>[0]> = {}) {
-  const { useJoinForm } = await import("@/features/join/useJoinForm");
-  const voiceState = makeVoiceState();
-  const options = {
-    voiceState,
-    identityMaterial: ref(""),
-    selectedIdentityId: ref<string | undefined>(undefined),
-    connect: vi.fn(),
-    disconnect: vi.fn(),
-    clearError: vi.fn(),
-    checkSupport: vi.fn(() => null),
-    setThemeMode: vi.fn(),
-    ...overrides,
-  };
-  const wrapper = mount(defineComponent({ setup: () => useJoinForm(options), template: "<div/>" }));
-  await flushPromises();
-  return { wrapper, vm: wrapper.vm as unknown as Exposed, options, voiceState };
-}
-
 beforeEach(() => {
-  setActivePinia(createPinia());
-  // A fresh IDBFactory per test, not just per file, because afterEach's unstubAllGlobals() would drop the stub after the first
-  // test and every later favorite/recent-server write would silently no-op against isLocalPersistenceAvailable() === false.
-  vi.stubGlobal("indexedDB", new IDBFactory());
-  localStorage.clear();
-  vi.stubGlobal(
-    "fetch",
-    vi.fn(async () => new Response("{}", { status: 200, headers: { "content-type": "application/json" } })),
-  );
-  vi.resetModules();
+  resetJoinFormEnvironment();
 });
 
 afterEach(() => {
@@ -101,22 +23,8 @@ describe("canJoin", () => {
     expect(vm.canJoin).toBe(false);
   });
 
-  it("is true once initialized with a nickname in fixed mode", async () => {
-    vi.stubGlobal(
-      "fetch",
-      vi.fn(async () => new Response(JSON.stringify({ initialized: true }), { status: 200 })),
-    );
-    const { vm } = await mountUseJoinForm();
-    vm.nickname = "Lucas";
-    await flushPromises();
-    expect(vm.canJoin).toBe(true);
-  });
-
-  it("requires a valid port in open mode", async () => {
-    vi.stubGlobal(
-      "fetch",
-      vi.fn(async () => new Response(JSON.stringify({ initialized: true, accessMode: "open" }), { status: 200 })),
-    );
+  it("requires a valid port for a typed address in open mode", async () => {
+    publicConfig({ accessMode: "open", servers: [] });
     const { vm } = await mountUseJoinForm();
     vm.nickname = "Lucas";
     vm.serverHost = "example.com";
@@ -136,11 +44,8 @@ describe("doConnect", () => {
     expect(options.connect).not.toHaveBeenCalled();
   });
 
-  it("trims fields and calls connect with the target", async () => {
-    vi.stubGlobal(
-      "fetch",
-      vi.fn(async () => new Response(JSON.stringify({ initialized: true }), { status: 200 })),
-    );
+  it("trims fields and calls connect with the picked server", async () => {
+    publicConfig();
     const { vm, options } = await mountUseJoinForm();
     vm.nickname = "  Lucas  ";
     vm.channel = " lobby ";
@@ -148,7 +53,7 @@ describe("doConnect", () => {
     vm.doConnect();
     expect(options.clearError).toHaveBeenCalled();
     expect(vm.nickname).toBe("Lucas");
-    expect(options.connect).toHaveBeenCalledWith(vm.currentServerTarget(), "lobby", "Lucas", "", "", true, "", false, "");
+    expect(options.connect).toHaveBeenCalledWith(vm.currentServerTarget(), "lobby", "Lucas", "", "", true, "", false, "", "server-a");
   });
 
   it("does nothing while already connecting", async () => {
@@ -175,10 +80,7 @@ describe("doDisconnect", () => {
 
 describe("server password dialog", () => {
   it("submitting sets the password and reconnects", async () => {
-    vi.stubGlobal(
-      "fetch",
-      vi.fn(async () => new Response(JSON.stringify({ initialized: true }), { status: 200 })),
-    );
+    publicConfig();
     const { vm, options } = await mountUseJoinForm();
     vm.nickname = "Lucas";
     vm.serverPasswordDialog.open = true;

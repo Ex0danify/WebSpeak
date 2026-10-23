@@ -89,14 +89,15 @@ export async function validateIdentity(material: string, signal?: AbortSignal): 
   return typeof body.level === "number" ? body.level : 0;
 }
 
-/** Best-effort check of whether `material` is already live on `target` in another page, via
- *  `POST /api/identity/status`. Returns false on any failure so the hint never blocks a connection. */
-export async function checkIdentityStatus(material: string, target: string, signal?: AbortSignal): Promise<boolean> {
+/** Best-effort check of whether `material` is already live on the server in another page, via
+ *  `POST /api/identity/status`. The server is a configured one by `serverId`, else a typed `target`.
+ *  Returns false on any failure so the hint never blocks a connection. */
+export async function checkIdentityStatus(material: string, target: string, signal?: AbortSignal, serverId = ""): Promise<boolean> {
   try {
     const response = await fetch(STATUS_URL, {
       method: "POST",
       headers: { "content-type": "application/json", accept: "application/json" },
-      body: JSON.stringify(target ? { identity: material, target } : { identity: material }),
+      body: JSON.stringify(serverId ? { identity: material, serverId } : target ? { identity: material, target } : { identity: material }),
       cache: "no-store",
       signal,
     });
