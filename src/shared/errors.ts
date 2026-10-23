@@ -170,7 +170,7 @@ function createTeamSpeakError(code: WebSpeakErrorCode, cause: unknown, diagnosti
 /** Raw server error id to normalized code. Takes decimal (err.id, id=515) and hex (0x0203) because both show up in logs. */
 export function teamSpeakServerErrorCode(id: unknown): WebSpeakErrorCode | null {
   if (id === undefined || id === null) return null;
-  const text = String(id).trim().toLocaleLowerCase();
+  const text = String(id).trim().toLowerCase();
   if (/^\d{1,6}$/.test(text)) return TEAMSPEAK_SERVER_ERROR_IDS[String(Number(text))] ?? null;
   const hexMatch = /^(?:0x)?([0-9a-f]{4,6})$/.exec(text);
   if (hexMatch) return TEAMSPEAK_SERVER_ERROR_IDS[String(parseInt(hexMatch[1], 16))] ?? null;
@@ -181,7 +181,7 @@ export function teamSpeakServerErrorCode(id: unknown): WebSpeakErrorCode | null 
 export function normalizeTeamSpeakError(error: unknown): WebSpeakError {
   if (error instanceof WebSpeakError) return error;
   const diagnostics = collectDiagnostics(error);
-  const text = diagnosticText(error).toLocaleLowerCase();
+  const text = diagnosticText(error).toLowerCase();
 
   // The server id names the exact reason so it beats every keyword heuristic.
   // The inline scan covers id=515 for when the SDK does not attach the id.
@@ -244,7 +244,7 @@ export function normalizeTeamSpeakError(error: unknown): WebSpeakError {
   }
 
   // Handshake and crypto errors have no numeric id, so match the class name before the text.
-  const errorName = (diagnostics.name ?? "").toLocaleLowerCase();
+  const errorName = (diagnostics.name ?? "").toLowerCase();
   const transportCode = errorName === "teamspeaktransporterror" ? LIB_TRANSPORT_ERROR_CODES[diagnostics.code ?? ""] : undefined;
   if (transportCode) return createTeamSpeakError(transportCode, error, diagnostics);
   if (/eaxtagmismatch|fakesignaturemismatch|cryptoinit|invalididentity|license/.test(errorName)) {

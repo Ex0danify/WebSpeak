@@ -31,7 +31,7 @@ export function isRestrictedAddress(address: string): boolean {
   if (version === 4) return isRestrictedIpv4(address);
   if (version !== 6) return true;
 
-  const normalized = address.toLocaleLowerCase();
+  const normalized = address.toLowerCase();
   if (normalized === "::" || normalized === "::1") return true;
   if (normalized.startsWith("::ffff:")) {
     const mapped = normalized.slice("::ffff:".length);

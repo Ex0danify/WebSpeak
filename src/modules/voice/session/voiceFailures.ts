@@ -21,7 +21,7 @@ export function classifyOperationError(
   fallbackMessage: string,
 ): { code: MessageCode; message: string } {
   const text = error instanceof Error ? error.message : String(error);
-  const normalized = text.toLocaleLowerCase();
+  const normalized = text.toLowerCase();
   // A server error id is authoritative when the SDK kept it, so it goes before the keyword rules
   // (781 channel password, 2568 permissions, 515/2817 limits) instead of guessing from prose.
   const serverCode =
