@@ -61,6 +61,7 @@ export function registerAuthRoutes(router: Router, options: AdminRouterOptions, 
     try {
       const body = asRecord(request.body);
       await options.service.changePassword(readString(body, "newPassword", 1024));
+      options.sessions.retainOnly(request);
       response.json({ ok: true, mustChangePassword: false });
     } catch (error: unknown) {
       sendAdminError(response, error);
