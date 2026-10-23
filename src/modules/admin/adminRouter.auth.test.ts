@@ -182,6 +182,21 @@ describe("first-run password change", () => {
   });
 });
 
+describe("change password", () => {
+  it("signs out other admin sessions but keeps the one that changed the password", async () => {
+    const gateway = await gateways.start();
+    const changer = await gateway.adminLogin();
+    const other = await gateway.adminLogin();
+    expect((await other.get("overview")).status).toBe(200);
+
+    const changed = await changer.post("change-password", { newPassword: "a brand new password 1" });
+    expect(await changed.json()).toEqual({ ok: true, mustChangePassword: false });
+
+    expect((await changer.get("overview")).status).toBe(200);
+    expect((await other.get("overview")).status).toBe(401);
+  });
+});
+
 describe("account reset", () => {
   it("signs out sessions from before the reset, so a stolen cookie cannot take over", async () => {
     const gateway = await gateways.start();

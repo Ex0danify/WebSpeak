@@ -52,6 +52,13 @@ export class AdminSessionStore {
     response.clearCookie(COOKIE_NAME, { httpOnly: true, sameSite: "strict", secure, path: "/" });
   }
 
+  /** Drop every session but the caller's, so a password change signs out any other open admin session. */
+  retainOnly(request: Request): void {
+    const token = readCookie(request.headers.cookie, COOKIE_NAME);
+    const keep = token ? hashToken(token) : undefined;
+    for (const key of this.sessions.keys()) if (key !== keep) this.sessions.delete(key);
+  }
+
   clear(): void {
     this.sessions.clear();
   }
