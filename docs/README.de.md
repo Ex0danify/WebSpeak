@@ -227,7 +227,7 @@ npm start
 
 1. `http://<dein-host>:3040/admin` öffnen.
 2. Mit `WEBSPEAK_ADMIN_USERNAME` und dem `WEBSPEAK_ADMIN_PASSWORD` aus der `.env` anmelden und ein neues Passwort mit mindestens 12 Zeichen setzen. Der Wert aus der `.env` legt das Konto nur auf einer neuen Datenbank an; spätere Änderungen wirken nicht, und nach der Anmeldung kann er entfernt werden.
-3. Unter **Server** TeamSpeak-Ziel und Zugriffsmethode konfigurieren, zum Beispiel `voice.example.com#9987`.
+3. Unter **Server** die TeamSpeak-Server anlegen, zum Beispiel `voice.example.com#9987`, und die Zugriffsmethode wählen. Besucher wählen einen Server nach Namen und sehen nie seine Adresse, ein Server im LAN oder unter einer Loopback-Adresse ist für sie also erreichbar, ohne das Gateway für diese Netze zu öffnen. Offener Zugriff erlaubt zusätzlich die Eingabe einer öffentlichen Adresse.
 4. Für öffentliche Nutzung HTTPS einrichten; bei aktiviertem WebRTC den im Adminbereich angezeigten UDP-Bereich freigeben.
 
 ### Konfiguration: `.env` und Adminbereich
