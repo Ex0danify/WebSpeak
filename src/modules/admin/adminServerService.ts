@@ -72,6 +72,20 @@ export class AdminServerService {
     return toServerView(this.require(id));
   }
 
+  /** `ids` must name every server exactly once, a partial list would leave the others at stale positions. */
+  reorder(ids: unknown): void {
+    const current = this.database.listServers().map((server) => server.id);
+    if (
+      !Array.isArray(ids) ||
+      ids.length !== current.length ||
+      new Set(ids).size !== ids.length ||
+      !ids.every((id) => current.includes(id))
+    ) {
+      throw new AdminInputError("INVALID_SERVER_ORDER", "The order must list every server exactly once");
+    }
+    this.database.reorderServers(ids as string[]);
+  }
+
   remove(id: string, accessMode: string): void {
     const servers = this.database.listServers();
     if (!servers.some((server) => server.id === id)) throw new AdminInputError("SERVER_NOT_FOUND", "Server not found");

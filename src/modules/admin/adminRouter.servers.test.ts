@@ -84,6 +84,28 @@ describe("the server list", () => {
     expect((await json(await admin.get("servers"))).servers).toHaveLength(1);
   });
 
+  it("saves a new order and answers with the list in it", async () => {
+    const { gateway, admin } = await start();
+    const added = (await json(await create(admin))).server;
+    const response = await admin.put("servers/order", { ids: [added.id, DEFAULT_SERVER_ID] });
+    expect([response.status, (await json(response)).servers.map((server: { id: string }) => server.id)]).toEqual([
+      200,
+      [added.id, DEFAULT_SERVER_ID],
+    ]);
+    expect((await json(await admin.get("servers"))).servers[0].id).toBe(added.id);
+    expect(audit(gateway)[0]).toBe("SERVERS_REORDERED");
+  });
+
+  it("refuses an order that is not every server once, and keeps the old one", async () => {
+    const { admin } = await start();
+    await create(admin);
+    for (const ids of [[DEFAULT_SERVER_ID], [DEFAULT_SERVER_ID, DEFAULT_SERVER_ID], "nope", undefined]) {
+      const response = await admin.put("servers/order", { ids });
+      expect([response.status, (await json(response)).code], JSON.stringify(ids)).toEqual([400, "INVALID_SERVER_ORDER"]);
+    }
+    expect((await json(await admin.get("servers"))).servers[0].id).toBe(DEFAULT_SERVER_ID);
+  });
+
   it("answers an unknown or malformed id with 400 SERVER_NOT_FOUND", async () => {
     const { admin } = await start();
     for (const id of ["server-gone", "x", "server-a%20b"]) {

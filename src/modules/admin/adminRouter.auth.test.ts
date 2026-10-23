@@ -244,6 +244,7 @@ describe("every mutating admin route needs the same origin, JSON and the CSRF to
     { method: "PUT", path: "/server", guard: "admin" },
     { method: "POST", path: "/server/test", guard: "admin" },
     { method: "POST", path: "/servers", guard: "admin" },
+    { method: "PUT", path: "/servers/order", guard: "admin" },
     { method: "PUT", path: "/servers/:id", guard: "admin" },
     { method: "DELETE", path: "/servers/:id", guard: "admin" },
     { method: "POST", path: "/servers/:id/test", guard: "admin" },

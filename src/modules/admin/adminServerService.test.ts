@@ -105,3 +105,33 @@ describe("resolving a server for a visitor", () => {
     expect(JSON.stringify(ctx.logger.error.mock.calls)).not.toContain("pw-1");
   });
 });
+
+describe("reordering the servers", () => {
+  it("saves the order, which the list and the public config then follow", () => {
+    const service = ctx.create();
+    const a = service.createServer(serverInput({ name: "A", target: "a.example.org" }));
+    const b = service.createServer(serverInput({ name: "B", target: "b.example.org" }));
+    service.reorderServers([b.id, DEFAULT_SERVER_ID, a.id]);
+    expect(service.listServers().map((server) => server.id)).toEqual([b.id, DEFAULT_SERVER_ID, a.id]);
+    expect((service.getPublicConfig().servers as Array<{ id: string }>).map((server) => server.id)).toEqual([
+      b.id,
+      DEFAULT_SERVER_ID,
+      a.id,
+    ]);
+    expect(service.createServer(serverInput({ name: "C", target: "c.example.org" })).id).toBe(service.listServers().at(-1)!.id);
+    expect(service.database.recentAudit(10).map((entry) => entry.event)).toContain("SERVERS_REORDERED");
+  });
+
+  it.each([
+    ["a missing server", (ids: string[]) => ids.slice(1)],
+    ["a repeated server", (ids: string[]) => [ids[0], ids[0]]],
+    ["an unknown server", (ids: string[]) => [...ids.slice(1), "server-gone"]],
+    ["something that is no list", () => "nope"],
+  ])("rejects %s and keeps the order", (_name, build) => {
+    const service = ctx.create();
+    service.createServer(serverInput({ name: "A", target: "a.example.org" }));
+    const before = service.listServers().map((server) => server.id);
+    expect(rejection(() => service.reorderServers(build(before) as never)).code).toBe("INVALID_SERVER_ORDER");
+    expect(service.listServers().map((server) => server.id)).toEqual(before);
+  });
+});

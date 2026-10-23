@@ -155,6 +155,14 @@ export class WebSpeakDatabase {
     });
   }
 
+  reorderServers(ids: string[]): void {
+    const now = new Date().toISOString();
+    this.transaction(() => {
+      this.servers.reorder(ids);
+      this.audit.insert("SERVERS_REORDERED", { count: ids.length }, now);
+    });
+  }
+
   removeServer(id: string): boolean {
     const now = new Date().toISOString();
     let removed = false;

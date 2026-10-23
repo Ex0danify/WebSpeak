@@ -213,6 +213,10 @@ export class AdminService {
     return this.servers.update(id, input);
   }
 
+  reorderServers(ids: unknown): void {
+    this.servers.reorder(ids);
+  }
+
   removeServer(id: string): void {
     this.servers.remove(id, this.getAccessMode());
   }

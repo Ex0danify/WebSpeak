@@ -57,9 +57,10 @@ describe("admin router layer order", () => {
         "POST /sessions/:id/terminate",
         "PUT /server",
         "PUT /servers/:id",
+        "PUT /servers/order",
         "DELETE /servers/:id",
       ].sort(),
     );
-    expect(stack).toHaveLength(guard + 1 + 19 + 1);
+    expect(stack).toHaveLength(guard + 1 + 20 + 1);
   });
 });

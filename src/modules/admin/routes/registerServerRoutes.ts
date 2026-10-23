@@ -39,6 +39,16 @@ export function registerServerRoutes(router: Router, options: AdminRouterOptions
     }
   });
 
+  // Before `/servers/:id`, which would take "order" for an id.
+  router.put("/servers/order", requireSameOrigin, requireCsrf(options.sessions), (request, response) => {
+    try {
+      options.service.reorderServers(asRecord(request.body).ids);
+      response.json({ ok: true, servers: options.service.listServers() });
+    } catch (error: unknown) {
+      sendAdminError(response, error);
+    }
+  });
+
   router.put("/servers/:id", requireSameOrigin, requireCsrf(options.sessions), (request, response) => {
     try {
       const server = options.service.updateServer(readServerId(request.params.id), readServerInput(asRecord(request.body)));

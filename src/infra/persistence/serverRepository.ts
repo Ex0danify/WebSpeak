@@ -37,6 +37,12 @@ export class ServerRepository {
       .run(server.name, server.host, server.port, server.passwordEncrypted, now, server.id);
   }
 
+  /** Gives each server the position of its place in `ids`. */
+  reorder(ids: string[]): void {
+    const update = this.context.database.prepare("UPDATE ts_servers SET position = ? WHERE id = ?");
+    ids.forEach((id, index) => update.run(index, id));
+  }
+
   delete(id: string): boolean {
     const result = this.context.database.prepare("DELETE FROM ts_servers WHERE id = ?").run(id) as { changes?: number | bigint };
     return Number(result.changes ?? 0) === 1;
