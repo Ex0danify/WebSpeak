@@ -46,6 +46,11 @@ export function isRestrictedAddress(address: string): boolean {
   if (normalized.startsWith("2001:db8:")) return true; // documentation range
   const groups = ipv6Groups(normalized);
   if (!groups) return true;
+  // Loopback, unspecified and IPv4-mapped written out in full slip past the textual checks above.
+  if (groups.slice(0, 5).every((group) => group === 0)) {
+    if (groups[5] === 0xffff) return isRestrictedIpv4(ipv4Of(groups[6]!, groups[7]!)); // ::ffff:a.b.c.d
+    if (groups[5] === 0) return true; // ::, ::1 and the deprecated IPv4-compatible ::a.b.c.d
+  }
   // Forms that carry an IPv4 address are judged by that address.
   if (groups[0] === 0x64 && groups[1] === 0xff9b) {
     if (groups.slice(2, 6).every((group) => group === 0)) return isRestrictedIpv4(ipv4Of(groups[6]!, groups[7]!)); // NAT64 64:ff9b::/96
