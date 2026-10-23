@@ -235,6 +235,8 @@ export async function useCannedApi(page: Page, { lang, theme, admin }: { lang: s
   await page.context().route("**/api/**", (route) => {
     const { pathname } = new URL(route.request().url());
     const json = (status: number, body: unknown) => route.fulfill({ status, contentType: "application/json", body: JSON.stringify(body) });
+    // The Join page polls this; without it the gateway status sits offline and its retry countdown ticks under the screenshot.
+    if (pathname === "/api/health") return json(200, { status: "ok", version: "0.0.0-test" });
     if (pathname === "/api/public-config") return json(200, publicConfig);
     const authenticated = admin ? adminApi(pathname) : null;
     if (authenticated) return json(authenticated[0], authenticated[1]);
