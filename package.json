@@ -11,14 +11,15 @@
   "scripts": {
     "check:gateway-types": "tsc --noEmit -p tsconfig.json",
     "check:gateway-size": "node scripts/check-gateway-size.mjs",
-    "dev": "tsx src/index.ts",
+    "dev": "concurrently -n gateway,web -c blue,magenta -k \"npm:dev:gateway\" \"npm:dev:web\"",
+    "dev:gateway": "cross-env NODE_OPTIONS=--disable-warning=ExperimentalWarning tsx src/index.ts",
+    "dev:web": "npm --prefix web run dev",
     "build": "npm run build:all",
     "build:all": "npm run build:web && npm run build:gateway",
     "build:web": "npm --prefix web run build",
     "build:gateway": "tsc -p tsconfig.build.json && node scripts/copy-opus-wasm.mjs && npm run check:gateway-types && npm run check:gateway-size && npm run check:gateway-names && npm run check:gateway-deps && npm run check:gateway-literals",
     "start": "node dist/index.js",
-    "admin:reset-password": "node dist/index.js reset-admin-password",
-    "web:dev": "cd web && npx vite --host",
+    "admin:reset-password": "cross-env NODE_OPTIONS=--disable-warning=ExperimentalWarning node dist/index.js reset-admin-password",
     "acceleration:relay": "node dist/relay.js",
     "test": "cross-env NODE_OPTIONS=--disable-warning=ExperimentalWarning vitest run",
     "test:watch": "cross-env NODE_OPTIONS=--disable-warning=ExperimentalWarning vitest",
@@ -52,7 +53,8 @@
     "@types/express": "^5.0.3",
     "@types/node": "^22.15.0",
     "@types/ws": "^8.18.1",
-    "@vitest/coverage-v8": "^5.0.2",
+    "@vitest/coverage-v8": "^5.0.5",
+    "concurrently": "^10.0.6",
     "cross-env": "^10.1.0",
     "dependency-cruiser": "^18.5.0",
     "eslint": "^10.12.0",
@@ -66,7 +68,7 @@
     "tsx": "^4.21.0",
     "typescript": "^6.0.2",
     "typescript-eslint": "^8.71.1",
-    "vitest": "^5.0.2"
+    "vitest": "^5.0.5"
   },
   "overrides": {
     "body-parser": "^2.3.0",
