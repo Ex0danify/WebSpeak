@@ -2,17 +2,21 @@
   <div class="flex flex-col gap-2">
     <div class="flex items-end gap-2">
       <Field id="device-identity" :label="t('identityLabel')" class="flex-1">
-        <Select v-model="selectValue">
-          <option value="" class="italic">{{ t("identityEphemeral") }}</option>
-          <option
-            v-for="identity in manager.identities.value"
-            :key="identity.id"
-            :value="identity.id"
-            :class="{ italic: identity.id === manager.defaultId.value }"
-          >
-            {{ identity.label || t("identityUnnamed") }}{{ identity.id === manager.defaultId.value ? ` (${t("identityDefault")})` : "" }}
-          </option>
-        </Select>
+        <ListSelect v-model="selectValue" :items="items">
+          <template #value="{ item }">
+            <span :class="{ italic: isEphemeral(item?.value) }">{{ item?.label ?? t("identityEphemeral") }}</span
+            ><span v-if="isDefault(item?.value)" class="italic"> ({{ t("identityDefault") }})</span>
+          </template>
+          <template #item="{ item }">
+            <span class="flex items-center gap-1.5">
+              <span
+                ><span :class="{ italic: isEphemeral(item.value) }">{{ item.label }}</span
+                ><span v-if="isDefault(item.value)" class="italic"> ({{ t("identityDefault") }})</span></span
+              >
+              <Icon v-if="isDefault(item.value)" name="star" :size="13" class="shrink-0 fill-current text-accent" />
+            </span>
+          </template>
+        </ListSelect>
       </Field>
       <Button type="button" variant="outline" @click="dialogOpen = true">{{ t("identityManage") }}</Button>
     </div>
@@ -28,7 +32,8 @@
 import { computed, onBeforeUnmount, ref, watch } from "vue";
 import { Button } from "@/shared/ui/button";
 import { Field } from "@/shared/ui/field";
-import { Select } from "@/shared/ui/select";
+import { Icon } from "@/shared/ui/icon";
+import { ListSelect, type ListSelectItem } from "@/shared/ui/select";
 import { useI18n } from "@/shared/i18n/useI18n.js";
 import IdentityManagerDialog from "@/features/identity/IdentityManagerDialog.vue";
 import { checkIdentityStatus } from "@/features/identity/identityMintClient.js";
@@ -68,9 +73,20 @@ onBeforeUnmount(() => {
   clearTimeout(statusTimer);
 });
 
+// reka's Select treats an undefined value as the placeholder, so the ephemeral choice carries a sentinel
+// value here and maps back to `undefined` at the manager boundary.
+const EPHEMERAL = "\0ephemeral";
+const isEphemeral = (value: string | undefined): boolean => value === EPHEMERAL;
+const isDefault = (value: string | undefined): boolean => value !== undefined && value === props.manager.defaultId.value;
+
+const items = computed<ListSelectItem[]>(() => [
+  { value: EPHEMERAL, label: t("identityEphemeral") },
+  ...props.manager.identities.value.map((identity) => ({ value: identity.id, label: identity.label || t("identityUnnamed") })),
+]);
+
 const selectValue = computed({
-  get: () => props.manager.selectedId.value ?? "",
-  set: (value) => void props.manager.select(value === "" ? undefined : String(value)),
+  get: () => props.manager.selectedId.value ?? EPHEMERAL,
+  set: (value) => void props.manager.select(value === EPHEMERAL ? undefined : value),
 });
 
 const mintHint = computed(() => {

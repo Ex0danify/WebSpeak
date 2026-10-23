@@ -81,6 +81,9 @@
     "src/shared/ui/menu/menu.ts": {
       "arbitrary": 3
     },
+    "src/shared/ui/select/listSelect.ts": {
+      "arbitrary": 3
+    },
     "src/shared/ui/meter/meter.ts": {
       "arbitrary": 1
     },
