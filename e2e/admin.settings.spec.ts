@@ -108,13 +108,14 @@ test.describe("save", () => {
     await openServerPage(page, gateway);
     await expect(page.getByRole("button", { name: "Save changes" })).toHaveCount(0);
     const access = page.getByRole("article").filter({ has: page.getByRole("heading", { name: "Access and site identity" }) });
-    const sectionSaid = access.getByRole("status").getByText("Saved");
+    const sectionStatus = access.getByRole("status");
     const fieldSaid = access.locator("label").filter({ hasText: "Site display name" }).getByText("Saved");
     await expect(access.getByRole("status")).toBeAttached();
     await expect(access.getByText("Saved")).toHaveCount(0);
 
     expect(await saves(page, () => typeInto(siteName(page), "Quiet Save"))).toBe(200);
-    await expect(sectionSaid).toBeVisible();
+    // The section's status is for a screen reader, the field's mark is what is seen.
+    await expect(sectionStatus).toHaveText("Saved");
     // The field that was saved is marked next to its label, where the person is looking, and no other field is.
     await expect(fieldSaid).toBeVisible();
     await expect(access.getByText("Saved")).toHaveCount(2);

@@ -1,5 +1,11 @@
 <template>
-  <AdminSection :title="t('relaySettings')" :lead="t('relaySettingsLead')" :status="statuses.relay" body-class="grid content-start gap-3">
+  <AdminSection
+    :title="t('relaySettings')"
+    :lead="t('relaySettingsLead')"
+    :status="statuses.relay"
+    status-quiet
+    body-class="grid content-start gap-3"
+  >
     <div
       v-if="!serverForm.relayNodes.length"
       class="rounded-md border border-dashed border-line bg-surface-0 px-3 py-2.5 text-caption text-fg-muted"
@@ -13,9 +19,12 @@
         class="grid min-w-0 gap-2.5 rounded-lg border border-line bg-surface-0 p-3"
       >
         <div class="flex min-w-0 items-center justify-between gap-2.5">
-          <Checkbox v-model="relay.enabled" class="min-w-0" @update:model-value="scheduleSave('relay')"
-            ><strong class="block truncate text-xs">{{ relay.name || t("relayUnnamed") }}</strong></Checkbox
-          >
+          <div class="flex min-w-0 items-center gap-2.5">
+            <Checkbox v-model="relay.enabled" class="min-w-0" @update:model-value="scheduleSave('relay')"
+              ><strong class="block truncate text-xs">{{ relay.name || t("relayUnnamed") }}</strong></Checkbox
+            >
+            <FieldSaved :status="fieldStatus(`relay:${relay.id}:enabled`)" />
+          </div>
           <Button variant="dangerSoft" size="sm" @click="removeRelayNode(index)">{{ t("remove") }}</Button>
         </div>
         <div class="grid min-w-0 grid-cols-1 gap-3 desktop:grid-cols-2">
@@ -59,6 +68,7 @@ import { Checkbox } from "@/shared/ui/checkbox";
 import { Input } from "@/shared/ui/input";
 import { Segment, Segmented } from "@/shared/ui/tabs";
 import { storeToRefs } from "pinia";
+import FieldSaved from "@/features/admin/ui/FieldSaved.vue";
 import SettingField from "@/features/admin/server/SettingField.vue";
 import AdminSection from "@/features/admin/ui/AdminSection.vue";
 import { useAdminServerSettingsStore } from "@/features/admin/server/adminServerSettings";
@@ -66,6 +76,6 @@ import { useI18n } from "@/shared/i18n/useI18n";
 
 const settings = useAdminServerSettingsStore();
 const { serverForm } = storeToRefs(settings);
-const { statuses, scheduleSave, addRelayNode, removeRelayNode } = settings;
+const { statuses, fieldStatus, scheduleSave, addRelayNode, removeRelayNode } = settings;
 const { t } = useI18n();
 </script>

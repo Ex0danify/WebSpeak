@@ -124,9 +124,9 @@ describe("changedFieldKeys", () => {
   const documentOf = (form: ServerForm, confirmed: ServerForm = confirmedForm()) => buildSettingsDocument(form, confirmed).document;
   const before = documentOf(confirmedForm());
 
-  it("names the fields that differ, and none for a choice", () => {
+  it("names the fields and choices that differ", () => {
     const form = confirmedForm({ siteName: "Night Owls", identityMintQueueDepth: 5, accessMode: "open", webRtcEnabled: true });
-    expect(changedFieldKeys(documentOf(form), before)).toEqual(["siteName", "identityMintQueueDepth"]);
+    expect(changedFieldKeys(documentOf(form), before)).toEqual(["accessMode", "webRtcEnabled", "siteName", "identityMintQueueDepth"]);
   });
 
   it("names the welcome text only when its words change", () => {

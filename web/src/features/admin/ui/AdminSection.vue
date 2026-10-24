@@ -4,7 +4,7 @@
       <div>
         <div v-if="status" class="flex flex-wrap items-center gap-x-3">
           <h3 class="text-md font-bold">{{ title }}</h3>
-          <SaveStatus :status="status" />
+          <SaveStatus :status="status" :quiet="statusQuiet" />
         </div>
         <h3 v-else class="text-md font-bold">{{ title }}</h3>
         <p v-if="lead" :class="cn('mt-1.25 text-2xs text-fg-muted', leadLeading[leading])">{{ lead }}</p>
@@ -32,6 +32,8 @@ const props = withDefaults(
     lead?: string;
     /** What the last autosave of this section says: shown next to the title, and its error below the body. */
     status?: SaveStatusState;
+    /** The controls of the section mark their own saves: the status is then only announced, not shown. */
+    statusQuiet?: boolean;
     padding?: NonNullable<CardVariants["padding"]>;
     /** No body padding, for a card that pads itself. */
     flush?: boolean;

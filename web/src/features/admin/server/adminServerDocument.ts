@@ -169,6 +169,8 @@ export function sameDocument(a: SettingsDocument, b: SettingsDocument): boolean 
 /** The keys (as in `SettingsIssues`, `welcomeText` for the welcome texts) of the fields a document changes against the one before it. */
 export function changedFieldKeys(next: SettingsDocument, previous: SettingsDocument): string[] {
   const keys: string[] = [];
+  if (next.accessMode !== previous.accessMode) keys.push("accessMode");
+  if (next.webRtcEnabled !== previous.webRtcEnabled) keys.push("webRtcEnabled");
   if (next.siteName !== previous.siteName) keys.push("siteName");
   if (JSON.stringify(withoutEmptyTexts(next).welcomeTexts) !== JSON.stringify(withoutEmptyTexts(previous).welcomeTexts))
     keys.push("welcomeText");
@@ -178,6 +180,7 @@ export function changedFieldKeys(next: SettingsDocument, previous: SettingsDocum
     const old = before.get(node.id);
     if (!old || node.name !== old.name) keys.push(`relay:${node.id}:name`);
     if (!old || node.target !== old.target) keys.push(`relay:${node.id}:target`);
+    if (old && node.enabled !== old.enabled) keys.push(`relay:${node.id}:enabled`);
     if (node.tokenAction !== "keep") keys.push(`relay:${node.id}:token`);
   }
   return keys;

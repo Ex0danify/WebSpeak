@@ -1,6 +1,11 @@
 <template>
   <Field :id="id" :label="label" :hint="hint" :error="issueText(field)">
-    <template #label>{{ label }}<FieldSaved :status="fieldStatus(field)" /></template>
+    <template #label>
+      <span class="flex items-baseline justify-between gap-2"
+        ><span>{{ label }}</span
+        ><FieldSaved :status="fieldStatus(field)"
+      /></span>
+    </template>
     <slot />
   </Field>
 </template>

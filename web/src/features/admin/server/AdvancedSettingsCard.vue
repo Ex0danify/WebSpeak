@@ -3,9 +3,11 @@
     :title="t('advancedSettings')"
     :lead="t('advancedSettingsLead')"
     :status="statuses.advanced"
+    status-quiet
     body-class="grid content-start gap-3"
   >
-    <Checkbox v-model="serverForm.webRtcEnabled" :class="choiceClass" @update:model-value="handleWebRtcToggle()">
+    <Checkbox v-model="serverForm.webRtcEnabled" :class="`${choiceClass} relative`" @update:model-value="handleWebRtcToggle()">
+      <FieldSaved :status="fieldStatus('webRtcEnabled')" class="absolute top-2.5 right-2.5" />
       <span class="block text-xs font-bold">{{ t("webrtcEnabled") }}</span>
       <span class="mt-1 block text-2xs leading-[1.45] text-fg-muted">{{ t("webrtcEnabledLead") }}</span>
     </Checkbox>
@@ -93,6 +95,7 @@ import { Checkbox } from "@/shared/ui/checkbox";
 import { Dialog } from "@/shared/ui/dialog";
 import { Input } from "@/shared/ui/input";
 import { storeToRefs } from "pinia";
+import FieldSaved from "@/features/admin/ui/FieldSaved.vue";
 import SettingField from "@/features/admin/server/SettingField.vue";
 import AdminSection from "@/features/admin/ui/AdminSection.vue";
 import { choiceClass } from "@/features/admin/ui/adminClasses";
@@ -101,6 +104,6 @@ import { useI18n } from "@/shared/i18n/useI18n";
 
 const settings = useAdminServerSettingsStore();
 const { serverForm, webrtcPortNoticeOpen, webrtcPortRangeText } = storeToRefs(settings);
-const { statuses, scheduleSave, handleWebRtcToggle } = settings;
+const { statuses, fieldStatus, scheduleSave, handleWebRtcToggle } = settings;
 const { t } = useI18n();
 </script>

@@ -7,8 +7,8 @@
       enter-from-class="opacity-0"
       leave-to-class="opacity-0"
     >
-      <span v-if="status.state !== 'idle'" class="inline-flex items-center gap-1">
-        <Icon v-if="status.state === 'saved'" name="check" :size="14" />
+      <span v-if="status.state !== 'idle'" :class="quiet ? 'sr-only' : 'inline-flex items-center gap-1'">
+        <Icon v-if="status.state === 'saved' && !quiet" name="check" :size="14" />
         {{ status.state === "saved" ? t("savedStatus") : t("saving") }}
       </span>
     </Transition>
@@ -20,6 +20,6 @@ import { Icon } from "@/shared/ui/icon";
 import { useI18n } from "@/shared/i18n/useI18n";
 import type { SaveStatus } from "@/features/admin/core/saveStatus";
 
-defineProps<{ status: SaveStatus }>();
+defineProps<{ status: SaveStatus; quiet?: boolean }>();
 const { t } = useI18n();
 </script>
