@@ -5,15 +5,10 @@ export interface TeamSpeakTargetFields {
   port: string;
 }
 
-/** Split both the current canonical target and the legacy address#port form. */
+/** Split a target of the form host:port or [ipv6]:port into the two form fields. */
 export function splitTeamSpeakTarget(value: unknown, fallbackPort = DEFAULT_TEAM_SPEAK_PORT): TeamSpeakTargetFields {
   const input = typeof value === "string" ? value.trim() : "";
   if (!input) return { address: "", port: fallbackPort };
-
-  const hash = input.lastIndexOf("#");
-  if (hash > 0 && isPort(input.slice(hash + 1))) {
-    return { address: stripBrackets(input.slice(0, hash)), port: input.slice(hash + 1) };
-  }
 
   if (input.startsWith("[")) {
     const closingBracket = input.indexOf("]");

@@ -112,7 +112,7 @@ export const de: Record<string, string> = {
   relayName: "Anzeigename des Relays",
   relayNamePlaceholder: "Zum Beispiel: Festland-Relay oder Japan-Relay",
   relayTarget: "Relay-Serveradresse",
-  relayTargetPlaceholder: "Zum Beispiel: relay.example.com#39087",
+  relayTargetPlaceholder: "Zum Beispiel: relay.example.com:39087",
   relayToken: "Relay-Token",
   relayTokenPlaceholder: "Token des Relay-Dienstes eingeben",
   relayTokenConfigured: "Token konfiguriert (leer lassen zum Beibehalten)",

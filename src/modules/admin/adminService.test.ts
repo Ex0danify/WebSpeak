@@ -135,7 +135,7 @@ describe("views", () => {
       servers: [{ id: DEFAULT_SERVER_ID, hasPassword: true, target: "ts.example.org:9988" }],
       welcomeDefaults: DEFAULT_WELCOME_TEXTS,
     });
-    expect((view.relayNodes as unknown[])[0]).toMatchObject({ name: "R", target: "relay.example.org#39087", hasToken: true });
+    expect((view.relayNodes as unknown[])[0]).toMatchObject({ name: "R", target: "relay.example.org:39087", hasToken: true });
     const text = JSON.stringify(view);
     for (const secret of ["very-secret-password", "relay-token-1234567", "v1:"]) expect(text).not.toContain(secret);
   });
@@ -143,7 +143,7 @@ describe("views", () => {
   it("writes an IPv6 relay target with brackets", () => {
     const service = ctx.create();
     service.updateSettings(settingsInput({ relayNodes: [{ name: "R", target: "[2001:db8::1]:40000", enabled: false }] }));
-    expect((service.getAdminSettings().relayNodes as Array<{ target: string }>)[0]?.target).toBe("[2001:db8::1]#40000");
+    expect((service.getAdminSettings().relayNodes as Array<{ target: string }>)[0]?.target).toBe("[2001:db8::1]:40000");
   });
 });
 

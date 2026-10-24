@@ -110,7 +110,7 @@ export const en = {
   relayName: "Relay display name",
   relayNamePlaceholder: "For example: Mainland relay or Japan relay",
   relayTarget: "Relay server address",
-  relayTargetPlaceholder: "For example: relay.example.com#39087",
+  relayTargetPlaceholder: "For example: relay.example.com:39087",
   relayToken: "Relay token",
   relayTokenPlaceholder: "Enter the relay service token",
   relayTokenConfigured: "Token configured (leave blank to keep it)",

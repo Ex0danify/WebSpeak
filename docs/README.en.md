@@ -142,7 +142,7 @@ Allow the relay host's UDP listen port, `39087` by default.
 #### Enable it in the gateway
 
 1. Open **Administration → Servers → Relay server** and add one or more nodes.
-2. Set a custom display name, endpoint such as `relay.example.com#39087`, and matching token for each node, then save.
+2. Set a custom display name, endpoint such as `relay.example.com:39087`, and matching token for each node, then save.
 3. Visitors can choose direct access or one of the configured relays on the welcome page.
 
 Disable and save the relay configuration to remove the relay option from the welcome page.
@@ -227,7 +227,7 @@ npm start
 
 1. Open `http://<your-host>:3040/admin`.
 2. Sign in with `WEBSPEAK_ADMIN_USERNAME` and the `WEBSPEAK_ADMIN_PASSWORD` from your `.env`, then set a new password of at least 12 characters. That `.env` value only creates the account on a fresh database; changing it later has no effect, and you can remove it once you have signed in.
-3. Add your TeamSpeak servers under **Servers**, for example `voice.example.com#9987`, and choose the access mode. Visitors pick a server by name and never see its address, so a server on a LAN or loopback address is reachable for visitors without opening the gateway to those networks. Open access additionally lets visitors type a public address.
+3. Add your TeamSpeak servers under **Servers**, for example `voice.example.com:9987`, and choose the access mode. Visitors pick a server by name and never see its address, so a server on a LAN or loopback address is reachable for visitors without opening the gateway to those networks. Open access additionally lets visitors type a public address.
 4. Configure HTTPS for public access; when WebRTC is enabled, allow the UDP range shown in the console.
 
 ### Configuration: `.env` and the admin console
@@ -250,7 +250,7 @@ npm run admin:reset-password                                            # releas
 | Browser | Use a current Chrome, Edge, or other modern browser with WebRTC support. Microphone and window audio normally require HTTPS. |
 | TeamSpeak network | The WebSpeak host must reach the target TeamSpeak server; the default voice port is `9987`. |
 | Web network | The service uses `3040/TCP` by default (`WEBSPEAK_PORT`); public deployments should expose the page and WebSocket through an HTTPS reverse proxy. |
-| IPv6 | Write literal targets as `[2001:db8::1]#9987`. The host/container needs routed IPv6, IPv6 enabled in the OS and Node.js, and the relevant firewall rules. |
+| IPv6 | Write literal targets as `[2001:db8::1]:9987`. The host/container needs routed IPv6, IPv6 enabled in the OS and Node.js, and the relevant firewall rules. |
 | WebRTC | The default range is `40000–40099/UDP`; allow it and disable WebRTC before changing the range. |
 | Remembered identity | One browser identity can hold one active remembered connection. Disable it for parallel connections or use another browser profile. |
 | Accompaniment | Desktop only and requires WebRTC. Enable audio sharing when selecting a window or tab. |

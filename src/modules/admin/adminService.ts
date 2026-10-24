@@ -335,12 +335,8 @@ export class AdminService {
       id: node.id,
       name: node.name,
       enabled: node.enabled,
-      target: formatRelayTarget(node.host, node.port),
+      target: formatTeamSpeakTarget(node),
       hasToken: Boolean(node.tokenEncrypted),
     }));
   }
-}
-
-function formatRelayTarget(host: string, port: number): string {
-  return `${host.includes(":") ? `[${host}]` : host}#${port}`;
 }

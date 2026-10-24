@@ -20,7 +20,8 @@ describe("parseTeamSpeakTarget", () => {
     ["a bare IPv6 address with a port", "2001:db8::1:9987"],
     ["an unclosed bracket", "[::1"],
     ["junk after the bracket", "[::1]x9987"],
-    ["two # separators", "example.com#1#2"],
+    ["the old # port separator", "example.com#9988"],
+    ["the old # port separator with an IPv6 host", "[2001:db8::1]#9988"],
     ["a non-hex IPv6 group", "[zz::1]"],
     ["a dotted IPv4-mapped IPv6 address (fails closed; the hex form is accepted)", "[::ffff:10.0.0.1]"],
     ["an empty host", ":9987"],
@@ -81,7 +82,7 @@ describe("teamSpeakTargetKey", () => {
   });
 
   it("is the same for every spelling of one target", () => {
-    const keys = ["Example.com", "example.com:9987", "EXAMPLE.COM#9987"].map((input) => teamSpeakTargetKey(parseTeamSpeakTarget(input)));
+    const keys = ["Example.com", "example.com:9987", "EXAMPLE.COM:9987"].map((input) => teamSpeakTargetKey(parseTeamSpeakTarget(input)));
     expect(new Set(keys).size).toBe(1);
   });
 
