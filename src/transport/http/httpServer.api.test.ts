@@ -80,12 +80,9 @@ describe("/api/public-config", () => {
     const saved = await admin.put(
       "server",
       settingsInput({
-        relaySettingsAction: "replace",
-        relayEnabled: true,
-        relayName: "Relay one",
-        relayTarget: "relay.example.org:39087",
-        relayTokenAction: "replace",
-        relayToken: "s3cret-relay-token",
+        relayNodes: [
+          { name: "Relay one", target: "relay.example.org:39087", enabled: true, tokenAction: "replace", token: "s3cret-relay-token" },
+        ],
       }),
     );
     expect(saved.status).toBe(200);

@@ -15,8 +15,6 @@ import {
 } from "../../config/identityMintConfig.js";
 import { AdminInputError } from "./adminErrors.js";
 
-const DEFAULT_RELAY_NAME = "Relay acceleration";
-
 type StoredSettings = ReturnType<WebSpeakDatabase["getSettings"]>;
 
 export interface AdminSettingsInput {
@@ -30,12 +28,6 @@ export interface AdminSettingsInput {
   identityMintMaxLevel?: number;
   identityMintConcurrency?: number;
   identityMintQueueDepth?: number;
-  relaySettingsAction?: "keep" | "replace" | "remove";
-  relayEnabled?: boolean;
-  relayName?: string;
-  relayTarget?: string;
-  relayToken?: string;
-  relayTokenAction?: "keep" | "replace" | "remove";
   relayNodes?: RelayNodeInput[];
 }
 
@@ -69,12 +61,7 @@ function mergeWelcomeTexts(current: Record<string, string>, input: Record<string
   return merged;
 }
 
-export function normalizeSettings(
-  input: AdminSettingsInput,
-  current: StoredSettings,
-  masterSecret: Buffer,
-  relayNodes?: PersistedRelayNode[],
-): SettingsUpdate {
+export function normalizeSettings(input: AdminSettingsInput, current: StoredSettings): SettingsUpdate {
   const siteName = input.siteName.trim();
   const welcomeTexts = mergeWelcomeTexts(current.welcomeTexts, input.welcomeTexts);
   if (!siteName || siteName.length > 80) throw new AdminInputError("INVALID_SITE_NAME", "Site name must contain 1 to 80 characters");
@@ -124,56 +111,6 @@ export function normalizeSettings(
     `Identity mint queue depth must be between ${IDENTITY_MINT_QUEUE_DEPTH_MIN} and ${IDENTITY_MINT_QUEUE_DEPTH_MAX}`,
   );
 
-  let relayConfigured = current.relayConfigured;
-  let relayEnabled = current.relayEnabled;
-  let relayName = current.relayName;
-  let relayHost = current.relayHost;
-  let relayPort = current.relayPort || DEFAULT_ACCELERATION_RELAY_PORT;
-  let relayTokenEncrypted = current.relayTokenEncrypted;
-  const relaySettingsAction = input.relaySettingsAction ?? "keep";
-  if (relaySettingsAction === "remove") {
-    relayConfigured = true;
-    relayEnabled = false;
-    relayName = "";
-    relayHost = "";
-    relayPort = DEFAULT_ACCELERATION_RELAY_PORT;
-    relayTokenEncrypted = null;
-  } else if (relaySettingsAction === "replace") {
-    const relayTarget = (input.relayTarget ?? "").trim();
-    relayEnabled = input.relayEnabled === true;
-    relayName = (input.relayName ?? "").trim();
-    if (relayName.length > 80) throw new AdminInputError("INVALID_RELAY_NAME", "Relay name must contain 80 characters or fewer");
-    if (relayEnabled && !relayName) throw new AdminInputError("INVALID_RELAY_NAME", "Relay name is required when the relay is enabled");
-    if (relayEnabled && !relayTarget)
-      throw new AdminInputError("INVALID_RELAY_TARGET", "Relay target is required when the relay is enabled");
-    if (relayTarget) {
-      try {
-        const relay = parseTeamSpeakTarget(relayTarget, DEFAULT_ACCELERATION_RELAY_PORT);
-        relayHost = relay.host;
-        relayPort = relay.port;
-      } catch {
-        throw new AdminInputError("INVALID_RELAY_TARGET", "Relay target is invalid");
-      }
-    } else {
-      relayHost = "";
-      relayPort = DEFAULT_ACCELERATION_RELAY_PORT;
-    }
-    const relayTokenAction = input.relayTokenAction ?? (input.relayToken === undefined ? "keep" : "replace");
-    if (relayTokenAction === "remove") relayTokenEncrypted = null;
-    if (relayTokenAction === "replace") relayTokenEncrypted = input.relayToken ? encryptSecret(input.relayToken, masterSecret) : null;
-    if (relayEnabled && !relayTokenEncrypted)
-      throw new AdminInputError("INVALID_RELAY_TOKEN", "Relay token is required when the relay is enabled");
-    relayConfigured = true;
-  }
-  if (relayNodes) {
-    const primary = relayNodes.find((node) => node.enabled) ?? relayNodes[0];
-    relayConfigured = relayNodes.length > 0;
-    relayEnabled = primary?.enabled === true;
-    relayName = primary?.name ?? "";
-    relayHost = primary?.host ?? "";
-    relayPort = primary?.port ?? DEFAULT_ACCELERATION_RELAY_PORT;
-    relayTokenEncrypted = primary?.tokenEncrypted ?? null;
-  }
   return {
     siteName,
     welcomeTexts,
@@ -184,12 +121,6 @@ export function normalizeSettings(
     identityMintMaxLevel,
     identityMintConcurrency,
     identityMintQueueDepth,
-    relayConfigured,
-    relayEnabled,
-    relayName,
-    relayHost,
-    relayPort,
-    relayTokenEncrypted,
   };
 }
 
@@ -246,24 +177,6 @@ function canDecryptToken(encrypted: string, masterSecret: Buffer): boolean {
   }
 }
 
-export function legacyRelayNodesFromSettings(settings: SettingsUpdate, existing: PersistedRelayNode[]): PersistedRelayNode[] {
-  if (!settings.relayConfigured || !settings.relayHost || !settings.relayTokenEncrypted) return [];
-  const previous = existing[0];
-  const now = new Date().toISOString();
-  return [
-    {
-      id: previous?.id ?? "relay-default",
-      name: settings.relayName || DEFAULT_RELAY_NAME,
-      enabled: settings.relayEnabled,
-      host: settings.relayHost,
-      port: settings.relayPort || DEFAULT_ACCELERATION_RELAY_PORT,
-      tokenEncrypted: settings.relayTokenEncrypted,
-      createdAt: previous?.createdAt ?? now,
-      updatedAt: now,
-    },
-  ];
-}
-
 export function toSettingsUpdate(settings: StoredSettings): SettingsUpdate {
   return {
     siteName: settings.siteName,
@@ -275,11 +188,5 @@ export function toSettingsUpdate(settings: StoredSettings): SettingsUpdate {
     identityMintMaxLevel: settings.identityMintMaxLevel,
     identityMintConcurrency: settings.identityMintConcurrency,
     identityMintQueueDepth: settings.identityMintQueueDepth,
-    relayConfigured: settings.relayConfigured,
-    relayEnabled: settings.relayEnabled,
-    relayName: settings.relayName,
-    relayHost: settings.relayHost,
-    relayPort: settings.relayPort,
-    relayTokenEncrypted: settings.relayTokenEncrypted,
   };
 }

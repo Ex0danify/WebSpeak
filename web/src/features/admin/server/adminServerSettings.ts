@@ -50,11 +50,9 @@ export const useAdminServerSettingsStore = defineStore("adminServerSettings", ()
 
   function addRelayNode() {
     serverForm.relayNodes.push(createRelayNode());
-    serverForm.relaySettingsTouched = true;
   }
   function removeRelayNode(index: number) {
     serverForm.relayNodes.splice(index, 1);
-    serverForm.relaySettingsTouched = true;
   }
 
   async function loadServerSettings() {

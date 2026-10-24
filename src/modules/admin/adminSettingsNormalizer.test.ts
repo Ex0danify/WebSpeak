@@ -4,7 +4,7 @@ import type { PersistedRelayNode, PersistedSettings } from "../../infra/persiste
 import { decryptSecret, encryptSecret } from "../../infra/security/secretCrypto.js";
 import { DEFAULT_ACCELERATION_RELAY_PORT } from "../relay/index.js";
 import { AdminInputError } from "./adminErrors.js";
-import { legacyRelayNodesFromSettings, normalizeRelayNodes, normalizeSettings, toSettingsUpdate } from "./adminSettingsNormalizer.js";
+import { normalizeRelayNodes, normalizeSettings, toSettingsUpdate } from "./adminSettingsNormalizer.js";
 
 const TOKEN = "relay-token-1234567";
 
@@ -18,12 +18,6 @@ const stored = (overrides: Partial<PersistedSettings> = {}): PersistedSettings =
   identityMintMaxLevel: 8,
   identityMintConcurrency: 2,
   identityMintQueueDepth: 20,
-  relayConfigured: false,
-  relayEnabled: false,
-  relayName: "",
-  relayHost: "",
-  relayPort: 0,
-  relayTokenEncrypted: null,
   updatedAt: "2026-01-01T00:00:00.000Z",
   ...overrides,
 });
@@ -52,7 +46,7 @@ function codeOf(action: () => unknown): string {
 
 describe("normalizeSettings", () => {
   it("trims text and keeps current values for omitted fields", () => {
-    const result = normalizeSettings(settingsInput({ siteName: "  Site  ", welcomeTexts: { en: " hi " } }), stored(), MASTER_SECRET);
+    const result = normalizeSettings(settingsInput({ siteName: "  Site  ", welcomeTexts: { en: " hi " } }), stored());
     expect(result).toMatchObject({
       siteName: "Site",
       welcomeTexts: { en: "hi", de: "de" },
@@ -80,7 +74,7 @@ describe("normalizeSettings", () => {
     ["a mint queue depth above 100", { identityMintQueueDepth: 101 }, "INVALID_IDENTITY_MINT_QUEUE_DEPTH"],
   ];
   it.each(rejects)("rejects %s", (_name, overrides, code) => {
-    expect(codeOf(() => normalizeSettings(settingsInput(overrides), stored(), MASTER_SECRET))).toBe(code);
+    expect(codeOf(() => normalizeSettings(settingsInput(overrides), stored()))).toBe(code);
   });
 
   it("rejects a welcome-text map that grows past 16 languages over repeated requests", () => {
@@ -91,7 +85,7 @@ describe("normalizeSettings", () => {
         Array.from({ length: 8 }, (_, index) => [`x${String.fromCharCode(97 + request)}${String.fromCharCode(97 + index)}`, "text"]),
       );
       try {
-        current = stored({ welcomeTexts: normalizeSettings(settingsInput({ welcomeTexts }), current, MASTER_SECRET).welcomeTexts });
+        current = stored({ welcomeTexts: normalizeSettings(settingsInput({ welcomeTexts }), current).welcomeTexts });
       } catch (error) {
         code = (error as AdminInputError).code;
       }
@@ -100,104 +94,28 @@ describe("normalizeSettings", () => {
   });
 
   it("keeps a language's welcome text when the form omits it and clears it when the form sends an empty one", () => {
-    const kept = normalizeSettings(settingsInput({ welcomeTexts: { fr: "salut" } }), stored(), MASTER_SECRET);
+    const kept = normalizeSettings(settingsInput({ welcomeTexts: { fr: "salut" } }), stored());
     expect(kept.welcomeTexts).toEqual({ en: "en", de: "de", fr: "salut" });
-    expect(normalizeSettings(settingsInput({ welcomeTexts: { de: "  " } }), stored(), MASTER_SECRET).welcomeTexts).toEqual({ en: "en" });
-    expect(normalizeSettings(settingsInput(), stored(), MASTER_SECRET).welcomeTexts).toEqual({ en: "en", de: "de" });
+    expect(normalizeSettings(settingsInput({ welcomeTexts: { de: "  " } }), stored()).welcomeTexts).toEqual({ en: "en" });
+    expect(normalizeSettings(settingsInput(), stored()).welcomeTexts).toEqual({ en: "en", de: "de" });
   });
 
   it("keeps current mint limits for omitted fields and accepts a zero queue depth", () => {
     const current = stored({ identityMintMaxLevel: 12, identityMintConcurrency: 4, identityMintQueueDepth: 50 });
-    expect(normalizeSettings(settingsInput(), current, MASTER_SECRET)).toMatchObject({
+    expect(normalizeSettings(settingsInput(), current)).toMatchObject({
       identityMintMaxLevel: 12,
       identityMintConcurrency: 4,
       identityMintQueueDepth: 50,
     });
-    expect(normalizeSettings(settingsInput({ identityMintQueueDepth: 0 }), current, MASTER_SECRET).identityMintQueueDepth).toBe(0);
+    expect(normalizeSettings(settingsInput({ identityMintQueueDepth: 0 }), current).identityMintQueueDepth).toBe(0);
   });
 
   it("locks the UDP range while WebRTC is enabled", () => {
     const current = stored({ webRtcEnabled: true });
-    expect(codeOf(() => normalizeSettings(settingsInput({ webRtcUdpStart: 41000, webRtcUdpEnd: 41100 }), current, MASTER_SECRET))).toBe(
+    expect(codeOf(() => normalizeSettings(settingsInput({ webRtcUdpStart: 41000, webRtcUdpEnd: 41100 }), current))).toBe(
       "WEBRTC_PORT_LOCKED",
     );
-    expect(normalizeSettings(settingsInput({ webRtcEnabled: true }), current, MASTER_SECRET).webRtcUdpStart).toBe(40000);
-  });
-
-  it("replaces the legacy relay fields and validates them", () => {
-    const result = normalizeSettings(
-      settingsInput({
-        relaySettingsAction: "replace",
-        relayEnabled: true,
-        relayName: " R ",
-        relayTarget: "relay.example.org",
-        relayToken: TOKEN,
-      }),
-      stored(),
-      MASTER_SECRET,
-    );
-    expect(result).toMatchObject({
-      relayConfigured: true,
-      relayEnabled: true,
-      relayName: "R",
-      relayHost: "relay.example.org",
-      relayPort: DEFAULT_ACCELERATION_RELAY_PORT,
-    });
-    const enabled = {
-      relaySettingsAction: "replace",
-      relayEnabled: true,
-      relayName: "R",
-      relayTarget: "relay.example.org",
-      relayToken: TOKEN,
-    } as const;
-    expect(codeOf(() => normalizeSettings(settingsInput({ ...enabled, relayName: "" }), stored(), MASTER_SECRET))).toBe(
-      "INVALID_RELAY_NAME",
-    );
-    expect(codeOf(() => normalizeSettings(settingsInput({ ...enabled, relayTarget: "" }), stored(), MASTER_SECRET))).toBe(
-      "INVALID_RELAY_TARGET",
-    );
-    expect(codeOf(() => normalizeSettings(settingsInput({ ...enabled, relayTarget: "bad target:::" }), stored(), MASTER_SECRET))).toBe(
-      "INVALID_RELAY_TARGET",
-    );
-    expect(codeOf(() => normalizeSettings(settingsInput({ ...enabled, relayToken: undefined }), stored(), MASTER_SECRET))).toBe(
-      "INVALID_RELAY_TOKEN",
-    );
-  });
-
-  it("clears the legacy relay fields on remove", () => {
-    const current = stored({
-      relayConfigured: true,
-      relayEnabled: true,
-      relayName: "R",
-      relayHost: "h",
-      relayPort: 1,
-      relayTokenEncrypted: "t",
-    });
-    expect(normalizeSettings(settingsInput({ relaySettingsAction: "remove" }), current, MASTER_SECRET)).toMatchObject({
-      relayConfigured: true,
-      relayEnabled: false,
-      relayName: "",
-      relayHost: "",
-      relayPort: DEFAULT_ACCELERATION_RELAY_PORT,
-      relayTokenEncrypted: null,
-    });
-  });
-
-  it("derives the relay fields from the first enabled node when nodes are given", () => {
-    const nodes = [node({ id: "relay-x", enabled: false }), node({ id: "relay-y", name: "Y", host: "y.example.org" })];
-    expect(normalizeSettings(settingsInput(), stored(), MASTER_SECRET, nodes)).toMatchObject({
-      relayConfigured: true,
-      relayEnabled: true,
-      relayName: "Y",
-      relayHost: "y.example.org",
-    });
-    expect(normalizeSettings(settingsInput(), stored({ relayName: "old" }), MASTER_SECRET, [])).toMatchObject({
-      relayConfigured: false,
-      relayEnabled: false,
-      relayName: "",
-      relayHost: "",
-      relayTokenEncrypted: null,
-    });
+    expect(normalizeSettings(settingsInput({ webRtcEnabled: true }), current).webRtcUdpStart).toBe(40000);
   });
 });
 
@@ -248,38 +166,6 @@ describe("normalizeRelayNodes", () => {
     expect(
       codeOf(() => normalizeRelayNodes([input({ id: "relay-a", token: undefined })], [node({ tokenEncrypted: "garbage" })], MASTER_SECRET)),
     ).toBe("INVALID_RELAY_TOKEN");
-  });
-});
-
-describe("legacyRelayNodesFromSettings", () => {
-  const update = toSettingsUpdate(
-    stored({
-      relayConfigured: true,
-      relayEnabled: true,
-      relayName: "R",
-      relayHost: "relay.example.org",
-      relayPort: 9100,
-      relayTokenEncrypted: "tok",
-    }),
-  );
-
-  it("returns no nodes when the relay is unconfigured, hostless or tokenless", () => {
-    expect(legacyRelayNodesFromSettings({ ...update, relayConfigured: false }, [])).toEqual([]);
-    expect(legacyRelayNodesFromSettings({ ...update, relayHost: "" }, [])).toEqual([]);
-    expect(legacyRelayNodesFromSettings({ ...update, relayTokenEncrypted: null }, [])).toEqual([]);
-  });
-
-  it("builds a default node, or reuses the id and createdAt of the first existing node", () => {
-    expect(legacyRelayNodesFromSettings(update, [])[0]).toMatchObject({
-      id: "relay-default",
-      name: "R",
-      enabled: true,
-      host: "relay.example.org",
-      port: 9100,
-      tokenEncrypted: "tok",
-    });
-    expect(legacyRelayNodesFromSettings(update, [node()])[0]).toMatchObject({ id: "relay-a", createdAt: node().createdAt });
-    expect(legacyRelayNodesFromSettings({ ...update, relayName: "" }, [])[0]!.name).toBe("Relay acceleration");
   });
 });
 

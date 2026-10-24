@@ -22,16 +22,11 @@ describe("GET /server", () => {
     const settings = await json(await admin.get("server"));
     expect(Object.keys(settings).sort()).toEqual([
       "accessMode",
-      "hasRelayToken",
       "identityMintConcurrency",
       "identityMintMaxLevel",
       "identityMintQueueDepth",
       "internalPort",
-      "relayConfigured",
-      "relayEnabled",
-      "relayName",
       "relayNodes",
-      "relayTarget",
       "servers",
       "siteName",
       "updatedAt",
@@ -43,7 +38,7 @@ describe("GET /server", () => {
     ]);
     expect(settings).toMatchObject({
       servers: [{ id: DEFAULT_SERVER_ID, hasPassword: false }],
-      hasRelayToken: false,
+      relayNodes: [],
       webRtcEnabled: false,
       siteName: "WebSpeak",
       // The port the harness gateway really listens on, not a fixed one.
@@ -97,12 +92,9 @@ describe("PUT /server", () => {
     const saved = await admin.put(
       "server",
       settingsInput({
-        relaySettingsAction: "replace",
-        relayEnabled: true,
-        relayName: "Relay",
-        relayTarget: "relay.example.org:39087",
-        relayTokenAction: "replace",
-        relayToken: "s3cret-relay-token",
+        relayNodes: [
+          { name: "Relay", target: "relay.example.org:39087", enabled: true, tokenAction: "replace", token: "s3cret-relay-token" },
+        ],
       }),
     );
     const texts = [await saved.text(), await (await admin.get("server")).text()];
@@ -110,8 +102,7 @@ describe("PUT /server", () => {
       expect(text).not.toContain("s3cret");
       expect(JSON.parse(text).settings ?? JSON.parse(text)).toMatchObject({
         servers: [{ hasPassword: true }],
-        hasRelayToken: true,
-        relayEnabled: true,
+        relayNodes: [{ enabled: true, hasToken: true }],
       });
     }
   });
@@ -132,22 +123,20 @@ describe("PUT /server", () => {
       [
         "enabled relay without a name",
         {
-          relaySettingsAction: "replace",
-          relayEnabled: true,
-          relayTarget: "relay.example.org:39087",
-          relayTokenAction: "replace",
-          relayToken: "t",
+          relayNodes: [
+            { name: "", target: "relay.example.org:39087", enabled: true, tokenAction: "replace", token: "relay-token-1234567" },
+          ],
         },
         "INVALID_RELAY_NAME",
       ],
       [
         "enabled relay without a target",
-        { relaySettingsAction: "replace", relayEnabled: true, relayName: "R", relayTokenAction: "replace", relayToken: "t" },
+        { relayNodes: [{ name: "R", target: "", enabled: true, tokenAction: "replace", token: "relay-token-1234567" }] },
         "INVALID_RELAY_TARGET",
       ],
       [
         "enabled relay without a token",
-        { relaySettingsAction: "replace", relayEnabled: true, relayName: "R", relayTarget: "relay.example.org:39087" },
+        { relayNodes: [{ name: "R", target: "relay.example.org:39087", enabled: true }] },
         "INVALID_RELAY_TOKEN",
       ],
     ];

@@ -87,15 +87,12 @@ describe("useAdminServerSettingsStore", () => {
     expect(s.st.selectedWelcomeDefault).toBe(DEFAULT_WELCOME_TEXTS.en);
   });
 
-  it("marks relay settings touched when nodes are added or removed", () => {
+  it("adds and removes relay nodes", () => {
     const s = setup();
     s.st.addRelayNode();
     expect(s.st.serverForm.relayNodes).toHaveLength(1);
-    expect(s.st.serverForm.relaySettingsTouched).toBe(true);
-    s.st.serverForm.relaySettingsTouched = false;
     s.st.removeRelayNode(0);
     expect(s.st.serverForm.relayNodes).toHaveLength(0);
-    expect(s.st.serverForm.relaySettingsTouched).toBe(true);
   });
 
   it("opens the port notice only when WebRTC is switched on", () => {

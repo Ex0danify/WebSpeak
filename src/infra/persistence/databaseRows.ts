@@ -25,12 +25,6 @@ export interface SettingsRow extends Record<string, unknown> {
   identity_mint_max_level: number;
   identity_mint_concurrency: number;
   identity_mint_queue_depth: number;
-  relay_configured: number;
-  relay_enabled: number;
-  relay_name: string;
-  relay_host: string;
-  relay_port: number;
-  relay_token_encrypted: string | null;
   updated_at: string;
 }
 

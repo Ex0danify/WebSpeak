@@ -158,7 +158,6 @@ export const en = {
   logoutEvent: "Administrator signed out",
   settingsEvent: "Server settings changed",
   initializedEvent: "Default administrator account created",
-  importedEvent: "Legacy configuration imported",
   testEvent: "Connection test completed",
   operationsLead: "Handle routine maintenance and troubleshooting without shell access.",
   refresh: "Refresh",

@@ -72,8 +72,6 @@ describe("migrations", () => {
       identityMintMaxLevel: 8,
       identityMintConcurrency: 2,
       identityMintQueueDepth: 20,
-      relayConfigured: false,
-      relayPort: 39087,
     });
   });
 
@@ -110,7 +108,6 @@ describe("migrations", () => {
       identityMintMaxLevel: 8,
       identityMintConcurrency: 2,
       identityMintQueueDepth: 20,
-      relayConfigured: false,
     });
     expect(database.listServers()).toMatchObject([{ id: "server-default", name: "Legacy site", host: "legacy.example.org", port: 9000 }]);
     expect(database.listRelayNodes()).toEqual([]);

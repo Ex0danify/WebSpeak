@@ -50,11 +50,6 @@ const server = {
   webRtcEnabled: true,
   webRtcUdpStart: 40000,
   webRtcUdpEnd: 40099,
-  relayConfigured: true,
-  relayEnabled: true,
-  relayName: "Frankfurt relay",
-  relayTarget: "relay.example.com:9987",
-  hasRelayToken: true,
   relayNodes: [
     { id: "fra", name: "Frankfurt relay", enabled: true, target: "relay.example.com:9987", hasToken: true },
     { id: "tyo", name: "Tokyo relay", enabled: false, target: "tokyo.example.com:9987", hasToken: false },

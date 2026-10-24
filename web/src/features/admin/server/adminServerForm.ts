@@ -103,20 +103,12 @@ export function initialServerForm() {
     identityMintMaxLevel: 8,
     identityMintConcurrency: 2,
     identityMintQueueDepth: 20,
-    relayConfigured: false,
-    relayEnabled: false,
-    relayName: "",
-    relayTarget: "",
-    relayToken: "",
-    relayTokenAction: "keep" as "keep" | "replace" | "remove",
-    hasRelayToken: false,
-    relaySettingsTouched: false,
     relayNodes: [] as RelayNodeForm[],
     internalPort: null as number | null,
   };
 }
 
-/** The form fields a settings response (from GET or from the PUT that saved it) sets, secrets cleared and touched flags reset. */
+/** The form fields a settings response (from GET or from the PUT that saved it) sets, secrets cleared. */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- admin JSON bodies are read field by field, the gateway owns their shape
 export function formFieldsFromSettings(value: Record<string, any>) {
   return {
@@ -131,14 +123,6 @@ export function formFieldsFromSettings(value: Record<string, any>) {
     identityMintMaxLevel: Number(value.identityMintMaxLevel || 8),
     identityMintConcurrency: Number(value.identityMintConcurrency || 2),
     identityMintQueueDepth: Number(value.identityMintQueueDepth ?? 20),
-    relayConfigured: value.relayConfigured === true,
-    relayEnabled: value.relayEnabled === true,
-    relayName: String(value.relayName || ""),
-    relayTarget: String(value.relayTarget || ""),
-    relayToken: "",
-    relayTokenAction: "keep",
-    hasRelayToken: value.hasRelayToken === true,
-    relaySettingsTouched: false,
     relayNodes: mapRelayNodes(value.relayNodes),
   };
 }

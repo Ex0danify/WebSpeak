@@ -33,13 +33,11 @@ describe("adminRequestParsing", () => {
     expect(readLimit(undefined, 50)).toBe(50);
   });
 
-  it("readSettingsInput normalises actions and relay nodes", () => {
+  it("readSettingsInput normalises relay nodes", () => {
     const input = readSettingsInput({
       siteName: "Site",
-      relaySettingsAction: "bogus",
       relayNodes: [{ id: "n1", name: "N", target: "t", enabled: true, tokenAction: "remove" }],
     });
-    expect(input.relaySettingsAction).toBe("keep");
     expect(input.relayNodes).toEqual([{ id: "n1", name: "N", target: "t", enabled: true, token: undefined, tokenAction: "remove" }]);
     expect(() => readSettingsInput({})).toThrow(AdminInputError);
   });

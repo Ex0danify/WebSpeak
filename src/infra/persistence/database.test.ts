@@ -70,12 +70,6 @@ describe("settings", () => {
       webRtcEnabled: true,
       webRtcUdpStart: 41000,
       webRtcUdpEnd: 41010,
-      relayConfigured: true,
-      relayEnabled: true,
-      relayName: "relay",
-      relayHost: "relay.example.org",
-      relayPort: 40000,
-      relayTokenEncrypted: "enc:token",
     });
   });
 
@@ -93,17 +87,17 @@ describe("settings", () => {
     expect(database.getSettings().welcomeTexts).toEqual({ en: "hi" });
   });
 
-  it("audits every save with the access mode, under the given event name", () => {
+  it("audits every save with the access mode", () => {
     const database = fx.open();
     database.updateSettings(settings());
-    database.updateSettings(settings({ accessMode: "fixed" }), "LEGACY_CONFIG_IMPORTED");
+    database.updateSettings(settings({ accessMode: "fixed" }));
     const raw = new DatabaseSync(fx.path);
     try {
       const rows = raw.prepare("SELECT event, details_json FROM audit_events ORDER BY id").all() as Array<{
         event: string;
         details_json: string;
       }>;
-      expect(rows.map((row) => row.event)).toEqual(["SETTINGS_CHANGED", "LEGACY_CONFIG_IMPORTED"]);
+      expect(rows.map((row) => row.event)).toEqual(["SETTINGS_CHANGED", "SETTINGS_CHANGED"]);
       expect(JSON.parse(rows[1]!.details_json)).toEqual({ accessMode: "fixed" });
     } finally {
       raw.close();

@@ -181,7 +181,6 @@ describe("schema 8 migration (welcome texts as rows, no Chinese in the database)
   it("rewrites the old Chinese default relay name and keeps a name the administrator chose", () => {
     createSchema7Database(fx.path);
     const database = fx.open();
-    expect(database.getSettings().relayName).toBe("Relay acceleration");
     expect(database.listRelayNodes().map((node) => [node.id, node.name])).toEqual([
       ["relay-default", "Relay acceleration"],
       ["relay-b", CUSTOM_RELAY_NAME],
@@ -254,7 +253,6 @@ describe("schema 8 migration (welcome texts as rows, no Chinese in the database)
     expect(restored.getSettings()).toMatchObject({
       siteName: "Seven",
       welcomeTexts: { de: "Willkommen", en: "Welcome" },
-      relayName: "Relay acceleration",
     });
     expect(restored.listManagedInvites()).toHaveLength(1);
     expect(restored.getMeta("visitor_count")).toBe("41");

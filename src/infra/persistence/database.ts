@@ -116,11 +116,11 @@ export class WebSpeakDatabase {
     this.relayNodes.replace(nodes);
   }
 
-  updateSettings(settings: SettingsUpdate, auditEvent = "SETTINGS_CHANGED"): void {
+  updateSettings(settings: SettingsUpdate): void {
     const now = new Date().toISOString();
     this.transaction(() => {
       this.settings.write(settings, now);
-      this.audit.insert(auditEvent, { accessMode: settings.accessMode }, now);
+      this.audit.insert("SETTINGS_CHANGED", { accessMode: settings.accessMode }, now);
     });
   }
 

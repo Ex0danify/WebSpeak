@@ -13,13 +13,7 @@ import { AdminInputError } from "./adminErrors.js";
 import { AdminServerService, type ResolvedServer, type ServerInput, type ServerView } from "./adminServerService.js";
 import { AdminInviteService, type ManagedInviteInput, type ManagedInviteView } from "./adminInviteService.js";
 import { AdminBootstrapError, type AdminBootstrap } from "./adminBootstrap.js";
-import {
-  legacyRelayNodesFromSettings,
-  normalizeRelayNodes,
-  normalizeSettings,
-  toSettingsUpdate,
-  type AdminSettingsInput,
-} from "./adminSettingsNormalizer.js";
+import { normalizeRelayNodes, normalizeSettings, toSettingsUpdate, type AdminSettingsInput } from "./adminSettingsNormalizer.js";
 
 export { AdminInputError };
 export type { ManagedInviteInput, ManagedInviteView } from "./adminInviteService.js";
@@ -132,11 +126,6 @@ export class AdminService {
       identityMintMaxLevel: settings.identityMintMaxLevel,
       identityMintConcurrency: settings.identityMintConcurrency,
       identityMintQueueDepth: settings.identityMintQueueDepth,
-      relayConfigured: settings.relayConfigured,
-      relayEnabled: settings.relayEnabled,
-      relayName: settings.relayName,
-      relayTarget: settings.relayHost ? formatRelayTarget(settings.relayHost, settings.relayPort) : "",
-      hasRelayToken: Boolean(settings.relayTokenEncrypted),
       relayNodes: this.getRelayNodeViews(),
       internalPort: this.port,
       updatedAt: settings.updatedAt,
@@ -185,16 +174,12 @@ export class AdminService {
     const current = this.database.getSettings();
     const relayNodes =
       input.relayNodes === undefined ? undefined : normalizeRelayNodes(input.relayNodes, this.database.listRelayNodes(), this.masterSecret);
-    const settings = normalizeSettings(input, current, this.masterSecret, relayNodes);
+    const settings = normalizeSettings(input, current);
     if (settings.accessMode === "fixed" && this.servers.list().length === 0) {
       throw new AdminInputError("SERVERS_REQUIRED", "Add a server before limiting access to the server list");
     }
     this.database.updateSettings(settings);
-    if (relayNodes !== undefined) {
-      this.database.replaceRelayNodes(relayNodes);
-    } else if (input.relaySettingsAction && input.relaySettingsAction !== "keep") {
-      this.database.replaceRelayNodes(legacyRelayNodesFromSettings(settings, this.database.listRelayNodes()));
-    }
+    if (relayNodes !== undefined) this.database.replaceRelayNodes(relayNodes);
   }
 
   getAccessMode(): AccessMode {

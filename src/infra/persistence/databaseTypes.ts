@@ -12,12 +12,6 @@ export interface PersistedSettings {
   identityMintMaxLevel: number;
   identityMintConcurrency: number;
   identityMintQueueDepth: number;
-  relayConfigured: boolean;
-  relayEnabled: boolean;
-  relayName: string;
-  relayHost: string;
-  relayPort: number;
-  relayTokenEncrypted: string | null;
   updatedAt: string;
 }
 
@@ -32,12 +26,6 @@ export interface SettingsUpdate {
   identityMintMaxLevel?: number;
   identityMintConcurrency?: number;
   identityMintQueueDepth?: number;
-  relayConfigured: boolean;
-  relayEnabled: boolean;
-  relayName: string;
-  relayHost: string;
-  relayPort: number;
-  relayTokenEncrypted: string | null;
 }
 
 export interface PersistedServer {

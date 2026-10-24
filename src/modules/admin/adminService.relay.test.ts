@@ -114,30 +114,6 @@ describe("relay nodes", () => {
     );
   });
 
-  it("mirrors the first enabled node (else the first) into the legacy settings columns", () => {
-    const service = ctx.create();
-    withNodes(service, [
-      node({ id: "relay-a", name: "A", enabled: false, token: undefined }),
-      node({ id: "relay-b", name: "B", target: "b.example.org:5000" }),
-    ]);
-    expect(service.database.getSettings()).toMatchObject({
-      relayConfigured: true,
-      relayEnabled: true,
-      relayName: "B",
-      relayHost: "b.example.org",
-      relayPort: 5000,
-    });
-    withNodes(service, [node({ id: "relay-a", name: "A", enabled: false, token: undefined })]);
-    expect(service.database.getSettings()).toMatchObject({ relayConfigured: true, relayEnabled: false, relayName: "A" });
-    withNodes(service, []);
-    expect(service.database.getSettings()).toMatchObject({
-      relayConfigured: false,
-      relayEnabled: false,
-      relayHost: "",
-      relayTokenEncrypted: null,
-    });
-  });
-
   it("leaves the nodes alone when the form has no relay fields", () => {
     const service = ctx.create();
     withNodes(service, [node({ id: "relay-a" })]);
@@ -165,76 +141,5 @@ describe("relay nodes", () => {
     expect(other.getAccelerationRelayName()).toBeUndefined();
     expect(ctx.logger.error).toHaveBeenCalledTimes(2);
     expect(JSON.stringify(ctx.logger.error.mock.calls)).not.toContain(TOKEN);
-  });
-});
-
-describe("single relay settings (legacy form fields)", () => {
-  it("replace stores one relay-default node, keeping its id on later saves", () => {
-    const service = ctx.create();
-    service.updateSettings(
-      settingsInput({
-        relaySettingsAction: "replace",
-        relayEnabled: true,
-        relayName: "Main",
-        relayTarget: "relay.example.org:40000",
-        relayToken: TOKEN,
-      }),
-    );
-    expect(service.database.listRelayNodes()).toMatchObject([
-      { id: "relay-default", name: "Main", enabled: true, host: "relay.example.org", port: 40000 },
-    ]);
-    service.updateSettings(
-      settingsInput({ relaySettingsAction: "replace", relayEnabled: false, relayName: "Main2", relayTarget: "relay.example.org:40000" }),
-    );
-    expect(service.database.listRelayNodes()).toMatchObject([{ id: "relay-default", name: "Main2", enabled: false }]);
-  });
-
-  it.each([
-    ["without a name", { relayName: "" }, "INVALID_RELAY_NAME"],
-    ["with a name over 80 characters", { relayName: "x".repeat(81) }, "INVALID_RELAY_NAME"],
-    ["without a target", { relayTarget: "" }, "INVALID_RELAY_TARGET"],
-    ["with an invalid target", { relayTarget: "bad target:::" }, "INVALID_RELAY_TARGET"],
-    ["without a token", { relayToken: undefined }, "INVALID_RELAY_TOKEN"],
-  ])("refuses to enable the relay %s", (_name, overrides, code) => {
-    const service = ctx.create();
-    const input = settingsInput({
-      relaySettingsAction: "replace",
-      relayEnabled: true,
-      relayName: "Main",
-      relayTarget: "relay.example.org",
-      relayToken: TOKEN,
-      ...overrides,
-    });
-    expect(rejection(() => service.updateSettings(input)).code).toBe(code);
-  });
-
-  it("remove clears the relay and its nodes but keeps the configured flag on", () => {
-    const service = ctx.create();
-    service.updateSettings(
-      settingsInput({
-        relaySettingsAction: "replace",
-        relayEnabled: true,
-        relayName: "Main",
-        relayTarget: "relay.example.org",
-        relayToken: TOKEN,
-      }),
-    );
-    service.updateSettings(settingsInput({ relaySettingsAction: "remove" }));
-    expect(service.database.getSettings()).toMatchObject({
-      relayConfigured: true,
-      relayEnabled: false,
-      relayHost: "",
-      relayTokenEncrypted: null,
-    });
-    expect(service.database.listRelayNodes()).toEqual([]);
-  });
-
-  it("stores no node when the relay has no token (a disabled relay with only a target)", () => {
-    const service = ctx.create();
-    service.updateSettings(
-      settingsInput({ relaySettingsAction: "replace", relayEnabled: false, relayName: "Main", relayTarget: "relay.example.org" }),
-    );
-    expect(service.database.getSettings()).toMatchObject({ relayConfigured: true, relayHost: "relay.example.org" });
-    expect(service.database.listRelayNodes()).toEqual([]);
   });
 });

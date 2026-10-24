@@ -19,12 +19,6 @@ beforeEach(async () => {
     webRtcEnabled: false,
     webRtcUdpStart: 40000,
     webRtcUdpEnd: 40099,
-    relayConfigured: false,
-    relayEnabled: false,
-    relayName: "",
-    relayHost: "",
-    relayPort: 39087,
-    relayTokenEncrypted: null,
   });
   database.close();
 });

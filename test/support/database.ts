@@ -68,12 +68,6 @@ export function settings(overrides: Partial<SettingsUpdate> = {}): SettingsUpdat
     webRtcEnabled: true,
     webRtcUdpStart: 41000,
     webRtcUdpEnd: 41010,
-    relayConfigured: true,
-    relayEnabled: true,
-    relayName: "relay",
-    relayHost: "relay.example.org",
-    relayPort: 40000,
-    relayTokenEncrypted: "enc:token",
     ...overrides,
   };
 }

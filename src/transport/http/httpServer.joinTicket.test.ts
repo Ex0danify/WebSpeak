@@ -210,12 +210,9 @@ describe("acceleration", () => {
   it("accepts a configured relay, by default or by id, and refuses an unknown id", async () => {
     const gateway = await gateways.start();
     configure(gateway, {
-      relaySettingsAction: "replace",
-      relayEnabled: true,
-      relayName: "Relay one",
-      relayTarget: "relay.example.org:39087",
-      relayTokenAction: "replace",
-      relayToken: "relay-token",
+      relayNodes: [
+        { name: "Relay one", target: "relay.example.org:39087", enabled: true, tokenAction: "replace", token: "relay-token-1234567" },
+      ],
     });
     const config = (await (await gateway.request("/api/public-config")).json()) as { accelerationRelays: { id: string }[] };
     const id = config.accelerationRelays[0]!.id;
