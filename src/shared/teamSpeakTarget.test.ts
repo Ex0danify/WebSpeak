@@ -4,7 +4,6 @@ import {
   InvalidTeamSpeakTargetError,
   formatTeamSpeakTarget,
   parseTeamSpeakTarget,
-  parseTeamSpeakTargetParts,
   teamSpeakTargetKey,
 } from "./teamSpeakTarget.js";
 import { ACCEPTED_TARGETS } from "../../test/support/teamSpeakTargetCases.js";
@@ -57,35 +56,6 @@ describe("parseTeamSpeakTarget", () => {
 
   it("says why an empty address was refused", () => {
     expect(() => parseTeamSpeakTarget("")).toThrow("required");
-  });
-});
-
-describe("parseTeamSpeakTargetParts", () => {
-  it.each([
-    [["example.com", "9988"], { host: "example.com", port: 9988 }],
-    [["example.com", 9988], { host: "example.com", port: 9988 }],
-    [["example.com"], { host: "example.com", port: 9987 }],
-    [["example.com", ""], { host: "example.com", port: 9987 }],
-    [["example.com", "  "], { host: "example.com", port: 9987 }],
-    [["example.com:9988"], { host: "example.com", port: 9988 }],
-    [["[::1]", 9988], { host: "::1", port: 9988 }],
-    [["::1", 9988], { host: "::1", port: 9988 }],
-    [["[::1]:9988"], { host: "::1", port: 9988 }],
-  ] as const)("accepts %j", (args, expected) => {
-    expect(parseTeamSpeakTargetParts(...(args as unknown as [string, (string | number)?]))).toEqual(expected);
-  });
-
-  it("rejects a port in both the host and the port field", () => {
-    expect(() => parseTeamSpeakTargetParts("example.com:9987", 9988)).toThrow(InvalidTeamSpeakTargetError);
-  });
-
-  it("rejects an empty host, even with a port", () => {
-    expect(() => parseTeamSpeakTargetParts("  ", 9987)).toThrow("required");
-  });
-
-  it("validates the separate port", () => {
-    expect(() => parseTeamSpeakTargetParts("example.com", "70000")).toThrow(InvalidTeamSpeakTargetError);
-    expect(() => parseTeamSpeakTargetParts("example.com", "x")).toThrow(InvalidTeamSpeakTargetError);
   });
 });
 

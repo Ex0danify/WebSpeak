@@ -46,27 +46,6 @@ export function parseTeamSpeakTarget(value: string, fallbackPort = DEFAULT_TEAM_
   return createTarget(input.slice(0, colon), input.slice(colon + 1));
 }
 
-/** Parse the legacy split host/port fields while accepting a bracketed IPv6 host. */
-export function parseTeamSpeakTargetParts(
-  hostValue: string,
-  portValue?: string | number,
-  fallbackPort = DEFAULT_TEAM_SPEAK_PORT,
-): TeamSpeakTarget {
-  const host = hostValue.trim();
-  if (!host) throw new InvalidTeamSpeakTargetError("TeamSpeak server address is required");
-
-  if (portValue !== undefined && String(portValue).trim() !== "") {
-    const hostOnly = host.startsWith("[") && host.endsWith("]") ? host.slice(1, -1) : host;
-    if (hostOnly.includes(":")) return createTarget(hostOnly, portValue);
-    if (host.includes(":")) {
-      throw new InvalidTeamSpeakTargetError("Use one TeamSpeak address field when specifying a port");
-    }
-    return createTarget(hostOnly, portValue);
-  }
-
-  return parseTeamSpeakTarget(host, fallbackPort);
-}
-
 export function formatTeamSpeakTarget(target: TeamSpeakTarget): string {
   return target.host.includes(":") ? `[${target.host}]:${target.port}` : `${target.host}:${target.port}`;
 }

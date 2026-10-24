@@ -8,7 +8,7 @@ export default defineConfig({
   testDir: ".",
   testMatch: "**/*.spec.ts",
   // Layer 5 (real TeamSpeak server) and layer 6 (visual, a11y) have their own config and command.
-  testIgnore: ["legacy/**", "real/**", "visual/**", "a11y/**"],
+  testIgnore: ["real/**", "visual/**", "a11y/**"],
   globalSetup: fileURLToPath(new URL("./global-setup.ts", import.meta.url)),
   outputDir: "../test-results/e2e",
   fullyParallel: true,
