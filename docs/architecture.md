@@ -52,7 +52,7 @@ views  ->  features/room  ->  features/{voice, screenShare, join, admin, demo}  
 - Inside `features/room/` the sub-features are one layer, have no barrels and never import each other. Only `shell/` and the room root compose them.
 - `features/room/useRoomSession.ts` is the only place that imports several features together. It resets the stores, wires the late-bound callbacks of session, voice and screen share, and returns six groups (`session`, `roster`, `chat`, `audio`, `screenShare`, `actions`). Composables take only the group they need. `useRoomContext.ts` provides and injects it.
 - Cross-feature imports go through the barrel (`@/features/session`); inside one feature use relative paths.
-- Stores hold only reactive state the UI reads: `sessionStore` in `session/`, `voiceAudioStore` in `voice/stores/`, `screenShareStore` in `screenShare/stores/`, `joinFormStore` in `join/stores/`, `adminStores` in `admin/`. Admin stores never import each other.
+- Stores hold only reactive state the UI reads: `sessionStore` in `session/`, `voiceAudioStore` in `voice/stores/`, `screenShareStore` in `screenShare/stores/`, `joinFormStore` in `join/stores/`, `adminStores` in `admin/`. Admin stores never import each other, they reach each other through `adminSiblings.ts`. The session and feedback stores are the base every other admin store imports.
 
 ### Naming
 

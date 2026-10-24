@@ -65,6 +65,10 @@
       ]
     },
     {
+      "file": "features/admin/adminRoutes.ts",
+      "keys": ["overview", "server", "operations"]
+    },
+    {
       "file": "features/admin/adminProbe.ts",
       "keys": [
         "serverAddress",

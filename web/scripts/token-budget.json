@@ -3,14 +3,14 @@
     "src/features/admin/AccessIdentityCard.vue": {
       "arbitrary": 5
     },
+    "src/features/admin/AdminHeader.vue": {
+      "arbitrary": 1
+    },
     "src/features/admin/AdminOperationsPage.vue": {
       "arbitrary": 2
     },
     "src/features/admin/AdminOverviewPage.vue": {
       "arbitrary": 1
-    },
-    "src/features/admin/AdminShell.vue": {
-      "arbitrary": 7
     },
     "src/features/admin/AdvancedSettingsCard.vue": {
       "arbitrary": 4
@@ -20,6 +20,9 @@
     },
     "src/features/admin/ServerDialog.vue": {
       "arbitrary": 2
+    },
+    "src/features/admin/adminChrome.ts": {
+      "arbitrary": 6
     },
     "src/features/admin/adminPage.ts": {
       "arbitrary": 4

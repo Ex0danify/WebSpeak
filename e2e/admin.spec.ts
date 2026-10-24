@@ -130,6 +130,16 @@ test.describe("overview", () => {
   });
 });
 
+test.describe("unknown page", () => {
+  test("an address that is no console page shows the overview and is corrected to /admin", async ({ page, ownGateway }) => {
+    const gateway = await ownGateway();
+    await login(page, gateway);
+    await page.goto(`${gateway.url}/admin/nowhere`);
+    await expect(page.getByRole("heading", { name: "Overview", level: 1 })).toBeVisible();
+    await expect.poll(() => path(page)).toBe("/admin");
+  });
+});
+
 test.describe("language", () => {
   // The console starts from the same detection as the join page: a stored language, else the browser's, else
   // English.
