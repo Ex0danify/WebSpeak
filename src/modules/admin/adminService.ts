@@ -1,3 +1,4 @@
+import { MAX_ACTIVE_SESSIONS } from "../../shared/constants.js";
 import type { Logger } from "../../shared/logger.js";
 import { formatTeamSpeakTarget, parseTeamSpeakTarget, type TeamSpeakTarget } from "../../shared/teamSpeakTarget.js";
 import { type AccessMode, WebSpeakDatabase } from "../../infra/persistence/database.js";
@@ -38,6 +39,22 @@ export interface ConnectionTestResult {
     successfulAttempts: number;
     errorCode?: string;
   };
+}
+
+/** The dashboard snapshot: gateway status, the servers with their last test, session counts and recent audit events. */
+export interface AdminOverview {
+  gateway: { status: "running"; version: string; uptimeSeconds: number };
+  servers: Array<{
+    id: string;
+    name: string;
+    target: string;
+    status: "unreachable" | "reachable" | "unknown";
+    lastTestAt: string | null;
+    latencyMs: number | null;
+    lastError: string | null;
+  }>;
+  sessions: { active: number; peak: number; limit: number };
+  recentEvents: ReturnType<WebSpeakDatabase["recentAudit"]>;
 }
 
 export class AdminService {
@@ -276,7 +293,7 @@ export class AdminService {
     });
   }
 
-  getOverview(activeSessions: number, peakSessions: number, startedAt: number): Record<string, unknown> {
+  getOverview(activeSessions: number, peakSessions: number, startedAt: number): AdminOverview {
     return {
       gateway: {
         status: "running",
@@ -292,7 +309,7 @@ export class AdminService {
         latencyMs: server.lastTestLatencyMs,
         lastError: server.lastTestError,
       })),
-      sessions: { active: activeSessions, peak: peakSessions, limit: 100 },
+      sessions: { active: activeSessions, peak: peakSessions, limit: MAX_ACTIVE_SESSIONS },
       recentEvents: this.database.recentAudit(),
     };
   }

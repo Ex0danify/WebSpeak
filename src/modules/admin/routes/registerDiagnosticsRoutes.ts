@@ -1,23 +1,37 @@
 import { existsSync } from "node:fs";
 import type { Router } from "express";
+import { MAX_ACTIVE_SESSIONS } from "../../../shared/constants.js";
+import type { AdminOverview } from "../adminService.js";
 import { readConnectionHistory, readRecentLogs } from "../adminLogReader.js";
 import { readLimit } from "../adminRequestParsing.js";
 import type { AdminRouterOptions } from "../adminRouterOptions.js";
 
-interface AdminOverview {
-  gateway: { uptimeSeconds: number };
-  servers: Array<{
-    name: string;
-    target: string;
-    status: string;
-    lastTestAt: string | null;
-    latencyMs: number | null;
-    lastError: string | null;
-  }>;
-}
-
-/** Audit trail, log tail, diagnostics, the downloadable report and the database backup. */
+/** Overview, audit trail, log tail, diagnostics, the downloadable report and the database backup. */
 export function registerDiagnosticsRoutes(router: Router, options: AdminRouterOptions): void {
+  const overview = () => options.service.getOverview(options.getActiveSessions(), options.getPeakSessions(), options.startedAt);
+  const logsAvailable = () => Boolean(options.logFile && existsSync(options.logFile));
+  // The part of the diagnostics answer and of the report that is the same.
+  const snapshot = (current: AdminOverview) => ({
+    generatedAt: new Date().toISOString(),
+    gateway: {
+      version: options.version ?? "0.1.0",
+      uptimeSeconds: current.gateway.uptimeSeconds,
+      node: process.version,
+      platform: process.platform,
+      arch: process.arch,
+    },
+    sessions: {
+      active: options.getActiveSessions(),
+      peak: options.getPeakSessions(),
+      created: options.getCreatedSessions?.() ?? 0,
+      limit: MAX_ACTIVE_SESSIONS,
+    },
+  });
+
+  router.get("/overview", (_request, response) => {
+    response.json(overview());
+  });
+
   router.get("/audit", (request, response) => {
     response.json({ events: options.service.database.recentAudit(readLimit(request.query.limit, 50)) });
   });
@@ -25,61 +39,27 @@ export function registerDiagnosticsRoutes(router: Router, options: AdminRouterOp
   router.get("/logs", (request, response) => {
     const limit = readLimit(request.query.limit, 100);
     response.json({
-      available: Boolean(options.logFile && existsSync(options.logFile)),
+      available: logsAvailable(),
       entries: readRecentLogs(options.logFile, limit),
       sessions: readConnectionHistory(options.logFile, limit),
     });
   });
 
   router.get("/diagnostics", (_request, response) => {
-    const overview = options.service.getOverview(
-      options.getActiveSessions(),
-      options.getPeakSessions(),
-      options.startedAt,
-    ) as unknown as AdminOverview;
+    const current = overview();
     response.json({
-      generatedAt: new Date().toISOString(),
-      gateway: {
-        version: options.version ?? "0.1.0",
-        uptimeSeconds: overview.gateway.uptimeSeconds,
-        node: process.version,
-        platform: process.platform,
-        arch: process.arch,
-      },
-      sessions: {
-        active: options.getActiveSessions(),
-        peak: options.getPeakSessions(),
-        created: options.getCreatedSessions?.() ?? 0,
-        limit: 100,
-      },
-      servers: overview.servers,
+      ...snapshot(current),
+      servers: current.servers,
       database: { schemaVersion: options.service.database.schemaVersion },
-      logs: { available: Boolean(options.logFile && existsSync(options.logFile)) },
+      logs: { available: logsAvailable() },
     });
   });
 
   router.get("/diagnostics/report", (_request, response) => {
-    const overview = options.service.getOverview(
-      options.getActiveSessions(),
-      options.getPeakSessions(),
-      options.startedAt,
-    ) as unknown as AdminOverview;
+    const current = overview();
     const report = {
-      generatedAt: new Date().toISOString(),
-      gateway: {
-        version: options.version ?? "0.1.0",
-        uptimeSeconds: overview.gateway.uptimeSeconds,
-        node: process.version,
-        platform: process.platform,
-        arch: process.arch,
-      },
-      sessions: {
-        active: options.getActiveSessions(),
-        peak: options.getPeakSessions(),
-        created: options.getCreatedSessions?.() ?? 0,
-        limit: 100,
-      },
-      servers: overview.servers.map(({ name, status, lastTestAt, latencyMs, lastError }) => ({
+      ...snapshot(current),
+      servers: current.servers.map(({ name, status, lastTestAt, latencyMs, lastError }) => ({
         name,
         status,
         lastTestAt,

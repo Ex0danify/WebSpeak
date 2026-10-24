@@ -2,12 +2,8 @@ import type { Router } from "express";
 import { requireCsrf, requireSameOrigin } from "../adminMiddleware.js";
 import type { AdminRouterOptions } from "../adminRouterOptions.js";
 
-/** Overview and live voice sessions (list, terminate). */
+/** Live voice sessions (list, terminate). */
 export function registerSessionRoutes(router: Router, options: AdminRouterOptions): void {
-  router.get("/overview", (_request, response) => {
-    response.json(options.service.getOverview(options.getActiveSessions(), options.getPeakSessions(), options.startedAt));
-  });
-
   router.get("/sessions", (_request, response) => {
     response.json({ sessions: options.getSessionSummaries?.() ?? [] });
   });
