@@ -1,6 +1,5 @@
 import { computed, reactive, ref } from "vue";
 import { defineStore } from "pinia";
-import type { ApiError } from "@/features/admin/adminApi.js";
 import { DEFAULT_LANGUAGE } from "@/shared/i18n/languages.js";
 import { useI18n } from "@/shared/i18n/useI18n.js";
 import {
@@ -11,14 +10,17 @@ import {
   type WelcomeLanguage,
   welcomeLanguageOptions,
 } from "@/features/admin/adminServerForm.js";
+import { useAdminFeedbackStore } from "@/features/admin/adminFeedback.js";
 import { adminSiblings } from "@/features/admin/adminSiblings.js";
 import { useAdminSessionStore } from "@/features/admin/adminSession.js";
 
 /** The server page's settings: access mode, welcome texts, WebRTC port range and relay nodes, plus loading and saving. */
 export const useAdminServerSettingsStore = defineStore("adminServerSettings", () => {
   const admin = useAdminSessionStore();
+  const feedback = useAdminFeedbackStore();
   const { t } = useI18n();
 
+  const savingSettings = ref(false);
   const webrtcPortNoticeOpen = ref(false);
   const serverForm = reactive(initialServerForm());
   const welcomeLanguage = ref<WelcomeLanguage>(DEFAULT_LANGUAGE);
@@ -82,17 +84,17 @@ export const useAdminServerSettingsStore = defineStore("adminServerSettings", ()
   }
 
   async function saveServerSettings() {
-    admin.submitting = true;
-    admin.errorMessage = "";
+    savingSettings.value = true;
+    feedback.clearError();
     try {
       const result = await admin.sendJson("/api/admin/server", "PUT", serverPayload());
       applySettings(result.settings);
       await adminSiblings().loadOverview();
-      admin.notify(t("settingsSaved"));
+      feedback.notify(t("settingsSaved"));
     } catch (error) {
-      admin.errorMessage = admin.errorText((error as ApiError).code);
+      feedback.fail(error);
     } finally {
-      admin.submitting = false;
+      savingSettings.value = false;
     }
   }
 
@@ -105,10 +107,12 @@ export const useAdminServerSettingsStore = defineStore("adminServerSettings", ()
     Object.assign(serverForm, initialServerForm());
     welcomeLanguage.value = "en";
     webrtcPortNoticeOpen.value = false;
+    savingSettings.value = false;
   }
 
   return {
     serverForm,
+    savingSettings,
     welcomeLanguage,
     selectedWelcomeText,
     selectedWelcomeLanguageLabel,

@@ -3,8 +3,10 @@ import { registerAdminStores } from "@/features/admin/adminStores";
 import { createPinia } from "pinia";
 import { routeLocationKey, routerKey } from "vue-router";
 import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from "vitest";
+import { useAdminFeedbackStore } from "@/features/admin/adminFeedback";
 import { useAdminOperationsStore } from "@/features/admin/adminOperations";
 import { useAdminOverviewStore } from "@/features/admin/adminOverview";
+import { useAdminServerDialogStore } from "@/features/admin/adminServerDialog";
 import { useAdminServersStore } from "@/features/admin/adminServers";
 import { useAdminServerSettingsStore } from "@/features/admin/adminServerSettings";
 import { useAdminSessionStore } from "@/features/admin/adminSession";
@@ -31,7 +33,7 @@ function setup(path = "/admin") {
   Object.assign(useAdminOverviewStore(), { loadOverview: loadAdminData });
   Object.assign(useAdminServerSettingsStore(), { loadServerSettings: vi.fn(async () => {}) });
   Object.assign(useAdminServersStore(), { loadServers: vi.fn(async () => {}) });
-  return { session: store, route, router, loadAdminData };
+  return { session: store, feedback: useAdminFeedbackStore(), route, router, loadAdminData };
 }
 
 let fetchMock: Mock<(...args: any[]) => Promise<Response>>;
@@ -71,9 +73,9 @@ describe("useAdminSessionStore", () => {
 
   it("loadAdminView shows requestFailed when the session request fails", async () => {
     fetchMock.mockRejectedValue(new Error("offline"));
-    const { session } = setup();
+    const { session, feedback } = setup();
     await session.loadAdminView();
-    expect(session.errorMessage).not.toBe("");
+    expect(feedback.errorMessage).not.toBe("");
     expect(session.loading).toBe(false);
   });
 
@@ -89,29 +91,29 @@ describe("useAdminSessionStore", () => {
     expect(session.screen).toBe("admin");
     expect(router.replace).toHaveBeenCalledWith("/admin");
     expect(loadAdminData).toHaveBeenCalled();
-    expect(session.submitting).toBe(false);
+    expect(session.signingIn).toBe(false);
   });
 
   it("login surfaces the server error code", async () => {
     fetchMock.mockResolvedValue(respond(401, { code: "INVALID_PASSWORD" }));
-    const { session } = setup("/admin/login");
+    const { session, feedback } = setup("/admin/login");
     await session.login();
-    expect(session.errorMessage).toBe(session.errorText("INVALID_PASSWORD"));
-    expect(session.errorMessage).not.toBe("");
+    expect(feedback.errorMessage).toBe(feedback.errorText("INVALID_PASSWORD"));
+    expect(feedback.errorMessage).not.toBe("");
     expect(session.screen).toBe("login");
-    expect(session.submitting).toBe(false);
+    expect(session.signingIn).toBe(false);
   });
 
   it("changePassword validates length and match before sending", async () => {
-    const { session } = setup();
+    const { session, feedback } = setup();
     session.newPassword = "short";
     await session.changePassword();
-    expect(session.errorMessage).not.toBe("");
-    const lengthError = session.errorMessage;
+    expect(feedback.errorMessage).not.toBe("");
+    const lengthError = feedback.errorMessage;
     session.newPassword = "a-long-enough-password";
     session.confirmNewPassword = "different-password!";
     await session.changePassword();
-    expect(session.errorMessage).not.toBe(lengthError);
+    expect(feedback.errorMessage).not.toBe(lengthError);
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
@@ -123,6 +125,7 @@ describe("useAdminSessionStore", () => {
     expect(session.screen).toBe("admin");
     expect(session.newPassword).toBe("");
     expect(session.confirmNewPassword).toBe("");
+    expect(session.changingPassword).toBe(false);
     expect(loadAdminData).toHaveBeenCalled();
   });
 
@@ -149,8 +152,9 @@ describe("useAdminSessionStore", () => {
     const servers = useAdminServersStore();
     server.serverForm.siteName = "Night Owls";
     server.welcomeLanguage = "de";
+    const dialog = useAdminServerDialogStore();
     servers.servers = [{ id: "server-1" } as never];
-    servers.testResult = { ok: true };
+    dialog.testResult = { ok: true };
     await session.logout();
     expect(overview.overview.gateway.version).toBe("");
     expect(operations.operations.sessions).toEqual([]);
@@ -158,7 +162,7 @@ describe("useAdminSessionStore", () => {
     expect(server.serverForm.siteName).toBe("WebSpeak");
     expect(server.welcomeLanguage).toBe("en");
     expect(servers.servers).toEqual([]);
-    expect(servers.testResult).toBeNull();
+    expect(dialog.testResult).toBeNull();
   });
 
   it("a 401 while in the console falls back to login; elsewhere it does not redirect", async () => {

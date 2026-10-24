@@ -1,22 +1,20 @@
 import { computed, ref } from "vue";
 import { defineStore } from "pinia";
 import { useRoute, useRouter } from "vue-router";
-import { createAdminApi, type ApiError } from "@/features/admin/adminApi.js";
-import { createAdminFormat } from "@/features/admin/adminFormat.js";
-import { toast } from "@/shared/composables/useToast";
-import { useI18n } from "@/shared/i18n/useI18n.js";
+import { createAdminApi } from "@/features/admin/adminApi.js";
+import { useAdminFeedbackStore } from "@/features/admin/adminFeedback.js";
 import { adminSiblings } from "@/features/admin/adminSiblings.js";
+import { useI18n } from "@/shared/i18n/useI18n.js";
 
 export type AdminScreen = "login" | "change-password" | "admin";
 
 /** Sign-in state of the admin console, covering the screen showing, the login and change-password forms and the CSRF token.
- *  Also owns what every admin page shares (error banner, in-flight write flag, success toasts) and the fetch helpers, which
- *  need the token and drop back to login on a 401. */
+ *  Also owns the fetch helpers every admin store uses, which need the token and drop back to login on a 401. */
 export const useAdminSessionStore = defineStore("adminSession", () => {
   const route = useRoute();
   const router = useRouter();
-  const { language, t } = useI18n();
-  const { errorText } = createAdminFormat(language, t);
+  const { t } = useI18n();
+  const feedback = useAdminFeedbackStore();
 
   const loading = ref(true);
   const screen = ref<AdminScreen>("login");
@@ -25,15 +23,8 @@ export const useAdminSessionStore = defineStore("adminSession", () => {
   const loginPassword = ref("");
   const newPassword = ref("");
   const confirmNewPassword = ref("");
-  /** Failures anywhere in the console surface in the same banner. */
-  const errorMessage = ref("");
-  /** One login/save/invite write in flight at a time. */
-  const submitting = ref(false);
-
-  /** Every successful action of the console says so in a toast, a failure stays a banner (errorMessage). */
-  function notify(message: string) {
-    toast({ title: message, variant: "success" });
-  }
+  const signingIn = ref(false);
+  const changingPassword = ref(false);
 
   const { getJson, sendJson } = createAdminApi({
     getCsrfToken: () => csrfToken.value,
@@ -73,15 +64,15 @@ export const useAdminSessionStore = defineStore("adminSession", () => {
         await loadAdminData();
       }
     } catch {
-      errorMessage.value = t("requestFailed");
+      feedback.showError(t("requestFailed"));
     } finally {
       loading.value = false;
     }
   }
 
   async function login() {
-    submitting.value = true;
-    errorMessage.value = "";
+    signingIn.value = true;
+    feedback.clearError();
     try {
       const result = await sendJson(
         "/api/admin/login",
@@ -100,23 +91,23 @@ export const useAdminSessionStore = defineStore("adminSession", () => {
         await loadAdminData();
       }
     } catch (error) {
-      errorMessage.value = errorText((error as ApiError).code);
+      feedback.fail(error);
     } finally {
-      submitting.value = false;
+      signingIn.value = false;
     }
   }
 
   async function changePassword() {
-    errorMessage.value = "";
+    feedback.clearError();
     if (newPassword.value.length < 12) {
-      errorMessage.value = t("setupPasswordShort");
+      feedback.showError(t("setupPasswordShort"));
       return;
     }
     if (newPassword.value !== confirmNewPassword.value) {
-      errorMessage.value = t("setupPasswordsMismatch");
+      feedback.showError(t("setupPasswordsMismatch"));
       return;
     }
-    submitting.value = true;
+    changingPassword.value = true;
     try {
       await sendJson("/api/admin/change-password", "POST", { newPassword: newPassword.value });
       newPassword.value = "";
@@ -125,9 +116,9 @@ export const useAdminSessionStore = defineStore("adminSession", () => {
       await router.replace("/admin");
       await loadAdminData();
     } catch (error) {
-      errorMessage.value = errorText((error as ApiError).code);
+      feedback.fail(error);
     } finally {
-      submitting.value = false;
+      changingPassword.value = false;
     }
   }
 
@@ -151,13 +142,11 @@ export const useAdminSessionStore = defineStore("adminSession", () => {
     loginPassword,
     newPassword,
     confirmNewPassword,
-    errorMessage,
-    submitting,
+    signingIn,
+    changingPassword,
     passwordStrength,
     getJson,
     sendJson,
-    errorText,
-    notify,
     loadAdminView,
     login,
     changePassword,

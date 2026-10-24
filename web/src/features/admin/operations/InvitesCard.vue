@@ -29,7 +29,7 @@
         </Field>
       </div>
       <small class="-mt-1 text-2xs text-fg-muted">{{ t("unlimitedUses") }}</small>
-      <Button type="submit" size="sm" :loading="submitting">{{ t("createInvite") }}</Button>
+      <Button type="submit" size="sm" :loading="creatingInvite">{{ t("createInvite") }}</Button>
     </form>
     <div v-if="createdInvite" class="mt-4.25 grid gap-2 rounded-md bg-accent-soft p-3 text-accent">
       <strong class="text-caption">{{ t("inviteCreated") }}</strong>
@@ -78,11 +78,9 @@ import { useI18n } from "@/shared/i18n/useI18n";
 import { createAdminFormat } from "@/features/admin/adminFormat";
 import { useAdminOperationsStore } from "@/features/admin/adminOperations";
 import { useAdminServersStore } from "@/features/admin/adminServers";
-import { useAdminSessionStore } from "@/features/admin/adminSession";
 
-const { submitting } = storeToRefs(useAdminSessionStore());
 const operationsStore = useAdminOperationsStore();
-const { operations, inviteForm, createdInvite } = storeToRefs(operationsStore);
+const { operations, inviteForm, createdInvite, creatingInvite } = storeToRefs(operationsStore);
 const { createInvite, revokeInvite, copyInviteLink } = operationsStore;
 const { servers } = storeToRefs(useAdminServersStore());
 

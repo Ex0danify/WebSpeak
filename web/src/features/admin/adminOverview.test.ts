@@ -1,7 +1,6 @@
 import { registerAdminStores } from "@/features/admin/adminStores";
 import { createPinia, setActivePinia } from "pinia";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { useAdminOperationsStore } from "@/features/admin/adminOperations";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useAdminSessionStore } from "@/features/admin/adminSession";
 import { useAdminOverviewStore } from "@/features/admin/adminOverview";
 
@@ -10,21 +9,16 @@ vi.mock("vue-router", () => ({ useRoute: () => ({ path: "/admin" }), useRouter: 
 function setup() {
   const session = useAdminSessionStore();
   const getJson = vi.fn();
-  const sendJson = vi.fn(async () => ({}));
   // The store keeps the api helpers it was created with; replace them to observe the calls.
-  Object.assign(session, { getJson, sendJson });
-  const loadOperations = vi.fn(async () => {});
-  Object.assign(useAdminOperationsStore(), { loadOperations });
+  Object.assign(session, { getJson });
   const overview = useAdminOverviewStore();
-  return { ...overview, session, getJson, sendJson, loadOperations };
+  return { ...overview, getJson };
 }
 
 beforeEach(() => {
   setActivePinia(createPinia());
   registerAdminStores();
 });
-
-afterEach(() => vi.unstubAllGlobals());
 
 describe("useAdminOverviewStore", () => {
   it("loadOverview merges the response into the reactive overview", async () => {
@@ -34,33 +28,5 @@ describe("useAdminOverviewStore", () => {
     expect(s.getJson).toHaveBeenCalledWith("/api/admin/overview");
     expect(s.overview.gateway.version).toBe("1.2.3");
     expect(s.overview.sessions.limit).toBe(100);
-  });
-
-  it("downloadBackup saves the file and refreshes operations", async () => {
-    const s = setup();
-    vi.stubGlobal(
-      "fetch",
-      vi.fn(async () => new Response("db", { status: 200 })),
-    );
-    URL.createObjectURL = vi.fn(() => "blob:x");
-    URL.revokeObjectURL = vi.fn();
-    const click = vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {});
-    await s.downloadBackup();
-    expect(click).toHaveBeenCalled();
-    expect(URL.revokeObjectURL).toHaveBeenCalledWith("blob:x");
-    expect(s.loadOperations).toHaveBeenCalled();
-    click.mockRestore();
-  });
-
-  it("downloadBackup reports a failed download in the shared banner", async () => {
-    const s = setup();
-    vi.stubGlobal(
-      "fetch",
-      vi.fn(async () => new Response("no", { status: 500 })),
-    );
-    await s.downloadBackup();
-    expect(s.session.errorMessage).toBe(s.session.errorText(undefined));
-    expect(s.session.errorMessage).not.toBe("");
-    expect(s.loadOperations).not.toHaveBeenCalled();
   });
 });

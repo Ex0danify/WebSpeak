@@ -27,10 +27,10 @@ import { Button } from "@/shared/ui/button";
 import { Card } from "@/shared/ui/card";
 import { useI18n } from "@/shared/i18n/useI18n";
 import { useAdminOperationsStore } from "@/features/admin/adminOperations";
-import { useAdminOverviewStore } from "@/features/admin/adminOverview";
 
-const { operations } = storeToRefs(useAdminOperationsStore());
-const { downloadBackup } = useAdminOverviewStore();
+const operationsStore = useAdminOperationsStore();
+const { operations } = storeToRefs(operationsStore);
+const { downloadBackup } = operationsStore;
 const { t } = useI18n();
 
 const diagnosticFacts = computed(() => {

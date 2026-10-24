@@ -5,7 +5,7 @@
         <h2 class="text-2xl font-bold">{{ t("serverSettings") }}</h2>
         <p class="mt-1.75 text-xs text-fg-muted">{{ t("serverSettingsLead") }}</p>
       </div>
-      <Button :loading="submitting" @click="saveServerSettings()">{{ submitting ? t("saving") : t("saveChanges") }}</Button>
+      <Button :loading="savingSettings" @click="saveServerSettings()">{{ savingSettings ? t("saving") : t("saveChanges") }}</Button>
     </div>
     <div class="grid min-w-0 shrink-0 grid-cols-2 items-start gap-3.5 max-desktop:grid-cols-1">
       <ServersCard />
@@ -43,16 +43,13 @@ import { Button } from "@/shared/ui/button";
 import { Dialog } from "@/shared/ui/dialog";
 import { useI18n } from "@/shared/i18n/useI18n";
 import { useAdminServerSettingsStore } from "@/features/admin/adminServerSettings";
-import { useAdminSessionStore } from "@/features/admin/adminSession";
 import AccessIdentityCard from "@/features/admin/AccessIdentityCard.vue";
 import AdvancedSettingsCard from "@/features/admin/AdvancedSettingsCard.vue";
 import RelayNodesCard from "@/features/admin/RelayNodesCard.vue";
 import ServersCard from "@/features/admin/ServersCard.vue";
 
 const settings = useAdminServerSettingsStore();
-const { serverForm, webrtcPortNoticeOpen, webrtcPortRangeText } = storeToRefs(settings);
+const { serverForm, savingSettings, webrtcPortNoticeOpen, webrtcPortRangeText } = storeToRefs(settings);
 const { saveServerSettings } = settings;
-const { submitting } = storeToRefs(useAdminSessionStore());
-
 const { t } = useI18n();
 </script>

@@ -92,81 +92,30 @@
 </template>
 
 <script setup lang="ts">
-import { nextTick, onMounted } from "vue";
+import { onMounted } from "vue";
 import { storeToRefs } from "pinia";
 import { Button } from "@/shared/ui/button";
 import { Card } from "@/shared/ui/card";
 import { Icon } from "@/shared/ui/icon";
 import ServerDialog from "@/features/admin/ServerDialog.vue";
+import { useAdminServerDialogStore } from "@/features/admin/adminServerDialog";
+import { useAdminServerOrderStore } from "@/features/admin/adminServerOrder";
 import { useAdminServersStore, type ServerStatus } from "@/features/admin/adminServers";
 import type { AdminServer } from "@/features/admin/adminTypes";
+import { useServerReorder } from "@/features/admin/useServerReorder";
 import { useI18n } from "@/shared/i18n/useI18n";
 
 const store = useAdminServersStore();
-const { servers, grabbed, announcement } = storeToRefs(store);
-const { statusOf, openAdd, openEdit, removeServer, probeAll, grabServer, moveGrabbedTo, shiftGrabbed, dropServer, cancelGrab } = store;
+const { servers } = storeToRefs(store);
+const { statusOf, removeServer, probeAll } = store;
+const { announcement } = storeToRefs(useAdminServerOrderStore());
+const { openAdd, openEdit } = useAdminServerDialogStore();
+const { grabbed, setHandle, onHandleKey, onHandleBlur, moveByButton, onDragStart, onDragEnter, onDragEnd } = useServerReorder();
 const hintId = "server-reorder-hint";
 const { t } = useI18n();
 
 // Every visit checks the servers again, the stored result may be old.
 onMounted(() => void probeAll());
-
-// The handle of each row, to give the focus back after the row moved in the DOM.
-const handles = new Map<string, { $el?: HTMLElement } | HTMLElement>();
-function setHandle(id: string, el: unknown) {
-  if (el) handles.set(id, el as HTMLElement);
-  else handles.delete(id);
-}
-async function refocus(id: string) {
-  await nextTick();
-  const handle = handles.get(id);
-  ((handle as { $el?: HTMLElement })?.$el ?? (handle as HTMLElement | undefined))?.focus();
-}
-
-async function onHandleKey(event: KeyboardEvent, id: string) {
-  if (event.key === " " || event.key === "Enter") {
-    event.preventDefault();
-    if (grabbed.value === id) await dropServer();
-    else grabServer(id);
-  } else if (grabbed.value === id && (event.key === "ArrowUp" || event.key === "ArrowDown")) {
-    event.preventDefault();
-    shiftGrabbed(event.key === "ArrowUp" ? -1 : 1);
-    await refocus(id);
-  } else if (grabbed.value === id && event.key === "Escape") {
-    event.preventDefault();
-    event.stopPropagation();
-    cancelGrab();
-  }
-}
-
-// Leaving for another control puts the server down. A blur without a target is the row moving in the DOM, not the person leaving.
-function onHandleBlur(event: FocusEvent) {
-  if (event.relatedTarget) void dropServer();
-}
-
-// A tap moves one step and saves at once, there is no held state on touch.
-async function moveByButton(id: string, delta: number) {
-  grabServer(id);
-  shiftGrabbed(delta);
-  await dropServer();
-  await refocus(id);
-}
-
-function onDragStart(event: DragEvent, id: string) {
-  grabServer(id);
-  if (event.dataTransfer) {
-    event.dataTransfer.effectAllowed = "move";
-    event.dataTransfer.setData("text/plain", id);
-  }
-}
-function onDragEnter(id: string) {
-  if (grabbed.value) moveGrabbedTo(servers.value.findIndex((server) => server.id === id));
-}
-// A drag the browser cancelled (Esc, or released outside a drop target) reports no drop effect.
-function onDragEnd(event: DragEvent) {
-  if (event.dataTransfer?.dropEffect === "none") cancelGrab();
-  else void dropServer();
-}
 
 const dotClass = (status: ServerStatus) => ({ online: "bg-success", probing: "bg-warning", unreachable: "bg-danger" })[status];
 function statusLabel(server: AdminServer): string {

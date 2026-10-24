@@ -5,6 +5,7 @@ import { useI18n } from "@/shared/i18n/useI18n";
 import { createRelayNode, DEFAULT_WELCOME_TEXTS, mapRelayNodes, welcomeLanguageOptions } from "@/features/admin/adminServerForm";
 import { useAdminServerSettingsStore } from "@/features/admin/adminServerSettings";
 import { LANGUAGES } from "@/shared/i18n/languages";
+import { useAdminFeedbackStore } from "@/features/admin/adminFeedback";
 import { useAdminOverviewStore } from "@/features/admin/adminOverview";
 import { useAdminSessionStore } from "@/features/admin/adminSession";
 
@@ -18,10 +19,12 @@ function setup() {
   const sendJson = vi.fn();
   const notify = vi.fn();
   // The stores look these up on each other at call time, so replacing them observes the calls.
-  Object.assign(admin, { getJson, sendJson, notify, screen: "admin" });
+  const feedback = useAdminFeedbackStore();
+  Object.assign(admin, { getJson, sendJson, screen: "admin" });
+  Object.assign(feedback, { notify });
   const loadOverview = vi.fn(async () => {});
   Object.assign(useAdminOverviewStore(), { loadOverview });
-  return { st: useAdminServerSettingsStore(), admin, getJson, sendJson, loadOverview, notify };
+  return { st: useAdminServerSettingsStore(), admin, feedback, getJson, sendJson, loadOverview, notify };
 }
 
 beforeEach(() => {
@@ -126,16 +129,16 @@ describe("useAdminServerSettingsStore", () => {
     expect(body).not.toHaveProperty("target");
     expect(s.loadOverview).toHaveBeenCalled();
     expect(s.notify).toHaveBeenCalledWith(t("settingsSaved"));
-    expect(s.admin.submitting).toBe(false);
+    expect(s.st.savingSettings).toBe(false);
   });
 
   it("saveServerSettings reports a failure in the banner", async () => {
     const s = setup();
     s.sendJson.mockRejectedValue({ code: "INVALID_WEBRTC_PORT_RANGE" });
     await s.st.saveServerSettings();
-    expect(s.admin.errorMessage).toBe(s.admin.errorText("INVALID_WEBRTC_PORT_RANGE"));
+    expect(s.feedback.errorMessage).toBe(s.feedback.errorText("INVALID_WEBRTC_PORT_RANGE"));
     expect(s.notify).not.toHaveBeenCalled();
-    expect(s.admin.submitting).toBe(false);
+    expect(s.st.savingSettings).toBe(false);
   });
 
   it("exposes the WebRTC range as text", () => {

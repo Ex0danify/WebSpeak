@@ -2,6 +2,7 @@ import { registerAdminStores } from "@/features/admin/adminStores";
 import { createPinia, setActivePinia } from "pinia";
 import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from "vitest";
 import { useI18n } from "@/shared/i18n/useI18n";
+import { useAdminFeedbackStore } from "@/features/admin/adminFeedback";
 import { useAdminOperationsStore } from "@/features/admin/adminOperations";
 import { useAdminOverviewStore } from "@/features/admin/adminOverview";
 import { useAdminSessionStore } from "@/features/admin/adminSession";
@@ -24,11 +25,13 @@ function setup() {
   const getJson = vi.fn();
   const sendJson = vi.fn(async () => ({}));
   const notify = vi.fn();
+  const feedback = useAdminFeedbackStore();
   // The stores look these up on each other at call time, so replacing them observes the calls.
-  Object.assign(admin, { getJson, sendJson, notify });
+  Object.assign(admin, { getJson, sendJson });
+  Object.assign(feedback, { notify });
   const loadOverview = vi.fn(async () => {});
   Object.assign(useAdminOverviewStore(), { loadOverview });
-  return { ops: useAdminOperationsStore(), admin, getJson, sendJson, loadOverview, notify };
+  return { ops: useAdminOperationsStore(), admin, feedback, getJson, sendJson, loadOverview, notify };
 }
 
 beforeEach(() => {
@@ -80,7 +83,7 @@ describe("useAdminOperationsStore", () => {
     const s = setup();
     s.getJson.mockRejectedValue({ code: "RATE_LIMITED" });
     await s.ops.loadOperations();
-    expect(s.admin.errorMessage).toBe(s.admin.errorText("RATE_LIMITED"));
+    expect(s.feedback.errorMessage).toBe(s.feedback.errorText("RATE_LIMITED"));
     expect(s.ops.operationsLoading).toBe(false);
   });
 
@@ -118,15 +121,15 @@ describe("useAdminOperationsStore", () => {
     });
     expect(s.ops.createdInvite?.link).toBe(`${location.origin}/?invite=t%20k`);
     expect(s.ops.inviteForm.channel).toBe("");
-    expect(s.admin.submitting).toBe(false);
+    expect(s.ops.creatingInvite).toBe(false);
   });
 
   it("createInvite fails when the response carries no token", async () => {
     const s = setup();
     await s.ops.createInvite();
     expect(s.ops.createdInvite).toBeNull();
-    expect(s.admin.errorMessage).toBe(s.admin.errorText(undefined));
-    expect(s.admin.submitting).toBe(false);
+    expect(s.feedback.errorMessage).toBe(s.feedback.errorText(undefined));
+    expect(s.ops.creatingInvite).toBe(false);
   });
 
   it("revokeInvite only acts after confirmation", async () => {
@@ -155,6 +158,34 @@ describe("useAdminOperationsStore", () => {
     expect(s.notify).toHaveBeenCalledWith(t("copiedLink"));
     writeText.mockRejectedValue(new Error("denied"));
     await s.ops.copyInviteLink();
-    expect(s.admin.errorMessage).toBe(t("operationFailed"));
+    expect(s.feedback.errorMessage).toBe(t("operationFailed"));
+  });
+
+  it("downloadBackup saves the file and refreshes the page to show the audit event", async () => {
+    const s = setup();
+    answerAll(s.getJson);
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response("db", { status: 200 })),
+    );
+    URL.createObjectURL = vi.fn(() => "blob:x");
+    URL.revokeObjectURL = vi.fn();
+    const click = vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {});
+    await s.ops.downloadBackup();
+    expect(click).toHaveBeenCalled();
+    expect(URL.revokeObjectURL).toHaveBeenCalledWith("blob:x");
+    expect(s.getJson).toHaveBeenCalledWith("/api/admin/audit?limit=50");
+  });
+
+  it("downloadBackup reports a failed download in the shared banner and does not refresh", async () => {
+    const s = setup();
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response("no", { status: 500 })),
+    );
+    await s.ops.downloadBackup();
+    expect(s.feedback.errorMessage).toBe(s.feedback.errorText(undefined));
+    expect(s.feedback.errorMessage).not.toBe("");
+    expect(s.getJson).not.toHaveBeenCalled();
   });
 });

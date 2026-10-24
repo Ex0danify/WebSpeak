@@ -58,10 +58,10 @@ import { Field } from "@/shared/ui/field";
 import { Icon } from "@/shared/ui/icon";
 import { Input } from "@/shared/ui/input";
 import { Segment, Segmented } from "@/shared/ui/tabs";
-import { useAdminServersStore } from "@/features/admin/adminServers";
+import { useAdminServerDialogStore } from "@/features/admin/adminServerDialog";
 import { useI18n } from "@/shared/i18n/useI18n";
 
-const store = useAdminServersStore();
+const store = useAdminServerDialogStore();
 const { dialog, dialogTitle, testing, testResult, testResultTitle, testResultText } = storeToRefs(store);
 const { saveDialog, testDialogConnection } = store;
 const { t } = useI18n();

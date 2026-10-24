@@ -1,7 +1,5 @@
 import { reactive } from "vue";
 import { defineStore } from "pinia";
-import type { ApiError } from "@/features/admin/adminApi.js";
-import { adminSiblings } from "@/features/admin/adminSiblings.js";
 import { useAdminSessionStore } from "@/features/admin/adminSession.js";
 
 interface OverviewServer {
@@ -22,7 +20,7 @@ function initialOverview() {
   };
 }
 
-/** The overview page's data: gateway/server/session status and recent events, plus the database backup download that hangs off the diagnostics card. */
+/** The overview page's data: gateway, server and session status and the recent events. */
 export const useAdminOverviewStore = defineStore("adminOverview", () => {
   const session = useAdminSessionStore();
 
@@ -32,28 +30,10 @@ export const useAdminOverviewStore = defineStore("adminOverview", () => {
     Object.assign(overview, await session.getJson("/api/admin/overview"));
   }
 
-  async function downloadBackup() {
-    try {
-      const response = await fetch("/api/admin/backup", { headers: { accept: "application/octet-stream" } });
-      if (!response.ok) throw new Error("BACKUP_FAILED");
-      const blob = await response.blob();
-      const url = URL.createObjectURL(blob);
-      const anchor = document.createElement("a");
-      anchor.href = url;
-      anchor.download = `webspeak-backup-${new Date().toISOString().slice(0, 10)}.db`;
-      anchor.click();
-      URL.revokeObjectURL(url);
-      // The backup counts as an operation, so the operations page is refreshed after it.
-      await adminSiblings().loadOperations();
-    } catch (error) {
-      session.errorMessage = session.errorText((error as ApiError).code);
-    }
-  }
-
   /** Back to the empty state for logout, setup stores have no `$reset`. */
   function reset() {
     Object.assign(overview, initialOverview());
   }
 
-  return { overview, loadOverview, downloadBackup, reset };
+  return { overview, loadOverview, reset };
 });

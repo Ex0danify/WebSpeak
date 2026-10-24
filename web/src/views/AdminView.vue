@@ -41,6 +41,7 @@ import {
   AdminServerPage,
   AdminShell,
   registerAdminStores,
+  useAdminFeedbackStore,
   useAdminSessionStore,
 } from "@/features/admin";
 import { useTheme } from "@/shared/composables/useTheme.js";
@@ -51,8 +52,10 @@ const { t } = useI18n();
 const { themeIcon, themeLabel, cycleTheme } = useTheme();
 registerAdminStores();
 const session = useAdminSessionStore();
-const { loading, screen, loginUsername, loginPassword, newPassword, confirmNewPassword, passwordStrength, errorMessage, submitting } =
+const { loading, screen, loginUsername, loginPassword, newPassword, confirmNewPassword, passwordStrength, signingIn, changingPassword } =
   storeToRefs(session);
+const { errorMessage } = storeToRefs(useAdminFeedbackStore());
+const submitting = computed(() => signingIn.value || changingPassword.value);
 const { loadAdminView, login, changePassword, logout } = session;
 
 const currentPageTitle = computed(() =>

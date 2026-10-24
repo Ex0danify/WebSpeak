@@ -1,9 +1,9 @@
 import { reactive, ref } from "vue";
 import { defineStore } from "pinia";
-import type { ApiError } from "@/features/admin/adminApi.js";
 import type { AdminConnectionRecord, AdminLog, AdminSession, ManagedInvite } from "@/features/admin/adminTypes.js";
 import { useI18n } from "@/shared/i18n/useI18n.js";
 import { useDialog } from "@/shared/composables/useDialog.js";
+import { useAdminFeedbackStore } from "@/features/admin/adminFeedback.js";
 import { adminSiblings } from "@/features/admin/adminSiblings.js";
 import { useAdminSessionStore } from "@/features/admin/adminSession.js";
 
@@ -49,14 +49,16 @@ function initialOperations(): OperationsData {
   };
 }
 
-/** The operations page: live sessions, invite links, diagnostics, logs and the audit trail. */
+/** The operations page: live sessions, invite links, diagnostics with the database backup, logs and the audit trail. */
 export const useAdminOperationsStore = defineStore("adminOperations", () => {
   const admin = useAdminSessionStore();
+  const feedback = useAdminFeedbackStore();
   const { t } = useI18n();
   const { confirm } = useDialog();
 
   const operationsLoading = ref(false);
   const terminatingSession = ref("");
+  const creatingInvite = ref(false);
   const inviteForm = reactive(initialInviteForm());
   const createdInvite = ref<{ token: string; link: string } | null>(null);
   const operations = reactive(initialOperations());
@@ -66,7 +68,7 @@ export const useAdminOperationsStore = defineStore("adminOperations", () => {
     try {
       await action();
     } catch (error) {
-      admin.errorMessage = admin.errorText((error as ApiError).code);
+      feedback.fail(error);
     } finally {
       cleanup?.();
     }
@@ -116,12 +118,12 @@ export const useAdminOperationsStore = defineStore("adminOperations", () => {
     });
     if (!ok) return;
     terminatingSession.value = target.id;
-    admin.errorMessage = "";
+    feedback.clearError();
     await attempt(
       async () => {
         await admin.sendJson(`/api/admin/sessions/${encodeURIComponent(target.id)}/terminate`, "POST", {});
         await Promise.all([loadOperations(), adminSiblings().loadOverview()]);
-        admin.notify(t("sessionTerminated"));
+        feedback.notify(t("sessionTerminated"));
       },
       () => {
         terminatingSession.value = "";
@@ -130,8 +132,8 @@ export const useAdminOperationsStore = defineStore("adminOperations", () => {
   }
 
   async function createInvite() {
-    admin.submitting = true;
-    admin.errorMessage = "";
+    creatingInvite.value = true;
+    feedback.clearError();
     createdInvite.value = null;
     await attempt(
       async () => {
@@ -147,7 +149,7 @@ export const useAdminOperationsStore = defineStore("adminOperations", () => {
         await loadOperations();
       },
       () => {
-        admin.submitting = false;
+        creatingInvite.value = false;
       },
     );
   }
@@ -164,7 +166,7 @@ export const useAdminOperationsStore = defineStore("adminOperations", () => {
     await attempt(async () => {
       await admin.sendJson(`/api/admin/invites/${encodeURIComponent(invite.id)}/revoke`, "POST", {});
       await loadOperations();
-      admin.notify(t("inviteRevoked"));
+      feedback.notify(t("inviteRevoked"));
     });
   }
 
@@ -172,9 +174,27 @@ export const useAdminOperationsStore = defineStore("adminOperations", () => {
     if (!createdInvite.value) return;
     try {
       await navigator.clipboard.writeText(createdInvite.value.link);
-      admin.notify(t("copiedLink"));
+      feedback.notify(t("copiedLink"));
     } catch {
-      admin.errorMessage = t("operationFailed");
+      feedback.showError(t("operationFailed"));
+    }
+  }
+
+  async function downloadBackup() {
+    try {
+      const response = await fetch("/api/admin/backup", { headers: { accept: "application/octet-stream" } });
+      if (!response.ok) throw new Error("BACKUP_FAILED");
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = `webspeak-backup-${new Date().toISOString().slice(0, 10)}.db`;
+      anchor.click();
+      URL.revokeObjectURL(url);
+      // The export is written to the audit trail, which the page shows.
+      await loadOperations();
+    } catch (error) {
+      feedback.fail(error);
     }
   }
 
@@ -185,12 +205,14 @@ export const useAdminOperationsStore = defineStore("adminOperations", () => {
     createdInvite.value = null;
     terminatingSession.value = "";
     operationsLoading.value = false;
+    creatingInvite.value = false;
   }
 
   return {
     operations,
     operationsLoading,
     terminatingSession,
+    creatingInvite,
     inviteForm,
     createdInvite,
     loadOperations,
@@ -198,6 +220,7 @@ export const useAdminOperationsStore = defineStore("adminOperations", () => {
     createInvite,
     revokeInvite,
     copyInviteLink,
+    downloadBackup,
     reset,
   };
 });
