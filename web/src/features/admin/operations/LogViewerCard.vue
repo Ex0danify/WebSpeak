@@ -19,8 +19,8 @@
 import { storeToRefs } from "pinia";
 import { Icon } from "@/shared/ui/icon";
 import { useI18n } from "@/shared/i18n/useI18n";
-import AdminSection from "@/features/admin/AdminSection.vue";
-import { useAdminOperationsStore } from "@/features/admin/adminOperations";
+import AdminSection from "@/features/admin/ui/AdminSection.vue";
+import { useAdminOperationsStore } from "@/features/admin/operations/adminOperations";
 import ConnectionHistory from "@/features/admin/operations/ConnectionHistory.vue";
 import LogEntries from "@/features/admin/operations/LogEntries.vue";
 

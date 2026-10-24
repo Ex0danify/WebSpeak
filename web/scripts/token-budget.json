@@ -1,33 +1,33 @@
 {
   "files": {
-    "src/features/admin/AccessIdentityCard.vue": {
+    "src/features/admin/operations/AdminOperationsPage.vue": {
+      "arbitrary": 2
+    },
+    "src/features/admin/overview/AdminOverviewPage.vue": {
+      "arbitrary": 1
+    },
+    "src/features/admin/server/AccessIdentityCard.vue": {
       "arbitrary": 3
     },
-    "src/features/admin/AdminHeader.vue": {
+    "src/features/admin/server/AdvancedSettingsCard.vue": {
+      "arbitrary": 2
+    },
+    "src/features/admin/server/RelayNodesCard.vue": {
+      "arbitrary": 2
+    },
+    "src/features/admin/server/ServerDialog.vue": {
+      "arbitrary": 2
+    },
+    "src/features/admin/shell/AdminHeader.vue": {
       "arbitrary": 1
     },
-    "src/features/admin/AdminOperationsPage.vue": {
-      "arbitrary": 2
-    },
-    "src/features/admin/AdminOverviewPage.vue": {
-      "arbitrary": 1
-    },
-    "src/features/admin/AdvancedSettingsCard.vue": {
-      "arbitrary": 2
-    },
-    "src/features/admin/RelayNodesCard.vue": {
-      "arbitrary": 2
-    },
-    "src/features/admin/ServerDialog.vue": {
-      "arbitrary": 2
-    },
-    "src/features/admin/adminChrome.ts": {
+    "src/features/admin/shell/adminChrome.ts": {
       "arbitrary": 6
     },
-    "src/features/admin/adminClasses.ts": {
+    "src/features/admin/ui/adminClasses.ts": {
       "arbitrary": 2
     },
-    "src/features/admin/adminPage.ts": {
+    "src/features/admin/ui/adminPage.ts": {
       "arbitrary": 4
     },
     "src/features/demo/DemoVoiceSection.vue": {
@@ -87,14 +87,14 @@
     "src/shared/ui/menu/menu.ts": {
       "arbitrary": 3
     },
-    "src/shared/ui/select/listSelect.ts": {
-      "arbitrary": 3
-    },
     "src/shared/ui/meter/meter.ts": {
       "arbitrary": 1
     },
     "src/shared/ui/popover/popover.ts": {
       "arbitrary": 2
+    },
+    "src/shared/ui/select/listSelect.ts": {
+      "arbitrary": 3
     },
     "src/shared/ui/shared/checkControl.ts": {
       "arbitrary": 3

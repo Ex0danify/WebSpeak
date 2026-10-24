@@ -49,9 +49,9 @@ import { Button } from "@/shared/ui/button";
 import { Chip } from "@/shared/ui/chip";
 import { Icon } from "@/shared/ui/icon";
 import { useI18n } from "@/shared/i18n/useI18n";
-import AdminSection from "@/features/admin/AdminSection.vue";
-import { createAdminFormat } from "@/features/admin/adminFormat";
-import { useAdminOperationsStore } from "@/features/admin/adminOperations";
+import AdminSection from "@/features/admin/ui/AdminSection.vue";
+import { createAdminFormat } from "@/features/admin/core/adminFormat";
+import { useAdminOperationsStore } from "@/features/admin/operations/adminOperations";
 
 /** `listClass` is the class of the scrolling table frame, which the page sizes. */
 defineProps<{ listClass?: string }>();

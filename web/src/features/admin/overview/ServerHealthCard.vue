@@ -31,10 +31,10 @@
 
 <script setup lang="ts">
 import { RouterLink } from "vue-router";
-import AdminListRow from "@/features/admin/AdminListRow.vue";
-import AdminSection from "@/features/admin/AdminSection.vue";
-import { createAdminFormat } from "@/features/admin/adminFormat";
-import { useAdminOverviewStore } from "@/features/admin/adminOverview";
+import AdminListRow from "@/features/admin/ui/AdminListRow.vue";
+import AdminSection from "@/features/admin/ui/AdminSection.vue";
+import { createAdminFormat } from "@/features/admin/core/adminFormat";
+import { useAdminOverviewStore } from "@/features/admin/overview/adminOverview";
 import { useI18n } from "@/shared/i18n/useI18n";
 
 const { language, t } = useI18n();

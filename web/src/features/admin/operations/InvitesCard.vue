@@ -52,7 +52,7 @@
 </template>
 
 <script setup lang="ts">
-import { watch } from "vue";
+import { computed, watch } from "vue";
 import { storeToRefs } from "pinia";
 import { Button } from "@/shared/ui/button";
 import { Chip } from "@/shared/ui/chip";
@@ -60,11 +60,11 @@ import { Field } from "@/shared/ui/field";
 import { Input } from "@/shared/ui/input";
 import { Select } from "@/shared/ui/select";
 import { useI18n } from "@/shared/i18n/useI18n";
-import AdminListRow from "@/features/admin/AdminListRow.vue";
-import AdminSection from "@/features/admin/AdminSection.vue";
-import { createAdminFormat } from "@/features/admin/adminFormat";
-import { useAdminOperationsStore } from "@/features/admin/adminOperations";
-import { useAdminServersStore } from "@/features/admin/adminServers";
+import AdminListRow from "@/features/admin/ui/AdminListRow.vue";
+import AdminSection from "@/features/admin/ui/AdminSection.vue";
+import { createAdminFormat } from "@/features/admin/core/adminFormat";
+import { adminSiblings } from "@/features/admin/core/adminSiblings";
+import { useAdminOperationsStore } from "@/features/admin/operations/adminOperations";
 
 const operationsStore = useAdminOperationsStore();
 /** `listClass` frames the invite list, `inputClass` sizes the form's controls: both are up to the page. */
@@ -72,7 +72,8 @@ defineProps<{ listClass?: string; inputClass?: string }>();
 
 const { operations, inviteForm, createdInvite, creatingInvite } = storeToRefs(operationsStore);
 const { createInvite, revokeInvite, copyInviteLink } = operationsStore;
-const { servers } = storeToRefs(useAdminServersStore());
+// The list belongs to the server page, so it is read through the siblings.
+const servers = computed(() => adminSiblings().serverList());
 
 // An invite is made for one server, the first is the default and a removed one cannot stay selected.
 watch(

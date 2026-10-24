@@ -10,10 +10,10 @@
 <script setup lang="ts">
 import { storeToRefs } from "pinia";
 import { useI18n } from "@/shared/i18n/useI18n";
-import AdminEventRow from "@/features/admin/AdminEventRow.vue";
-import AdminListRow from "@/features/admin/AdminListRow.vue";
-import AdminSection from "@/features/admin/AdminSection.vue";
-import { useAdminOperationsStore } from "@/features/admin/adminOperations";
+import AdminEventRow from "@/features/admin/ui/AdminEventRow.vue";
+import AdminListRow from "@/features/admin/ui/AdminListRow.vue";
+import AdminSection from "@/features/admin/ui/AdminSection.vue";
+import { useAdminOperationsStore } from "@/features/admin/operations/adminOperations";
 
 /** `bodyClass` and `listClass` are how the page lets the event list scroll. */
 defineProps<{ bodyClass?: string; listClass?: string }>();

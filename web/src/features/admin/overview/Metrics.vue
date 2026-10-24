@@ -16,8 +16,8 @@
 import { computed } from "vue";
 import { Card } from "@/shared/ui/card";
 import { Icon } from "@/shared/ui/icon";
-import { createAdminFormat } from "@/features/admin/adminFormat";
-import { useAdminOverviewStore } from "@/features/admin/adminOverview";
+import { createAdminFormat } from "@/features/admin/core/adminFormat";
+import { useAdminOverviewStore } from "@/features/admin/overview/adminOverview";
 import { useI18n } from "@/shared/i18n/useI18n";
 
 // The page arranges the cards, `class` is the grid.

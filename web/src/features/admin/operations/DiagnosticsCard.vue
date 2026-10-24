@@ -21,9 +21,9 @@ import { storeToRefs } from "pinia";
 import { VERSION_PREFIX } from "@/shared/lib/brand";
 import { Button } from "@/shared/ui/button";
 import { useI18n } from "@/shared/i18n/useI18n";
-import AdminListRow from "@/features/admin/AdminListRow.vue";
-import AdminSection from "@/features/admin/AdminSection.vue";
-import { useAdminOperationsStore } from "@/features/admin/adminOperations";
+import AdminListRow from "@/features/admin/ui/AdminListRow.vue";
+import AdminSection from "@/features/admin/ui/AdminSection.vue";
+import { useAdminOperationsStore } from "@/features/admin/operations/adminOperations";
 
 defineProps<{ bodyClass?: string }>();
 

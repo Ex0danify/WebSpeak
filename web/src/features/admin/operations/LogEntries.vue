@@ -22,9 +22,9 @@
 import { storeToRefs } from "pinia";
 import { cn } from "@/shared/lib/cn";
 import { useI18n } from "@/shared/i18n/useI18n";
-import AdminListRow from "@/features/admin/AdminListRow.vue";
-import { createAdminFormat } from "@/features/admin/adminFormat";
-import { useAdminOperationsStore } from "@/features/admin/adminOperations";
+import AdminListRow from "@/features/admin/ui/AdminListRow.vue";
+import { createAdminFormat } from "@/features/admin/core/adminFormat";
+import { useAdminOperationsStore } from "@/features/admin/operations/adminOperations";
 
 // `class` is how the page frames (and scrolls) the list.
 const props = defineProps<{ class?: string }>();

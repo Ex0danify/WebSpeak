@@ -17,10 +17,10 @@
 </template>
 
 <script setup lang="ts">
-import AdminEventRow from "@/features/admin/AdminEventRow.vue";
-import AdminListRow from "@/features/admin/AdminListRow.vue";
-import AdminSection from "@/features/admin/AdminSection.vue";
-import { useAdminOverviewStore } from "@/features/admin/adminOverview";
+import AdminEventRow from "@/features/admin/ui/AdminEventRow.vue";
+import AdminListRow from "@/features/admin/ui/AdminListRow.vue";
+import AdminSection from "@/features/admin/ui/AdminSection.vue";
+import { useAdminOverviewStore } from "@/features/admin/overview/adminOverview";
 import { useI18n } from "@/shared/i18n/useI18n";
 
 /** `bodyClass` and `listClass` are how the page lets the event list scroll. */

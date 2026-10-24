@@ -2,7 +2,7 @@
   "comment": "Files with t() calls whose key is not a string literal, and every key each can produce. check-i18n-keys.mjs fails on an unpinned dynamic call, on a key that is not defined, and on a key the file (or one of its `sources`) does not mention. Remove an entry when its last dynamic call goes.",
   "sites": [
     {
-      "file": "features/admin/adminFormat.ts",
+      "file": "features/admin/core/adminFormat.ts",
       "keys": [
         "connectionActive",
         "connectionConnecting",
@@ -65,11 +65,11 @@
       ]
     },
     {
-      "file": "features/admin/adminRoutes.ts",
+      "file": "features/admin/shell/adminRoutes.ts",
       "keys": ["overview", "server", "operations"]
     },
     {
-      "file": "features/admin/adminProbe.ts",
+      "file": "features/admin/server/adminProbe.ts",
       "keys": [
         "serverAddress",
         "invalidNicknameError",
