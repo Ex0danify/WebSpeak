@@ -3,7 +3,7 @@ import { createLink, type LinkImpairment, ManualClock } from "../../../../test/s
 import { createLoopbackServer, type LoopbackServerOptions } from "../../../../test/support/tsLoopbackServer.js";
 import { generateIdentity } from "../crypto/identity.js";
 import { HandshakeError } from "../errors/teamSpeakErrors.js";
-import { connectLegacy, type LegacyHandshakeOptions } from "./legacyHandshake.js";
+import { runHandshake, type HandshakeOptions } from "./handshake.js";
 
 const identity = generateIdentity(0);
 
@@ -11,20 +11,20 @@ interface SetupOptions {
   impairment?: LinkImpairment;
   seed?: number;
   server?: LoopbackServerOptions;
-  client?: Partial<LegacyHandshakeOptions>;
+  client?: Partial<HandshakeOptions>;
 }
 
 function setup({ impairment, seed, server: serverOptions, client }: SetupOptions = {}) {
   const clock = new ManualClock();
   const link = createLink(clock, impairment, seed);
-  const server = createLoopbackServer(link.b, { transport: { clock }, alpha: true, ...serverOptions });
+  const server = createLoopbackServer(link.b, { transport: { clock }, ts6: true, ...serverOptions });
   const commands: string[] = [];
-  const connection = connectLegacy(
+  const connection = runHandshake(
     link.a,
     {
       identity,
       nickname: "Alpha Tester",
-      handshake: "alpha",
+      handshake: "ts6",
       transport: { clock },
       testSeams: { deriveServerKey: server.deriveServerKey },
       ...client,
@@ -93,7 +93,7 @@ describe("alpha handshake over the loopback server", () => {
     const ts6 = setup({ client: { handshake: "auto", versionProfile: "ts6" } });
     await expect(settle(ts6.connection, ts6.clock)).resolves.toMatchObject({ clientId: 3 });
 
-    const legacy = setup({ server: { alpha: false }, client: { handshake: "auto", versionProfile: "ts3" } });
-    await expect(settle(legacy.connection, legacy.clock)).resolves.toMatchObject({ clientId: 3 });
+    const ts3 = setup({ server: { ts6: false }, client: { handshake: "auto", versionProfile: "ts3" } });
+    await expect(settle(ts3.connection, ts3.clock)).resolves.toMatchObject({ clientId: 3 });
   });
 });

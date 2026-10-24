@@ -121,7 +121,7 @@ describe("verifyAdminPassword", () => {
     const { scryptSync } = await import("node:crypto");
     const salt = Buffer.alloc(16, 9);
     const hash = scryptSync(PASSWORD, salt, 64, { N: 1024, r: 8, p: 1 });
-    const legacy: AdminCredential = {
+    const cheap: AdminCredential = {
       version: 1,
       username: "admin",
       mustChangePassword: false,
@@ -129,7 +129,7 @@ describe("verifyAdminPassword", () => {
       hash: hash.toString("base64url"),
       parameters: { N: 1024, r: 8, p: 1 },
     };
-    expect(await verifyAdminPassword(PASSWORD, legacy)).toBe(true);
-    expect(await verifyAdminPassword("wrong password!", legacy)).toBe(false);
+    expect(await verifyAdminPassword(PASSWORD, cheap)).toBe(true);
+    expect(await verifyAdminPassword("wrong password!", cheap)).toBe(false);
   });
 });

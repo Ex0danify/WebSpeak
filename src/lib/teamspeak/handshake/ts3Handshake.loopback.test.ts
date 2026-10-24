@@ -3,12 +3,12 @@ import { FIXTURES, hasCaptures, loadCapture } from "../../../../test/support/tsC
 import { createLink, type LinkImpairment, ManualClock } from "../../../../test/support/tsLinkSimulator.js";
 import { createLoopbackServer, type LoopbackServerOptions } from "../../../../test/support/tsLoopbackServer.js";
 import { generateIdentity } from "../crypto/identity.js";
-import { DUMMY_PACKET_KEY, LegacyPacketKeys } from "../crypto/packetKeys.js";
+import { DUMMY_PACKET_KEY, Ts3PacketKeys } from "../crypto/packetKeys.js";
 import { HandshakeError, TeamSpeakServerError, TeamSpeakTransportError } from "../errors/teamSpeakErrors.js";
 import { openPacket, parsePacket } from "../transport/packetCodec.js";
 import { PacketType } from "../transport/packetTypes.js";
 import { hashPassword } from "./clientInit.js";
-import { connectLegacy, type LegacyHandshakeOptions } from "./legacyHandshake.js";
+import { runHandshake, type HandshakeOptions } from "./handshake.js";
 
 const identity = generateIdentity(0);
 
@@ -16,7 +16,7 @@ interface SetupOptions {
   impairment?: LinkImpairment;
   seed?: number;
   server?: LoopbackServerOptions;
-  client?: Partial<LegacyHandshakeOptions>;
+  client?: Partial<HandshakeOptions>;
 }
 
 function setup({ impairment, seed, server: serverOptions, client }: SetupOptions = {}) {
@@ -27,7 +27,7 @@ function setup({ impairment, seed, server: serverOptions, client }: SetupOptions
   const commands: string[] = [];
   const voice: Buffer[] = [];
   const closed: unknown[] = [];
-  const connection = connectLegacy(
+  const connection = runHandshake(
     link.a,
     {
       identity,
@@ -61,7 +61,7 @@ async function settle<T>(promise: Promise<T>, clock: ManualClock, limitMs = 60_0
 
 const commandNames = (texts: string[]) => texts.map((text) => text.split(" ")[0]);
 
-describe("legacy handshake over the loopback server", () => {
+describe("TS3 handshake over the loopback server", () => {
   it("connects, hands the welcome over in order and disconnects", async () => {
     const { clock, server, connection, commands } = setup({ client: { serverPassword: "secret" } });
     const result = await settle(connection, clock);
@@ -196,11 +196,11 @@ describe("legacy handshake over the loopback server", () => {
 
 type KeyKind = "dummy" | "session" | "none";
 
-describe.skipIf(!hasCaptures)("legacy handshake key order against the TS3 capture", () => {
+describe.skipIf(!hasCaptures)("TS3 handshake key order against the capture", () => {
   it("switches keys at the same packets as the native client", async () => {
     const { clock, server, connection, c2s } = setup();
     await settle(connection, clock);
-    const session = new LegacyPacketKeys(server.ivStruct!);
+    const session = new Ts3PacketKeys(server.ivStruct!);
     const ours = new Map<string, KeyKind>();
     for (const datagram of c2s) {
       const packet = parsePacket("c2s", datagram)!;

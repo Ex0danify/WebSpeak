@@ -1,9 +1,7 @@
 import { randomBytes } from "node:crypto";
 import type { Identity } from "../crypto/identity.js";
-import { DUMMY_PACKET_KEY_256 } from "../crypto/packetKeys.js";
 import type { RsaPuzzleOptions } from "../crypto/rsaPuzzle.js";
 import { HandshakeError, TeamSpeakTransportError } from "../errors/teamSpeakErrors.js";
-import { FixedPacketKeys } from "../transport/packetProtection.js";
 import {
   type CommandMessage,
   PacketHandler,
@@ -17,20 +15,21 @@ import type { CommandRow } from "../wire/commandRows.js";
 import { parseCommand } from "../wire/commandText.js";
 import { parseU16 } from "../wire/commandValues.js";
 import { serverErrorFromRow } from "../wire/serverErrorRow.js";
-import { acceptInitivxalpha } from "./alphaExpand.js";
 import { buildClientInit, buildClientInitIv, type ClientInitOptions } from "./clientInit.js";
 import { answerInit1, INIT1_LAYOUT, init1Start, Init1Step } from "./init1.js";
-import { acceptInitivexpand2, type LegacyExpandOptions } from "./legacyExpand.js";
+import type { ExpandOptions, HandshakeFlavor } from "./handshakeFlavor.js";
+import { ts3Handshake } from "./ts3Handshake.js";
+import { ts6Handshake } from "./ts6Handshake.js";
 
 const ALPHA_BYTES = 10;
 const INIT1_RANDOM_BYTES = 4;
 
-/** `auto` follows the version profile: a TS6 profile means the alpha handshake, anything else legacy. */
-export type HandshakeMode = "legacy" | "alpha" | "auto";
+/** `auto` follows the version profile: a TS6 profile means the TS6 handshake, anything else TS3. */
+export type HandshakeMode = "ts3" | "ts6" | "auto";
 
-export interface LegacyHandshakeOptions extends ClientInitOptions {
+export interface HandshakeOptions extends ClientInitOptions {
   identity: Identity;
-  /** Which handshake to drive. Default `legacy`. */
+  /** Which handshake to drive. Default `ts3`. */
   handshake?: HandshakeMode;
   /** The whole handshake up to `initserver`. Default 20 s. */
   timeoutMs?: number;
@@ -40,26 +39,26 @@ export interface LegacyHandshakeOptions extends ClientInitOptions {
   randomBytes?: (size: number) => Buffer;
   unixSeconds?: () => number;
   /** For tests that play the server. */
-  testSeams?: Pick<LegacyExpandOptions, "ephemeralSeed" | "deriveServerKey">;
+  testSeams?: Pick<ExpandOptions, "ephemeralSeed" | "deriveServerKey">;
 }
 
 // `auto` keys off the named `ts6` profile. An explicit `version` carries no such hint, so pick the
 // handshake with `handshake` directly when overriding the version.
-function resolveHandshake(options: LegacyHandshakeOptions): "legacy" | "alpha" {
-  if (options.handshake === "auto") return options.versionProfile === "ts6" ? "alpha" : "legacy";
-  return options.handshake ?? "legacy";
+function resolveFlavor(options: HandshakeOptions): HandshakeFlavor {
+  const mode = options.handshake === "auto" ? (options.versionProfile === "ts6" ? "ts6" : "ts3") : (options.handshake ?? "ts3");
+  return mode === "ts6" ? ts6Handshake : ts3Handshake;
 }
 
 /** Where the connection's traffic goes once the handshake is through. */
 export interface ConnectionEvents {
   /** Right on `initserver`, before any command that follows it. */
-  established?(connection: LegacyConnection): void;
+  established?(connection: HandshakeConnection): void;
   command(message: CommandMessage): void;
   voice?(packet: VoicePacket): void;
   closed(error: TeamSpeakTransportError | undefined): void;
 }
 
-export interface LegacyConnection {
+export interface HandshakeConnection {
   handler: PacketHandler;
   clientId: number;
   /** The `initserver` row: server properties, our nickname and id. */
@@ -69,25 +68,22 @@ export interface LegacyConnection {
 type Step = "init1" | "initivexpand2" | "clientinit";
 
 /**
- * Init1 with the puzzle, `initivexpand2` → `clientek` → `clientinit`, resolved by `initserver`.
+ * Init1 with the puzzle, the proof exchange of the chosen handshake (TS3: `initivexpand2` → `clientek`,
+ * TS6: `initivxalpha` → `clientivxalpha`), then `clientinit`, resolved by `initserver`.
  * Everything the server sends after that goes to `events` in order, nothing is lost in between.
  * A refusal rejects with a HandshakeError that keeps the server error as cause; a dead server
  * with the transport error.
  */
-export function connectLegacy(
-  channel: DatagramChannel,
-  options: LegacyHandshakeOptions,
-  events: ConnectionEvents,
-): Promise<LegacyConnection> {
+export function runHandshake(channel: DatagramChannel, options: HandshakeOptions, events: ConnectionEvents): Promise<HandshakeConnection> {
   return new Promise((resolve, reject) => {
     const clock = options.transport?.clock ?? systemClock;
     const random = options.randomBytes ?? randomBytes;
     const logger = options.transport?.logger;
-    const mode = resolveHandshake(options);
+    const flavor = resolveFlavor(options);
     const alpha = random(ALPHA_BYTES);
-    const clientInitIv = Buffer.from(buildClientInitIv(alpha, options.identity, mode === "alpha"));
+    const clientInitIv = Buffer.from(buildClientInitIv(alpha, options.identity, flavor.asksForTs6));
     let init1Random = random(INIT1_RANDOM_BYTES);
-    let switchedToDummy256 = false;
+    let switchedKeys = false;
     let state: "handshake" | "connected" | "failed" = "handshake";
     let step: Step = "init1";
     let lastServerInit1: Buffer | undefined;
@@ -129,10 +125,9 @@ export function connectLegacy(
       lastServerInit1 = Buffer.from(payload);
       if (answer.kind === "send") {
         sendInit1(answer.payload);
-        // The alpha path sends its clientinitiv in the Init1 solution; from there the dummy key is 256-bit.
-        if (mode === "alpha" && !switchedToDummy256 && answer.payload[INIT1_LAYOUT.VERSION_BYTES] === Init1Step.solution) {
-          switchedToDummy256 = true;
-          handler.switchKeys({ keys: new FixedPacketKeys(DUMMY_PACKET_KEY_256) });
+        if (flavor.solutionKeys && !switchedKeys && answer.payload[INIT1_LAYOUT.VERSION_BYTES] === Init1Step.solution) {
+          switchedKeys = true;
+          handler.switchKeys(flavor.solutionKeys());
         }
         return;
       }
@@ -144,19 +139,9 @@ export function connectLegacy(
 
     const onExpand = (row: CommandRow) => {
       handler.stopInit1Resend();
-      const { clientek, keySwitch } = acceptInitivexpand2(row, { identity: options.identity, alpha, ...options.testSeams });
-      // clientek still goes out under the dummy key, clientinit is the first command under the session key.
-      handler.sendCommand(Buffer.from(clientek));
-      handler.switchKeys(keySwitch);
-      step = "clientinit";
-      handler.sendCommand(Buffer.from(buildClientInit(options.identity, options)));
-    };
-
-    const onAlphaExpand = (row: CommandRow) => {
-      handler.stopInit1Resend();
-      const { clientivxalpha, keySwitch } = acceptInitivxalpha(row, { identity: options.identity, alpha, ...options.testSeams });
-      // clientivxalpha still goes out under the 256-bit dummy key, clientinit is the first session command.
-      handler.sendCommand(Buffer.from(clientivxalpha));
+      const { reply, keySwitch } = flavor.accept(row, { identity: options.identity, alpha, ...options.testSeams });
+      // The reply still goes out under the dummy key, clientinit is the first command under the session key.
+      handler.sendCommand(Buffer.from(reply));
       handler.switchKeys(keySwitch);
       step = "clientinit";
       handler.sendCommand(Buffer.from(buildClientInit(options.identity, options)));
@@ -184,8 +169,7 @@ export function connectLegacy(
         if (refusal) throw new HandshakeError(step, `the server refused: ${refusal.serverMessage}`, { cause: refusal });
         return;
       }
-      if (step === "init1" && mode !== "alpha" && command.name === "initivexpand2") return onExpand(row);
-      if (step === "init1" && mode !== "legacy" && command.name === "initivxalpha") return onAlphaExpand(row);
+      if (step === "init1" && command.name === flavor.expandCommand) return onExpand(row);
       if (step === "init1" && command.name?.startsWith("initiv"))
         throw new HandshakeError("initivexpand2", `unsupported handshake answer ${command.name}`);
       if (step === "clientinit" && command.name === "initserver") return onInitServer(row);

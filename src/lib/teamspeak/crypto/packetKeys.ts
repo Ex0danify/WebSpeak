@@ -8,7 +8,7 @@ export interface PacketKey {
   nonce: Buffer;
 }
 
-// Both sides use these before the session key exists. The 256-bit pair is the TS6 alpha
+// Both sides use these before the session key exists. The 256-bit pair is the TS6
 // handshake.
 export const DUMMY_PACKET_KEY: PacketKey = {
   key: Buffer.from("c:\\windows\\syste"),
@@ -26,7 +26,7 @@ export interface PacketKeySchedule {
 const ALPHA_BYTES = 10;
 const FAKE_MAC_BYTES = 8;
 
-/** The legacy `ivStruct`: shared secret XOR `alpha ‖ beta`. */
+/** The TS3 `ivStruct`: shared secret XOR `alpha ‖ beta`. */
 export function deriveIvStruct(alpha: Uint8Array, beta: Uint8Array, sharedSecret: Uint8Array): Buffer {
   if (alpha.length !== ALPHA_BYTES) throw new RangeError(`alpha must be ${ALPHA_BYTES} bytes, got ${alpha.length}`);
   if (sharedSecret.length < ALPHA_BYTES + beta.length) throw new RangeError("shared secret is shorter than alpha and beta");
@@ -36,8 +36,8 @@ export function deriveIvStruct(alpha: Uint8Array, beta: Uint8Array, sharedSecret
   return iv;
 }
 
-/** MAC of unencrypted packets (ping, pong, late acks) once the legacy handshake is through. */
-export function legacyFakeMac(ivStruct: Uint8Array): Buffer {
+/** MAC of unencrypted packets (ping, pong, late acks) once the TS3 handshake is through. */
+export function ts3FakeMac(ivStruct: Uint8Array): Buffer {
   return createHash("sha1").update(ivStruct).digest().subarray(0, FAKE_MAC_BYTES);
 }
 
@@ -84,31 +84,31 @@ abstract class HashPacketKeys implements PacketKeySchedule {
   }
 }
 
-/** Legacy schedule: SHA-256 over the `ivStruct`, AES-128 keys. */
-export class LegacyPacketKeys extends HashPacketKeys {
+/** TS3 schedule: SHA-256 over the `ivStruct`, AES-128 keys. */
+export class Ts3PacketKeys extends HashPacketKeys {
   protected readonly algorithm = "sha256";
   protected readonly keyBytes = 16;
 }
 
-/** TS6 alpha schedule: SHA-512 over the `sharedIv`, AES-256 keys. */
-export class AlphaPacketKeys extends HashPacketKeys {
+/** TS6 schedule: SHA-512 over the `sharedIv`, AES-256 keys. */
+export class Ts6PacketKeys extends HashPacketKeys {
   protected readonly algorithm = "sha512";
   protected readonly keyBytes = 32;
 }
 
-export interface AlphaSecrets {
+export interface Ts6Secrets {
   /** The 64-byte IV that feeds the per-packet schedule. */
   sharedIv: Buffer;
-  /** MAC of unencrypted packets once the alpha handshake is through. */
+  /** MAC of unencrypted packets once the TS6 handshake is through. */
   fakeMac: Buffer;
 }
 
 /**
- * Derives the connection secrets of the TS6 alpha handshake from the X25519 secret and the two
+ * Derives the connection secrets of the TS6 handshake from the X25519 secret and the two
  * handshake nonces. `h = SHA512(SHA256(ecdh))` splits into two halves that key the IV and the MAC;
  * `SHA256(alpha)` and `beta` mix in the per-session nonces.
  */
-export function alphaSecrets(ecdh: Uint8Array, alpha: Uint8Array, beta: Uint8Array): AlphaSecrets {
+export function ts6Secrets(ecdh: Uint8Array, alpha: Uint8Array, beta: Uint8Array): Ts6Secrets {
   const h = createHash("sha512").update(createHash("sha256").update(ecdh).digest()).digest();
   const y = createHash("sha256").update(alpha).digest();
   const sharedIv = createHash("sha512")

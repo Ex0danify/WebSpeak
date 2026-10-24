@@ -102,8 +102,8 @@ describe("multi-identity accessors", () => {
   });
 
   it("shares the 'current' slot with the single-slot accessors", async () => {
-    await store.saveStoredIdentity("legacy", "This device");
-    expect(await store.getIdentity("current")).toMatchObject({ id: "current", privateMaterial: "legacy" });
+    await store.saveStoredIdentity("material", "This device");
+    expect(await store.getIdentity("current")).toMatchObject({ id: "current", privateMaterial: "material" });
     expect((await store.listIdentities()).map((identity) => identity.id)).toEqual(["current"]);
   });
 });

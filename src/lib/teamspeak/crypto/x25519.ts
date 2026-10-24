@@ -1,7 +1,7 @@
 import { x25519 } from "@noble/curves/ed25519.js";
 import { randomBytes } from "node:crypto";
 
-// Curve25519 ECDH for the TS6 alpha handshake. The scalar is clamped inside noble, so any 32 bytes
+// Curve25519 ECDH for the TS6 handshake. The scalar is clamped inside noble, so any 32 bytes
 // are a valid private key.
 
 const KEY_BYTES = 32;

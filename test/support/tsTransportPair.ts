@@ -1,5 +1,5 @@
 // A client and a server PacketHandler of the own TeamSpeak client over a simulated link.
-import { LegacyPacketKeys } from "../../src/lib/teamspeak/crypto/packetKeys.js";
+import { Ts3PacketKeys } from "../../src/lib/teamspeak/crypto/packetKeys.js";
 import type { TeamSpeakTransportError } from "../../src/lib/teamspeak/errors/teamSpeakErrors.js";
 import {
   type CommandMessage,
@@ -47,7 +47,7 @@ export function createTransportPair({ impairment, seed, options, sessionKeys = t
   const client = endpoint(link.a, "client");
   const server = endpoint(link.b, "server");
   if (sessionKeys) {
-    const keys = new LegacyPacketKeys(Buffer.from("00112233445566778899aabbccddeeff0011223344556677", "hex"));
+    const keys = new Ts3PacketKeys(Buffer.from("00112233445566778899aabbccddeeff0011223344556677", "hex"));
     client.handler.switchKeys({ keys, fakeMac: TEST_FAKE_MAC });
     server.handler.switchKeys({ keys, fakeMac: TEST_FAKE_MAC });
   }

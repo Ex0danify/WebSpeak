@@ -6,7 +6,7 @@ import {
   createEphemeralKey,
   decodePoint,
   encodeFlipped,
-  legacySharedSecret,
+  ts3SharedSecret,
   multiplyUnreduced,
   scalarFromBytes,
   verifyEd25519,
@@ -63,7 +63,7 @@ describe("multiplyUnreduced", () => {
   });
 });
 
-describe("legacy key exchange", () => {
+describe("TS3 key exchange", () => {
   it("derives the public key from the clamped seed", () => {
     const seed = randomBytes(32);
     const { publicKey, privateKey } = createEphemeralKey(seed);
@@ -73,8 +73,8 @@ describe("legacy key exchange", () => {
   });
 
   it("rejects keys that are not 32 bytes", () => {
-    expect(() => legacySharedSecret(Buffer.alloc(31), Buffer.alloc(32))).toThrow(RangeError);
-    expect(() => legacySharedSecret(Buffer.alloc(32), Buffer.alloc(33))).toThrow(RangeError);
+    expect(() => ts3SharedSecret(Buffer.alloc(31), Buffer.alloc(32))).toThrow(RangeError);
+    expect(() => ts3SharedSecret(Buffer.alloc(32), Buffer.alloc(33))).toThrow(RangeError);
   });
 
   it("flips only the sign bit of the encoding", () => {

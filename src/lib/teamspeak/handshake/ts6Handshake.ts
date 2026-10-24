@@ -1,13 +1,13 @@
 import { verifyEd25519 } from "../crypto/edwards.js";
-import type { Identity } from "../crypto/identity.js";
 import { deriveLicenseKey, parseLicenseChain } from "../crypto/licenseChain.js";
-import { AlphaPacketKeys, alphaSecrets } from "../crypto/packetKeys.js";
+import { DUMMY_PACKET_KEY_256, Ts6PacketKeys, ts6Secrets } from "../crypto/packetKeys.js";
 import { createX25519Key, x25519SharedSecret } from "../crypto/x25519.js";
 import { HandshakeError } from "../errors/teamSpeakErrors.js";
-import type { KeySwitch } from "../transport/packetProtection.js";
+import { FixedPacketKeys, type KeySwitch } from "../transport/packetProtection.js";
 import type { CommandRow } from "../wire/commandRows.js";
 import { buildCommand } from "../wire/commandText.js";
 import { parseU64 } from "../wire/commandValues.js";
+import type { ExpandOptions, HandshakeFlavor } from "./handshakeFlavor.js";
 
 // initivxalpha → clientivxalpha: the server proves its identity over its ephemeral key and the time,
 // both sides run X25519 and derive the connection keys from the shared secret and the handshake nonces.
@@ -16,17 +16,7 @@ const BETA_BYTES = 32;
 const EPSILON_BYTES = 32;
 const BASE64 = /^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/;
 
-export interface AlphaExpandOptions {
-  identity: Identity;
-  /** The alpha of our clientinitiv. */
-  alpha: Uint8Array;
-  /** Seed of the ephemeral key, for tests. */
-  ephemeralSeed?: Uint8Array;
-  /** Replaces the license chain derivation, for the loopback test server whose key has no chain from the root. */
-  deriveServerKey?: (license: Buffer) => Buffer;
-}
-
-export interface AlphaExpandResult {
+export interface Ts6ExpandResult {
   /** The `clientivxalpha` command text, still sent under the dummy key. */
   clientivxalpha: string;
   /** Session keys, they start with the command after `clientivxalpha`. */
@@ -44,13 +34,13 @@ function base64Field(row: CommandRow, key: string): Buffer {
 }
 
 /** Signed by the server (Ed25519) and by the client (P-256): `epsilon ‖ u64be(time)`. */
-export function alphaProofData(epsilon: Uint8Array, time: bigint): Buffer {
+export function ts6ProofData(epsilon: Uint8Array, time: bigint): Buffer {
   const encodedTime = Buffer.alloc(8);
   encodedTime.writeBigUInt64BE(time);
   return Buffer.concat([epsilon, encodedTime]);
 }
 
-export function acceptInitivxalpha(row: CommandRow, options: AlphaExpandOptions): AlphaExpandResult {
+export function acceptInitivxalpha(row: CommandRow, options: ExpandOptions): Ts6ExpandResult {
   const license = base64Field(row, "l");
   const beta = base64Field(row, "beta");
   const serverEpsilon = base64Field(row, "epsilon");
@@ -67,15 +57,26 @@ export function acceptInitivxalpha(row: CommandRow, options: AlphaExpandOptions)
     if (error instanceof HandshakeError) throw error;
     throw fail("the license key cannot be derived", error);
   }
-  if (!verifyEd25519(serverKey, alphaProofData(serverEpsilon, time), proof)) throw fail("the server proof does not match");
+  if (!verifyEd25519(serverKey, ts6ProofData(serverEpsilon, time), proof)) throw fail("the server proof does not match");
 
   const ephemeral = createX25519Key(options.ephemeralSeed);
   const ecdh = x25519SharedSecret(ephemeral.privateKey, serverEpsilon);
-  const { sharedIv, fakeMac } = alphaSecrets(ecdh, options.alpha, beta);
+  const { sharedIv, fakeMac } = ts6Secrets(ecdh, options.alpha, beta);
   const clientivxalpha = buildCommand("clientivxalpha", [
     ["epsilon", ephemeral.publicKey.toString("base64")],
-    ["proof", options.identity.sign(alphaProofData(ephemeral.publicKey, time)).toString("base64")],
+    ["proof", options.identity.sign(ts6ProofData(ephemeral.publicKey, time)).toString("base64")],
     ["time", time.toString()],
   ]);
-  return { clientivxalpha, keySwitch: { keys: new AlphaPacketKeys(sharedIv), fakeMac }, sharedIv };
+  return { clientivxalpha, keySwitch: { keys: new Ts6PacketKeys(sharedIv), fakeMac }, sharedIv };
 }
+
+export const ts6Handshake: HandshakeFlavor = {
+  expandCommand: "initivxalpha",
+  asksForTs6: true,
+  // The Init1 solution carries the clientinitiv, from there the dummy key is 256-bit.
+  solutionKeys: () => ({ keys: new FixedPacketKeys(DUMMY_PACKET_KEY_256) }),
+  accept(row, options) {
+    const { clientivxalpha, keySwitch } = acceptInitivxalpha(row, options);
+    return { reply: clientivxalpha, keySwitch };
+  },
+};

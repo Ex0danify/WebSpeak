@@ -1,7 +1,7 @@
 import { ed25519 } from "@noble/curves/ed25519.js";
 import { createHash, createPublicKey, randomBytes, verify } from "node:crypto";
 
-// Ed25519 point arithmetic for the license chain and the legacy shared secret. TeamSpeak follows
+// Ed25519 point arithmetic for the license chain and the TS3 shared secret. TeamSpeak follows
 // NaCl's ge_scalarmult_vartime: scalars are clamped but never reduced mod n, and since the curve has
 // cofactor 8, P·s and P·(s mod n) differ when P carries a small-order part.
 
@@ -52,7 +52,7 @@ export interface EphemeralKey {
   privateKey: Buffer;
 }
 
-/** The `ek` key pair of the legacy handshake. `seed` is for tests, normally 32 random bytes. */
+/** The `ek` key pair of the TS3 handshake. `seed` is for tests, normally 32 random bytes. */
 export function createEphemeralKey(seed: Uint8Array = randomBytes(POINT_BYTES)): EphemeralKey {
   const privateKey = clampScalar(seed);
   // The base point has prime order, so reducing is safe here.
@@ -61,7 +61,7 @@ export function createEphemeralKey(seed: Uint8Array = randomBytes(POINT_BYTES)):
 }
 
 /** `SHA512(flip((-serverKey) · s))` with the top bit of the private scalar cleared. */
-export function legacySharedSecret(serverPublicKey: Uint8Array, privateKey: Uint8Array): Buffer {
+export function ts3SharedSecret(serverPublicKey: Uint8Array, privateKey: Uint8Array): Buffer {
   if (serverPublicKey.length !== POINT_BYTES || privateKey.length !== POINT_BYTES) throw new RangeError("keys must be 32 bytes");
   const scalar = Buffer.from(privateKey);
   scalar[31] &= 0x7f;

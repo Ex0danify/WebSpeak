@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { DUMMY_PACKET_KEY, DUMMY_PACKET_KEY_256, LegacyPacketKeys } from "../crypto/packetKeys.js";
+import { DUMMY_PACKET_KEY, DUMMY_PACKET_KEY_256, Ts3PacketKeys } from "../crypto/packetKeys.js";
 import { FixedPacketKeys, PacketProtection } from "./packetProtection.js";
 import { PacketType } from "./packetTypes.js";
 
-const session = new LegacyPacketKeys(Buffer.alloc(64, 7));
+const session = new Ts3PacketKeys(Buffer.alloc(64, 7));
 const cursors = (command: number, ack: number) => [0, 0, command, 0, 0, 0, ack, 0, 0];
 
 describe("PacketProtection", () => {

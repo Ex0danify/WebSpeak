@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { createLink, ManualClock } from "../../../../test/support/tsLinkSimulator.js";
 import { createLoopbackServer } from "../../../../test/support/tsLoopbackServer.js";
 import { generateIdentity } from "../crypto/identity.js";
-import { connectLegacy } from "../handshake/legacyHandshake.js";
+import { runHandshake } from "../handshake/handshake.js";
 import type { PacketHandler } from "../transport/packetHandler.js";
 import type { CommandRow } from "../wire/commandRows.js";
 import type { ParsedCommand } from "../wire/commandText.js";
@@ -47,7 +47,7 @@ async function connect(seed: number, drop: number) {
     { clock },
   );
   const connection = await drain(
-    connectLegacy(
+    runHandshake(
       link.a,
       { identity, nickname: "Loopback Tester", transport: { clock }, testSeams: { deriveServerKey: server.deriveServerKey } },
       { command: (message) => tracker.receive(message), closed: (error) => tracker.close(error) },

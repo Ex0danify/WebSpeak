@@ -1,11 +1,12 @@
-import { createEphemeralKey, legacySharedSecret } from "../crypto/edwards.js";
-import { type Identity, importTsPublicKey, verifyTsSignature } from "../crypto/identity.js";
+import { createEphemeralKey, ts3SharedSecret } from "../crypto/edwards.js";
+import { importTsPublicKey, verifyTsSignature } from "../crypto/identity.js";
 import { deriveLicenseKey, parseLicenseChain } from "../crypto/licenseChain.js";
-import { deriveIvStruct, LegacyPacketKeys, legacyFakeMac } from "../crypto/packetKeys.js";
+import { deriveIvStruct, Ts3PacketKeys, ts3FakeMac } from "../crypto/packetKeys.js";
 import { HandshakeError } from "../errors/teamSpeakErrors.js";
 import type { KeySwitch } from "../transport/packetProtection.js";
 import type { CommandRow } from "../wire/commandRows.js";
 import { buildCommand } from "../wire/commandText.js";
+import type { ExpandOptions, HandshakeFlavor } from "./handshakeFlavor.js";
 
 // initivexpand2 → clientek: the server proves its identity over the license chain, both sides
 // derive the Ed25519 shared secret from the license key and the client's ephemeral key.
@@ -13,17 +14,7 @@ import { buildCommand } from "../wire/commandText.js";
 const BETA_BYTES = 54;
 const BASE64 = /^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/;
 
-export interface LegacyExpandOptions {
-  identity: Identity;
-  /** The alpha of our clientinitiv. */
-  alpha: Uint8Array;
-  /** Seed of the ephemeral key, for tests. */
-  ephemeralSeed?: Uint8Array;
-  /** Replaces the license chain derivation, for the loopback test server whose key has no chain from the root. */
-  deriveServerKey?: (license: Buffer) => Buffer;
-}
-
-export interface LegacyExpandResult {
+export interface Ts3ExpandResult {
   /** The `clientek` command text, sealed with the dummy key. */
   clientek: string;
   /** Session keys, they start with the command after `clientek`. */
@@ -45,7 +36,7 @@ export function clientEkProofData(ek: Uint8Array, beta: Uint8Array): Buffer {
   return Buffer.concat([ek, beta]);
 }
 
-export function acceptInitivexpand2(row: CommandRow, options: LegacyExpandOptions): LegacyExpandResult {
+export function acceptInitivexpand2(row: CommandRow, options: ExpandOptions): Ts3ExpandResult {
   const license = base64Field(row, "l");
   const beta = base64Field(row, "beta");
   const proof = base64Field(row, "proof");
@@ -65,7 +56,7 @@ export function acceptInitivexpand2(row: CommandRow, options: LegacyExpandOption
   const ephemeral = createEphemeralKey(options.ephemeralSeed);
   let shared: Buffer;
   try {
-    shared = legacySharedSecret(licenseKey, ephemeral.privateKey);
+    shared = ts3SharedSecret(licenseKey, ephemeral.privateKey);
   } catch (error) {
     throw fail("the license key is not a point", error);
   }
@@ -74,5 +65,14 @@ export function acceptInitivexpand2(row: CommandRow, options: LegacyExpandOption
     ["ek", ephemeral.publicKey.toString("base64")],
     ["proof", options.identity.sign(clientEkProofData(ephemeral.publicKey, beta)).toString("base64")],
   ]);
-  return { clientek, keySwitch: { keys: new LegacyPacketKeys(ivStruct), fakeMac: legacyFakeMac(ivStruct) }, ivStruct };
+  return { clientek, keySwitch: { keys: new Ts3PacketKeys(ivStruct), fakeMac: ts3FakeMac(ivStruct) }, ivStruct };
 }
+
+export const ts3Handshake: HandshakeFlavor = {
+  expandCommand: "initivexpand2",
+  asksForTs6: false,
+  accept(row, options) {
+    const { clientek, keySwitch } = acceptInitivexpand2(row, options);
+    return { reply: clientek, keySwitch };
+  },
+};

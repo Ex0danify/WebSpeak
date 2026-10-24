@@ -4,17 +4,17 @@ import { FIXTURES, fixtureFile, hasCaptures, hasFixture, loadCapture } from "../
 import { openPacket, parsePacket } from "../transport/packetCodec.js";
 import { generationOf, idOf } from "../transport/generationWindow.js";
 import { PacketFlag } from "../transport/packetTypes.js";
-import { AlphaPacketKeys, DUMMY_PACKET_KEY, DUMMY_PACKET_KEY_256 } from "./packetKeys.js";
+import { Ts6PacketKeys, DUMMY_PACKET_KEY, DUMMY_PACKET_KEY_256 } from "./packetKeys.js";
 
 const isDummy = (key: Buffer) => key.equals(DUMMY_PACKET_KEY.key) || key.equals(DUMMY_PACKET_KEY_256.key);
 
-describe.skipIf(!hasCaptures || !hasFixture(FIXTURES.alphaSchedule))("alpha key schedule against the recorded packets", () => {
+describe.skipIf(!hasCaptures || !hasFixture(FIXTURES.ts6Schedule))("alpha key schedule against the recorded packets", () => {
   it("reproduces the session key and nonce and decrypts every session packet", () => {
     const sharedIv = Buffer.from(
-      (JSON.parse(readFileSync(fixtureFile(FIXTURES.alphaSchedule)!, "utf8")) as { entries: { sharedIV: string }[] }).entries[0].sharedIV,
+      (JSON.parse(readFileSync(fixtureFile(FIXTURES.ts6Schedule)!, "utf8")) as { entries: { sharedIV: string }[] }).entries[0].sharedIV,
       "hex",
     );
-    const keys = new AlphaPacketKeys(sharedIv);
+    const keys = new Ts6PacketKeys(sharedIv);
     let decrypted = 0;
     for (const packet of loadCapture(FIXTURES.ts6Packets).packets) {
       if (packet.flags & PacketFlag.unencrypted || !packet.key || !packet.plain || isDummy(packet.key)) continue;

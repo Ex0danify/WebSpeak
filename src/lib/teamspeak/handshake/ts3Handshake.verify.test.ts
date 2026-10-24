@@ -1,12 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { FIXTURES, hasCaptures, loadCapture } from "../../../../test/support/tsCaptureFixtures.js";
-import { createEphemeralKey, legacySharedSecret } from "../crypto/edwards.js";
+import { createEphemeralKey, ts3SharedSecret } from "../crypto/edwards.js";
 import { generateIdentity, importTsPublicKey, verifyTsSignature } from "../crypto/identity.js";
 import { deriveIvStruct } from "../crypto/packetKeys.js";
 import { HandshakeError } from "../errors/teamSpeakErrors.js";
 import type { CommandRow } from "../wire/commandRows.js";
 import { parseCommand } from "../wire/commandText.js";
-import { acceptInitivexpand2, clientEkProofData } from "./legacyExpand.js";
+import { acceptInitivexpand2, clientEkProofData } from "./ts3Handshake.js";
 
 const client = generateIdentity(0);
 const server = generateIdentity(0);
@@ -39,7 +39,7 @@ describe("initivexpand2", () => {
     expect(ek).toEqual(createEphemeralKey(Buffer.alloc(32, 3)).publicKey);
     const proof = Buffer.from(clientek.rows[0].proof, "base64");
     expect(verifyTsSignature(importTsPublicKey(client.publicKeyBase64)!, clientEkProofData(ek, beta), proof)).toBe(true);
-    expect(result.ivStruct).toEqual(deriveIvStruct(alpha, beta, legacySharedSecret(ek, serverEd.privateKey)));
+    expect(result.ivStruct).toEqual(deriveIvStruct(alpha, beta, ts3SharedSecret(ek, serverEd.privateKey)));
     expect(result.keySwitch.fakeMac).toHaveLength(8);
   });
 

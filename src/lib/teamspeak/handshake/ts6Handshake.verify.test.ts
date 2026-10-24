@@ -3,12 +3,12 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { FIXTURES, fixtureFile, hasFixture } from "../../../../test/support/tsCaptureFixtures.js";
 import { generateIdentity, importTsPublicKey, verifyTsSignature } from "../crypto/identity.js";
-import { alphaSecrets } from "../crypto/packetKeys.js";
+import { ts6Secrets } from "../crypto/packetKeys.js";
 import { createX25519Key, x25519SharedSecret } from "../crypto/x25519.js";
 import { HandshakeError } from "../errors/teamSpeakErrors.js";
 import type { CommandRow } from "../wire/commandRows.js";
 import { parseCommand } from "../wire/commandText.js";
-import { acceptInitivxalpha, alphaProofData } from "./alphaExpand.js";
+import { acceptInitivxalpha, ts6ProofData } from "./ts6Handshake.js";
 
 const client = generateIdentity(0);
 const serverEd = generateKeyPairSync("ed25519");
@@ -27,7 +27,7 @@ function expandRow(overrides: Record<string, string> = {}): CommandRow {
     tvd: "",
     time: time.toString(),
     epsilon: serverKey.publicKey.toString("base64"),
-    proof: edSign(null, alphaProofData(serverKey.publicKey, time), serverEd.privateKey).toString("base64"),
+    proof: edSign(null, ts6ProofData(serverKey.publicKey, time), serverEd.privateKey).toString("base64"),
     ...overrides,
   };
 }
@@ -43,10 +43,10 @@ describe("initivxalpha", () => {
     expect(clientEpsilon).toEqual(createX25519Key(Buffer.alloc(32, 3)).publicKey);
     expect(command.rows[0].time).toBe(time.toString());
     const proof = Buffer.from(command.rows[0].proof, "base64");
-    expect(verifyTsSignature(importTsPublicKey(client.publicKeyBase64)!, alphaProofData(clientEpsilon, time), proof)).toBe(true);
+    expect(verifyTsSignature(importTsPublicKey(client.publicKeyBase64)!, ts6ProofData(clientEpsilon, time), proof)).toBe(true);
     const ecdh = x25519SharedSecret(serverKey.privateKey, clientEpsilon);
-    expect(result.sharedIv).toEqual(alphaSecrets(ecdh, alpha, beta).sharedIv);
-    expect(result.keySwitch.fakeMac).toEqual(alphaSecrets(ecdh, alpha, beta).fakeMac);
+    expect(result.sharedIv).toEqual(ts6Secrets(ecdh, alpha, beta).sharedIv);
+    expect(result.keySwitch.fakeMac).toEqual(ts6Secrets(ecdh, alpha, beta).fakeMac);
   });
 
   it("refuses missing or malformed fields", () => {
