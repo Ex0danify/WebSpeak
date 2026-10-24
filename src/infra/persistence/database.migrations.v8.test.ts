@@ -115,16 +115,17 @@ function dumpUntouchedTables(file: string): Record<string, unknown[]> {
   try {
     const rows = (sql: string) => raw.prepare(sql).all();
     return {
-      metadata: rows("SELECT * FROM metadata ORDER BY key"),
+      // The legacy_config_checked marker is removed by the schema 11 migration, see the v10 test.
+      metadata: rows("SELECT * FROM metadata WHERE key <> 'legacy_config_checked' ORDER BY key"),
       admin_credentials: rows("SELECT * FROM admin_credentials"),
       audit_events: rows("SELECT * FROM audit_events ORDER BY id"),
       managed_invites: rows(
         `SELECT id, token_hash, target_host, target_port, server_password_encrypted, channel, expires_at, max_uses, use_count, created_at, revoked_at
          FROM managed_invites ORDER BY id`,
       ),
-      settings:
-        rows(`SELECT id, site_name, access_mode, updated_at, webrtc_enabled, webrtc_public_host, webrtc_udp_start, webrtc_udp_end, relay_configured, relay_enabled,
-        relay_host, relay_port, relay_token_encrypted FROM settings`),
+      settings: rows(
+        `SELECT id, site_name, access_mode, updated_at, webrtc_enabled, webrtc_public_host, webrtc_udp_start, webrtc_udp_end FROM settings`,
+      ),
       relay_nodes: rows("SELECT id, enabled, host, port, token_encrypted, created_at, updated_at FROM relay_nodes ORDER BY id"),
     };
   } finally {

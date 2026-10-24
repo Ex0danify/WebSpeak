@@ -1,6 +1,6 @@
 import type { DatabaseSync } from "node:sqlite";
 
-export const DATABASE_SCHEMA_VERSION = 10;
+export const DATABASE_SCHEMA_VERSION = 11;
 
 /** Relay name earlier builds stored when none was given, as escapes to keep CJK out of the file. */
 const LEGACY_RELAY_NAME = "\u4e2d\u7ee7\u52a0\u901f";
@@ -258,6 +258,23 @@ const MIGRATIONS: Migration[] = [
           ALTER TABLE settings DROP COLUMN last_test_error;
         `);
       database.exec("PRAGMA user_version = 10");
+    },
+  },
+  {
+    from: 10,
+    up(database) {
+      // The relay nodes table is the only source of the relay settings. The single-relay columns were a copy of the
+      // first node and are no longer read. A leftover marker of the removed legacy config import goes with them.
+      database.exec(`
+          ALTER TABLE settings DROP COLUMN relay_configured;
+          ALTER TABLE settings DROP COLUMN relay_enabled;
+          ALTER TABLE settings DROP COLUMN relay_name;
+          ALTER TABLE settings DROP COLUMN relay_host;
+          ALTER TABLE settings DROP COLUMN relay_port;
+          ALTER TABLE settings DROP COLUMN relay_token_encrypted;
+          DELETE FROM metadata WHERE key = 'legacy_config_checked';
+        `);
+      database.exec("PRAGMA user_version = 11");
     },
   },
 ];
