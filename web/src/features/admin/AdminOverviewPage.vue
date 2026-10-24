@@ -1,123 +1,31 @@
 <template>
   <section :class="adminPage">
-    <div
-      class="flex shrink-0 items-center justify-between rounded-lg bg-accent-soft p-6 text-fg max-desktop:items-start max-desktop:gap-5 max-desktop:p-4.5"
-    >
-      <div>
-        <small class="text-2xs font-extrabold tracking-label text-fg-muted">{{ t("systemStatus") }}</small>
-        <h2 class="mt-2.25 mb-1.25 text-2xl font-bold">{{ t("everythingRunning") }}</h2>
-        <p class="m-0 text-xs text-fg-muted max-desktop:max-w-3/4">{{ t("overviewLead") }}</p>
-      </div>
-      <Chip variant="success" dot class="max-narrow:hidden">{{ t("running") }}</Chip>
-    </div>
-    <div class="my-3.5 grid shrink-0 grid-cols-3 gap-3 max-desktop:my-2.5 max-desktop:gap-1.75">
-      <Card v-for="metric in metrics" :key="metric.icon" as="article" padding="sm" class="relative">
-        <span
-          class="absolute top-4.25 right-4.25 grid size-8.75 place-items-center rounded-md bg-surface-2 text-accent max-desktop:top-2.5 max-desktop:right-2.5 max-desktop:size-7"
-          ><Icon :name="metric.icon" :size="20"
-        /></span>
-        <small class="block text-2xs text-fg-muted">{{ metric.label }}</small>
-        <strong class="mt-3.25 block max-w-4/5 truncate text-xl max-desktop:mt-2.25 max-desktop:text-md">{{ metric.value }}</strong>
-        <em class="mt-1.75 block text-2xs text-fg-muted not-italic">{{ metric.note }}</em>
-      </Card>
-    </div>
+    <StatusBanner class="shrink-0" />
+    <Metrics class="my-3.5 shrink-0 grid-cols-3 gap-3 max-desktop:my-2.5 max-desktop:gap-1.75" />
     <div class="grid min-h-0 flex-1 grid-cols-1 items-stretch gap-3.5 desktop:grid-cols-[1.05fr_.95fr]">
-      <Card as="article" flush :class="cn(cardPad, 'desktop:self-start')">
-        <header class="flex justify-between">
-          <div>
-            <h3 class="m-0 text-md font-bold">{{ t("serverHealth") }}</h3>
-            <p class="mt-1.25 mb-0 text-2xs text-fg-muted">{{ t("serverHealthLead") }}</p>
-          </div>
-          <RouterLink to="/admin/server" class="text-caption font-bold text-accent no-underline">{{ t("manage") }}</RouterLink>
-        </header>
-        <ul class="m-0 mt-4.5 grid list-none gap-2.5 p-0">
-          <li v-for="server in overview.servers" :key="server.id" class="flex items-center gap-3 rounded-md bg-surface-0 p-3.25">
-            <i class="size-1.75 shrink-0 rounded-full" :class="statusDot(server.status)" aria-hidden="true"></i>
-            <div class="min-w-0 flex-1">
-              <strong class="block truncate text-xs">{{ server.name }}</strong>
-              <small class="mt-0.75 block truncate text-2xs text-fg-muted"
-                >{{ statusText(server.status) }} · {{ formatDate(server.lastTestAt)
-                }}{{ server.latencyMs == null ? "" : ` · ${server.latencyMs} ms` }}</small
-              >
-            </div>
-          </li>
-          <li v-if="!overview.servers.length" class="rounded-md bg-surface-0 p-3.25 text-center text-caption text-fg-muted">
-            {{ t("serverListEmpty") }}
-          </li>
-        </ul>
-      </Card>
-      <article
-        :class="
-          cn(
-            'flex h-full min-h-0 flex-col overflow-hidden rounded-lg border border-line bg-surface-1 max-desktop:h-auto max-desktop:overflow-visible',
-            cardPad,
-          )
-        "
-      >
-        <header class="flex justify-between">
-          <div>
-            <h3 class="m-0 text-md font-bold">{{ t("recentEvents") }}</h3>
-            <p class="mt-1.25 mb-0 text-2xs text-fg-muted">{{ t("recentEventsLead") }}</p>
-          </div>
-        </header>
-        <ul class="m-0 mt-4.5 grid min-h-0 flex-auto list-none content-start gap-2.5 overflow-y-auto p-0 max-desktop:overflow-visible">
-          <li
-            v-for="event in overview.recentEvents"
-            :key="`${event.event}-${event.createdAt}`"
-            :class="cn('flex items-center gap-2.5', eventRow)"
-          >
-            <span class="grid size-6.75 place-items-center rounded-md bg-accent-soft text-accent"><Icon name="check" :size="14" /></span>
-            <div>
-              <strong class="block text-caption">{{ eventName(event.event) }}</strong
-              ><small class="mt-0.75 block text-2xs text-fg-muted">{{ formatDate(event.createdAt) }}</small>
-            </div>
-          </li>
-          <li v-if="!overview.recentEvents.length" :class="cn('block text-center text-fg-muted', eventRow)">{{ t("noRecentEvents") }}</li>
-        </ul>
-      </article>
+      <component :is="card.component" v-for="card in cards" :key="card.id" v-bind="card.props" :class="card.class" />
     </div>
   </section>
 </template>
 
 <script setup lang="ts">
-import { adminPage } from "@/features/admin/adminPage";
-import { computed } from "vue";
-import { RouterLink } from "vue-router";
-import { Card } from "@/shared/ui/card";
-import { Chip } from "@/shared/ui/chip";
-import { Icon } from "@/shared/ui/icon";
-import { cn } from "@/shared/lib/cn";
-import { createAdminFormat } from "@/features/admin/adminFormat";
-import { useAdminOverviewStore } from "@/features/admin/adminOverview";
-import { useI18n } from "@/shared/i18n/useI18n";
+import { adminPage, type AdminPageCard } from "@/features/admin/adminPage";
+import Metrics from "@/features/admin/overview/Metrics.vue";
+import RecentEventsCard from "@/features/admin/overview/RecentEventsCard.vue";
+import ServerHealthCard from "@/features/admin/overview/ServerHealthCard.vue";
+import StatusBanner from "@/features/admin/overview/StatusBanner.vue";
 
-const { language, t } = useI18n();
-const { overview } = useAdminOverviewStore();
-const statusText = (status: string) =>
-  status === "reachable" ? t("reachable") : status === "unreachable" ? t("unreachable") : t("notTested");
-const reachableCount = computed(() => overview.servers.filter((server) => server.status === "reachable").length);
-const { formatDate, formatUptime, eventName } = createAdminFormat(language, t);
-
-const metrics = computed(
-  () =>
-    [
-      { icon: "activity", label: t("gateway"), value: overview.gateway.version || "—", note: formatUptime(overview.gateway.uptimeSeconds) },
-      {
-        icon: "server",
-        label: t("teamSpeakServers"),
-        value: String(overview.servers.length),
-        note: t("serversReachable", { reachable: reachableCount.value, total: overview.servers.length }),
-      },
-      {
-        icon: "users",
-        label: t("activeSessions"),
-        value: `${overview.sessions.active} / ${overview.sessions.limit}`,
-        note: t("peakSessions", { count: overview.sessions.peak }),
-      },
-    ] as const,
-);
-const statusDot = (status: string) => (status === "reachable" ? "bg-success" : status === "unreachable" ? "bg-danger" : "bg-line-strong");
-// Padding of the two overview cards (the Card is flush, so it is set on the root).
-const cardPad = "p-6 max-narrow:p-4.5";
-const eventRow = "rounded-md bg-surface-0 p-2.5";
+// The event list is the one that scrolls: it fills the height the server list leaves and scrolls inside.
+const cards: AdminPageCard[] = [
+  { id: "serverHealth", component: ServerHealthCard, class: "desktop:self-start" },
+  {
+    id: "recentEvents",
+    component: RecentEventsCard,
+    class: "h-full min-h-0 overflow-hidden max-desktop:h-auto max-desktop:overflow-visible",
+    props: {
+      bodyClass: "flex min-h-0 flex-col",
+      listClass: "min-h-0 flex-auto overflow-y-auto max-desktop:overflow-visible",
+    },
+  },
+];
 </script>

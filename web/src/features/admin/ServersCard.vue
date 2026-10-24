@@ -1,12 +1,8 @@
 <template>
-  <Card as="article" padding="sm" body-class="grid content-start gap-3">
-    <header class="flex items-start justify-between gap-3">
-      <div>
-        <h3 class="m-0 text-md font-bold">{{ t("teamSpeakServers") }}</h3>
-        <p class="mt-1.25 mb-0 text-2xs leading-normal text-fg-muted">{{ t("teamSpeakServersLead") }}</p>
-      </div>
+  <AdminSection :title="t('teamSpeakServers')" :lead="t('teamSpeakServersLead')" body-class="grid content-start gap-3">
+    <template #action>
       <Button variant="secondary" size="sm" class="shrink-0" @click="openAdd()"><Icon name="plus" :size="16" />{{ t("addServer") }}</Button>
-    </header>
+    </template>
     <div v-if="!servers.length" class="rounded-md border border-dashed border-line bg-surface-0 px-3 py-2.5 text-caption text-fg-muted">
       {{ t("serverListEmpty") }}
     </div>
@@ -88,15 +84,15 @@
     <p :id="hintId" class="sr-only">{{ t("reorderHint") }}</p>
     <p aria-live="polite" class="sr-only">{{ announcement }}</p>
     <ServerDialog />
-  </Card>
+  </AdminSection>
 </template>
 
 <script setup lang="ts">
 import { onMounted } from "vue";
 import { storeToRefs } from "pinia";
 import { Button } from "@/shared/ui/button";
-import { Card } from "@/shared/ui/card";
 import { Icon } from "@/shared/ui/icon";
+import AdminSection from "@/features/admin/AdminSection.vue";
 import ServerDialog from "@/features/admin/ServerDialog.vue";
 import { useAdminServerDialogStore } from "@/features/admin/adminServerDialog";
 import { useAdminServerOrderStore } from "@/features/admin/adminServerOrder";

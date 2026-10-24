@@ -1,9 +1,5 @@
 <template>
-  <Card as="article" padding="sm" body-class="grid content-start gap-3" class="col-span-full">
-    <div>
-      <h3 class="m-0 text-md font-bold">{{ t("advancedSettings") }}</h3>
-      <p class="mt-1.25 mb-0 text-2xs leading-normal text-fg-muted">{{ t("advancedSettingsLead") }}</p>
-    </div>
+  <AdminSection :title="t('advancedSettings')" :lead="t('advancedSettingsLead')" body-class="grid content-start gap-3">
     <Checkbox v-model="serverForm.webRtcEnabled" :class="choiceClass" @update:model-value="handleWebRtcToggle()">
       <span class="block text-xs font-bold">{{ t("webrtcEnabled") }}</span>
       <span class="mt-1 block text-2xs leading-[1.45] text-fg-muted">{{ t("webrtcEnabledLead") }}</span>
@@ -52,22 +48,34 @@
         /></Field>
       </div>
     </div>
-  </Card>
+    <Dialog
+      v-model="webrtcPortNoticeOpen"
+      size="sm"
+      :title="t('webrtcPortNoticeTitle')"
+      :description="t('webrtcPortNotice', { range: webrtcPortRangeText })"
+      :close-label="t('close')"
+    >
+      <template #footer
+        ><Button class="w-full" @click="webrtcPortNoticeOpen = false">{{ t("gotIt") }}</Button></template
+      >
+    </Dialog>
+  </AdminSection>
 </template>
 
 <script setup lang="ts">
-import { Card } from "@/shared/ui/card";
+import { Button } from "@/shared/ui/button";
 import { Checkbox } from "@/shared/ui/checkbox";
+import { Dialog } from "@/shared/ui/dialog";
 import { Field } from "@/shared/ui/field";
 import { Input } from "@/shared/ui/input";
 import { storeToRefs } from "pinia";
+import AdminSection from "@/features/admin/AdminSection.vue";
+import { choiceClass } from "@/features/admin/adminClasses";
 import { useAdminServerSettingsStore } from "@/features/admin/adminServerSettings";
 import { useI18n } from "@/shared/i18n/useI18n";
 
 const settings = useAdminServerSettingsStore();
-const { serverForm } = storeToRefs(settings);
+const { serverForm, webrtcPortNoticeOpen, webrtcPortRangeText } = storeToRefs(settings);
 const { handleWebRtcToggle } = settings;
 const { t } = useI18n();
-const choiceClass =
-  "w-full rounded-md border border-line p-2.5 has-[[data-state=checked]]:border-accent has-[[data-state=checked]]:bg-surface-0";
 </script>

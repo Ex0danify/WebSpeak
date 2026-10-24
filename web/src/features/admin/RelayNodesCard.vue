@@ -1,9 +1,5 @@
 <template>
-  <Card as="article" padding="sm" body-class="grid content-start gap-3" class="col-span-full">
-    <div>
-      <h3 class="m-0 text-md font-bold">{{ t("relaySettings") }}</h3>
-      <p class="mt-1.25 mb-0 text-2xs leading-normal text-fg-muted">{{ t("relaySettingsLead") }}</p>
-    </div>
+  <AdminSection :title="t('relaySettings')" :lead="t('relaySettingsLead')" body-class="grid content-start gap-3">
     <div
       v-if="!serverForm.relayNodes.length"
       class="rounded-md border border-dashed border-line bg-surface-0 px-3 py-2.5 text-caption text-fg-muted"
@@ -46,17 +42,17 @@
     </div>
     <Button variant="secondary" size="sm" class="justify-self-start" @click="addRelayNode()">{{ t("relayAdd") }}</Button>
     <small class="-mt-2 text-2xs leading-[1.55] text-fg-muted">{{ t("relayManagedHint") }}</small>
-  </Card>
+  </AdminSection>
 </template>
 
 <script setup lang="ts">
-import { Card } from "@/shared/ui/card";
 import { Button } from "@/shared/ui/button";
 import { Checkbox } from "@/shared/ui/checkbox";
 import { Field } from "@/shared/ui/field";
 import { Input } from "@/shared/ui/input";
 import { Segment, Segmented } from "@/shared/ui/tabs";
 import { storeToRefs } from "pinia";
+import AdminSection from "@/features/admin/AdminSection.vue";
 import { useAdminServerSettingsStore } from "@/features/admin/adminServerSettings";
 import { useI18n } from "@/shared/i18n/useI18n";
 

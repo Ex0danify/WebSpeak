@@ -1,6 +1,5 @@
 <template>
-  <Card as="article" padding="sm" body-class="grid content-start gap-3">
-    <h3 class="text-md font-bold">{{ t("accessAndIdentity") }}</h3>
+  <AdminSection :title="t('accessAndIdentity')" body-class="grid content-start gap-3">
     <div class="grid gap-2">
       <Label id="access-mode-label">{{ t("accessMode") }}</Label>
       <RadioGroup v-model="serverForm.accessMode" aria-labelledby="access-mode-label" class="gap-2.5">
@@ -28,17 +27,18 @@
         <Textarea v-model="selectedWelcomeText" maxlength="500" :rows="4" :placeholder="selectedWelcomeDefault" />
       </Field>
     </div>
-  </Card>
+  </AdminSection>
 </template>
 
 <script setup lang="ts">
-import { Card } from "@/shared/ui/card";
 import { Field, Label } from "@/shared/ui/field";
 import { Input } from "@/shared/ui/input";
 import { Radio, RadioGroup } from "@/shared/ui/radio";
 import { Select } from "@/shared/ui/select";
 import { Textarea } from "@/shared/ui/textarea";
 import { storeToRefs } from "pinia";
+import AdminSection from "@/features/admin/AdminSection.vue";
+import { choiceClass } from "@/features/admin/adminClasses";
 import { welcomeLanguageOptions } from "@/features/admin/adminServerForm";
 import { useAdminServerSettingsStore } from "@/features/admin/adminServerSettings";
 import { useI18n } from "@/shared/i18n/useI18n";
@@ -46,6 +46,4 @@ import { useI18n } from "@/shared/i18n/useI18n";
 const { serverForm, welcomeLanguage, selectedWelcomeText, selectedWelcomeLanguageLabel, selectedWelcomeDefault } =
   storeToRefs(useAdminServerSettingsStore());
 const { t } = useI18n();
-const choiceClass =
-  "w-full rounded-md border border-line p-2.5 has-[[data-state=checked]]:border-accent has-[[data-state=checked]]:bg-surface-0";
 </script>

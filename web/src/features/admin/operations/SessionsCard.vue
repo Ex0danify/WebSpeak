@@ -1,16 +1,9 @@
 <template>
-  <Card as="article" padding="dense" class="min-h-0 overflow-y-auto max-desktop:overflow-visible">
-    <header class="flex items-start justify-between gap-3.75">
-      <div>
-        <h3 class="text-md font-bold">{{ t("sessions") }}</h3>
-        <p class="mt-1.25 text-2xs leading-tight text-fg-muted">{{ t("sessionsLead") }}</p>
-      </div>
+  <AdminSection :title="t('sessions')" :lead="t('sessionsLead')" padding="dense" leading="tight">
+    <template #action>
       <strong class="text-xl text-accent">{{ operations.sessions.length }}</strong>
-    </header>
-    <div
-      v-if="operations.sessions.length"
-      class="-mx-5.5 mt-4.5 -mb-5.5 max-h-47.5 overflow-auto border-t border-line max-desktop:max-h-none max-narrow:-mx-4.5 max-narrow:-mb-4.5"
-    >
+    </template>
+    <div v-if="operations.sessions.length" :class="['mt-4.5 border-t border-line', listClass]">
       <table class="w-full min-w-150 border-collapse text-left max-narrow:min-w-0">
         <thead>
           <tr>
@@ -47,18 +40,21 @@
       <Icon name="users" :size="22" class="text-accent" />
       <span>{{ t("sessionEmpty") }}</span>
     </div>
-  </Card>
+  </AdminSection>
 </template>
 
 <script setup lang="ts">
 import { storeToRefs } from "pinia";
 import { Button } from "@/shared/ui/button";
-import { Card } from "@/shared/ui/card";
 import { Chip } from "@/shared/ui/chip";
 import { Icon } from "@/shared/ui/icon";
 import { useI18n } from "@/shared/i18n/useI18n";
+import AdminSection from "@/features/admin/AdminSection.vue";
 import { createAdminFormat } from "@/features/admin/adminFormat";
 import { useAdminOperationsStore } from "@/features/admin/adminOperations";
+
+/** `listClass` is the class of the scrolling table frame, which the page sizes. */
+defineProps<{ listClass?: string }>();
 
 const operationsStore = useAdminOperationsStore();
 const { operations, terminatingSession } = storeToRefs(operationsStore);
