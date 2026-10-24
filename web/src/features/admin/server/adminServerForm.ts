@@ -108,6 +108,19 @@ export function initialServerForm() {
   };
 }
 
+export type ServerForm = ReturnType<typeof initialServerForm>;
+
+/** What a settings response (from GET or from the PUT that saved it) says, as a whole form. The gateway's answer to a save is the truth. */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- admin JSON bodies are read field by field, the gateway owns their shape
+export function serverFormFromSettings(value: Record<string, any>): ServerForm {
+  return {
+    accessMode: value.accessMode === "open" ? "open" : "fixed",
+    siteName: typeof value.siteName === "string" ? value.siteName : initialServerForm().siteName,
+    ...formFieldsFromSettings(value),
+    internalPort: typeof value.internalPort === "number" ? value.internalPort : null,
+  };
+}
+
 /** The form fields a settings response (from GET or from the PUT that saved it) sets, secrets cleared. */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- admin JSON bodies are read field by field, the gateway owns their shape
 export function formFieldsFromSettings(value: Record<string, any>) {

@@ -101,24 +101,23 @@ test("guest access set in the console reaches the guests, and a guest still join
   const gateway = await ownGateway();
   expect(await publicConfig(gateway)).toMatchObject({ accessMode: "fixed", servers: [{ name: "Real server" }] });
   await openAdmin(page, gateway, "/server");
-  const save = async () => {
+  // The console saves a choice by itself.
+  const choose = async (name: RegExp) => {
     const answer = page.waitForResponse(
       (response) => response.url().endsWith("/api/admin/server") && response.request().method() === "PUT",
     );
-    await page.getByRole("button", { name: "Save changes" }).click();
+    await page.getByRole("radio", { name }).click();
     expect((await answer).status()).toBe(200);
   };
 
-  await page.getByRole("radio", { name: /Also allow other TeamSpeak servers/ }).click();
-  await save();
+  await choose(/Also allow other TeamSpeak servers/);
   expect(await publicConfig(gateway)).toMatchObject({ accessMode: "open" });
   const guest = await person(GUEST, "admin-open", { gateway });
   await guest.page.goto("/");
   await pickServer(guest.page, "Other server…");
   await expect(guest.page.getByLabel("TeamSpeak server address")).toBeVisible();
 
-  await page.getByRole("radio", { name: /Only the configured servers/ }).click();
-  await save();
+  await choose(/Only the configured servers/);
   expect(await publicConfig(gateway)).toMatchObject({ accessMode: "fixed" });
   await guest.join();
   expect(await channelIdOf(query, guest.nickname)).toBeDefined();

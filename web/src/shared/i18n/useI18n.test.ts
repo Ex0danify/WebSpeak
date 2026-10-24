@@ -200,9 +200,9 @@ describe("t", () => {
   it("follows a language switch on the next call", async () => {
     const { useI18n, translations } = await load({ stored: "en" });
     const i18n = useI18n();
-    const english = i18n.t("saveChanges");
+    const english = i18n.t("send");
     i18n.setLanguage("de");
-    expect(i18n.t("saveChanges")).toBe(translations.de.saveChanges);
-    expect(i18n.t("saveChanges")).not.toBe(english);
+    expect(i18n.t("send")).toBe(translations.de.send);
+    expect(i18n.t("send")).not.toBe(english);
   });
 });

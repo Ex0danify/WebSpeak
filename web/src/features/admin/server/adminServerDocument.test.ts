@@ -1,0 +1,115 @@
+import { describe, expect, it } from "vitest";
+import { applySavedSettings, buildSettingsDocument, isPlausibleTarget, sameDocument } from "@/features/admin/server/adminServerDocument";
+import { createRelayNode, initialServerForm, serverFormFromSettings, type ServerForm } from "@/features/admin/server/adminServerForm";
+
+const confirmedForm = (changes: Partial<ServerForm> = {}): ServerForm => ({ ...initialServerForm(), ...changes });
+
+describe("isPlausibleTarget", () => {
+  it.each(["relay.example.com", "relay.example.com:9987", "10.0.0.1:1", "[2001:db8::1]:9988", "[::1]"])("takes %s", (value) => {
+    expect(isPlausibleTarget(value)).toBe(true);
+  });
+
+  it.each(["", "  ", "a:b", "host:0", "host:70000", "2001:db8::1", "[2001:db8::1", "ho st", "host/path", `${"a".repeat(301)}`])(
+    "refuses %j",
+    (value) => {
+      expect(isPlausibleTarget(value)).toBe(false);
+    },
+  );
+});
+
+describe("buildSettingsDocument", () => {
+  it("is the form itself when every value is valid", () => {
+    const form = confirmedForm({ siteName: "  Night Owls ", accessMode: "open", identityMintMaxLevel: 10 });
+    const { document, issues } = buildSettingsDocument(form, confirmedForm());
+    expect(issues).toEqual({});
+    expect(document).toMatchObject({ siteName: "Night Owls", accessMode: "open", identityMintMaxLevel: 10, relayNodes: [] });
+  });
+
+  it("takes a port that is not a number, outside the range or backwards for a mistake in the whole range", () => {
+    for (const [start, end] of [
+      ["", 40099],
+      [40000, 70000],
+      [1000, 2000],
+      [50000, 45000],
+    ] as const) {
+      const form = confirmedForm({ webRtcUdpStart: start as number, webRtcUdpEnd: end });
+      const { document, issues } = buildSettingsDocument(form, confirmedForm());
+      expect([document.webRtcUdpStart, document.webRtcUdpEnd]).toEqual([40000, 40099]);
+      expect(Object.keys(issues).length).toBeGreaterThan(0);
+    }
+  });
+
+  it("checks each mint limit on its own", () => {
+    const form = confirmedForm({ identityMintMaxLevel: 25, identityMintConcurrency: 1.5, identityMintQueueDepth: 0 });
+    const { document, issues } = buildSettingsDocument(form, confirmedForm());
+    expect(Object.keys(issues).sort()).toEqual(["identityMintConcurrency", "identityMintMaxLevel"]);
+    expect(document).toMatchObject({ identityMintMaxLevel: 8, identityMintConcurrency: 2, identityMintQueueDepth: 0 });
+  });
+
+  it("sends an unchanged token as keep, and an empty replacement as no change", () => {
+    const node = {
+      ...createRelayNode(),
+      id: "relay-a",
+      name: "A",
+      target: "a.example.com",
+      hasToken: true,
+      tokenAction: "replace" as const,
+    };
+    const confirmed = confirmedForm({ relayNodes: [{ ...node, tokenAction: "keep" }] });
+    const { document } = buildSettingsDocument(confirmedForm({ relayNodes: [node] }), confirmed);
+    expect(document.relayNodes).toEqual([{ id: "relay-a", name: "A", target: "a.example.com", enabled: false, tokenAction: "keep" }]);
+    expect(sameDocument(document, buildSettingsDocument(confirmed, confirmed).document)).toBe(true);
+  });
+
+  it("leaves out a node that was added and not touched without a word", () => {
+    const { document, issues } = buildSettingsDocument(confirmedForm({ relayNodes: [createRelayNode()] }), confirmedForm());
+    expect(document.relayNodes).toEqual([]);
+    expect(issues).toEqual({});
+  });
+
+  it("treats a language without text like one that is not there", () => {
+    const a = buildSettingsDocument(confirmedForm({ welcomeTexts: { de: " " } }), confirmedForm()).document;
+    const b = buildSettingsDocument(confirmedForm(), confirmedForm()).document;
+    expect(sameDocument(a, b)).toBe(true);
+  });
+});
+
+describe("applySavedSettings", () => {
+  const saved = (changes: Record<string, unknown> = {}) => serverFormFromSettings({ siteName: "Trimmed", ...changes });
+
+  it("takes the gateway's value for what was sent and keeps what was typed since", () => {
+    const form = confirmedForm({ siteName: " Trimmed ", identityMintMaxLevel: 12 });
+    const sent = buildSettingsDocument(form, confirmedForm()).document;
+    form.identityMintMaxLevel = 14;
+    applySavedSettings(form, sent, saved({ identityMintMaxLevel: 12 }));
+    expect(form.siteName).toBe("Trimmed");
+    expect(form.identityMintMaxLevel).toBe(14);
+  });
+
+  it("shows the range the gateway keeps while WebRTC is on", () => {
+    const form = confirmedForm({ webRtcEnabled: true, webRtcUdpStart: 50000, webRtcUdpEnd: 45000 });
+    const sent = buildSettingsDocument(form, confirmedForm()).document;
+    applySavedSettings(form, sent, saved({ webRtcEnabled: true }));
+    expect([form.webRtcUdpStart, form.webRtcUdpEnd]).toEqual([40000, 40099]);
+  });
+
+  it("replaces a node that was saved as sent, and keeps one that is being edited or is new", () => {
+    const sentNode = { ...createRelayNode(), id: "relay-a", name: "A", target: "a.example.com", token: "a-token-of-16-chars" };
+    const editedNode = { ...createRelayNode(), id: "relay-b", name: "B", target: "b.example.com" };
+    const form = confirmedForm({ relayNodes: [sentNode, editedNode] });
+    const sent = buildSettingsDocument(form, confirmedForm()).document;
+    editedNode.name = "B2";
+    const fresh = createRelayNode();
+    form.relayNodes.push(fresh);
+    const answer = saved({
+      relayNodes: [
+        { id: "relay-a", name: "A", target: "a.example.com:9987", enabled: false, hasToken: true },
+        { id: "relay-b", name: "B", target: "b.example.com:9987", enabled: false, hasToken: false },
+      ],
+    });
+    applySavedSettings(form, sent, answer);
+    expect(form.relayNodes[0]).toMatchObject({ target: "a.example.com:9987", token: "", tokenAction: "keep", hasToken: true });
+    expect(form.relayNodes[1]).toMatchObject({ name: "B2", target: "b.example.com" });
+    expect(form.relayNodes[2]).toBe(fresh);
+  });
+});

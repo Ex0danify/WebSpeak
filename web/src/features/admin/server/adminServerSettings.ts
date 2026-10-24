@@ -1,29 +1,59 @@
-import { computed, reactive, ref } from "vue";
+import { computed, nextTick, reactive, ref } from "vue";
 import { defineStore } from "pinia";
 import { DEFAULT_LANGUAGE } from "@/shared/i18n/languages.js";
 import { useI18n } from "@/shared/i18n/useI18n.js";
 import {
   createRelayNode,
   DEFAULT_WELCOME_TEXTS,
-  formFieldsFromSettings,
   initialServerForm,
+  serverFormFromSettings,
   type WelcomeLanguage,
   welcomeLanguageOptions,
 } from "@/features/admin/server/adminServerForm.js";
+import {
+  applySavedSettings,
+  buildSettingsDocument,
+  sameDocument,
+  type SettingsIssue,
+  type SettingsIssues,
+  type SettingsSection,
+} from "@/features/admin/server/adminServerDocument.js";
+import { createSaveStatus } from "@/features/admin/core/saveStatus.js";
+import type { ApiError } from "@/features/admin/core/adminApi.js";
 import { useAdminFeedbackStore } from "@/features/admin/core/adminFeedback.js";
 import { adminSiblings } from "@/features/admin/core/adminSiblings.js";
 import { useAdminSessionStore } from "@/features/admin/core/adminSession.js";
 
-/** The server page's settings: access mode, welcome texts, WebRTC port range and relay nodes, plus loading and saving. */
+const SECTIONS: SettingsSection[] = ["access", "advanced", "relay"];
+
+/** The section a refused save is about, by the code the gateway answered with. */
+function sectionOfError(code: string | undefined): SettingsSection {
+  if (code?.startsWith("INVALID_RELAY")) return "relay";
+  if (code?.includes("WEBRTC") || code?.includes("IDENTITY_MINT")) return "advanced";
+  return "access";
+}
+
+/**
+ * The server page's settings: access mode, welcome texts, WebRTC port range and relay nodes. Every change saves by itself: the form
+ * schedules a save when a choice is made or a field is left, saves run one at a time and always send the whole document.
+ */
 export const useAdminServerSettingsStore = defineStore("adminServerSettings", () => {
   const admin = useAdminSessionStore();
   const feedback = useAdminFeedbackStore();
   const { t } = useI18n();
 
-  const savingSettings = ref(false);
   const webrtcPortNoticeOpen = ref(false);
   const serverForm = reactive(initialServerForm());
   const welcomeLanguage = ref<WelcomeLanguage>(DEFAULT_LANGUAGE);
+  /** What the gateway answered last. A value that is not valid yet is saved as this one. */
+  let confirmed = initialServerForm();
+  /** Until the settings are loaded the form holds placeholders, and nothing of it must reach the gateway. */
+  let loaded = false;
+  /** What the last save held back, and for which field the person sees a hint. */
+  const issues = ref<SettingsIssues>({});
+  const statuses = { access: createSaveStatus(), advanced: createSaveStatus(), relay: createSaveStatus() };
+  const pending = new Set<SettingsSection>();
+  let draining: Promise<void> | null = null;
 
   const selectedWelcomeText = computed<string>({
     get: () => serverForm.welcomeTexts[welcomeLanguage.value] ?? "",
@@ -42,10 +72,12 @@ export const useAdminServerSettingsStore = defineStore("adminServerSettings", ()
   );
   const webrtcPortRangeText = computed(() => `${serverForm.webRtcUdpStart}–${serverForm.webRtcUdpEnd}`);
 
-  /** Copies a settings response (from GET or from the PUT that saved it) into the form. */
+  /** Copies a settings response (from GET) into the form. */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- admin JSON bodies are read field by field, the gateway owns their shape
   function applySettings(value: Record<string, any>) {
-    Object.assign(serverForm, value, formFieldsFromSettings(value));
+    confirmed = serverFormFromSettings(value);
+    Object.assign(serverForm, serverFormFromSettings(value));
+    loaded = true;
   }
 
   function addRelayNode() {
@@ -53,51 +85,97 @@ export const useAdminServerSettingsStore = defineStore("adminServerSettings", ()
   }
   function removeRelayNode(index: number) {
     serverForm.relayNodes.splice(index, 1);
+    void scheduleSave("relay");
   }
 
   async function loadServerSettings() {
     applySettings(await admin.getJson("/api/admin/server"));
   }
 
-  function serverPayload() {
-    return {
-      accessMode: serverForm.accessMode,
-      siteName: serverForm.siteName,
-      welcomeTexts: serverForm.welcomeTexts,
-      webRtcEnabled: serverForm.webRtcEnabled,
-      webRtcUdpStart: serverForm.webRtcUdpStart,
-      webRtcUdpEnd: serverForm.webRtcUdpEnd,
-      identityMintMaxLevel: serverForm.identityMintMaxLevel,
-      identityMintConcurrency: serverForm.identityMintConcurrency,
-      identityMintQueueDepth: serverForm.identityMintQueueDepth,
-      relayNodes: serverForm.relayNodes.map((node) => ({
-        id: node.id,
-        name: node.name,
-        target: node.target,
-        enabled: node.enabled,
-        tokenAction: node.tokenAction,
-        ...(node.tokenAction === "replace" ? { token: node.token } : {}),
-      })),
-    };
-  }
-
-  async function saveServerSettings() {
-    savingSettings.value = true;
-    feedback.clearError();
+  /** One save: the form as a document, if it says anything new. */
+  async function savePass(sections: SettingsSection[]) {
+    // Let the change that asked for the save reach the form first.
+    await nextTick();
+    if (!loaded) return;
+    const { document, issues: held } = buildSettingsDocument(serverForm, confirmed);
+    issues.value = held;
+    if (sameDocument(document, buildSettingsDocument(confirmed, confirmed).document)) {
+      // The form says what the gateway keeps, so no refusal of an earlier save is still true.
+      for (const section of SECTIONS) statuses[section].clearError();
+      return;
+    }
+    for (const section of sections) statuses[section].saving();
     try {
-      const result = await admin.sendJson("/api/admin/server", "PUT", serverPayload());
-      applySettings(result.settings);
+      const result = await admin.sendJson("/api/admin/server", "PUT", document);
+      confirmed = serverFormFromSettings(result.settings);
+      // The form gets a copy of its own, an edit must not reach `confirmed`.
+      applySavedSettings(serverForm, document, serverFormFromSettings(result.settings));
+      issues.value = Object.fromEntries(Object.entries(buildSettingsDocument(serverForm, confirmed).issues).filter(([key]) => key in held));
+      for (const section of SECTIONS) {
+        if (sections.includes(section)) statuses[section].saved();
+        else statuses[section].clearError();
+      }
+    } catch (error) {
+      for (const section of sections) statuses[section].reset();
+      statuses[sectionOfError((error as ApiError).code)].failed(feedback.errorText((error as ApiError).code));
+      return;
+    }
+    try {
       await adminSiblings().loadOverview();
-      feedback.notify(t("settingsSaved"));
     } catch (error) {
       feedback.fail(error);
+    }
+  }
+
+  async function drain() {
+    try {
+      while (pending.size) {
+        const sections = [...pending];
+        pending.clear();
+        await savePass(sections);
+      }
     } finally {
-      savingSettings.value = false;
+      draining = null;
+    }
+  }
+
+  /**
+   * Saves the form after a change. Saves never overlap: a change made while one is running is saved by the next pass, which sends the
+   * form as it is then, so two quick edits cannot overwrite each other. Resolves when nothing is left to save.
+   */
+  function scheduleSave(...sections: SettingsSection[]): Promise<void> {
+    for (const section of sections) pending.add(section);
+    draining ??= drain();
+    return draining;
+  }
+
+  /** The hint for a field that was not saved, or an empty text. */
+  function issueText(key: string): string {
+    const issue: SettingsIssue | undefined = issues.value[key];
+    if (!issue) return "";
+    switch (issue.code) {
+      case "siteName":
+        return t("issueSiteName");
+      case "port":
+        return t("issuePort", { min: issue.min, max: issue.max });
+      case "portOrder":
+        return t("issuePortOrder");
+      case "number":
+        return t("issueNumber", { min: issue.min, max: issue.max });
+      case "relayName":
+        return t("issueRelayName");
+      case "relayTarget":
+        return t("issueRelayTarget");
+      case "relayTokenShort":
+        return t("issueRelayTokenShort", { min: issue.min });
+      case "relayTokenRequired":
+        return t("issueRelayTokenRequired");
     }
   }
 
   function handleWebRtcToggle() {
     if (serverForm.webRtcEnabled) webrtcPortNoticeOpen.value = true;
+    void scheduleSave("advanced");
   }
 
   /** Back to the empty form for logout, setup stores have no `$reset`. */
@@ -105,12 +183,17 @@ export const useAdminServerSettingsStore = defineStore("adminServerSettings", ()
     Object.assign(serverForm, initialServerForm());
     welcomeLanguage.value = "en";
     webrtcPortNoticeOpen.value = false;
-    savingSettings.value = false;
+    confirmed = initialServerForm();
+    loaded = false;
+    issues.value = {};
+    pending.clear();
+    for (const section of SECTIONS) statuses[section].reset();
   }
 
   return {
     serverForm,
-    savingSettings,
+    statuses,
+    issues,
     welcomeLanguage,
     selectedWelcomeText,
     selectedWelcomeLanguageLabel,
@@ -118,7 +201,8 @@ export const useAdminServerSettingsStore = defineStore("adminServerSettings", ()
     webrtcPortNoticeOpen,
     webrtcPortRangeText,
     loadServerSettings,
-    saveServerSettings,
+    scheduleSave,
+    issueText,
     addRelayNode,
     removeRelayNode,
     handleWebRtcToggle,
