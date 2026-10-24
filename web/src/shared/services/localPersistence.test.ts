@@ -31,10 +31,8 @@ describe("identity", () => {
     expect(await store.loadStoredIdentity()).toMatchObject({ id: "current", label: "Laptop", privateMaterial: "secret-material" });
   });
 
-  it("labels a default save 'This device' and renames the old Chinese default on read", async () => {
+  it("labels a default save 'This device'", async () => {
     await store.saveStoredIdentity("a");
-    expect(await store.loadStoredIdentity()).toMatchObject({ label: "This device" });
-    await store.saveStoredIdentity("b", "\u6b64\u8bbe\u5907");
     expect(await store.loadStoredIdentity()).toMatchObject({ label: "This device" });
   });
 
@@ -101,12 +99,6 @@ describe("multi-identity accessors", () => {
     await store.saveIdentity(record("b", 2_000));
     await store.removeIdentity("a");
     expect((await store.listIdentities()).map((identity) => identity.id)).toEqual(["b"]);
-  });
-
-  it("resolves the legacy default label in both get and list", async () => {
-    await store.saveIdentity(record("a", 1_000, "此设备"));
-    expect((await store.getIdentity("a"))?.label).toBe("This device");
-    expect((await store.listIdentities())[0]?.label).toBe("This device");
   });
 
   it("shares the 'current' slot with the single-slot accessors", async () => {

@@ -99,13 +99,6 @@ async function request<T>(
 }
 
 const DEFAULT_IDENTITY_LABEL = "This device";
-// The stored label of the old default, escaped to keep the file free of CJK.
-const LEGACY_IDENTITY_LABEL = "\u6b64\u8bbe\u5907";
-
-function withResolvedLabel(identity: StoredIdentity): StoredIdentity {
-  if (identity.label === LEGACY_IDENTITY_LABEL) identity.label = DEFAULT_IDENTITY_LABEL;
-  return identity;
-}
 
 export async function loadStoredIdentity(): Promise<StoredIdentity | null> {
   return getIdentity(CURRENT_IDENTITY_KEY);
@@ -118,7 +111,7 @@ export async function listIdentities(): Promise<StoredIdentity[]> {
       get.onsuccess = () => resolve(get.result as StoredIdentity[]);
       get.onerror = () => reject(get.error);
     });
-    return identities.map(withResolvedLabel).sort((a, b) => b.lastUsedAt - a.lastUsedAt);
+    return identities.sort((a, b) => b.lastUsedAt - a.lastUsedAt);
   } catch {
     return [];
   }
@@ -130,7 +123,7 @@ export async function getIdentity(id: string): Promise<StoredIdentity | null> {
       const get = store.get(id);
       get.onsuccess = () => {
         const identity = get.result as StoredIdentity | undefined;
-        resolve(identity ? withResolvedLabel(identity) : null);
+        resolve(identity ?? null);
       };
       get.onerror = () => reject(get.error);
     });
