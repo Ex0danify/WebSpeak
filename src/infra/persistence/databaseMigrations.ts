@@ -1,6 +1,6 @@
 import type { DatabaseSync } from "node:sqlite";
 
-export const DATABASE_SCHEMA_VERSION = 11;
+export const DATABASE_SCHEMA_VERSION = 12;
 
 /** The oldest schema this build upgrades, 0.7.0 is the first release that writes it. */
 export const MINIMUM_SCHEMA_VERSION = 10;
@@ -69,7 +69,7 @@ const MIGRATIONS: Migration[] = [
           );
           CREATE TABLE managed_invites (
             id TEXT PRIMARY KEY,
-            server_id TEXT,
+            server_id TEXT NOT NULL,
             token_hash TEXT NOT NULL UNIQUE,
             target_host TEXT NOT NULL,
             target_port INTEGER NOT NULL CHECK (target_port BETWEEN 1 AND 65535),
@@ -121,6 +121,41 @@ const MIGRATIONS: Migration[] = [
           ALTER TABLE settings DROP COLUMN relay_token_encrypted;
           ALTER TABLE settings DROP COLUMN webrtc_public_host;
           DELETE FROM metadata WHERE key = 'legacy_config_checked';
+        `);
+    },
+  },
+  {
+    from: 11,
+    to: 12,
+    up(database) {
+      // Every invite names its server, the schema 10 upgrade filled the column and nothing writes it empty. SQLite cannot add
+      // NOT NULL to a column, so the table is rebuilt. The old one is renamed away first so the new CREATE keeps its text.
+      database.exec(`
+          ALTER TABLE managed_invites RENAME TO managed_invites_old;
+          CREATE TABLE managed_invites (
+            id TEXT PRIMARY KEY,
+            server_id TEXT NOT NULL,
+            token_hash TEXT NOT NULL UNIQUE,
+            target_host TEXT NOT NULL,
+            target_port INTEGER NOT NULL CHECK (target_port BETWEEN 1 AND 65535),
+            server_password_encrypted TEXT,
+            channel TEXT NOT NULL DEFAULT '',
+            expires_at TEXT NOT NULL,
+            max_uses INTEGER NOT NULL CHECK (max_uses >= 0),
+            use_count INTEGER NOT NULL DEFAULT 0 CHECK (use_count >= 0),
+            created_at TEXT NOT NULL,
+            revoked_at TEXT
+          );
+          INSERT INTO managed_invites (
+            id, server_id, token_hash, target_host, target_port, server_password_encrypted,
+            channel, expires_at, max_uses, use_count, created_at, revoked_at
+          ) SELECT
+            id, server_id, token_hash, target_host, target_port, server_password_encrypted,
+            channel, expires_at, max_uses, use_count, created_at, revoked_at
+          FROM managed_invites_old;
+          DROP TABLE managed_invites_old;
+          CREATE INDEX managed_invites_token_idx ON managed_invites(token_hash);
+          CREATE INDEX managed_invites_expiry_idx ON managed_invites(expires_at);
         `);
     },
   },

@@ -75,7 +75,7 @@ export function settings(overrides: Partial<SettingsUpdate> = {}): SettingsUpdat
 export function invite(id: string, overrides: Partial<Omit<ManagedInviteRecord, "createdAt" | "revokedAt" | "useCount">> = {}) {
   return {
     id,
-    serverId: null,
+    serverId: "server-default",
     tokenHash: `hash-${id}`,
     targetHost: "ts.example.org",
     targetPort: 9987,

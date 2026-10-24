@@ -14,7 +14,7 @@ export interface ManagedInviteInput {
 
 export interface ManagedInviteView {
   id: string;
-  serverId: string | null;
+  serverId: string;
   target: string;
   channel: string;
   expiresAt: string;

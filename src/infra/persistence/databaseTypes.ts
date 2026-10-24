@@ -55,7 +55,7 @@ export interface PersistedRelayNode {
 export interface ManagedInviteRecord {
   id: string;
   /** The server the invite was made for, revoking follows its removal or change. */
-  serverId: string | null;
+  serverId: string;
   tokenHash: string;
   targetHost: string;
   targetPort: number;

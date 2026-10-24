@@ -64,7 +64,7 @@ describe("schema snapshot", () => {
           "name": "managed_invites",
           "sql": "CREATE TABLE managed_invites (
                   id TEXT PRIMARY KEY,
-                  server_id TEXT,
+                  server_id TEXT NOT NULL,
                   token_hash TEXT NOT NULL UNIQUE,
                   target_host TEXT NOT NULL,
                   target_port INTEGER NOT NULL CHECK (target_port BETWEEN 1 AND 65535),
@@ -197,6 +197,7 @@ describe("schema snapshot", () => {
           "name": "managed_invites",
           "sql": "CREATE TABLE managed_invites (
                   id TEXT PRIMARY KEY,
+                  server_id TEXT NOT NULL,
                   token_hash TEXT NOT NULL UNIQUE,
                   target_host TEXT NOT NULL,
                   target_port INTEGER NOT NULL CHECK (target_port BETWEEN 1 AND 65535),
@@ -207,7 +208,7 @@ describe("schema snapshot", () => {
                   use_count INTEGER NOT NULL DEFAULT 0 CHECK (use_count >= 0),
                   created_at TEXT NOT NULL,
                   revoked_at TEXT
-                , server_id TEXT)",
+                )",
           "type": "table",
         },
         {

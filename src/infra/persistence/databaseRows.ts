@@ -2,7 +2,7 @@ import type { ManagedInviteRecord } from "./databaseTypes.js";
 
 export interface ManagedInviteRow extends Record<string, unknown> {
   id: string;
-  server_id: string | null;
+  server_id: string;
   token_hash: string;
   target_host: string;
   target_port: number;
