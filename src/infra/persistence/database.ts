@@ -3,7 +3,7 @@ import { randomBytes } from "node:crypto";
 import { dirname } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import type { AdminCredential } from "../security/adminPassword.js";
-import { DATABASE_SCHEMA_VERSION, runMigrations } from "./databaseMigrations.js";
+import { DATABASE_SCHEMA_VERSION, MINIMUM_SCHEMA_VERSION, runMigrations } from "./databaseMigrations.js";
 import type { ManagedInviteRecord, PersistedRelayNode, PersistedServer, PersistedSettings, SettingsUpdate } from "./databaseTypes.js";
 import { AdminCredentialRepository } from "./adminCredentialRepository.js";
 import { AuditRepository } from "./auditRepository.js";
@@ -243,6 +243,11 @@ export class WebSpeakDatabase {
     const version = this.schemaVersion;
     if (version > DATABASE_SCHEMA_VERSION) {
       throw new Error(`Database schema ${version} is newer than this WebSpeak build`);
+    }
+    if (version > 0 && version < MINIMUM_SCHEMA_VERSION) {
+      throw new Error(
+        `Database schema ${version} is older than the oldest this WebSpeak build upgrades (${MINIMUM_SCHEMA_VERSION}). Start it once with WebSpeak 0.7.0 to upgrade it first.`,
+      );
     }
     if (existed && version > 0) {
       this.writeSchemaBackup(`${this.path}.schema-${version}.bak`);

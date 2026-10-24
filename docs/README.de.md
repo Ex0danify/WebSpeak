@@ -254,5 +254,5 @@ npm run admin:reset-password                                            # Releas
 | WebRTC | Standardbereich `40000–40099/UDP`; den gesamten Bereich freigeben und WebRTC vor einer Änderung deaktivieren. |
 | Gespeicherte Identität | Eine Browseridentität kann nur eine aktive gespeicherte Verbindung halten. Für parallele Verbindungen deaktivieren oder ein anderes Browserprofil verwenden. |
 | Begleitton | Nur auf dem Desktop verfügbar und WebRTC erforderlich. Bei Fenster- oder Tab-Freigabe auch Audio freigeben. |
-| Daten | Docker, Release-Pakete und Quellcode verwenden alle `data/`. Vor Updates sichern. |
+| Daten | Docker, Release-Pakete und Quellcode verwenden alle `data/`. Vor Updates sichern. Eine Datenbank aus einer Version vor 0.7.0 muss einmal mit 0.7.0 gestartet werden, bevor neuere Versionen sie öffnen. |
 | Sitzungslimit | Eine Instanz akzeptiert bis zu 100 aktive Browser-Sitzungen. |

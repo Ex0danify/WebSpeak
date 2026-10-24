@@ -254,5 +254,5 @@ npm run admin:reset-password                                            # releas
 | WebRTC | The default range is `40000–40099/UDP`; allow it and disable WebRTC before changing the range. |
 | Remembered identity | One browser identity can hold one active remembered connection. Disable it for parallel connections or use another browser profile. |
 | Accompaniment | Desktop only and requires WebRTC. Enable audio sharing when selecting a window or tab. |
-| Data | Docker, release packages and source installs all use `data/`. Back up before upgrades. |
+| Data | Docker, release packages and source installs all use `data/`. Back up before upgrades. A database written by a version before 0.7.0 must be started once with 0.7.0 before newer versions can open it. |
 | Session limit | One instance accepts up to 100 active browser sessions. |

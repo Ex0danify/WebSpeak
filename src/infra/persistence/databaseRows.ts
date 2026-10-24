@@ -19,7 +19,6 @@ export interface SettingsRow extends Record<string, unknown> {
   site_name: string;
   access_mode: string;
   webrtc_enabled: number;
-  webrtc_public_host: string;
   webrtc_udp_start: number;
   webrtc_udp_end: number;
   identity_mint_max_level: number;
