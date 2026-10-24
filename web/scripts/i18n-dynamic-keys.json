@@ -16,7 +16,6 @@
         "logoutEvent",
         "settingsEvent",
         "initializedEvent",
-        "testEvent",
         "serverPasswordRequiredError",
         "invalidServerPasswordError",
         "serverAddress",

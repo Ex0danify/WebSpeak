@@ -10,7 +10,6 @@ export { createAccelerationRelayServer } from "./accelerationRelayServer.js";
 export {
   collectTeamSpeakPings,
   pingTeamSpeakHost,
-  pingTeamSpeakPort,
   pingTeamSpeakSession,
   summarizeTeamSpeakPings,
   type HostPingExecutor,

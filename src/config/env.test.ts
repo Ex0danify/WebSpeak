@@ -150,10 +150,6 @@ describe("readRelayEnv", () => {
     );
     expect(() => readRelayEnv({ ...RELAY, WEBSPEAK_RELAY_TOKEN: "" })).toThrow("WEBSPEAK_RELAY_TOKEN must not be empty");
   });
-
-  it("no longer reads the old WEBSPEAK_ACCELERATION_RELAY_* names", () => {
-    expect(() => readRelayEnv({ WEBSPEAK_ACCELERATION_RELAY_TOKEN: "t" })).toThrow(/not set/);
-  });
 });
 
 describe("loadEnvFile", () => {

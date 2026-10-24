@@ -161,7 +161,6 @@ export const de: Record<string, string> = {
   logoutEvent: "Administrator abgemeldet",
   settingsEvent: "Servereinstellungen geändert",
   initializedEvent: "Standard-Administratorkonto erstellt",
-  testEvent: "Verbindungstest abgeschlossen",
   operationsLead: "Routinewartung und Fehlersuche ohne Shell-Zugriff erledigen.",
   refresh: "Aktualisieren",
   sessions: "Aktive Sitzungen",

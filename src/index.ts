@@ -1,5 +1,5 @@
 import path from "node:path";
-import { existsSync, readFileSync, unlinkSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { EnvError, type GatewayEnv, loadEnvFile, readDataDir, readGatewayEnv, readMode, readRelayEnv } from "./config/env.js";
 import { ADMIN_RESET_COMMAND, runAdminResetCommand } from "./transport/cli/adminResetCommand.js";
@@ -56,13 +56,9 @@ async function runGateway(env: GatewayEnv): Promise<void> {
   await adminService.initialize(
     adminService.isInitialized() ? undefined : parseAdminBootstrap({ username: env.adminUsername, password: env.adminPassword }),
   );
-  removeObsoleteBootstrapFile(dataDir);
   const joinTickets = new JoinTicketStore();
 
   logger.info({ dataDir }, "Starting WebSpeak server");
-  if (existsSync(path.join(ROOT_DIR, "config.json"))) {
-    logger.warn("config.json is no longer read. Set the TeamSpeak target in /admin and deployment settings in .env (see .env.example).");
-  }
   if (pruned > 0) logger.info({ pruned }, "Trimmed the audit log");
   // One stray rejection must not take every live session down. A thrown exception still crashes on purpose.
   process.on("unhandledRejection", (reason) => {
@@ -137,14 +133,6 @@ function readPackageVersion(): string {
     return typeof packageJson.version === "string" && packageJson.version ? packageJson.version : "0.1.0";
   } catch {
     return "0.1.0";
-  }
-}
-
-function removeObsoleteBootstrapFile(dataDir: string): void {
-  try {
-    unlinkSync(path.join(dataDir, "bootstrap"));
-  } catch (error: unknown) {
-    if (!(error instanceof Error && "code" in error && error.code === "ENOENT")) throw error;
   }
 }
 

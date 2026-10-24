@@ -232,7 +232,7 @@ npm start
 
 ### Konfiguration: `.env` und Adminbereich
 
-Die `.env` (kopiert aus [`.env.example`](../.env.example), das auch alle Standardwerte enthält) enthält die Einstellungen, die der Prozess vor dem ersten Request braucht: das Start-Adminkonto, `WEBSPEAK_HOST`, `WEBSPEAK_PORT`, `WEBSPEAK_DATA_DIR`, `WEBSPEAK_TRUST_PROXY`, `WEBSPEAK_SCREEN_SHARE_ICE_SERVERS` und die Relay-Variablen. WebSpeak hat keine eingebauten Standardwerte: Ist eine Variable gar nicht gesetzt, startet es nicht (ein leerer Wert ist erlaubt, wo `.env.example` ihn leer lässt). Eine in der Umgebung gesetzte Variable hat Vorrang vor der `.env`. Alles, was Administratoren verwalten (TeamSpeak-Ziel und -Passwort, Zugriffsmethode, WebRTC, Relays, Seitentexte), liegt im Adminbereich. Die alte `config.json` wird nicht mehr gelesen.
+Die `.env` (kopiert aus [`.env.example`](../.env.example), das auch alle Standardwerte enthält) enthält die Einstellungen, die der Prozess vor dem ersten Request braucht: das Start-Adminkonto, `WEBSPEAK_HOST`, `WEBSPEAK_PORT`, `WEBSPEAK_DATA_DIR`, `WEBSPEAK_TRUST_PROXY`, `WEBSPEAK_SCREEN_SHARE_ICE_SERVERS` und die Relay-Variablen. WebSpeak hat keine eingebauten Standardwerte: Ist eine Variable gar nicht gesetzt, startet es nicht (ein leerer Wert ist erlaubt, wo `.env.example` ihn leer lässt). Eine in der Umgebung gesetzte Variable hat Vorrang vor der `.env`. Alles, was Administratoren verwalten (TeamSpeak-Ziel und -Passwort, Zugriffsmethode, WebRTC, Relays, Seitentexte), liegt im Adminbereich.
 
 ### Administratorpasswort vergessen
 

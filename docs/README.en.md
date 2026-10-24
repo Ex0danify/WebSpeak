@@ -232,7 +232,7 @@ npm start
 
 ### Configuration: `.env` and the admin console
 
-`.env` (copied from [`.env.example`](../.env.example), which also holds every default) holds the deployment settings the process needs before it can serve anything: the bootstrap admin account, `WEBSPEAK_HOST`, `WEBSPEAK_PORT`, `WEBSPEAK_DATA_DIR`, `WEBSPEAK_TRUST_PROXY`, `WEBSPEAK_SCREEN_SHARE_ICE_SERVERS` and the relay variables. WebSpeak has no built-in defaults: it refuses to start if a variable is not set at all (an empty value is fine where `.env.example` leaves it empty). A variable set in the real environment wins over `.env`. Everything an administrator manages (TeamSpeak servers and their passwords, access mode, WebRTC, relays, site texts) lives in the admin console. The old `config.json` is no longer read.
+`.env` (copied from [`.env.example`](../.env.example), which also holds every default) holds the deployment settings the process needs before it can serve anything: the bootstrap admin account, `WEBSPEAK_HOST`, `WEBSPEAK_PORT`, `WEBSPEAK_DATA_DIR`, `WEBSPEAK_TRUST_PROXY`, `WEBSPEAK_SCREEN_SHARE_ICE_SERVERS` and the relay variables. WebSpeak has no built-in defaults: it refuses to start if a variable is not set at all (an empty value is fine where `.env.example` leaves it empty). A variable set in the real environment wins over `.env`. Everything an administrator manages (TeamSpeak servers and their passwords, access mode, WebRTC, relays, site texts) lives in the admin console.
 
 ### Lost administrator password
 

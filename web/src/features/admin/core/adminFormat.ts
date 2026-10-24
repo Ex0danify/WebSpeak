@@ -27,7 +27,6 @@ const EVENT_KEYS: Record<string, MessageKey> = {
   ADMIN_LOGOUT: "logoutEvent",
   SETTINGS_CHANGED: "settingsEvent",
   ADMIN_INITIALIZED: "initializedEvent",
-  CONNECTION_TEST: "testEvent",
   SERVER_ADDED: "serverAddedEvent",
   SERVER_UPDATED: "serverUpdatedEvent",
   SERVER_REMOVED: "serverRemovedEvent",

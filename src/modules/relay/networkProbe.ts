@@ -185,19 +185,3 @@ export function parsePingLatency(output: string): number | null {
   const latencyMs = Number.parseFloat(match[1].replace(",", "."));
   return Number.isFinite(latencyMs) ? Math.max(0, latencyMs) : null;
 }
-
-/** Compat helper for callers that want one protocol attempt. No host or port, the session owns the endpoint. */
-export function pingTeamSpeakPort(execute: TeamSpeakCommandExecutor, timeoutMs = 1_500): Promise<TeamSpeakPingAttempt> {
-  return pingTeamSpeakSession(execute, timeoutMs);
-}
-
-/*
- * No raw TCP probe here, that is not the TeamSpeak protocol. The aggregation above stays
- * independent of connection setup so admin tests can inject a real probe.
- */
-export async function pingTeamSpeak(
-  probe: () => Promise<TeamSpeakPingAttempt>,
-  options: { attempts?: number } = {},
-): Promise<TeamSpeakPingResult> {
-  return collectTeamSpeakPings(probe, options);
-}
