@@ -1,7 +1,7 @@
 import { computed, reactive, ref } from "vue";
 import { defineStore } from "pinia";
 import type { ApiError } from "@/features/admin/core/adminApi.js";
-import { useAdminFeedbackStore } from "@/features/admin/core/adminFeedback.js";
+import { SERVER_LIST_STATUS, useAdminFeedbackStore } from "@/features/admin/core/adminFeedback.js";
 import { createAdminFormat } from "@/features/admin/core/adminFormat.js";
 import { createProbeText } from "@/features/admin/server/adminProbe.js";
 import { initialServerDialog, type ProbeState } from "@/features/admin/server/adminServerForm.js";
@@ -65,7 +65,7 @@ export const useAdminServerDialogStore = defineStore("adminServerDialog", () => 
         : await admin.sendJson(`/api/admin/servers/${encodeURIComponent(dialog.id)}`, "PUT", dialogPayload());
       adminSiblings().replaceServers(result.servers);
       dialog.open = false;
-      feedback.notify(adding ? t("serverAdded") : t("serverSaved"));
+      feedback.statusOf(SERVER_LIST_STATUS).saved();
       void adminSiblings().loadOverview();
       await adminSiblings().probeServer(result.server.id);
     } catch (error) {

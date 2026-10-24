@@ -1,5 +1,5 @@
 <template>
-  <AdminSection :title="t('teamSpeakServers')" :lead="t('teamSpeakServersLead')" body-class="grid content-start gap-3">
+  <AdminSection :title="t('teamSpeakServers')" :lead="t('teamSpeakServersLead')" :status="status" body-class="grid content-start gap-3">
     <template #action>
       <Button variant="secondary" size="sm" class="shrink-0" @click="openAdd()"><Icon name="plus" :size="16" />{{ t("addServer") }}</Button>
     </template>
@@ -92,6 +92,7 @@ import { onMounted } from "vue";
 import { storeToRefs } from "pinia";
 import { Button } from "@/shared/ui/button";
 import { Icon } from "@/shared/ui/icon";
+import { SERVER_LIST_STATUS, useAdminFeedbackStore } from "@/features/admin/core/adminFeedback";
 import AdminSection from "@/features/admin/ui/AdminSection.vue";
 import ServerDialog from "@/features/admin/server/ServerDialog.vue";
 import { useAdminServerDialogStore } from "@/features/admin/server/adminServerDialog";
@@ -101,6 +102,7 @@ import type { AdminServer } from "@/features/admin/core/adminTypes";
 import { useServerReorder } from "@/features/admin/server/useServerReorder";
 import { useI18n } from "@/shared/i18n/useI18n";
 
+const status = useAdminFeedbackStore().statusOf(SERVER_LIST_STATUS);
 const store = useAdminServersStore();
 const { servers } = storeToRefs(store);
 const { statusOf, removeServer, probeAll } = store;

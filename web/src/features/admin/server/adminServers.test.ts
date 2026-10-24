@@ -7,7 +7,6 @@ import { useAdminServersStore } from "@/features/admin/server/adminServers";
 import { useAdminSessionStore } from "@/features/admin/core/adminSession";
 import type { AdminServer } from "@/features/admin/core/adminTypes";
 import { useDialogQueue } from "@/shared/composables/useDialog";
-import { useI18n } from "@/shared/i18n/useI18n";
 
 vi.mock("vue-router", () => ({ useRoute: () => ({ path: "/admin" }), useRouter: () => ({ replace: vi.fn() }) }));
 
@@ -17,8 +16,6 @@ async function answerDialog(value: boolean) {
   const { current, settle } = useDialogQueue();
   if (current.value) settle(current.value.id, value);
 }
-
-const { t } = useI18n();
 
 const server = (id: string, overrides: Partial<AdminServer> = {}): AdminServer => ({
   id,
@@ -129,7 +126,7 @@ describe("removing a server", () => {
     expect(s.st.servers).toHaveLength(1);
   });
 
-  it("removes it once confirmed and announces it", async () => {
+  it("removes it once confirmed and says saved", async () => {
     const s = setup();
     s.st.servers = [server("a", { name: "Home" }), server("b")];
     s.sendJson.mockResolvedValue({ servers: [server("b")] });
@@ -138,19 +135,20 @@ describe("removing a server", () => {
     await removal;
     expect(s.sendJson).toHaveBeenCalledWith("/api/admin/servers/a", "DELETE", {});
     expect(s.st.servers).toEqual([server("b")]);
-    expect(s.notify).toHaveBeenCalledWith(t("serverRemoved", { name: "Home" }));
+    expect(s.feedback.statusOf("servers").state).toBe("saved");
     expect(s.loadOverview).toHaveBeenCalled();
   });
 
-  it("shows a refusal in the page banner and keeps the list", async () => {
+  it("shows a refusal in the list and keeps it", async () => {
     const s = setup();
     s.st.servers = [server("a")];
     s.sendJson.mockRejectedValue({ code: "SERVERS_REQUIRED" });
     const removal = s.st.removeServer(s.st.servers[0]!);
     await answerDialog(true);
     await removal;
-    expect(s.feedback.errorMessage).toBe(s.feedback.errorText("SERVERS_REQUIRED"));
+    expect(s.feedback.statusOf("servers").error).toBe(s.feedback.errorText("SERVERS_REQUIRED"));
+    expect(s.feedback.errorMessage).toBe("");
     expect(s.st.servers).toHaveLength(1);
-    expect(s.notify).not.toHaveBeenCalled();
+    expect(s.feedback.statusOf("servers").state).toBe("idle");
   });
 });

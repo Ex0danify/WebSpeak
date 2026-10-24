@@ -58,7 +58,7 @@ describe("reordering", () => {
     s.sendJson.mockResolvedValue({ servers: [server("b"), server("c"), server("a")] });
     await s.st.dropServer();
     expect(s.sendJson).toHaveBeenCalledWith("/api/admin/servers/order", "PUT", { ids: ["b", "c", "a"] });
-    expect(s.notify).toHaveBeenCalledWith(t("serverOrderSaved"));
+    expect(s.feedback.statusOf("servers").state).toBe("saved");
     expect(s.st.grabbed).toBe("");
   });
 
@@ -72,7 +72,7 @@ describe("reordering", () => {
     await s.st.dropServer();
     expect(ids(s)).toEqual(["a", "b"]);
     expect(s.sendJson).not.toHaveBeenCalled();
-    expect(s.notify).not.toHaveBeenCalled();
+    expect(s.feedback.statusOf("servers").state).toBe("idle");
   });
 
   it("puts the old order back when cancelled", () => {
@@ -87,7 +87,7 @@ describe("reordering", () => {
     expect(s.st.announcement).toBe(t("serverMoveCancelled", { name: "b" }));
   });
 
-  it("goes back to the old order and shows the reason when the gateway refuses", async () => {
+  it("goes back to the old order and shows the reason in the list when the gateway refuses", async () => {
     const s = setup();
     s.servers.servers = [server("a"), server("b")];
     s.st.grabServer("a");
@@ -95,8 +95,8 @@ describe("reordering", () => {
     s.sendJson.mockRejectedValue({ code: "INVALID_SERVER_ORDER" });
     await s.st.dropServer();
     expect(ids(s)).toEqual(["a", "b"]);
-    expect(s.feedback.errorMessage).toBe(s.feedback.errorText("INVALID_SERVER_ORDER"));
-    expect(s.notify).not.toHaveBeenCalled();
+    expect(s.feedback.statusOf("servers").error).toBe(s.feedback.errorText("INVALID_SERVER_ORDER"));
+    expect(s.feedback.errorMessage).toBe("");
   });
 
   it("holds one server at a time", () => {

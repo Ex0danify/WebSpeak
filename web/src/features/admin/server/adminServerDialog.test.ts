@@ -85,7 +85,7 @@ describe("the add and edit dialog", () => {
     });
     expect(s.servers.servers).toEqual([server("new")]);
     expect(s.st.dialog).toMatchObject({ open: false, saving: false, error: "" });
-    expect(s.notify).toHaveBeenCalledWith(t("serverAdded"));
+    expect(s.feedback.statusOf("servers").state).toBe("saved");
     expect(s.sendJson).toHaveBeenLastCalledWith("/api/admin/servers/new/test", "POST", {});
     expect(s.servers.statusOf(s.servers.servers[0]!)).toBe("online");
     expect(s.loadOverview).toHaveBeenCalled();
@@ -104,7 +104,7 @@ describe("the add and edit dialog", () => {
       target: "a.example.org:9987",
       passwordAction: "keep",
     });
-    expect(s.notify).toHaveBeenCalledWith(t("serverSaved"));
+    expect(s.feedback.statusOf("servers").state).toBe("saved");
     expect(s.servers.statusOf(s.servers.servers[0]!)).toBe("unreachable");
   });
 
@@ -114,7 +114,7 @@ describe("the add and edit dialog", () => {
     s.sendJson.mockRejectedValue({ code: "SERVER_NAME_TAKEN" });
     await s.st.saveDialog();
     expect(s.st.dialog).toMatchObject({ open: true, saving: false, error: s.feedback.errorText("SERVER_NAME_TAKEN") });
-    expect(s.notify).not.toHaveBeenCalled();
+    expect(s.feedback.statusOf("servers").state).toBe("idle");
   });
 });
 

@@ -1,6 +1,6 @@
 import { reactive, ref } from "vue";
 import { defineStore } from "pinia";
-import { useAdminFeedbackStore } from "@/features/admin/core/adminFeedback.js";
+import { SERVER_LIST_STATUS, useAdminFeedbackStore } from "@/features/admin/core/adminFeedback.js";
 import { adminSiblings } from "@/features/admin/core/adminSiblings.js";
 import { useAdminSessionStore } from "@/features/admin/core/adminSession.js";
 import type { AdminServer } from "@/features/admin/core/adminTypes.js";
@@ -59,15 +59,16 @@ export const useAdminServersStore = defineStore("adminServers", () => {
       variant: "danger",
     });
     if (!ok) return;
-    feedback.clearError();
+    const status = feedback.statusOf(SERVER_LIST_STATUS);
+    status.saving();
     try {
       const result = await admin.sendJson(`/api/admin/servers/${encodeURIComponent(server.id)}`, "DELETE", {});
       servers.value = result.servers;
       delete probes[server.id];
-      feedback.notify(t("serverRemoved", { name: server.name }));
+      status.saved();
       await adminSiblings().loadOverview();
     } catch (error) {
-      feedback.fail(error);
+      feedback.failStatus(SERVER_LIST_STATUS, error);
     }
   }
 

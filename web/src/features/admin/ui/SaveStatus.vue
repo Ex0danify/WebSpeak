@@ -1,6 +1,6 @@
 <template>
   <!-- The live region is always there, so a screen reader announces the text that comes into it. -->
-  <span role="status" aria-live="polite" class="inline-flex min-h-5 items-center text-2xs text-fg-muted">
+  <span role="status" aria-live="polite" class="inline-flex items-center text-2xs text-fg-muted">
     <Transition
       enter-active-class="transition-opacity duration-150 motion-reduce:transition-none"
       leave-active-class="transition-opacity duration-500 motion-reduce:transition-none"

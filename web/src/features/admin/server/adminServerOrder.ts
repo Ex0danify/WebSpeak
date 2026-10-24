@@ -1,6 +1,6 @@
 import { ref } from "vue";
 import { defineStore } from "pinia";
-import { useAdminFeedbackStore } from "@/features/admin/core/adminFeedback.js";
+import { SERVER_LIST_STATUS, useAdminFeedbackStore } from "@/features/admin/core/adminFeedback.js";
 import { adminSiblings } from "@/features/admin/core/adminSiblings.js";
 import { useAdminSessionStore } from "@/features/admin/core/adminSession.js";
 import type { AdminServer } from "@/features/admin/core/adminTypes.js";
@@ -59,14 +59,16 @@ export const useAdminServerOrderStore = defineStore("adminServerOrder", () => {
       announcement.value = t("serverDropped", positionText(id));
       return;
     }
+    const status = feedback.statusOf(SERVER_LIST_STATUS);
+    status.saving();
     try {
       const result = await admin.sendJson("/api/admin/servers/order", "PUT", { ids });
       adminSiblings().replaceServers(result.servers);
       announcement.value = t("serverDropped", positionText(id));
-      feedback.notify(t("serverOrderSaved"));
+      status.saved();
     } catch (error) {
       adminSiblings().replaceServers(orderBeforeGrab);
-      feedback.fail(error);
+      feedback.failStatus(SERVER_LIST_STATUS, error);
     }
   }
 

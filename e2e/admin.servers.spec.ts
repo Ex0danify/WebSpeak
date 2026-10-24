@@ -9,7 +9,10 @@ import { TeamSpeakProbeError } from "../src/modules/teamspeak/teamSpeakProbe";
 
 const row = (page: Page, name: string): Locator => page.locator(".server-row").filter({ hasText: name });
 const dialog = (page: Page, name: string): Locator => page.getByRole("dialog", { name });
-const toast = (page: Page, text: string): Locator => page.locator("li").filter({ hasText: text });
+/** The server list's own card: what it says after a change it saved by itself (add, edit, remove, reorder). */
+const listCard = (page: Page): Locator =>
+  page.getByRole("article").filter({ has: page.getByRole("heading", { name: "TeamSpeak servers" }) });
+const listSaved = (page: Page): Locator => listCard(page).getByRole("status").getByText("Saved");
 
 /** Fills the add/edit dialog with a name and an address, the port is left alone unless given. */
 async function fillServer(page: Page, name: string, address: string, port?: string): Promise<void> {
@@ -76,7 +79,7 @@ test.describe("adding a server", () => {
 
     await add.getByRole("button", { name: "Save" }).click();
     await expect(add).toBeHidden();
-    await expect(toast(page, "Server added.")).toBeVisible();
+    await expect(listSaved(page)).toBeVisible();
     await expect(row(page, "Clan")).toContainText("probe.example.test:9988");
     await expect(row(page, "Clan")).toContainText("Password protected");
     await expect(row(page, "Clan")).toContainText("Online");
@@ -132,7 +135,7 @@ test.describe("adding a server", () => {
 });
 
 test.describe("changing a server", () => {
-  test("keeps the saved password unless it is changed, and says so in a toast", async ({ page, ownGateway }) => {
+  test("keeps the saved password unless it is changed, and says Saved", async ({ page, ownGateway }) => {
     const gateway = await ownGateway();
     const clan = gateway.adminService.createServer({ name: "Clan", target: "clan.example.test:9988", serverPassword: "s3cret" });
     await openServerPage(page, gateway);
@@ -144,7 +147,7 @@ test.describe("changing a server", () => {
     await expect(page.getByRole("radio", { name: "Keep" })).toBeChecked();
     await page.getByLabel("Server name").fill("Clan EU");
     await edit.getByRole("button", { name: "Save" }).click();
-    await expect(toast(page, "Server saved.")).toBeVisible();
+    await expect(listSaved(page)).toBeVisible();
     await expect(row(page, "Clan EU")).toContainText("Password protected");
     expect(gateway.adminService.resolveServer(clan.id)?.serverPassword).toBe("s3cret");
 
@@ -168,7 +171,7 @@ test.describe("changing a server", () => {
 });
 
 test.describe("removing a server", () => {
-  test("asks first, then removes it and says so in a toast", async ({ page, ownGateway }) => {
+  test("asks first, then removes it and says Saved", async ({ page, ownGateway }) => {
     const gateway = await ownGateway();
     gateway.adminService.createServer({ name: "Clan", target: "clan.example.test" });
     await openServerPage(page, gateway);
@@ -180,7 +183,7 @@ test.describe("removing a server", () => {
 
     await page.getByRole("button", { name: "Remove Clan" }).click();
     await confirm.getByRole("button", { name: "Remove", exact: true }).click();
-    await expect(toast(page, "Server “Clan” removed.")).toBeVisible();
+    await expect(listSaved(page)).toBeVisible();
     await expect(row(page, "Clan")).toHaveCount(0);
     await reloadServerPage(page, gateway);
     await expect(page.locator(".server-row")).toHaveCount(1);
@@ -256,7 +259,7 @@ test.describe("order", () => {
     await expect(page.getByText("LAN party moved to position 1 of 3.")).toBeAttached();
     expect(gateway.adminService.listServers()[0]!.name).toBe("WebSpeak");
     await page.keyboard.press("Space");
-    await expect(toast(page, "Server order saved.")).toBeVisible();
+    await expect(listSaved(page)).toBeVisible();
     expect(await names(page)).toEqual(["LAN party", "WebSpeak", "Clan"]);
 
     await reloadServerPage(page, gateway);
@@ -286,7 +289,7 @@ test.describe("order", () => {
     gateway.adminService.createServer({ name: "Clan", target: "clan.example.test" });
     await openServerPage(page, gateway);
     await row(page, "Clan").dragTo(row(page, "WebSpeak"));
-    await expect(toast(page, "Server order saved.")).toBeVisible();
+    await expect(listSaved(page)).toBeVisible();
     expect(await names(page)).toEqual(["Clan", "WebSpeak"]);
     expect(gateway.adminService.listServers().map((server) => server.name)).toEqual(["Clan", "WebSpeak"]);
   });
@@ -298,7 +301,7 @@ test.describe("order", () => {
     await openServerPage(page, gateway);
     await expect(page.getByRole("button", { name: "Move WebSpeak up" })).toBeDisabled();
     await page.getByRole("button", { name: "Move Clan up" }).click();
-    await expect(toast(page, "Server order saved.")).toBeVisible();
+    await expect(listSaved(page)).toBeVisible();
     expect(await names(page)).toEqual(["Clan", "WebSpeak"]);
   });
 

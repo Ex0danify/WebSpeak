@@ -31,4 +31,14 @@ describe("useAdminFeedbackStore", () => {
     expect(useToast().toasts.value).toMatchObject([{ title: "Done", variant: "success" }]);
     expect(feedback.errorMessage).toBe("Earlier");
   });
+
+  it("hands out one status per name, and shows a failure in it and not in the banner", () => {
+    const feedback = useAdminFeedbackStore();
+    expect(feedback.statusOf("list")).toBe(feedback.statusOf("list"));
+    expect(feedback.statusOf("list")).not.toBe(feedback.statusOf("other"));
+    feedback.failStatus("list", { code: "RATE_LIMITED" });
+    expect(feedback.statusOf("list").error).toBe(feedback.errorText("RATE_LIMITED"));
+    expect(feedback.statusOf("other").error).toBe("");
+    expect(feedback.errorMessage).toBe("");
+  });
 });
