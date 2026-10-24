@@ -10,13 +10,16 @@
       "arbitrary": 3
     },
     "src/features/admin/server/AdvancedSettingsCard.vue": {
-      "arbitrary": 2
+      "arbitrary": 1
     },
     "src/features/admin/server/RelayNodesCard.vue": {
       "arbitrary": 2
     },
     "src/features/admin/server/ServerDialog.vue": {
       "arbitrary": 2
+    },
+    "src/features/admin/server/SettingChoice.vue": {
+      "arbitrary": 1
     },
     "src/features/admin/shell/AdminHeader.vue": {
       "arbitrary": 1

@@ -1,16 +1,7 @@
 <template>
   <AdminSection :title="t('accessAndIdentity')" :status="statuses.access" status-quiet body-class="grid content-start gap-3">
-    <div class="grid gap-2">
-      <div class="flex items-baseline justify-between gap-2">
-        <Label id="access-mode-label">{{ t("accessMode") }}</Label>
-        <FieldSaved :status="fieldStatus('accessMode')" />
-      </div>
-      <RadioGroup
-        v-model="serverForm.accessMode"
-        aria-labelledby="access-mode-label"
-        class="gap-2.5"
-        @update:model-value="scheduleSave('access')"
-      >
+    <SettingGroup v-slot="{ labelId }" :label="t('accessMode')" field="accessMode">
+      <RadioGroup v-model="serverForm.accessMode" :aria-labelledby="labelId" class="gap-2.5" @update:model-value="scheduleSave('access')">
         <Radio value="fixed" :class="choiceClass">
           <span class="block text-xs font-bold">{{ t("fixedMode") }}</span>
           <span class="mt-1 block text-2xs leading-[1.45] text-fg-muted">{{ t("fixedModeLead") }}</span>
@@ -20,7 +11,7 @@
           <span class="mt-1 block text-2xs leading-[1.45] text-fg-muted">{{ t("openModeLead") }}</span>
         </Radio>
       </RadioGroup>
-    </div>
+    </SettingGroup>
     <SettingField :label="t('siteName')" field="siteName"
       ><Input v-model.trim="serverForm.siteName" maxlength="80" @change="scheduleSave('access')"
     /></SettingField>
@@ -52,13 +43,13 @@
 </template>
 
 <script setup lang="ts">
-import { Field, Label } from "@/shared/ui/field";
+import { Field } from "@/shared/ui/field";
 import { Input } from "@/shared/ui/input";
 import { Radio, RadioGroup } from "@/shared/ui/radio";
 import { Select } from "@/shared/ui/select";
 import { Textarea } from "@/shared/ui/textarea";
 import { storeToRefs } from "pinia";
-import FieldSaved from "@/features/admin/ui/FieldSaved.vue";
+import SettingGroup from "@/features/admin/server/SettingGroup.vue";
 import SettingField from "@/features/admin/server/SettingField.vue";
 import AdminSection from "@/features/admin/ui/AdminSection.vue";
 import { choiceClass } from "@/features/admin/ui/adminClasses";
@@ -68,6 +59,6 @@ import { useI18n } from "@/shared/i18n/useI18n";
 
 const settings = useAdminServerSettingsStore();
 const { serverForm, welcomeLanguage, selectedWelcomeText, selectedWelcomeLanguageLabel, selectedWelcomeDefault } = storeToRefs(settings);
-const { statuses, scheduleSave, fieldStatus } = settings;
+const { statuses, scheduleSave } = settings;
 const { t } = useI18n();
 </script>

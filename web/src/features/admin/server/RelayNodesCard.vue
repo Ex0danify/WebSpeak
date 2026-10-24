@@ -19,12 +19,12 @@
         class="grid min-w-0 gap-2.5 rounded-lg border border-line bg-surface-0 p-3"
       >
         <div class="flex min-w-0 items-center justify-between gap-2.5">
-          <div class="flex min-w-0 items-center gap-2.5">
-            <Checkbox v-model="relay.enabled" class="min-w-0" @update:model-value="scheduleSave('relay')"
-              ><strong class="block truncate text-xs">{{ relay.name || t("relayUnnamed") }}</strong></Checkbox
-            >
-            <FieldSaved :status="fieldStatus(`relay:${relay.id}:enabled`)" />
-          </div>
+          <SettingChoice
+            v-model="relay.enabled"
+            :title="relay.name || t('relayUnnamed')"
+            :field="`relay:${relay.id}:enabled`"
+            @update:model-value="scheduleSave('relay')"
+          />
           <Button variant="dangerSoft" size="sm" @click="removeRelayNode(index)">{{ t("remove") }}</Button>
         </div>
         <div class="grid min-w-0 grid-cols-1 gap-3 desktop:grid-cols-2">
@@ -64,11 +64,10 @@
 
 <script setup lang="ts">
 import { Button } from "@/shared/ui/button";
-import { Checkbox } from "@/shared/ui/checkbox";
 import { Input } from "@/shared/ui/input";
 import { Segment, Segmented } from "@/shared/ui/tabs";
 import { storeToRefs } from "pinia";
-import FieldSaved from "@/features/admin/ui/FieldSaved.vue";
+import SettingChoice from "@/features/admin/server/SettingChoice.vue";
 import SettingField from "@/features/admin/server/SettingField.vue";
 import AdminSection from "@/features/admin/ui/AdminSection.vue";
 import { useAdminServerSettingsStore } from "@/features/admin/server/adminServerSettings";
@@ -76,6 +75,6 @@ import { useI18n } from "@/shared/i18n/useI18n";
 
 const settings = useAdminServerSettingsStore();
 const { serverForm } = storeToRefs(settings);
-const { statuses, fieldStatus, scheduleSave, addRelayNode, removeRelayNode } = settings;
+const { statuses, scheduleSave, addRelayNode, removeRelayNode } = settings;
 const { t } = useI18n();
 </script>
