@@ -14,11 +14,12 @@ import {
   applySavedSettings,
   buildSettingsDocument,
   sameDocument,
+  changedFieldKeys,
   type SettingsIssue,
   type SettingsIssues,
   type SettingsSection,
 } from "@/features/admin/server/adminServerDocument.js";
-import { createSaveStatus } from "@/features/admin/core/saveStatus.js";
+import { createSaveStatus, type SaveStatus } from "@/features/admin/core/saveStatus.js";
 import type { ApiError } from "@/features/admin/core/adminApi.js";
 import { useAdminFeedbackStore } from "@/features/admin/core/adminFeedback.js";
 import { adminSiblings } from "@/features/admin/core/adminSiblings.js";
@@ -52,6 +53,8 @@ export const useAdminServerSettingsStore = defineStore("adminServerSettings", ()
   /** What the last save held back, and for which field the person sees a hint. */
   const issues = ref<SettingsIssues>({});
   const statuses = { access: createSaveStatus(), advanced: createSaveStatus(), relay: createSaveStatus() };
+  /** Per field, whether it was just saved: the mark next to its label. */
+  const fieldStatuses = new Map<string, SaveStatus>();
   const pending = new Set<SettingsSection>();
   let draining: Promise<void> | null = null;
 
@@ -99,7 +102,8 @@ export const useAdminServerSettingsStore = defineStore("adminServerSettings", ()
     if (!loaded) return;
     const { document, issues: held } = buildSettingsDocument(serverForm, confirmed);
     issues.value = held;
-    if (sameDocument(document, buildSettingsDocument(confirmed, confirmed).document)) {
+    const before = buildSettingsDocument(confirmed, confirmed).document;
+    if (sameDocument(document, before)) {
       // The form says what the gateway keeps, so no refusal of an earlier save is still true.
       for (const section of SECTIONS) statuses[section].clearError();
       return;
@@ -108,6 +112,7 @@ export const useAdminServerSettingsStore = defineStore("adminServerSettings", ()
     try {
       const result = await admin.sendJson("/api/admin/server", "PUT", document);
       confirmed = serverFormFromSettings(result.settings);
+      for (const key of changedFieldKeys(document, before)) fieldStatus(key).saved();
       // The form gets a copy of its own, an edit must not reach `confirmed`.
       applySavedSettings(serverForm, document, serverFormFromSettings(result.settings));
       issues.value = Object.fromEntries(Object.entries(buildSettingsDocument(serverForm, confirmed).issues).filter(([key]) => key in held));
@@ -149,6 +154,16 @@ export const useAdminServerSettingsStore = defineStore("adminServerSettings", ()
     return draining;
   }
 
+  /** What the field `key` says about its last save, made on first use. */
+  function fieldStatus(key: string): SaveStatus {
+    let status = fieldStatuses.get(key);
+    if (!status) {
+      status = createSaveStatus();
+      fieldStatuses.set(key, status);
+    }
+    return status;
+  }
+
   /** The hint for a field that was not saved, or an empty text. */
   function issueText(key: string): string {
     const issue: SettingsIssue | undefined = issues.value[key];
@@ -188,6 +203,7 @@ export const useAdminServerSettingsStore = defineStore("adminServerSettings", ()
     issues.value = {};
     pending.clear();
     for (const section of SECTIONS) statuses[section].reset();
+    for (const status of fieldStatuses.values()) status.reset();
   }
 
   return {
@@ -203,6 +219,7 @@ export const useAdminServerSettingsStore = defineStore("adminServerSettings", ()
     loadServerSettings,
     scheduleSave,
     issueText,
+    fieldStatus,
     addRelayNode,
     removeRelayNode,
     handleWebRtcToggle,

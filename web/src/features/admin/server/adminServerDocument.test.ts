@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { applySavedSettings, buildSettingsDocument, isPlausibleTarget, sameDocument } from "@/features/admin/server/adminServerDocument";
+import {
+  applySavedSettings,
+  buildSettingsDocument,
+  changedFieldKeys,
+  isPlausibleTarget,
+  sameDocument,
+} from "@/features/admin/server/adminServerDocument";
 import { createRelayNode, initialServerForm, serverFormFromSettings, type ServerForm } from "@/features/admin/server/adminServerForm";
 
 const confirmedForm = (changes: Partial<ServerForm> = {}): ServerForm => ({ ...initialServerForm(), ...changes });
@@ -111,5 +117,32 @@ describe("applySavedSettings", () => {
     expect(form.relayNodes[0]).toMatchObject({ target: "a.example.com:9987", token: "", tokenAction: "keep", hasToken: true });
     expect(form.relayNodes[1]).toMatchObject({ name: "B2", target: "b.example.com" });
     expect(form.relayNodes[2]).toBe(fresh);
+  });
+});
+
+describe("changedFieldKeys", () => {
+  const documentOf = (form: ServerForm, confirmed: ServerForm = confirmedForm()) => buildSettingsDocument(form, confirmed).document;
+  const before = documentOf(confirmedForm());
+
+  it("names the fields that differ, and none for a choice", () => {
+    const form = confirmedForm({ siteName: "Night Owls", identityMintQueueDepth: 5, accessMode: "open", webRtcEnabled: true });
+    expect(changedFieldKeys(documentOf(form), before)).toEqual(["siteName", "identityMintQueueDepth"]);
+  });
+
+  it("names the welcome text only when its words change", () => {
+    expect(changedFieldKeys(documentOf(confirmedForm({ welcomeTexts: { de: "Hallo" } })), before)).toEqual(["welcomeText"]);
+    expect(changedFieldKeys(documentOf(confirmedForm({ welcomeTexts: { de: " " } })), before)).toEqual([]);
+  });
+
+  it("names the fields of a relay node that is new or edited, and its token when one was sent", () => {
+    const node = { ...createRelayNode(), id: "relay-a", name: "A", target: "a.example.com", token: "a-token-of-16-chars" };
+    expect(changedFieldKeys(documentOf(confirmedForm({ relayNodes: [node] })), before)).toEqual([
+      "relay:relay-a:name",
+      "relay:relay-a:target",
+      "relay:relay-a:token",
+    ]);
+    const saved = confirmedForm({ relayNodes: [{ ...node, token: "", tokenAction: "keep", hasToken: true }] });
+    const edited = confirmedForm({ relayNodes: [{ ...saved.relayNodes[0]!, target: "b.example.com" }] });
+    expect(changedFieldKeys(documentOf(edited, saved), documentOf(saved))).toEqual(["relay:relay-a:target"]);
   });
 });

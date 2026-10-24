@@ -19,14 +19,14 @@
           <Button variant="dangerSoft" size="sm" @click="removeRelayNode(index)">{{ t("remove") }}</Button>
         </div>
         <div class="grid min-w-0 grid-cols-1 gap-3 desktop:grid-cols-2">
-          <Field :label="t('relayName')" :error="issueText(`relay:${relay.id}:name`)"
+          <SettingField :label="t('relayName')" :field="`relay:${relay.id}:name`"
             ><Input v-model.trim="relay.name" maxlength="80" :placeholder="t('relayNamePlaceholder')" @change="scheduleSave('relay')"
-          /></Field>
-          <Field :label="t('relayTarget')" :error="issueText(`relay:${relay.id}:target`)"
+          /></SettingField>
+          <SettingField :label="t('relayTarget')" :field="`relay:${relay.id}:target`"
             ><Input v-model.trim="relay.target" maxlength="300" :placeholder="t('relayTargetPlaceholder')" @change="scheduleSave('relay')"
-          /></Field>
+          /></SettingField>
           <div class="col-span-full grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-end gap-2.25 max-narrow:grid-cols-1">
-            <Field :label="t('relayToken')" :error="issueText(`relay:${relay.id}:token`)"
+            <SettingField :label="t('relayToken')" :field="`relay:${relay.id}:token`"
               ><Input
                 v-model="relay.token"
                 type="password"
@@ -34,7 +34,7 @@
                 :disabled="relay.tokenAction !== 'replace'"
                 :placeholder="relay.hasToken ? t('relayTokenConfigured') : t('relayTokenPlaceholder')"
                 @change="scheduleSave('relay')"
-            /></Field>
+            /></SettingField>
             <Segmented
               v-model="relay.tokenAction"
               :aria-label="t('relayToken')"
@@ -56,16 +56,16 @@
 <script setup lang="ts">
 import { Button } from "@/shared/ui/button";
 import { Checkbox } from "@/shared/ui/checkbox";
-import { Field } from "@/shared/ui/field";
 import { Input } from "@/shared/ui/input";
 import { Segment, Segmented } from "@/shared/ui/tabs";
 import { storeToRefs } from "pinia";
+import SettingField from "@/features/admin/server/SettingField.vue";
 import AdminSection from "@/features/admin/ui/AdminSection.vue";
 import { useAdminServerSettingsStore } from "@/features/admin/server/adminServerSettings";
 import { useI18n } from "@/shared/i18n/useI18n";
 
 const settings = useAdminServerSettingsStore();
 const { serverForm } = storeToRefs(settings);
-const { statuses, issueText, scheduleSave, addRelayNode, removeRelayNode } = settings;
+const { statuses, scheduleSave, addRelayNode, removeRelayNode } = settings;
 const { t } = useI18n();
 </script>

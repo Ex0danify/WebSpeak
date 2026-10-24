@@ -156,6 +156,9 @@ describe("autosave", () => {
     });
     expect(s.st.statuses.access.state).toBe("saved");
     expect(s.st.statuses.advanced.state).toBe("idle");
+    // The field that was saved says so, and no other does.
+    expect(s.st.fieldStatus("siteName").state).toBe("saved");
+    expect(s.st.fieldStatus("identityMintMaxLevel").state).toBe("idle");
     expect(s.loadOverview).toHaveBeenCalled();
     expect(s.notify).not.toHaveBeenCalled();
   });

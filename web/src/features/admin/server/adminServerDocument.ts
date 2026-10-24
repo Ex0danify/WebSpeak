@@ -166,6 +166,23 @@ export function sameDocument(a: SettingsDocument, b: SettingsDocument): boolean 
   return JSON.stringify(withoutEmptyTexts(a)) === JSON.stringify(withoutEmptyTexts(b));
 }
 
+/** The keys (as in `SettingsIssues`, `welcomeText` for the welcome texts) of the fields a document changes against the one before it. */
+export function changedFieldKeys(next: SettingsDocument, previous: SettingsDocument): string[] {
+  const keys: string[] = [];
+  if (next.siteName !== previous.siteName) keys.push("siteName");
+  if (JSON.stringify(withoutEmptyTexts(next).welcomeTexts) !== JSON.stringify(withoutEmptyTexts(previous).welcomeTexts))
+    keys.push("welcomeText");
+  for (const field of ["webRtcUdpStart", "webRtcUdpEnd", ...MINT_FIELDS] as const) if (next[field] !== previous[field]) keys.push(field);
+  const before = new Map(previous.relayNodes.map((node) => [node.id, node]));
+  for (const node of next.relayNodes) {
+    const old = before.get(node.id);
+    if (!old || node.name !== old.name) keys.push(`relay:${node.id}:name`);
+    if (!old || node.target !== old.target) keys.push(`relay:${node.id}:target`);
+    if (node.tokenAction !== "keep") keys.push(`relay:${node.id}:token`);
+  }
+  return keys;
+}
+
 /**
  * Puts what the gateway answered to a save into the form, without taking back what the administrator typed while it was on the way. A
  * field the form still holds as it was sent takes the gateway's value (trimmed, a token turned into `hasToken`), any other field is

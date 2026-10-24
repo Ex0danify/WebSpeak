@@ -15,7 +15,7 @@
         ><small class="mt-1 block text-2xs leading-[1.45] text-fg-muted">{{ t("webrtcPortRangeLead") }}</small>
       </div>
       <div class="grid grid-cols-2 gap-2.5 max-narrow:grid-cols-1">
-        <Field :label="t('webrtcPortStart')" :error="issueText('webRtcUdpStart')"
+        <SettingField :label="t('webrtcPortStart')" field="webRtcUdpStart"
           ><Input
             v-model.number="serverForm.webRtcUdpStart"
             type="number"
@@ -24,8 +24,8 @@
             max="65535"
             :disabled="serverForm.webRtcEnabled"
             @change="scheduleSave('advanced')"
-        /></Field>
-        <Field :label="t('webrtcPortEnd')" :error="issueText('webRtcUdpEnd')"
+        /></SettingField>
+        <SettingField :label="t('webrtcPortEnd')" field="webRtcUdpEnd"
           ><Input
             v-model.number="serverForm.webRtcUdpEnd"
             type="number"
@@ -34,7 +34,7 @@
             max="65535"
             :disabled="serverForm.webRtcEnabled"
             @change="scheduleSave('advanced')"
-        /></Field>
+        /></SettingField>
       </div>
     </div>
     <small class="-mt-2 text-2xs text-fg-muted">{{ t("webrtcApplyHint") }}</small>
@@ -44,7 +44,7 @@
         ><small class="mt-1 block text-2xs leading-normal text-fg-muted">{{ t("identityMintLimitsLead") }}</small>
       </div>
       <div class="grid grid-cols-3 gap-2.5 max-narrow:grid-cols-1">
-        <Field :label="t('identityMintMaxLevel')" :error="issueText('identityMintMaxLevel')"
+        <SettingField :label="t('identityMintMaxLevel')" field="identityMintMaxLevel"
           ><Input
             v-model.number="serverForm.identityMintMaxLevel"
             type="number"
@@ -52,8 +52,8 @@
             min="1"
             max="24"
             @change="scheduleSave('advanced')"
-        /></Field>
-        <Field :label="t('identityMintConcurrency')" :error="issueText('identityMintConcurrency')"
+        /></SettingField>
+        <SettingField :label="t('identityMintConcurrency')" field="identityMintConcurrency"
           ><Input
             v-model.number="serverForm.identityMintConcurrency"
             type="number"
@@ -61,8 +61,8 @@
             min="1"
             max="8"
             @change="scheduleSave('advanced')"
-        /></Field>
-        <Field :label="t('identityMintQueueDepth')" :error="issueText('identityMintQueueDepth')"
+        /></SettingField>
+        <SettingField :label="t('identityMintQueueDepth')" field="identityMintQueueDepth"
           ><Input
             v-model.number="serverForm.identityMintQueueDepth"
             type="number"
@@ -70,7 +70,7 @@
             min="0"
             max="100"
             @change="scheduleSave('advanced')"
-        /></Field>
+        /></SettingField>
       </div>
     </div>
     <Dialog
@@ -91,9 +91,9 @@
 import { Button } from "@/shared/ui/button";
 import { Checkbox } from "@/shared/ui/checkbox";
 import { Dialog } from "@/shared/ui/dialog";
-import { Field } from "@/shared/ui/field";
 import { Input } from "@/shared/ui/input";
 import { storeToRefs } from "pinia";
+import SettingField from "@/features/admin/server/SettingField.vue";
 import AdminSection from "@/features/admin/ui/AdminSection.vue";
 import { choiceClass } from "@/features/admin/ui/adminClasses";
 import { useAdminServerSettingsStore } from "@/features/admin/server/adminServerSettings";
@@ -101,6 +101,6 @@ import { useI18n } from "@/shared/i18n/useI18n";
 
 const settings = useAdminServerSettingsStore();
 const { serverForm, webrtcPortNoticeOpen, webrtcPortRangeText } = storeToRefs(settings);
-const { statuses, issueText, scheduleSave, handleWebRtcToggle } = settings;
+const { statuses, scheduleSave, handleWebRtcToggle } = settings;
 const { t } = useI18n();
 </script>
