@@ -15,6 +15,8 @@ const props = withDefaults(
   { dot: false },
 );
 
+// The label clips its overflow to cut a long text, so it needs a line box taller than the chip's `leading-none`, or the tails of
+// g, y and p are cut off in some browsers.
 // Warning and danger never rely on color alone: they always render an icon,
 // the `icon` slot or a default alert glyph.
 const needsIcon = computed(() => props.variant === "warning" || props.variant === "danger");
@@ -26,6 +28,6 @@ const needsIcon = computed(() => props.variant === "warning" || props.variant ==
       <slot name="icon"><Icon name="alert" :size="13" /></slot>
     </span>
     <span v-else-if="dot" class="size-1.5 shrink-0 rounded-full bg-current" aria-hidden="true" />
-    <span class="relative min-w-0 truncate"><slot /></span>
+    <span class="relative min-w-0 truncate leading-snug"><slot /></span>
   </span>
 </template>
