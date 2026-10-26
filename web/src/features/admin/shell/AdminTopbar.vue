@@ -1,5 +1,5 @@
 <template>
-  <header class="border-b border-line bg-surface-1">
+  <header class="sticky top-0 z-10 border-b border-line bg-surface-1">
     <div :class="cn(adminContainer, 'flex min-h-14 items-center justify-between gap-2')">
       <AdminBrand variant="bar" class="desktop:hidden" />
       <div class="ml-auto flex items-center gap-2 text-caption text-fg-muted">
