@@ -220,12 +220,10 @@ describe("autosave", () => {
     expect(s.sendJson.mock.calls[0][2].relayNodes).toEqual([]);
   });
 
-  it("saves the choice at once when WebRTC is switched on, and opens the port notice", async () => {
+  it("saves the choice at once when WebRTC is switched on", async () => {
     const s = await loaded();
     s.sendJson.mockResolvedValue({ settings: settingsAnswer({ webRtcEnabled: true }) });
     s.st.serverForm.webRtcEnabled = true;
-    s.st.handleWebRtcToggle();
-    expect(s.st.webrtcPortNoticeOpen).toBe(true);
     await s.st.scheduleSave("webrtc");
     expect(s.sendJson.mock.calls[0][2]).toMatchObject({ webRtcEnabled: true, webRtcUdpStart: 40000 });
     expect(s.st.statuses.webrtc.state).toBe("saved");

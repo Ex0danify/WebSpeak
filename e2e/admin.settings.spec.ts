@@ -150,25 +150,32 @@ test.describe("welcome message", () => {
 });
 
 test.describe("WebRTC", () => {
-  test("switching it on names the ports to open, and the port range is locked while it is on", async ({ page, ownGateway }) => {
+  test("switching it on shows the ports to open, and the port range is locked while it is on", async ({ page, ownGateway }) => {
     const gateway = await ownGateway();
     await openGatewayPage(page, gateway);
-    const webrtc = page.getByRole("checkbox", { name: /Enable WebRTC/ });
+    const webrtc = page.getByRole("switch", { name: /Enable WebRTC/ });
     const start = page.getByLabel("Start port");
     await expect(webrtc).not.toBeChecked();
+    await expect(page.getByText("Locked while WebRTC is on")).toBeHidden();
+    await expect(page.getByText("Open these ports before guests connect")).toBeHidden();
     await expect(start).toBeEnabled();
 
-    expect(await saves(page, () => webrtc.check())).toBe(200);
-    const notice = page.getByRole("dialog", { name: "Allow WebRTC ports first" });
-    await expect(notice).toBeVisible();
-    await expect(notice).toContainText("Ports must be opened: 40000–40099 (UDP)");
-    await notice.getByRole("button", { name: "Got it" }).click();
-    await expect(notice).toBeHidden();
+    const range = page.getByRole("group", { name: "WebRTC UDP port range" });
+    const lead = page.getByText("Use realtime audio when supported");
+    const sizes = async () => [await range.boundingBox(), await lead.boundingBox()].map((box) => [box?.width, box?.height]);
+    const before = await sizes();
+    expect(await saves(page, () => webrtc.click())).toBe(200);
+    await expect(page.getByText("Saved").first()).toBeVisible();
+    expect(await sizes()).toEqual(before);
+    const ports = page.getByText("Open these ports before guests connect");
+    await expect(ports).toBeVisible();
+    await expect(page.getByText("40000–40099 · UDP")).toBeVisible();
     await expect(webrtc).toBeChecked();
     await expect(start).toBeDisabled();
+    await expect(page.getByRole("group", { name: "WebRTC UDP port range" })).toHaveAccessibleDescription(/Locked while WebRTC is on/);
 
     await reloadGatewayPage(page, gateway);
-    await expect(page.getByRole("checkbox", { name: /Enable WebRTC/ })).toBeChecked();
+    await expect(page.getByRole("switch", { name: /Enable WebRTC/ })).toBeChecked();
     await expect(page.getByLabel("Start port")).toBeDisabled();
   });
 

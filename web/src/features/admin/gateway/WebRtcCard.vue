@@ -1,16 +1,34 @@
 <template>
   <AdminSection :title="t('webrtcSettings')" :lead="t('webrtcSettingsLead')" :status="statuses.webrtc" status-quiet>
-    <SettingChoice
-      v-model="serverForm.webRtcEnabled"
-      :title="t('webrtcEnabled')"
-      :lead="t('webrtcEnabledLead')"
-      field="webRtcEnabled"
-      @update:model-value="handleWebRtcToggle()"
-    />
-    <div class="grid gap-2 rounded-lg border border-line bg-surface-0 p-3">
-      <div>
-        <strong class="block text-caption">{{ t("webrtcPortRange") }}</strong
-        ><small class="mt-1 block text-2xs leading-[1.45] text-fg-muted">{{ t("webrtcPortRangeLead") }}</small>
+    <div class="flex items-start justify-between gap-3 rounded-lg border border-line bg-surface-0 p-3">
+      <label for="webrtc-enabled" class="min-w-0 cursor-pointer">
+        <span class="flex items-baseline gap-2"
+          ><span class="text-xs font-bold">{{ t("webrtcEnabled") }}</span
+          ><FieldSaved :status="fieldStatus('webRtcEnabled')" class="leading-none"
+        /></span>
+        <span class="mt-1 block text-2xs leading-snug text-fg-muted">{{ t("webrtcEnabledLead") }}</span>
+      </label>
+      <Switch id="webrtc-enabled" v-model="serverForm.webRtcEnabled" @update:model-value="scheduleSave('webrtc')" />
+    </div>
+    <div
+      role="group"
+      aria-labelledby="webrtc-range-title"
+      :aria-describedby="serverForm.webRtcEnabled ? 'webrtc-range-locked' : undefined"
+      class="grid gap-2 rounded-lg border border-line bg-surface-0 p-3"
+    >
+      <div class="flex flex-wrap items-start justify-between gap-x-3 gap-y-1.5">
+        <div class="min-w-48 flex-1">
+          <strong id="webrtc-range-title" class="block text-caption">{{ t("webrtcPortRange") }}</strong
+          ><small class="mt-1 block text-2xs leading-[1.45] text-fg-muted">{{ t("webrtcPortRangeLead") }}</small>
+        </div>
+        <small
+          id="webrtc-range-locked"
+          :class="[
+            'flex shrink-0 items-center gap-1.5 text-2xs leading-snug font-medium text-fg',
+            !serverForm.webRtcEnabled && 'invisible',
+          ]"
+          ><Icon name="lock" :size="13" />{{ t("webrtcPortRangeLocked") }}</small
+        >
       </div>
       <div class="grid grid-cols-2 gap-2.5 max-narrow:grid-cols-1">
         <SettingField :label="t('webrtcPortStart')" field="webRtcUdpStart"
@@ -35,34 +53,39 @@
         /></SettingField>
       </div>
     </div>
+    <div aria-live="polite">
+      <div v-if="serverForm.webRtcEnabled" class="grid gap-2.5 rounded-lg border border-line bg-surface-0 p-3">
+        <strong class="text-caption">{{ t("webrtcOpenPortsTitle") }}</strong>
+        <div class="flex items-center gap-2">
+          <code class="rounded-md border border-line bg-surface-1 px-2.5 py-1 font-mono text-xs font-bold">{{
+            t("webrtcRangeUdp", { range: webrtcPortRangeText })
+          }}</code>
+        </div>
+        <ul class="m-0 grid list-disc gap-0.5 pl-5 text-2xs text-fg-muted">
+          <li>{{ t("webrtcOpenPortsHost") }}</li>
+          <li>{{ t("webrtcOpenPortsGroup") }}</li>
+          <li>{{ t("webrtcOpenPortsDocker") }}</li>
+        </ul>
+        <small class="text-2xs leading-snug text-fg-muted">{{ t("webrtcOpenPortsFallback") }}</small>
+      </div>
+    </div>
     <small class="-mt-2 text-2xs text-fg-muted">{{ t("webrtcApplyHint") }}</small>
-    <Dialog
-      v-model="webrtcPortNoticeOpen"
-      size="sm"
-      :title="t('webrtcPortNoticeTitle')"
-      :description="t('webrtcPortNotice', { range: webrtcPortRangeText })"
-      :close-label="t('close')"
-    >
-      <template #footer
-        ><Button class="w-full" @click="webrtcPortNoticeOpen = false">{{ t("gotIt") }}</Button></template
-      >
-    </Dialog>
   </AdminSection>
 </template>
 
 <script setup lang="ts">
-import { Button } from "@/shared/ui/button";
-import { Dialog } from "@/shared/ui/dialog";
+import { Icon } from "@/shared/ui/icon";
 import { Input } from "@/shared/ui/input";
+import { Switch } from "@/shared/ui/switch";
 import { storeToRefs } from "pinia";
-import SettingChoice from "@/features/admin/settings/SettingChoice.vue";
+import FieldSaved from "@/features/admin/ui/FieldSaved.vue";
 import SettingField from "@/features/admin/settings/SettingField.vue";
 import AdminSection from "@/features/admin/ui/AdminSection.vue";
 import { useAdminServerSettingsStore } from "@/features/admin/settings/adminServerSettings";
 import { useI18n } from "@/shared/i18n/useI18n";
 
 const settings = useAdminServerSettingsStore();
-const { serverForm, webrtcPortNoticeOpen, webrtcPortRangeText } = storeToRefs(settings);
-const { statuses, scheduleSave, handleWebRtcToggle } = settings;
+const { serverForm, webrtcPortRangeText } = storeToRefs(settings);
+const { statuses, scheduleSave, fieldStatus } = settings;
 const { t } = useI18n();
 </script>

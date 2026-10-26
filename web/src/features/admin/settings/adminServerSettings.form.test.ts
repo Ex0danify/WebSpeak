@@ -84,15 +84,6 @@ describe("useAdminServerSettingsStore", () => {
     s.st.removeRelayNode(0);
     expect(s.st.serverForm.relayNodes).toHaveLength(0);
   });
-
-  it("opens the port notice only when WebRTC is switched on", () => {
-    const s = setup();
-    s.st.handleWebRtcToggle();
-    expect(s.st.webrtcPortNoticeOpen).toBe(false);
-    s.st.serverForm.webRtcEnabled = true;
-    s.st.handleWebRtcToggle();
-    expect(s.st.webrtcPortNoticeOpen).toBe(true);
-  });
 });
 
 describe("useAdminServerSettingsStore (view)", () => {

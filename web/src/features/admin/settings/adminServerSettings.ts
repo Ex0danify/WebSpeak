@@ -45,7 +45,6 @@ export const useAdminServerSettingsStore = defineStore("adminServerSettings", ()
   const feedback = useAdminFeedbackStore();
   const { t } = useI18n();
 
-  const webrtcPortNoticeOpen = ref(false);
   const serverForm = reactive(initialServerForm());
   const welcomeLanguage = ref<WelcomeLanguage>(DEFAULT_LANGUAGE);
   /** What the gateway answered last. A value that is not valid yet is saved as this one. */
@@ -196,16 +195,10 @@ export const useAdminServerSettingsStore = defineStore("adminServerSettings", ()
     }
   }
 
-  function handleWebRtcToggle() {
-    if (serverForm.webRtcEnabled) webrtcPortNoticeOpen.value = true;
-    void scheduleSave("webrtc");
-  }
-
   /** Back to the empty form for logout, setup stores have no `$reset`. */
   function reset() {
     Object.assign(serverForm, initialServerForm());
     welcomeLanguage.value = "en";
-    webrtcPortNoticeOpen.value = false;
     confirmed = initialServerForm();
     loaded = false;
     issues.value = {};
@@ -222,7 +215,6 @@ export const useAdminServerSettingsStore = defineStore("adminServerSettings", ()
     selectedWelcomeText,
     selectedWelcomeLanguageLabel,
     selectedWelcomeDefault,
-    webrtcPortNoticeOpen,
     webrtcPortRangeText,
     loadServerSettings,
     scheduleSave,
@@ -230,7 +222,6 @@ export const useAdminServerSettingsStore = defineStore("adminServerSettings", ()
     fieldStatus,
     addRelayNode,
     removeRelayNode,
-    handleWebRtcToggle,
     reset,
   };
 });

@@ -139,6 +139,7 @@ const SAME_AS_ENGLISH = new Set<string>([
   "admin.version",
   "admin.web",
   "admin.webrtcSettings",
+  "admin.webrtcRangeUdp",
   "demo.simulated",
   "demo.demoOnline",
   "join.browserSupport",
