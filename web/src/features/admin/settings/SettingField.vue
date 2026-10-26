@@ -13,7 +13,7 @@
 <script setup lang="ts">
 import { Field } from "@/shared/ui/field";
 import FieldSaved from "@/features/admin/ui/FieldSaved.vue";
-import { useAdminServerSettingsStore } from "@/features/admin/gateway/adminServerSettings";
+import { useAdminServerSettingsStore } from "@/features/admin/settings/adminServerSettings";
 
 // A settings field: the label, the hint for a value that was not saved, and a mark next to the label when this field was saved.
 // `field` is the key the store knows it by (a form field name, or `relay:<node id>:<field>`).

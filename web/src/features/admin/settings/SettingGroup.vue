@@ -12,7 +12,7 @@
 import { useId } from "vue";
 import { Label } from "@/shared/ui/field";
 import FieldSaved from "@/features/admin/ui/FieldSaved.vue";
-import { useAdminServerSettingsStore } from "@/features/admin/gateway/adminServerSettings";
+import { useAdminServerSettingsStore } from "@/features/admin/settings/adminServerSettings";
 
 // A labelled group of choices (radios) that is saved as one setting: the label, and the mark on its row when the setting was saved.
 // The group inside names itself with the `label-id` the slot gets (`aria-labelledby`).

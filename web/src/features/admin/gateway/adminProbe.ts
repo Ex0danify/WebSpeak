@@ -1,5 +1,5 @@
 import type { MessageKey } from "@/shared/i18n/messageKeys";
-import type { ProbeState } from "@/features/admin/gateway/adminServerForm.js";
+import type { ProbeState } from "@/features/admin/settings/adminServerForm.js";
 
 type Translate = (key: MessageKey, params?: Record<string, string | number>) => string;
 

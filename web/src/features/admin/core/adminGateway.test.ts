@@ -5,7 +5,7 @@ import { registerAdminStores } from "@/features/admin/shell/adminStores";
 import { useAdminGatewayStore } from "@/features/admin/core/adminGateway";
 import { useAdminOverviewStore } from "@/features/admin/dashboard/adminOverview";
 import { useAdminServersStore } from "@/features/admin/gateway/adminServers";
-import { useAdminServerSettingsStore } from "@/features/admin/gateway/adminServerSettings";
+import { useAdminServerSettingsStore } from "@/features/admin/settings/adminServerSettings";
 
 vi.mock("vue-router", () => ({ useRoute: () => ({ path: "/admin" }), useRouter: () => ({ replace: vi.fn() }) }));
 

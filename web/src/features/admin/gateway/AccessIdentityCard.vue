@@ -49,12 +49,12 @@ import { Radio, RadioGroup } from "@/shared/ui/radio";
 import { Select } from "@/shared/ui/select";
 import { Textarea } from "@/shared/ui/textarea";
 import { storeToRefs } from "pinia";
-import SettingGroup from "@/features/admin/gateway/SettingGroup.vue";
-import SettingField from "@/features/admin/gateway/SettingField.vue";
+import SettingGroup from "@/features/admin/settings/SettingGroup.vue";
+import SettingField from "@/features/admin/settings/SettingField.vue";
 import AdminSection from "@/features/admin/ui/AdminSection.vue";
 import { choiceClass } from "@/features/admin/ui/adminClasses";
-import { welcomeLanguageOptions } from "@/features/admin/gateway/adminServerForm";
-import { useAdminServerSettingsStore } from "@/features/admin/gateway/adminServerSettings";
+import { welcomeLanguageOptions } from "@/features/admin/settings/adminServerForm";
+import { useAdminServerSettingsStore } from "@/features/admin/settings/adminServerSettings";
 import { useI18n } from "@/shared/i18n/useI18n";
 
 const settings = useAdminServerSettingsStore();

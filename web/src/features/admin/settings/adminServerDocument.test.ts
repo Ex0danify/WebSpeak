@@ -5,8 +5,8 @@ import {
   changedFieldKeys,
   isPlausibleTarget,
   sameDocument,
-} from "@/features/admin/gateway/adminServerDocument";
-import { createRelayNode, initialServerForm, serverFormFromSettings, type ServerForm } from "@/features/admin/gateway/adminServerForm";
+} from "@/features/admin/settings/adminServerDocument";
+import { createRelayNode, initialServerForm, serverFormFromSettings, type ServerForm } from "@/features/admin/settings/adminServerForm";
 
 const confirmedForm = (changes: Partial<ServerForm> = {}): ServerForm => ({ ...initialServerForm(), ...changes });
 

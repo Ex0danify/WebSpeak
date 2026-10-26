@@ -1,4 +1,4 @@
-import type { AccessMode, RelayNodeForm, ServerForm } from "@/features/admin/gateway/adminServerForm.js";
+import type { AccessMode, RelayNodeForm, ServerForm } from "@/features/admin/settings/adminServerForm.js";
 
 /** The limits the gateway enforces on the settings document, so a value outside them is held back instead of refused. */
 export const SETTING_LIMITS = {

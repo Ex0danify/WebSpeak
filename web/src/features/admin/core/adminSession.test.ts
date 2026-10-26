@@ -10,7 +10,7 @@ import { useAdminUsersStore } from "@/features/admin/users/adminUsers";
 import { useAdminOverviewStore } from "@/features/admin/dashboard/adminOverview";
 import { useAdminServerDialogStore } from "@/features/admin/gateway/adminServerDialog";
 import { useAdminServersStore } from "@/features/admin/gateway/adminServers";
-import { useAdminServerSettingsStore } from "@/features/admin/gateway/adminServerSettings";
+import { useAdminServerSettingsStore } from "@/features/admin/settings/adminServerSettings";
 import { useAdminSessionStore } from "@/features/admin/core/adminSession";
 
 function respond(status: number, body: unknown) {

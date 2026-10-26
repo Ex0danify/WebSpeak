@@ -5,7 +5,7 @@ import { useAdminOverviewStore } from "@/features/admin/dashboard/adminOverview"
 import { useAdminServerDialogStore } from "@/features/admin/gateway/adminServerDialog";
 import { useAdminServerOrderStore } from "@/features/admin/gateway/adminServerOrder";
 import { useAdminServersStore } from "@/features/admin/gateway/adminServers";
-import { useAdminServerSettingsStore } from "@/features/admin/gateway/adminServerSettings";
+import { useAdminServerSettingsStore } from "@/features/admin/settings/adminServerSettings";
 import { useAdminInvitesStore } from "@/features/admin/users/invites/adminInvites";
 import { useAdminUsersStore } from "@/features/admin/users/adminUsers";
 

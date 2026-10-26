@@ -61,10 +61,10 @@ import { Button } from "@/shared/ui/button";
 import { Input } from "@/shared/ui/input";
 import { Segment, Segmented } from "@/shared/ui/tabs";
 import { storeToRefs } from "pinia";
-import SettingChoice from "@/features/admin/gateway/SettingChoice.vue";
-import SettingField from "@/features/admin/gateway/SettingField.vue";
+import SettingChoice from "@/features/admin/settings/SettingChoice.vue";
+import SettingField from "@/features/admin/settings/SettingField.vue";
 import AdminSection from "@/features/admin/ui/AdminSection.vue";
-import { useAdminServerSettingsStore } from "@/features/admin/gateway/adminServerSettings";
+import { useAdminServerSettingsStore } from "@/features/admin/settings/adminServerSettings";
 import { useI18n } from "@/shared/i18n/useI18n";
 
 const settings = useAdminServerSettingsStore();

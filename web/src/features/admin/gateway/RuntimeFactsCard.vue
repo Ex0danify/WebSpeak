@@ -13,7 +13,7 @@
 import { storeToRefs } from "pinia";
 import AdminListRow from "@/features/admin/ui/AdminListRow.vue";
 import AdminSection from "@/features/admin/ui/AdminSection.vue";
-import { useAdminServerSettingsStore } from "@/features/admin/gateway/adminServerSettings";
+import { useAdminServerSettingsStore } from "@/features/admin/settings/adminServerSettings";
 import { useI18n } from "@/shared/i18n/useI18n";
 
 const { serverForm } = storeToRefs(useAdminServerSettingsStore());

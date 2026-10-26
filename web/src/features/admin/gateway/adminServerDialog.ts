@@ -4,7 +4,7 @@ import type { ApiError } from "@/features/admin/core/adminApi.js";
 import { SERVER_LIST_STATUS, useAdminFeedbackStore } from "@/features/admin/core/adminFeedback.js";
 import { createAdminFormat } from "@/features/admin/core/adminFormat.js";
 import { createProbeText } from "@/features/admin/gateway/adminProbe.js";
-import { initialServerDialog, type ProbeState } from "@/features/admin/gateway/adminServerForm.js";
+import { initialServerDialog, type ProbeState } from "@/features/admin/settings/adminServerForm.js";
 import { adminSiblings } from "@/features/admin/core/adminSiblings.js";
 import { useAdminSessionStore } from "@/features/admin/core/adminSession.js";
 import type { AdminServer } from "@/features/admin/core/adminTypes.js";

@@ -9,7 +9,7 @@ import {
   serverFormFromSettings,
   type WelcomeLanguage,
   welcomeLanguageOptions,
-} from "@/features/admin/gateway/adminServerForm.js";
+} from "@/features/admin/settings/adminServerForm.js";
 import {
   applySavedSettings,
   buildSettingsDocument,
@@ -18,7 +18,7 @@ import {
   type SettingsIssue,
   type SettingsIssues,
   type SettingsSection,
-} from "@/features/admin/gateway/adminServerDocument.js";
+} from "@/features/admin/settings/adminServerDocument.js";
 import { createSaveStatus, type SaveStatus } from "@/features/admin/core/saveStatus.js";
 import type { ApiError } from "@/features/admin/core/adminApi.js";
 import { useAdminFeedbackStore } from "@/features/admin/core/adminFeedback.js";

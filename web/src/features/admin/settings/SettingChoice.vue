@@ -16,7 +16,7 @@
 import { Checkbox } from "@/shared/ui/checkbox";
 import FieldSaved from "@/features/admin/ui/FieldSaved.vue";
 import { choiceClass } from "@/features/admin/ui/adminClasses";
-import { useAdminServerSettingsStore } from "@/features/admin/gateway/adminServerSettings";
+import { useAdminServerSettingsStore } from "@/features/admin/settings/adminServerSettings";
 
 // A checkbox that is saved as one setting. With a `lead` it is a choice box (title, explanation, the mark in its corner), without
 // one a plain row (title, the mark beside it). Listen to `update:model-value` to ask for the save.
