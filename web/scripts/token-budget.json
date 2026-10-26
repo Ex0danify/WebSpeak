@@ -33,9 +33,6 @@
     "src/features/join/JoinForm.vue": {
       "arbitrary": 1
     },
-    "src/features/join/JoinHeader.vue": {
-      "arbitrary": 1
-    },
     "src/features/join/JoinHero.vue": {
       "arbitrary": 3
     },
