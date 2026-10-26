@@ -219,9 +219,10 @@ export interface Screen {
 }
 
 export const adminScreens: Screen[] = [
-  { id: "admin-overview", path: "/admin", langs: ["en", "de"], admin: true },
-  { id: "admin-server", path: "/admin/server", langs: ["en"], admin: true },
-  { id: "admin-operations", path: "/admin/operations", langs: ["en"], admin: true },
+  { id: "admin-dashboard", path: "/admin", langs: ["en", "de"], admin: true },
+  { id: "admin-gateway", path: "/admin/gateway", langs: ["en", "de"], admin: true },
+  { id: "admin-users", path: "/admin/users", langs: ["en", "de"], admin: true },
+  { id: "admin-diagnostics", path: "/admin/diagnostics", langs: ["en", "de"], admin: true },
 ];
 
 // Returns [status, body] for an authenticated admin request, or null when not mocked.

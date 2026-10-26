@@ -1,6 +1,6 @@
 import type { Locator, Page } from "@playwright/test";
 import { expect, test } from "./fixtures";
-import { openServerPage, reloadServerPage } from "./helpers/admin";
+import { openGatewayPage, reloadGatewayPage } from "./helpers/admin";
 import { serverOptions } from "./helpers";
 import { TeamSpeakProbeError } from "../src/modules/teamspeak/teamSpeakProbe";
 
@@ -24,7 +24,7 @@ async function fillServer(page: Page, name: string, address: string, port?: stri
 test.describe("the list", () => {
   test("starts with the default server, checked on every visit", async ({ page, ownGateway }) => {
     const gateway = await ownGateway();
-    await openServerPage(page, gateway);
+    await openGatewayPage(page, gateway);
     const first = row(page, "WebSpeak");
     await expect(first).toHaveCount(1);
     await expect(first).toContainText("127.0.0.1:9987");
@@ -39,7 +39,7 @@ test.describe("the list", () => {
       if (target.host === "clan.example.test") throw new TeamSpeakProbeError("NO_ANSWER", "silent");
       return { ok: true, latencyMs: 12 };
     });
-    await openServerPage(page, gateway);
+    await openGatewayPage(page, gateway);
     await expect(row(page, "Clan")).toContainText("Unreachable");
     await expect(row(page, "Clan")).toContainText("Password protected");
     await expect(row(page, "Clan")).toContainText("clan.example.test:9988");
@@ -52,7 +52,7 @@ test.describe("the list", () => {
     const gateway = await ownGateway();
     let release: () => void = () => {};
     gateway.probe.mockImplementation(() => new Promise((resolve) => (release = () => resolve({ ok: true, latencyMs: 5 }))));
-    await openServerPage(page, gateway);
+    await openGatewayPage(page, gateway);
     await expect(row(page, "WebSpeak")).toContainText("Checking");
     release();
     await expect(row(page, "WebSpeak")).toContainText("Online");
@@ -62,7 +62,7 @@ test.describe("the list", () => {
 test.describe("adding a server", () => {
   test("the dialog tests the address, then adds the server, which the guests see by name only", async ({ page, ownGateway }) => {
     const gateway = await ownGateway();
-    await openServerPage(page, gateway);
+    await openGatewayPage(page, gateway);
     await page.getByRole("button", { name: "Add server" }).click();
     const add = dialog(page, "Add server");
     await expect(add).toBeVisible();
@@ -84,7 +84,7 @@ test.describe("adding a server", () => {
     await expect(row(page, "Clan")).toContainText("Password protected");
     await expect(row(page, "Clan")).toContainText("Online");
 
-    await reloadServerPage(page, gateway);
+    await reloadGatewayPage(page, gateway);
     await expect(row(page, "Clan")).toHaveCount(1);
     const config = JSON.stringify(await (await gateway.request("/api/public-config")).json());
     expect(config).toContain("Clan");
@@ -94,7 +94,7 @@ test.describe("adding a server", () => {
   test("a silent address is reported in the dialog without blocking the save", async ({ page, ownGateway }) => {
     const gateway = await ownGateway();
     gateway.probe.mockRejectedValue(new TeamSpeakProbeError("NO_ANSWER", "silent"));
-    await openServerPage(page, gateway);
+    await openGatewayPage(page, gateway);
     await page.getByRole("button", { name: "Add server" }).click();
     const add = dialog(page, "Add server");
     await fillServer(page, "Quiet", "quiet.example.test");
@@ -107,7 +107,7 @@ test.describe("adding a server", () => {
 
   test("a refused entry stays in the dialog with the reason, and the list is untouched", async ({ page, ownGateway }) => {
     const gateway = await ownGateway();
-    await openServerPage(page, gateway);
+    await openGatewayPage(page, gateway);
     await page.getByRole("button", { name: "Add server" }).click();
     const add = dialog(page, "Add server");
     await fillServer(page, "webspeak", "other.example.test");
@@ -123,7 +123,7 @@ test.describe("adding a server", () => {
 
   test("the dialog closes on Escape and the next one starts empty", async ({ page, ownGateway }) => {
     const gateway = await ownGateway();
-    await openServerPage(page, gateway);
+    await openGatewayPage(page, gateway);
     await page.getByRole("button", { name: "Add server" }).click();
     await fillServer(page, "Draft", "draft.example.test");
     await page.keyboard.press("Escape");
@@ -138,7 +138,7 @@ test.describe("changing a server", () => {
   test("keeps the saved password unless it is changed, and says Saved", async ({ page, ownGateway }) => {
     const gateway = await ownGateway();
     const clan = gateway.adminService.createServer({ name: "Clan", target: "clan.example.test:9988", serverPassword: "s3cret" });
-    await openServerPage(page, gateway);
+    await openGatewayPage(page, gateway);
     await page.getByRole("button", { name: "Edit Clan" }).click();
     const edit = dialog(page, "Edit server");
     await expect(page.getByLabel("Server name")).toHaveValue("Clan");
@@ -160,7 +160,7 @@ test.describe("changing a server", () => {
 
   test("moving a server to another address checks it again", async ({ page, ownGateway }) => {
     const gateway = await ownGateway();
-    await openServerPage(page, gateway);
+    await openGatewayPage(page, gateway);
     gateway.probe.mockClear();
     await page.getByRole("button", { name: "Edit WebSpeak" }).click();
     await page.getByLabel("TeamSpeak server address").fill("moved.example.test");
@@ -174,7 +174,7 @@ test.describe("removing a server", () => {
   test("asks first, then removes it and says Saved", async ({ page, ownGateway }) => {
     const gateway = await ownGateway();
     gateway.adminService.createServer({ name: "Clan", target: "clan.example.test" });
-    await openServerPage(page, gateway);
+    await openGatewayPage(page, gateway);
     await page.getByRole("button", { name: "Remove Clan" }).click();
     const confirm = page.getByRole("dialog", { name: "Remove server" });
     await expect(confirm).toContainText("Remove “Clan”?");
@@ -185,13 +185,13 @@ test.describe("removing a server", () => {
     await confirm.getByRole("button", { name: "Remove", exact: true }).click();
     await expect(listSaved(page)).toBeVisible();
     await expect(row(page, "Clan")).toHaveCount(0);
-    await reloadServerPage(page, gateway);
+    await reloadGatewayPage(page, gateway);
     await expect(page.locator(".server-row")).toHaveCount(1);
   });
 
   test("the last server stays while guests may only use the list", async ({ page, ownGateway }) => {
     const gateway = await ownGateway();
-    await openServerPage(page, gateway);
+    await openGatewayPage(page, gateway);
     await page.getByRole("button", { name: "Remove WebSpeak" }).click();
     await page.getByRole("dialog", { name: "Remove server" }).getByRole("button", { name: "Remove", exact: true }).click();
     await expect(page.getByRole("alert")).toContainText("Keep at least one server while access is limited to the server list.");
@@ -202,7 +202,7 @@ test.describe("removing a server", () => {
     const gateway = await ownGateway();
     const clan = gateway.adminService.createServer({ name: "Clan", target: "clan.example.test" });
     const { token } = gateway.adminService.createManagedInvite({ serverId: clan.id, channel: "", expiresInHours: 1, maxUses: 0 });
-    await openServerPage(page, gateway);
+    await openGatewayPage(page, gateway);
     await page.getByRole("button", { name: "Remove Clan" }).click();
     await page.getByRole("dialog", { name: "Remove server" }).getByRole("button", { name: "Remove", exact: true }).click();
     await expect(row(page, "Clan")).toHaveCount(0);
@@ -220,7 +220,7 @@ test.describe("keyboard", () => {
   test("the list is reachable and operable without a mouse", async ({ page, ownGateway, isMobile }) => {
     test.skip(isMobile, "no keyboard on a phone");
     const gateway = await ownGateway();
-    await openServerPage(page, gateway);
+    await openGatewayPage(page, gateway);
     await page.getByRole("button", { name: "Add server" }).focus();
     await page.keyboard.press("Enter");
     const add = dialog(page, "Add server");
@@ -246,7 +246,7 @@ test.describe("order", () => {
     const gateway = await ownGateway();
     gateway.adminService.createServer({ name: "Clan", target: "clan.example.test" });
     gateway.adminService.createServer({ name: "LAN party", target: "lan.example.test" });
-    await openServerPage(page, gateway);
+    await openGatewayPage(page, gateway);
     expect(await names(page)).toEqual(["WebSpeak", "Clan", "LAN party"]);
 
     const handle = page.getByRole("button", { name: "Reorder LAN party" });
@@ -262,7 +262,7 @@ test.describe("order", () => {
     await expect(listSaved(page)).toBeVisible();
     expect(await names(page)).toEqual(["LAN party", "WebSpeak", "Clan"]);
 
-    await reloadServerPage(page, gateway);
+    await reloadGatewayPage(page, gateway);
     expect(await names(page)).toEqual(["LAN party", "WebSpeak", "Clan"]);
     await page.goto(`${gateway.url}/`);
     await page.getByLabel("Your nickname").fill("order-check");
@@ -273,7 +273,7 @@ test.describe("order", () => {
     test.skip(isMobile, "a phone moves a server with the buttons");
     const gateway = await ownGateway();
     gateway.adminService.createServer({ name: "Clan", target: "clan.example.test" });
-    await openServerPage(page, gateway);
+    await openGatewayPage(page, gateway);
     await page.getByRole("button", { name: "Reorder Clan" }).focus();
     await page.keyboard.press("Space");
     await page.keyboard.press("ArrowUp");
@@ -287,7 +287,7 @@ test.describe("order", () => {
     test.skip(isMobile, "a phone moves a server with the buttons");
     const gateway = await ownGateway();
     gateway.adminService.createServer({ name: "Clan", target: "clan.example.test" });
-    await openServerPage(page, gateway);
+    await openGatewayPage(page, gateway);
     await row(page, "Clan").dragTo(row(page, "WebSpeak"));
     await expect(listSaved(page)).toBeVisible();
     expect(await names(page)).toEqual(["Clan", "WebSpeak"]);
@@ -298,7 +298,7 @@ test.describe("order", () => {
     test.skip(!isMobile, "the buttons are for touch");
     const gateway = await ownGateway();
     gateway.adminService.createServer({ name: "Clan", target: "clan.example.test" });
-    await openServerPage(page, gateway);
+    await openGatewayPage(page, gateway);
     await expect(page.getByRole("button", { name: "Move WebSpeak up" })).toBeDisabled();
     await page.getByRole("button", { name: "Move Clan up" }).click();
     await expect(listSaved(page)).toBeVisible();
@@ -307,7 +307,7 @@ test.describe("order", () => {
 
   test("a single server has nothing to reorder", async ({ page, ownGateway }) => {
     const gateway = await ownGateway();
-    await openServerPage(page, gateway);
+    await openGatewayPage(page, gateway);
     await expect(page.getByRole("button", { name: /^Reorder / })).toHaveCount(0);
   });
 });

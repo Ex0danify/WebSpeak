@@ -1,6 +1,7 @@
 import type { Page } from "@playwright/test";
 import { expect, test } from "./fixtures";
 import { BOOTSTRAP } from "../test/support/adminService";
+import { logOut } from "./helpers/admin";
 import { TEST_ADMIN_PASSWORD, type Gateway } from "../test/support/gateway";
 
 // The admin console against a gateway of its own (`ownGateway`), because these tests change what
@@ -14,10 +15,10 @@ async function submitLogin(page: Page, gateway: Gateway, password: string, usern
   await page.getByRole("button", { name: "Sign in" }).click();
 }
 
-/** Signs in with the password the harness set and waits for the overview. */
+/** Signs in with the password the harness set and waits for the dashboard. */
 async function login(page: Page, gateway: Gateway): Promise<void> {
   await submitLogin(page, gateway, TEST_ADMIN_PASSWORD);
-  await expect(page.getByRole("heading", { name: "Overview", level: 1 })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Dashboard", level: 1 })).toBeVisible();
 }
 
 const path = (page: Page): string => new URL(page.url()).pathname;
@@ -25,7 +26,7 @@ const path = (page: Page): string => new URL(page.url()).pathname;
 test.describe("sign in", () => {
   test("asks for the account, and a visitor without a session is sent to the form from any admin page", async ({ page, ownGateway }) => {
     const gateway = await ownGateway();
-    await page.goto(`${gateway.url}/admin/server`);
+    await page.goto(`${gateway.url}/admin/gateway`);
     await expect(page.getByRole("heading", { name: "Welcome back" })).toBeVisible();
     expect(path(page)).toBe("/admin/login");
     await expect(page.getByRole("link", { name: "Back to home" })).toBeVisible();
@@ -40,16 +41,16 @@ test.describe("sign in", () => {
 
     await page.getByLabel("Admin password").fill(TEST_ADMIN_PASSWORD);
     await page.getByRole("button", { name: "Sign in" }).click();
-    await expect(page.getByRole("heading", { name: "Overview", level: 1 })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Dashboard", level: 1 })).toBeVisible();
     expect(path(page)).toBe("/admin");
   });
 
-  test("Log out ends the session: the form is back and admin pages are closed again", async ({ page, ownGateway }) => {
+  test("Log out ends the session: the form is back and admin pages are closed again", async ({ page, ownGateway, isMobile }) => {
     const gateway = await ownGateway();
     await login(page, gateway);
-    await page.getByRole("button", { name: "Log out" }).click();
+    await logOut(page, isMobile);
     await expect(page.getByRole("heading", { name: "Welcome back" })).toBeVisible();
-    await page.goto(`${gateway.url}/admin/operations`);
+    await page.goto(`${gateway.url}/admin/users`);
     await expect(page.getByRole("heading", { name: "Welcome back" })).toBeVisible();
     expect(path(page)).toBe("/admin/login");
   });
@@ -62,7 +63,7 @@ test.describe("first sign in", () => {
     await expect(page.getByRole("heading", { name: "Change the default password" })).toBeVisible();
     expect(path(page)).toBe("/admin/change-password");
 
-    for (const other of ["/admin", "/admin/server", "/admin/operations"]) {
+    for (const other of ["/admin", "/admin/gateway", "/admin/users", "/admin/diagnostics"]) {
       await page.goto(`${gateway.url}${other}`);
       await expect(page.getByRole("heading", { name: "Change the default password" })).toBeVisible();
     }
@@ -85,25 +86,25 @@ test.describe("first sign in", () => {
     expect(path(page)).toBe("/admin/change-password");
   });
 
-  test("a new password opens the console, and the old one no longer signs in", async ({ page, ownGateway }) => {
+  test("a new password opens the console, and the old one no longer signs in", async ({ page, ownGateway, isMobile }) => {
     const gateway = await ownGateway({ forcePasswordChange: true });
     await submitLogin(page, gateway, BOOTSTRAP.password);
     await page.getByLabel("New admin password").fill("a brand new admin password");
     await page.getByLabel("Confirm admin password").fill("a brand new admin password");
     await page.getByRole("button", { name: "Save new password" }).click();
-    await expect(page.getByRole("heading", { name: "Overview", level: 1 })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Dashboard", level: 1 })).toBeVisible();
 
-    await page.getByRole("button", { name: "Log out" }).click();
+    await logOut(page, isMobile);
     await submitLogin(page, gateway, BOOTSTRAP.password);
     await expect(page.getByText("The admin password is incorrect.")).toBeVisible();
     await page.getByLabel("Admin password").fill("a brand new admin password");
     await page.getByRole("button", { name: "Sign in" }).click();
-    await expect(page.getByRole("heading", { name: "Overview", level: 1 })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Dashboard", level: 1 })).toBeVisible();
   });
 });
 
-test.describe("overview", () => {
-  test("shows the status, the servers and the recent events, and links to the settings and the guest page", async ({
+test.describe("dashboard and navigation", () => {
+  test("the dashboard shows the status, the servers and a preview of the events, and each page is one tap away", async ({
     page,
     ownGateway,
     isMobile,
@@ -114,28 +115,90 @@ test.describe("overview", () => {
     await expect(page.getByRole("heading", { name: "Server health" })).toBeVisible();
     await expect(page.getByRole("heading", { name: "Recent events" })).toBeVisible();
     await expect(page.getByText("Administrator signed in")).toBeVisible();
-    // A phone's narrow sidebar leaves the guest page link out.
-    if (!isMobile) await expect(page.getByRole("link", { name: "Open guest page" })).toHaveAttribute("href", "/");
+    // The guest page link is in the sidebar on a desktop and in the account menu on a phone.
+    if (isMobile) {
+      await page.getByRole("button", { name: "Account" }).click();
+      await expect(page.getByRole("button", { name: "Open guest page" })).toBeVisible();
+      await page.getByRole("button", { name: "Close" }).click();
+    } else {
+      await expect(page.getByRole("link", { name: "Open guest page" })).toHaveAttribute("href", "/");
+    }
 
     await page.getByRole("link", { name: "Manage" }).click();
-    await expect(page.getByRole("heading", { name: "Server settings" })).toBeVisible();
-    expect(path(page)).toBe("/admin/server");
-    for (const [link, heading] of [
-      ["Operations", "Operations"],
-      ["Overview", "Overview"],
+    await expect(page.getByRole("heading", { name: "Gateway", level: 1 })).toBeVisible();
+    expect(path(page)).toBe("/admin/gateway");
+    const nav = page.getByRole("navigation", { name: "Admin pages" });
+    for (const [link, address] of [
+      ["Users", "/admin/users"],
+      ["Diagnostics", "/admin/diagnostics"],
+      ["Dashboard", "/admin"],
     ] as const) {
-      await page.getByRole("link", { name: link, exact: true }).first().click();
-      await expect(page.getByRole("heading", { name: heading, level: 1 })).toBeVisible();
+      await nav.getByRole("link", { name: link }).click();
+      await expect(page.getByRole("heading", { name: link, level: 1 })).toBeVisible();
+      expect(path(page)).toBe(address);
+      await expect(nav.getByRole("link", { name: link })).toHaveAttribute("aria-current", "page");
     }
+  });
+
+  test("View all leads from the recent events to the audit trail", async ({ page, ownGateway }) => {
+    const gateway = await ownGateway();
+    await login(page, gateway);
+    await page.getByRole("link", { name: "View all" }).click();
+    await expect(page.getByRole("heading", { name: "Diagnostics", level: 1 })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Audit trail" })).toBeVisible();
+    await expect(page.getByRole("region", { name: "Audit trail" })).toContainText("Administrator signed in");
+  });
+
+  test("the page nav is a bar along the bottom edge of a phone and stays there while the page scrolls", async ({
+    page,
+    ownGateway,
+    isMobile,
+  }) => {
+    test.skip(!isMobile, "the bottom bar is the phone's layout");
+    const gateway = await ownGateway();
+    await login(page, gateway);
+    await page.goto(`${gateway.url}/admin/gateway`);
+    await expect(page.getByRole("heading", { name: "Gateway", level: 1 })).toBeVisible();
+    const nav = page.getByRole("navigation", { name: "Admin pages" });
+    const bottom = async () => {
+      const box = (await nav.boundingBox())!;
+      return Math.round(box.y + box.height);
+    };
+    const height = page.viewportSize()!.height;
+    expect(await bottom()).toBe(height);
+    await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+    expect(await page.evaluate(() => document.documentElement.scrollHeight > innerHeight)).toBe(true);
+    expect(await bottom()).toBe(height);
+    for (const link of ["Dashboard", "Gateway", "Users", "Diagnostics"]) {
+      const box = (await nav.getByRole("link", { name: link }).boundingBox())!;
+      expect(box.height, `${link} is at least 44 px tall`).toBeGreaterThanOrEqual(44);
+    }
+  });
+
+  test("a page scrolls as a whole: the invite form is not inside a scroller of its own", async ({ page, ownGateway }) => {
+    const gateway = await ownGateway();
+    await login(page, gateway);
+    await page.goto(`${gateway.url}/admin/users`);
+    const form = page.getByRole("button", { name: "Create invite link" });
+    await expect(form).toBeVisible();
+    const scrollers = await form.evaluate((element) => {
+      const found: string[] = [];
+      for (let node = element.parentElement; node && node !== document.documentElement; node = node.parentElement) {
+        const { overflowY } = getComputedStyle(node);
+        if (overflowY === "auto" || overflowY === "scroll" || overflowY === "hidden") found.push(node.tagName + "." + node.className);
+      }
+      return found;
+    });
+    expect(scrollers).toEqual([]);
   });
 });
 
 test.describe("unknown page", () => {
-  test("an address that is no console page shows the overview and is corrected to /admin", async ({ page, ownGateway }) => {
+  test("an address that is no console page shows the dashboard and is corrected to /admin", async ({ page, ownGateway }) => {
     const gateway = await ownGateway();
     await login(page, gateway);
     await page.goto(`${gateway.url}/admin/nowhere`);
-    await expect(page.getByRole("heading", { name: "Overview", level: 1 })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Dashboard", level: 1 })).toBeVisible();
     await expect.poll(() => path(page)).toBe("/admin");
   });
 });

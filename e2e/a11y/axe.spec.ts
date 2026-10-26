@@ -65,10 +65,10 @@ const states: State[] = [
   { id: "admin-login", prepare: visit("/admin/login") },
   ...adminScreens.map((screen) => ({ id: screen.id, prepare: visit(screen.path) })),
   {
-    id: "admin-server-dialog",
+    id: "admin-gateway-dialog",
     admin: true,
     async prepare(page) {
-      await page.goto("/admin/server", { waitUntil: "networkidle" });
+      await page.goto("/admin/gateway", { waitUntil: "networkidle" });
       await page.getByRole("button", { name: "Edit Main server" }).click();
       await expect(page.getByRole("dialog", { name: "Edit server" })).toBeVisible();
     },

@@ -3,16 +3,16 @@ import { expect, test } from "./fixtures";
 import { overflowScan } from "./helpers";
 import { TEST_ADMIN_PASSWORD, type Gateway } from "../test/support/gateway";
 
-// The admin console's Operations page: the live sessions, the invite links, and the pages at a
+// The admin console's Users page: the live sessions and the invite links, and the pages at a
 // phone's width. Each test has a gateway of its own (`ownGateway`), the console is asked for English.
 
 /** Signs in and opens the given admin page. */
-async function openAdmin(page: Page, gateway: Gateway, path: "" | "/server" | "/operations"): Promise<void> {
+async function openAdmin(page: Page, gateway: Gateway, path: "" | "/gateway" | "/users" | "/diagnostics"): Promise<void> {
   await page.goto(`${gateway.url}/admin/login`);
   await page.getByLabel("Admin username").fill("admin");
   await page.getByLabel("Admin password").fill(TEST_ADMIN_PASSWORD);
   await page.getByRole("button", { name: "Sign in" }).click();
-  await expect(page.getByRole("heading", { name: "Overview", level: 1 })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Dashboard", level: 1 })).toBeVisible();
   if (path) await page.goto(`${gateway.url}/admin${path}`);
   await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
 }
@@ -33,7 +33,7 @@ const toast = (page: Page, text: string) => page.locator("li").filter({ hasText:
 test.describe("sessions", () => {
   test("says when nobody is connected, lists a guest with its state, and Refresh picks up a new one", async ({ page, ownGateway }) => {
     const gateway = await ownGateway();
-    await openAdmin(page, gateway, "/operations");
+    await openAdmin(page, gateway, "/users");
     await expect(page.getByText("There are no active sessions.")).toBeVisible();
 
     const guest = await guestJoins(page, gateway, "ops-guest");
@@ -49,7 +49,7 @@ test.describe("sessions", () => {
     const gateway = await ownGateway();
     const guest = await guestJoins(page, gateway, "ops-victim");
     await expect(guest.getByRole("textbox", { name: "Search members" })).toBeVisible();
-    await openAdmin(page, gateway, "/operations");
+    await openAdmin(page, gateway, "/users");
 
     await sessionsTable(page).getByRole("row").filter({ hasText: "ops-victim" }).getByRole("button", { name: "Terminate" }).click();
     await page.getByRole("dialog", { name: "Terminate session" }).getByRole("button", { name: "Terminate" }).click();
@@ -62,7 +62,7 @@ test.describe("sessions", () => {
 test.describe("invites", () => {
   test("creating one shows its link once, and lists it as active and unused", async ({ page, ownGateway }) => {
     const gateway = await ownGateway();
-    await openAdmin(page, gateway, "/operations");
+    await openAdmin(page, gateway, "/users");
     await page.getByLabel("Target channel").fill("Room A");
     await page.getByRole("button", { name: "Create invite link" }).click();
 
@@ -76,7 +76,7 @@ test.describe("invites", () => {
   test("an invite is made for the server picked in the form, and the first one is the default", async ({ page, ownGateway }) => {
     const gateway = await ownGateway();
     gateway.adminService.createServer({ name: "Clan", target: "clan.example.test:9988" });
-    await openAdmin(page, gateway, "/operations");
+    await openAdmin(page, gateway, "/users");
     const server = page.getByLabel("Server", { exact: true });
     await expect(server.locator("option")).toHaveText(["WebSpeak", "Clan"]);
     await expect(server.locator("option:checked")).toHaveText("WebSpeak");
@@ -89,7 +89,7 @@ test.describe("invites", () => {
   test("the link takes a guest into the invite's channel and uses one up; Copy link copies it", async ({ page, context, ownGateway }) => {
     await context.grantPermissions(["clipboard-read", "clipboard-write"]);
     const gateway = await ownGateway();
-    await openAdmin(page, gateway, "/operations");
+    await openAdmin(page, gateway, "/users");
     await page.getByLabel("Target channel").fill("Room A");
     await page.getByRole("button", { name: "Create invite link" }).click();
     const link = await page.getByLabel("Invite link created").inputValue();
@@ -108,7 +108,7 @@ test.describe("invites", () => {
 
   test("Revoke asks first, and a revoked link no longer lets a guest in", async ({ page, ownGateway }) => {
     const gateway = await ownGateway();
-    await openAdmin(page, gateway, "/operations");
+    await openAdmin(page, gateway, "/users");
     await page.getByRole("button", { name: "Create invite link" }).click();
     const link = await page.getByLabel("Invite link created").inputValue();
     const item = page.locator(".invite-row").first();
@@ -139,7 +139,7 @@ test.describe("confirmations", () => {
     const gateway = await ownGateway();
     const guest = await guestJoins(page, gateway, "ops-notice");
     await expect(guest.getByRole("textbox", { name: "Search members" })).toBeVisible();
-    await openAdmin(page, gateway, "/operations");
+    await openAdmin(page, gateway, "/users");
     await page.getByRole("button", { name: "Create invite link" }).click();
     const item = page.locator(".invite-row").first();
     await item.getByRole("button", { name: "Revoke" }).click();
@@ -158,7 +158,7 @@ test.describe("confirmations", () => {
 
   test("declining the confirmation dialog changes nothing and shows no toast", async ({ page, ownGateway }) => {
     const gateway = await ownGateway();
-    await openAdmin(page, gateway, "/operations");
+    await openAdmin(page, gateway, "/users");
     await page.getByRole("button", { name: "Create invite link" }).click();
     const item = page.locator(".invite-row").first();
     await item.getByRole("button", { name: "Revoke" }).click();
@@ -181,7 +181,7 @@ test.describe("at a phone's width", () => {
         await page.getByRole("button", { name: "Switch to dark theme" }).click();
         expect(await page.evaluate(() => document.documentElement.dataset.theme)).toBe("dark");
       }
-      for (const path of ["", "/server", "/operations"] as const) {
+      for (const path of ["", "/gateway", "/users", "/diagnostics"] as const) {
         await page.goto(`${gateway.url}/admin${path}`);
         await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
         expect(await overflowScan(page), `/admin${path} in ${scheme}`).toEqual({ clipped: [], pageScrolls: false });
@@ -194,7 +194,7 @@ test.describe("at a phone's width", () => {
   async function operationsWithASession(page: Page, gateway: Gateway) {
     const guest = await guestJoins(page, gateway, "ops-narrow");
     await expect(guest.getByRole("textbox", { name: "Search members" })).toBeVisible();
-    await openAdmin(page, gateway, "/operations");
+    await openAdmin(page, gateway, "/users");
     await expect(sessionsTable(page)).toBeVisible();
   }
 
