@@ -306,3 +306,25 @@ describe("diagnostics", () => {
     }
   });
 });
+
+describe("invite paging", () => {
+  it("returns a page with the total, filtered by status, and refuses a bad query", async () => {
+    const { admin } = await start();
+    const ids: string[] = [];
+    for (let index = 0; index < 3; index += 1) {
+      const created = await json(await admin.post("invites", { serverId: DEFAULT_SERVER_ID, channel: "", expiresInHours: 1, maxUses: 0 }));
+      ids.push(created.invite.id);
+    }
+    await admin.post(`invites/${ids[0]}/revoke`);
+    const page = await json(await admin.get("invites?limit=2&offset=0"));
+    expect(page.invites).toHaveLength(2);
+    expect(page.total).toBe(3);
+    const revoked = await json(await admin.get("invites?status=revoked"));
+    expect(revoked).toMatchObject({ total: 1, invites: [{ id: ids[0], status: "revoked" }] });
+    for (const query of ["limit=0", "limit=101", "limit=x", "offset=-1", "offset=1.5", "status=nope"]) {
+      const response = await admin.get(`invites?${query}`);
+      expect([query, response.status]).toEqual([query, 400]);
+      expect(await json(response)).toMatchObject({ code: "INVALID_INVITE_QUERY" });
+    }
+  });
+});

@@ -12,12 +12,12 @@ import { type IdentityMintPolicy } from "../../config/identityMintConfig.js";
 import { DEFAULT_WELCOME_TEXTS, resolveWelcomeTexts } from "./siteCopy.js";
 import { AdminInputError } from "./adminErrors.js";
 import { AdminServerService, type ResolvedServer, type ServerInput, type ServerView } from "./adminServerService.js";
-import { AdminInviteService, type ManagedInviteInput, type ManagedInviteView } from "./adminInviteService.js";
+import { AdminInviteService, type ManagedInviteInput, type ManagedInviteQuery, type ManagedInviteView } from "./adminInviteService.js";
 import { AdminBootstrapError, type AdminBootstrap } from "./adminBootstrap.js";
 import { normalizeRelayNodes, normalizeSettings, toSettingsUpdate, type AdminSettingsInput } from "./adminSettingsNormalizer.js";
 
 export { AdminInputError };
-export type { ManagedInviteInput, ManagedInviteView } from "./adminInviteService.js";
+export type { ManagedInviteInput, ManagedInviteQuery, ManagedInviteView } from "./adminInviteService.js";
 export type { ResolvedServer, ServerInput, ServerView } from "./adminServerService.js";
 export type { AdminSettingsInput, RelayNodeInput } from "./adminSettingsNormalizer.js";
 
@@ -54,6 +54,7 @@ export interface AdminOverview {
     lastError: string | null;
   }>;
   sessions: { active: number; peak: number; limit: number };
+  invites: { active: number };
   recentEvents: ReturnType<WebSpeakDatabase["recentAudit"]>;
 }
 
@@ -310,6 +311,7 @@ export class AdminService {
         lastError: server.lastTestError,
       })),
       sessions: { active: activeSessions, peak: peakSessions, limit: MAX_ACTIVE_SESSIONS },
+      invites: { active: this.invites.activeCount() },
       recentEvents: this.database.recentAudit(),
     };
   }
@@ -318,8 +320,12 @@ export class AdminService {
     return this.invites.create(input);
   }
 
-  listManagedInvites(): ManagedInviteView[] {
-    return this.invites.list();
+  listManagedInvites(query: ManagedInviteQuery): { invites: ManagedInviteView[]; total: number } {
+    return this.invites.list(query);
+  }
+
+  pruneManagedInvites(): number {
+    return this.invites.prune();
   }
 
   revokeManagedInvite(id: string): boolean {

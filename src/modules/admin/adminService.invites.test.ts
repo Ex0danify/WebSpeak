@@ -7,6 +7,8 @@ import { AdminInputError } from "./adminService.js";
 
 const ctx = useAdminService();
 
+const listInvites = (service: ReturnType<typeof ctx.create>) => service.listManagedInvites({ limit: 100, offset: 0 }).invites;
+
 function rejection(action: () => unknown): AdminInputError {
   try {
     action();
@@ -203,14 +205,14 @@ describe("managed invites", () => {
   ])("rejects %s and stores nothing", (_name, input, code) => {
     const service = ctx.create();
     expect(rejection(() => service.createManagedInvite({ serverId: DEFAULT_SERVER_ID, ...input })).code).toBe(code);
-    expect(service.listManagedInvites()).toEqual([]);
+    expect(listInvites(service)).toEqual([]);
   });
 
   it("accepts the limits: 100 character channel, 1 and 720 hours, 0 and 10000 uses", () => {
     const service = ctx.create();
     service.createManagedInvite({ serverId: DEFAULT_SERVER_ID, channel: "x".repeat(100), expiresInHours: 1, maxUses: 0 });
     service.createManagedInvite({ serverId: DEFAULT_SERVER_ID, channel: "", expiresInHours: 720, maxUses: 10000 });
-    expect(service.listManagedInvites()).toHaveLength(2);
+    expect(listInvites(service)).toHaveLength(2);
   });
 
   it("consumes a token once: target, decrypted password and channel come back, the use is counted and audited", () => {
@@ -222,7 +224,7 @@ describe("managed invites", () => {
       serverPassword: "pw-1",
       channel: "Lobby",
     });
-    expect(service.listManagedInvites()[0]).toMatchObject({ useCount: 1, status: "exhausted" });
+    expect(listInvites(service)[0]).toMatchObject({ useCount: 1, status: "exhausted" });
     expect(service.database.recentAudit()[0]?.event).toBe("INVITE_CONSUMED");
     expect(service.consumeManagedInvite(token)).toBeNull();
   });
@@ -236,7 +238,7 @@ describe("managed invites", () => {
     service.removeServer(kept.id);
     expect(service.consumeManagedInvite(changed.token)).toBeNull();
     expect(service.consumeManagedInvite(removed.token)).toBeNull();
-    expect(service.listManagedInvites().map((entry) => entry.status)).toEqual(["revoked", "revoked"]);
+    expect(listInvites(service).map((entry) => entry.status)).toEqual(["revoked", "revoked"]);
   });
 
   it("keeps an invite when the server is only renamed", () => {
@@ -258,7 +260,7 @@ describe("managed invites", () => {
     const { token } = service.createManagedInvite({ serverId: DEFAULT_SERVER_ID, channel: "", expiresInHours: 1, maxUses: 0 });
     for (const bad of ["", "short", `${token}!`, "x".repeat(129), " ".repeat(40)])
       expect(service.consumeManagedInvite(bad), JSON.stringify(bad)).toBeNull();
-    expect(service.listManagedInvites()[0]?.useCount).toBe(0);
+    expect(listInvites(service)[0]?.useCount).toBe(0);
   });
 
   it("refuses an unknown token of the right shape", () => {
@@ -276,7 +278,7 @@ describe("managed invites", () => {
     const revoked = create(0);
     service.consumeManagedInvite(exhausted.token);
     service.revokeManagedInvite(revoked.invite.id);
-    const statuses = () => Object.fromEntries(service.listManagedInvites().map((entry) => [entry.id, entry.status]));
+    const statuses = () => Object.fromEntries(listInvites(service).map((entry) => [entry.id, entry.status]));
     expect(statuses()).toEqual({ [active.invite.id]: "active", [exhausted.invite.id]: "exhausted", [revoked.invite.id]: "revoked" });
     vi.setSystemTime(new Date("2026-01-01T01:00:00Z"));
     expect(statuses()).toEqual({ [active.invite.id]: "expired", [exhausted.invite.id]: "expired", [revoked.invite.id]: "revoked" });
@@ -304,5 +306,60 @@ describe("managed invites", () => {
     expect(other.consumeManagedInvite(token)).toMatchObject({ serverPassword: "", channel: "Lobby" });
     expect(ctx.logger.error).toHaveBeenCalledTimes(1);
     expect(JSON.stringify(ctx.logger.error.mock.calls)).not.toContain("pw-1");
+  });
+});
+
+describe("listing and pruning invites", () => {
+  const make = (service: ReturnType<typeof ctx.create>, count: number, overrides: { maxUses?: number } = {}) =>
+    Array.from({ length: count }, () =>
+      service.createManagedInvite({ serverId: DEFAULT_SERVER_ID, channel: "", expiresInHours: 1, maxUses: overrides.maxUses ?? 0 }),
+    );
+
+  it("returns one page, newest first, with the total of all that match", () => {
+    vi.useFakeTimers();
+    const service = ctx.create();
+    const ids = Array.from({ length: 5 }, (_, index) => {
+      vi.setSystemTime(new Date(2026, 0, 1 + index));
+      return make(service, 1)[0]!.invite.id;
+    });
+    const page = service.listManagedInvites({ limit: 2, offset: 1 });
+    expect(page.invites.map((entry) => entry.id)).toEqual([ids[3], ids[2]]);
+    expect(page.total).toBe(5);
+    vi.useRealTimers();
+  });
+
+  it("filters by status and counts the filtered total", () => {
+    const service = ctx.create();
+    const [revoked, used] = [...make(service, 1), ...make(service, 1, { maxUses: 1 })];
+    make(service, 2);
+    service.revokeManagedInvite(revoked!.invite.id);
+    service.consumeManagedInvite(used!.token);
+    const count = (status: "active" | "exhausted" | "revoked" | "expired") =>
+      service.listManagedInvites({ limit: 100, offset: 0, status }).total;
+    expect([count("active"), count("exhausted"), count("revoked"), count("expired")]).toEqual([2, 1, 1, 0]);
+    expect(service.listManagedInvites({ limit: 100, offset: 0, status: "revoked" }).invites[0]?.id).toBe(revoked!.invite.id);
+  });
+
+  it("reports the active invites in the overview", () => {
+    const service = ctx.create();
+    const [first] = make(service, 3);
+    service.revokeManagedInvite(first!.invite.id);
+    expect(service.getOverview(0, 0, Date.now()).invites).toEqual({ active: 2 });
+  });
+
+  it("deletes invites that were revoked or expired over 30 days ago, and keeps the rest", () => {
+    vi.useFakeTimers();
+    const service = ctx.create();
+    vi.setSystemTime(new Date("2026-01-01T00:00:00Z"));
+    const [expired, revoked] = make(service, 2);
+    service.revokeManagedInvite(revoked!.invite.id);
+    vi.setSystemTime(new Date("2026-02-15T00:00:00Z"));
+    const [active, revokedRecently] = make(service, 2);
+    service.revokeManagedInvite(revokedRecently!.invite.id);
+    expect(service.pruneManagedInvites()).toBe(2);
+    const left = listInvites(service).map((entry) => entry.id);
+    expect(left.sort()).toEqual([active!.invite.id, revokedRecently!.invite.id].sort());
+    expect(left).not.toContain(expired!.invite.id);
+    vi.useRealTimers();
   });
 });

@@ -7,7 +7,7 @@ import { DATABASE_SCHEMA_VERSION, MINIMUM_SCHEMA_VERSION, runMigrations } from "
 import type { ManagedInviteRecord, PersistedRelayNode, PersistedServer, PersistedSettings, SettingsUpdate } from "./databaseTypes.js";
 import { AdminCredentialRepository } from "./adminCredentialRepository.js";
 import { AuditRepository } from "./auditRepository.js";
-import { ManagedInviteRepository } from "./managedInviteRepository.js";
+import { ManagedInviteRepository, type ManagedInviteListOptions, type ManagedInviteStatus } from "./managedInviteRepository.js";
 import { MetaRepository } from "./metaRepository.js";
 import { RelayNodeRepository } from "./relayNodeRepository.js";
 import { ServerRepository } from "./serverRepository.js";
@@ -183,8 +183,17 @@ export class WebSpeakDatabase {
     return this.managedInvites.create(record);
   }
 
-  listManagedInvites(): ManagedInviteRecord[] {
-    return this.managedInvites.list();
+  listManagedInvites(options?: ManagedInviteListOptions): ManagedInviteRecord[] {
+    return this.managedInvites.list(options);
+  }
+
+  countManagedInvites(status?: ManagedInviteStatus): number {
+    return this.managedInvites.count(status);
+  }
+
+  /** Removes invites that stopped working more than `olderThanMs` ago. */
+  pruneManagedInvites(olderThanMs: number): number {
+    return this.managedInvites.prune(Date.now() - olderThanMs);
   }
 
   revokeManagedInvite(id: string): boolean {

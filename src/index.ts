@@ -13,6 +13,7 @@ const CERT_DIR = path.join(ROOT_DIR, "certs");
 const STATIC_DIR = path.join(ROOT_DIR, "web", "dist");
 const APP_VERSION = readPackageVersion();
 const SHUTDOWN_TIMEOUT_MS = 10_000;
+const INVITE_SWEEP_MS = 24 * 60 * 60 * 1000;
 
 async function main() {
   // A .env next to package.json, see .env.example. Variables from the real environment win over it.
@@ -53,6 +54,9 @@ async function runGateway(env: GatewayEnv): Promise<void> {
   const masterSecret = loadOrCreateMasterSecret(path.join(dataDir, "master.key"));
   const adminService = new AdminService(database, masterSecret, logger, env.port, undefined, APP_VERSION);
   // The credentials in .env only matter on a fresh database, so they are not even checked once an account exists.
+  adminService.pruneManagedInvites();
+  const inviteSweep = setInterval(() => adminService.pruneManagedInvites(), INVITE_SWEEP_MS);
+  inviteSweep.unref();
   await adminService.initialize(
     adminService.isInitialized() ? undefined : parseAdminBootstrap({ username: env.adminUsername, password: env.adminPassword }),
   );
