@@ -1,15 +1,13 @@
 <template>
-  <div :class="cn('flex shrink-0 items-start justify-between max-desktop:flex-wrap max-narrow:gap-3.75', props.class)">
+  <div class="flex items-start justify-between gap-3 max-desktop:flex-wrap">
     <div>
-      <h2 class="text-2xl font-bold">{{ title }}</h2>
-      <p class="mt-1.75 text-xs text-fg-muted">{{ lead }}</p>
+      <h1 class="text-2xl font-bold">{{ title }}</h1>
+      <p v-if="lead" class="mt-1.75 text-xs text-fg-muted">{{ lead }}</p>
     </div>
     <slot />
   </div>
 </template>
 
 <script setup lang="ts">
-import { cn } from "@/shared/lib/cn";
-
-const props = defineProps<{ title: string; lead: string; class?: string }>();
+defineProps<{ title: string; lead?: string }>();
 </script>

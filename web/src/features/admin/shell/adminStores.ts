@@ -1,10 +1,11 @@
 import { provideAdminSiblings } from "@/features/admin/core/adminSiblings";
-import { useAdminOperationsStore } from "@/features/admin/operations/adminOperations";
-import { useAdminOverviewStore } from "@/features/admin/overview/adminOverview";
-import { useAdminServerDialogStore } from "@/features/admin/server/adminServerDialog";
-import { useAdminServerOrderStore } from "@/features/admin/server/adminServerOrder";
-import { useAdminServersStore } from "@/features/admin/server/adminServers";
-import { useAdminServerSettingsStore } from "@/features/admin/server/adminServerSettings";
+import { useAdminDiagnosticsStore } from "@/features/admin/diagnostics/adminDiagnostics";
+import { useAdminOverviewStore } from "@/features/admin/dashboard/adminOverview";
+import { useAdminServerDialogStore } from "@/features/admin/gateway/adminServerDialog";
+import { useAdminServerOrderStore } from "@/features/admin/gateway/adminServerOrder";
+import { useAdminServersStore } from "@/features/admin/gateway/adminServers";
+import { useAdminServerSettingsStore } from "@/features/admin/gateway/adminServerSettings";
+import { useAdminUsersStore } from "@/features/admin/users/adminUsers";
 
 /** Wires the stores to each other. Call it once before the console is used; stores are resolved when a call happens. */
 export function registerAdminStores(): void {
@@ -19,7 +20,8 @@ export function registerAdminStores(): void {
     probeServer: (id) => useAdminServersStore().probeServer(id),
     resetAll: () => {
       useAdminOverviewStore().reset();
-      useAdminOperationsStore().reset();
+      useAdminUsersStore().reset();
+      useAdminDiagnosticsStore().reset();
       useAdminServerSettingsStore().reset();
       useAdminServersStore().reset();
       useAdminServerOrderStore().reset();

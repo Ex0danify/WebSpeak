@@ -1,9 +1,7 @@
 <template>
-  <div
-    class="admin-root h-dvh min-h-0 overflow-hidden leading-[normal] max-desktop:h-auto max-desktop:min-h-dvh max-desktop:overflow-visible desktop:h-[calc(100dvh/var(--ui-scale))] desktop:max-h-[calc(100dvh/var(--ui-scale))] desktop:min-h-[calc(100dvh/var(--ui-scale))]"
-  >
+  <div class="admin-root leading-[normal]">
     <AdminShell />
-    <Toaster :label="t('notifications')" :dismiss-label="t('close')" />
+    <Toaster :label="t('notifications')" :dismiss-label="t('close')" class="max-desktop:pb-20" />
     <DialogHost :close-label="t('close')" />
   </div>
 </template>

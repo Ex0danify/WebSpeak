@@ -38,13 +38,23 @@ describe("adminRoutes", () => {
     expect(adminRoutes[0]!.path).toBe("/admin");
     expect(new Set(adminRoutes.map((entry) => entry.path)).size).toBe(adminRoutes.length);
   });
+
+  it("names the four pages in the order of the nav", () => {
+    expect(adminRoutes.map((entry) => entry.titleKey)).toEqual(["dashboard", "gateway", "users", "diagnostics"]);
+  });
 });
 
 describe("useAdminRoute", () => {
   it("picks the page of the current path", () => {
-    route.path = "/admin/operations";
-    expect(use().current.value.titleKey).toBe("operations");
+    route.path = "/admin/diagnostics";
+    expect(use().current.value.titleKey).toBe("diagnostics");
     expect(replace).not.toHaveBeenCalled();
+  });
+
+  it("treats the paths of the retired pages like any unknown path", () => {
+    route.path = "/admin/operations";
+    expect(use().current.value.path).toBe("/admin");
+    expect(replace).toHaveBeenCalledWith("/admin");
   });
 
   it("shows home for an unknown path and moves the address to it", () => {

@@ -1,27 +1,18 @@
 {
   "files": {
-    "src/features/admin/operations/AdminOperationsPage.vue": {
-      "arbitrary": 2
-    },
-    "src/features/admin/overview/AdminOverviewPage.vue": {
-      "arbitrary": 1
-    },
-    "src/features/admin/server/AccessIdentityCard.vue": {
+    "src/features/admin/gateway/AccessIdentityCard.vue": {
       "arbitrary": 3
     },
-    "src/features/admin/server/AdvancedSettingsCard.vue": {
+    "src/features/admin/gateway/AdvancedSettingsCard.vue": {
       "arbitrary": 1
     },
-    "src/features/admin/server/RelayNodesCard.vue": {
+    "src/features/admin/gateway/RelayNodesCard.vue": {
       "arbitrary": 2
     },
-    "src/features/admin/server/ServerDialog.vue": {
+    "src/features/admin/gateway/ServerDialog.vue": {
       "arbitrary": 2
     },
-    "src/features/admin/server/SettingChoice.vue": {
-      "arbitrary": 1
-    },
-    "src/features/admin/shell/AdminHeader.vue": {
+    "src/features/admin/gateway/SettingChoice.vue": {
       "arbitrary": 1
     },
     "src/features/admin/shell/adminChrome.ts": {
@@ -29,9 +20,6 @@
     },
     "src/features/admin/ui/adminClasses.ts": {
       "arbitrary": 2
-    },
-    "src/features/admin/ui/adminPage.ts": {
-      "arbitrary": 4
     },
     "src/features/demo/DemoVoiceSection.vue": {
       "arbitrary": 1
@@ -118,7 +106,7 @@
       "arbitrary": 1
     },
     "src/views/AdminView.vue": {
-      "arbitrary": 4
+      "arbitrary": 1
     },
     "src/views/ClientLayout.vue": {
       "arbitrary": 4

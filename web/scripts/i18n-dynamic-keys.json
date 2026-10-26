@@ -64,10 +64,10 @@
     },
     {
       "file": "features/admin/shell/adminRoutes.ts",
-      "keys": ["overview", "server", "operations"]
+      "keys": ["dashboard", "gateway", "users", "diagnostics"]
     },
     {
-      "file": "features/admin/server/adminProbe.ts",
+      "file": "features/admin/gateway/adminProbe.ts",
       "keys": [
         "serverAddress",
         "invalidNicknameError",

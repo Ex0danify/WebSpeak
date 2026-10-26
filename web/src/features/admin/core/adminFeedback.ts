@@ -48,10 +48,21 @@ export const useAdminFeedbackStore = defineStore("adminFeedback", () => {
     errorMessage.value = "";
   }
 
+  /** Runs `action`, shows a failure in the banner, and always runs `cleanup` after. */
+  async function attempt(action: () => Promise<void>, cleanup?: () => void) {
+    try {
+      await action();
+    } catch (error) {
+      fail(error);
+    } finally {
+      cleanup?.();
+    }
+  }
+
   /** Shows a failed save in the status it belongs to, by the code the gateway answered with. */
   function failStatus(key: string, error: unknown) {
     statusOf(key).failed(errorText((error as ApiError).code));
   }
 
-  return { errorMessage, errorText, notify, showError, fail, clearError, statusOf, failStatus };
+  return { errorMessage, errorText, notify, showError, fail, clearError, attempt, statusOf, failStatus };
 });

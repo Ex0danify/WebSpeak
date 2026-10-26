@@ -7,25 +7,30 @@
   <AdminLoginScreen v-else-if="screen === 'login'" />
   <div v-else :class="consoleFrame">
     <AdminSidebar />
-    <main class="flex min-h-0 min-w-0 flex-col overflow-hidden max-desktop:flex-auto max-desktop:overflow-visible desktop:h-full">
-      <AdminHeader :title="adminRouteTitle(current, t)" :theme-icon="themeIcon" :theme-label="themeLabel" @cycle-theme="cycleTheme" />
-      <Banner v-if="errorMessage" variant="danger" class="mx-6 mt-5 w-auto flex-none">{{ errorMessage }}</Banner>
-      <component :is="current.component" />
-    </main>
+    <div class="flex min-w-0 flex-col max-desktop:flex-auto">
+      <AdminTopbar :theme-icon="themeIcon" :theme-label="themeLabel" @cycle-theme="cycleTheme" />
+      <main class="flex-auto">
+        <div v-if="errorMessage" :class="cn(adminContainer, 'pt-5')">
+          <Banner variant="danger">{{ errorMessage }}</Banner>
+        </div>
+        <component :is="current.component" />
+      </main>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { storeToRefs } from "pinia";
+import { cn } from "@/shared/lib/cn";
 import { Banner } from "@/shared/ui/banner";
 import { Spinner } from "@/shared/ui/spinner";
 import AdminChangePasswordScreen from "@/features/admin/shell/AdminChangePasswordScreen.vue";
-import AdminHeader from "@/features/admin/shell/AdminHeader.vue";
 import AdminLoginScreen from "@/features/admin/shell/AdminLoginScreen.vue";
 import AdminSidebar from "@/features/admin/shell/AdminSidebar.vue";
+import AdminTopbar from "@/features/admin/shell/AdminTopbar.vue";
 import { centerCard, consoleFrame } from "@/features/admin/shell/adminChrome";
 import { useAdminFeedbackStore } from "@/features/admin/core/adminFeedback";
-import { adminRouteTitle } from "@/features/admin/shell/adminRoutes";
+import { adminContainer } from "@/features/admin/ui/adminPage";
 import { useAdminSessionStore } from "@/features/admin/core/adminSession";
 import { useAdminRoute } from "@/features/admin/shell/useAdminRoute";
 import { useTheme } from "@/shared/composables/useTheme.js";

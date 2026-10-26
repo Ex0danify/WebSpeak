@@ -4,11 +4,12 @@ import { createPinia } from "pinia";
 import { routeLocationKey, routerKey } from "vue-router";
 import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from "vitest";
 import { useAdminFeedbackStore } from "@/features/admin/core/adminFeedback";
-import { useAdminOperationsStore } from "@/features/admin/operations/adminOperations";
-import { useAdminOverviewStore } from "@/features/admin/overview/adminOverview";
-import { useAdminServerDialogStore } from "@/features/admin/server/adminServerDialog";
-import { useAdminServersStore } from "@/features/admin/server/adminServers";
-import { useAdminServerSettingsStore } from "@/features/admin/server/adminServerSettings";
+import { useAdminDiagnosticsStore } from "@/features/admin/diagnostics/adminDiagnostics";
+import { useAdminUsersStore } from "@/features/admin/users/adminUsers";
+import { useAdminOverviewStore } from "@/features/admin/dashboard/adminOverview";
+import { useAdminServerDialogStore } from "@/features/admin/gateway/adminServerDialog";
+import { useAdminServersStore } from "@/features/admin/gateway/adminServers";
+import { useAdminServerSettingsStore } from "@/features/admin/gateway/adminServerSettings";
 import { useAdminSessionStore } from "@/features/admin/core/adminSession";
 
 function respond(status: number, body: unknown) {
@@ -144,11 +145,13 @@ describe("useAdminSessionStore", () => {
     fetchMock.mockResolvedValue(respond(200, {}));
     const { session } = setup("/admin");
     const overview = useAdminOverviewStore();
-    const operations = useAdminOperationsStore();
+    const users = useAdminUsersStore();
+    const diagnostics = useAdminDiagnosticsStore();
     const server = useAdminServerSettingsStore();
     overview.overview.gateway.version = "1.2.3";
-    operations.operations.sessions = [{ id: "s1" } as never];
-    operations.createdInvite = { token: "t", link: "l" };
+    users.users.sessions = [{ id: "s1" } as never];
+    users.createdInvite = { token: "t", link: "l" };
+    diagnostics.diagnostics.audit = [{ event: "X", createdAt: "now" }];
     const servers = useAdminServersStore();
     server.serverForm.siteName = "Night Owls";
     server.welcomeLanguage = "de";
@@ -157,8 +160,9 @@ describe("useAdminSessionStore", () => {
     dialog.testResult = { ok: true };
     await session.logout();
     expect(overview.overview.gateway.version).toBe("");
-    expect(operations.operations.sessions).toEqual([]);
-    expect(operations.createdInvite).toBeNull();
+    expect(users.users.sessions).toEqual([]);
+    expect(users.createdInvite).toBeNull();
+    expect(diagnostics.diagnostics.audit).toEqual([]);
     expect(server.serverForm.siteName).toBe("WebSpeak");
     expect(server.welcomeLanguage).toBe("en");
     expect(servers.servers).toEqual([]);

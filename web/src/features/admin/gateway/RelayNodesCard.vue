@@ -1,0 +1,74 @@
+<template>
+  <AdminSection :title="t('relaySettings')" :lead="t('relaySettingsLead')" :status="statuses.relay" status-quiet>
+    <div
+      v-if="!serverForm.relayNodes.length"
+      class="rounded-md border border-dashed border-line bg-surface-0 px-3 py-2.5 text-caption text-fg-muted"
+    >
+      {{ t("relayNodeEmpty") }}
+    </div>
+    <div class="grid gap-2.5">
+      <div
+        v-for="(relay, index) in serverForm.relayNodes"
+        :key="relay.id"
+        class="grid min-w-0 gap-2.5 rounded-lg border border-line bg-surface-0 p-3"
+      >
+        <div class="flex min-w-0 items-center justify-between gap-2.5">
+          <SettingChoice
+            v-model="relay.enabled"
+            :title="relay.name || t('relayUnnamed')"
+            :field="`relay:${relay.id}:enabled`"
+            @update:model-value="scheduleSave('relay')"
+          />
+          <Button variant="dangerSoft" size="sm" @click="removeRelayNode(index)">{{ t("remove") }}</Button>
+        </div>
+        <div class="grid min-w-0 grid-cols-1 gap-3 desktop:grid-cols-2">
+          <SettingField :label="t('relayName')" :field="`relay:${relay.id}:name`"
+            ><Input v-model.trim="relay.name" maxlength="80" :placeholder="t('relayNamePlaceholder')" @change="scheduleSave('relay')"
+          /></SettingField>
+          <SettingField :label="t('relayTarget')" :field="`relay:${relay.id}:target`"
+            ><Input v-model.trim="relay.target" maxlength="300" :placeholder="t('relayTargetPlaceholder')" @change="scheduleSave('relay')"
+          /></SettingField>
+          <div class="col-span-full grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-end gap-2.25 max-narrow:grid-cols-1">
+            <SettingField :label="t('relayToken')" :field="`relay:${relay.id}:token`"
+              ><Input
+                v-model="relay.token"
+                type="password"
+                autocomplete="off"
+                :disabled="relay.tokenAction !== 'replace'"
+                :placeholder="relay.hasToken ? t('relayTokenConfigured') : t('relayTokenPlaceholder')"
+                @change="scheduleSave('relay')"
+            /></SettingField>
+            <Segmented
+              v-model="relay.tokenAction"
+              :aria-label="t('relayToken')"
+              class="h-10 items-center self-end justify-self-start"
+              @update:model-value="scheduleSave('relay')"
+            >
+              <Segment value="replace">{{ t("change") }}</Segment>
+              <Segment v-if="relay.hasToken" value="remove">{{ t("remove") }}</Segment>
+            </Segmented>
+          </div>
+        </div>
+      </div>
+    </div>
+    <Button variant="secondary" size="sm" class="justify-self-start" @click="addRelayNode()">{{ t("relayAdd") }}</Button>
+    <small class="-mt-2 text-2xs leading-[1.55] text-fg-muted">{{ t("relayManagedHint") }}</small>
+  </AdminSection>
+</template>
+
+<script setup lang="ts">
+import { Button } from "@/shared/ui/button";
+import { Input } from "@/shared/ui/input";
+import { Segment, Segmented } from "@/shared/ui/tabs";
+import { storeToRefs } from "pinia";
+import SettingChoice from "@/features/admin/gateway/SettingChoice.vue";
+import SettingField from "@/features/admin/gateway/SettingField.vue";
+import AdminSection from "@/features/admin/ui/AdminSection.vue";
+import { useAdminServerSettingsStore } from "@/features/admin/gateway/adminServerSettings";
+import { useI18n } from "@/shared/i18n/useI18n";
+
+const settings = useAdminServerSettingsStore();
+const { serverForm } = storeToRefs(settings);
+const { statuses, scheduleSave, addRelayNode, removeRelayNode } = settings;
+const { t } = useI18n();
+</script>

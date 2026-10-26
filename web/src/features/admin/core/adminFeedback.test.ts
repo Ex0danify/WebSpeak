@@ -1,5 +1,5 @@
 import { createPinia, setActivePinia } from "pinia";
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useAdminFeedbackStore } from "@/features/admin/core/adminFeedback";
 import { dismissToast, useToast } from "@/shared/composables/useToast";
 
@@ -30,6 +30,16 @@ describe("useAdminFeedbackStore", () => {
     feedback.notify("Done");
     expect(useToast().toasts.value).toMatchObject([{ title: "Done", variant: "success" }]);
     expect(feedback.errorMessage).toBe("Earlier");
+  });
+
+  it("runs an action, shows its failure in the banner and runs the cleanup either way", async () => {
+    const feedback = useAdminFeedbackStore();
+    const cleanup = vi.fn();
+    await feedback.attempt(async () => {}, cleanup);
+    expect(feedback.errorMessage).toBe("");
+    await feedback.attempt(async () => Promise.reject({ code: "RATE_LIMITED" }), cleanup);
+    expect(feedback.errorMessage).toBe(feedback.errorText("RATE_LIMITED"));
+    expect(cleanup).toHaveBeenCalledTimes(2);
   });
 
   it("hands out one status per name, and shows a failure in it and not in the banner", () => {

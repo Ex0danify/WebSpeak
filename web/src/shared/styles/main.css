@@ -27,41 +27,6 @@
   }
 }
 
-/*
- * Admin viewport lock. The document never scrolls on desktop (each admin page scrolls itself) and grows on
- * narrow screens. Utilities cannot reach html/body/#app from a component.
- */
-@layer components {
-  html:has(.admin-root),
-  html:has(.admin-root) body,
-  html:has(.admin-root) #app {
-    width: 100%;
-    height: 100dvh;
-    min-height: 0;
-    max-height: 100dvh;
-    overflow: hidden;
-  }
-
-  @media (width >= theme(--breakpoint-desktop)) {
-    html:has(.admin-root) #app {
-      height: calc(100dvh / var(--ui-scale));
-      min-height: calc(100dvh / var(--ui-scale));
-      max-height: calc(100dvh / var(--ui-scale));
-    }
-  }
-
-  @media (width < theme(--breakpoint-desktop)) {
-    html:has(.admin-root),
-    html:has(.admin-root) body,
-    html:has(.admin-root) #app {
-      height: auto;
-      min-height: 100%;
-      max-height: none;
-      overflow: auto;
-    }
-  }
-}
-
 /* Scrollbars use the palette everywhere, a pseudo-element has no utility class. */
 @layer base {
   * {
@@ -129,6 +94,26 @@ body,
     height: 100svh;
     min-height: 100svh;
     max-height: 100svh;
+  }
+}
+
+/*
+ * The admin console is a page that scrolls: the document grows with it instead of being locked to the viewport. Utilities
+ * cannot reach html/body/#app from a component. On a phone the page nav is a bar fixed to the bottom edge, so a focused
+ * control scrolls clear of it (the bar is 3.5 rem tall).
+ */
+html:has(.admin-root),
+html:has(.admin-root) body,
+html:has(.admin-root) #app {
+  height: auto;
+  min-height: 100%;
+  max-height: none;
+  overflow: visible;
+}
+
+@media (width < theme(--breakpoint-desktop)) {
+  html:has(.admin-root) {
+    scroll-padding-bottom: 4.5rem;
   }
 }
 

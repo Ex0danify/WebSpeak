@@ -36,7 +36,7 @@ export const useAdminSessionStore = defineStore("adminSession", () => {
     },
   });
 
-  /** What the console shows once signed in. The operations page loads itself when it is entered. */
+  /** What the console shows once signed in. The users and diagnostics pages load themselves when they are entered. */
   async function loadAdminData() {
     const siblings = adminSiblings();
     await Promise.all([siblings.loadOverview(), siblings.loadServerSettings(), siblings.loadServers()]);
