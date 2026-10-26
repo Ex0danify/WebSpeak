@@ -16,6 +16,7 @@ function initialOverview() {
     gateway: { version: "", uptimeSeconds: 0 },
     servers: [] as OverviewServer[],
     sessions: { active: 0, peak: 0, limit: 100 },
+    invites: { active: 0 },
     recentEvents: [] as Array<{ event: string; createdAt: string }>,
   };
 }

@@ -42,7 +42,6 @@ beforeEach(() => {
 function answerAll(getJson: Mock<(url: string) => Promise<unknown>>) {
   getJson.mockImplementation(async (url: string) => {
     if (url === "/api/admin/sessions") return { sessions: [{ id: "s1", nickname: "Ann" }] };
-    if (url === "/api/admin/invites") return { invites: [{ id: "i1" }] };
   });
 }
 
@@ -52,21 +51,20 @@ afterEach(() => {
 });
 
 describe("useAdminUsersStore", () => {
-  it("loadUsers fills the sessions and the invites and stops the loading flag", async () => {
+  it("loadSessions fills the sessions and stops the loading flag", async () => {
     const s = setup();
     answerAll(s.getJson);
-    await s.store.loadUsers();
+    await s.store.loadSessions();
     expect(s.store.users.sessions).toHaveLength(1);
-    expect(s.store.users.invites).toHaveLength(1);
-    expect(s.store.usersLoading).toBe(false);
+    expect(s.store.sessionsLoading).toBe(false);
   });
 
-  it("loadUsers reports a failed request in the shared banner", async () => {
+  it("loadSessions reports a failed request in the shared banner", async () => {
     const s = setup();
     s.getJson.mockRejectedValue({ code: "RATE_LIMITED" });
-    await s.store.loadUsers();
+    await s.store.loadSessions();
     expect(s.feedback.errorMessage).toBe(s.feedback.errorText("RATE_LIMITED"));
-    expect(s.store.usersLoading).toBe(false);
+    expect(s.store.sessionsLoading).toBe(false);
   });
 
   it("terminateSession does nothing when the confirmation is declined", async () => {
@@ -87,59 +85,5 @@ describe("useAdminUsersStore", () => {
     expect(s.loadOverview).toHaveBeenCalled();
     expect(s.notify).toHaveBeenCalledWith(t("sessionTerminated"));
     expect(s.store.terminatingSession).toBe("");
-  });
-
-  it("createInvite builds the link from the token and clears the channel", async () => {
-    const s = setup();
-    answerAll(s.getJson);
-    s.sendJson.mockResolvedValue({ token: "t k" } as never);
-    s.store.inviteForm.channel = "Lobby";
-    await s.store.createInvite();
-    expect(s.sendJson).toHaveBeenCalledWith("/api/admin/invites", "POST", {
-      serverId: "",
-      channel: "Lobby",
-      expiresInHours: 24,
-      maxUses: 0,
-    });
-    expect(s.store.createdInvite?.link).toBe(`${location.origin}/?invite=t%20k`);
-    expect(s.store.inviteForm.channel).toBe("");
-    expect(s.store.creatingInvite).toBe(false);
-  });
-
-  it("createInvite fails when the response carries no token", async () => {
-    const s = setup();
-    await s.store.createInvite();
-    expect(s.store.createdInvite).toBeNull();
-    expect(s.feedback.errorMessage).toBe(s.feedback.errorText(undefined));
-    expect(s.store.creatingInvite).toBe(false);
-  });
-
-  it("revokeInvite only acts after confirmation", async () => {
-    const s = setup();
-    answerAll(s.getJson);
-    const declined = s.store.revokeInvite({ id: "i1" } as never);
-    await answerDialog(false);
-    await declined;
-    expect(s.sendJson).not.toHaveBeenCalled();
-    const accepted = s.store.revokeInvite({ id: "i1" } as never);
-    await answerDialog(true);
-    await accepted;
-    expect(s.sendJson).toHaveBeenCalledWith("/api/admin/invites/i1/revoke", "POST", {});
-    expect(s.notify).toHaveBeenCalledWith(t("inviteRevoked"));
-  });
-
-  it("copyInviteLink copies the link, and reports a clipboard failure", async () => {
-    const s = setup();
-    const writeText = vi.fn(async () => {});
-    Object.defineProperty(navigator, "clipboard", { value: { writeText }, configurable: true });
-    await s.store.copyInviteLink();
-    expect(writeText).not.toHaveBeenCalled();
-    s.store.createdInvite = { token: "t", link: "http://x/?invite=t" };
-    await s.store.copyInviteLink();
-    expect(writeText).toHaveBeenCalledWith("http://x/?invite=t");
-    expect(s.notify).toHaveBeenCalledWith(t("copiedLink"));
-    writeText.mockRejectedValue(new Error("denied"));
-    await s.store.copyInviteLink();
-    expect(s.feedback.errorMessage).toBe(t("operationFailed"));
   });
 });

@@ -124,7 +124,7 @@ test.describe("dashboard and navigation", () => {
       await expect(page.getByRole("link", { name: "Open guest page" })).toHaveAttribute("href", "/");
     }
 
-    await page.getByRole("link", { name: "Manage" }).click();
+    await page.getByRole("link", { name: "Manage", exact: true }).click();
     await expect(page.getByRole("heading", { name: "Gateway", level: 1 })).toBeVisible();
     expect(path(page)).toBe("/admin/gateway");
     const nav = page.getByRole("navigation", { name: "Admin pages" });

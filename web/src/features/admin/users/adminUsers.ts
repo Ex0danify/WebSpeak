@@ -1,49 +1,36 @@
 import { reactive, ref } from "vue";
 import { defineStore } from "pinia";
-import type { AdminSession, ManagedInvite } from "@/features/admin/core/adminTypes.js";
+import type { AdminSession } from "@/features/admin/core/adminTypes.js";
 import { useI18n } from "@/shared/i18n/useI18n.js";
 import { useDialog } from "@/shared/composables/useDialog.js";
 import { useAdminFeedbackStore } from "@/features/admin/core/adminFeedback.js";
 import { adminSiblings } from "@/features/admin/core/adminSiblings.js";
 import { useAdminSessionStore } from "@/features/admin/core/adminSession.js";
 
-function initialInviteForm() {
-  return { serverId: "", channel: "", expiresInHours: 24, maxUses: 0 };
-}
+/** How many sessions the card on the users page shows, and how many a page of the full view holds. */
+export const SESSION_PREVIEW = 8;
+export const SESSION_PAGE_SIZE = 25;
 
-interface UsersData {
-  sessions: AdminSession[];
-  invites: ManagedInvite[];
-}
-
-function initialUsers(): UsersData {
-  return { sessions: [], invites: [] };
-}
-
-/** The users page: the live guest sessions and the managed invite links. */
+/** The live guest sessions. Their invite links are in `adminInvites`. */
 export const useAdminUsersStore = defineStore("adminUsers", () => {
   const admin = useAdminSessionStore();
   const feedback = useAdminFeedbackStore();
   const { t } = useI18n();
   const { confirm } = useDialog();
 
-  const usersLoading = ref(false);
+  const sessionsLoading = ref(false);
   const terminatingSession = ref("");
-  const creatingInvite = ref(false);
-  const inviteForm = reactive(initialInviteForm());
-  const createdInvite = ref<{ token: string; link: string } | null>(null);
-  const users = reactive(initialUsers());
+  const users = reactive({ sessions: [] as AdminSession[] });
 
-  async function loadUsers() {
-    usersLoading.value = true;
+  async function loadSessions() {
+    sessionsLoading.value = true;
     await feedback.attempt(
       async () => {
-        const [sessions, invites] = await Promise.all([admin.getJson("/api/admin/sessions"), admin.getJson("/api/admin/invites")]);
+        const sessions = await admin.getJson("/api/admin/sessions");
         users.sessions = Array.isArray(sessions.sessions) ? sessions.sessions : [];
-        users.invites = Array.isArray(invites.invites) ? invites.invites : [];
       },
       () => {
-        usersLoading.value = false;
+        sessionsLoading.value = false;
       },
     );
   }
@@ -62,7 +49,7 @@ export const useAdminUsersStore = defineStore("adminUsers", () => {
     await feedback.attempt(
       async () => {
         await admin.sendJson(`/api/admin/sessions/${encodeURIComponent(target.id)}/terminate`, "POST", {});
-        await Promise.all([loadUsers(), adminSiblings().loadOverview()]);
+        await Promise.all([loadSessions(), adminSiblings().loadOverview()]);
         feedback.notify(t("sessionTerminated"));
       },
       () => {
@@ -71,77 +58,12 @@ export const useAdminUsersStore = defineStore("adminUsers", () => {
     );
   }
 
-  async function createInvite() {
-    creatingInvite.value = true;
-    feedback.clearError();
-    createdInvite.value = null;
-    await feedback.attempt(
-      async () => {
-        const result = await admin.sendJson("/api/admin/invites", "POST", {
-          serverId: inviteForm.serverId,
-          channel: inviteForm.channel,
-          expiresInHours: inviteForm.expiresInHours,
-          maxUses: inviteForm.maxUses,
-        });
-        if (typeof result.token !== "string") throw new Error("INVITE_CREATE_FAILED");
-        createdInvite.value = { token: result.token, link: `${location.origin}/?invite=${encodeURIComponent(result.token)}` };
-        inviteForm.channel = "";
-        await loadUsers();
-      },
-      () => {
-        creatingInvite.value = false;
-      },
-    );
-  }
-
-  async function revokeInvite(invite: ManagedInvite) {
-    const ok = await confirm({
-      title: t("confirmRevokeTitle"),
-      message: t("confirmRevoke"),
-      confirmLabel: t("revoke"),
-      cancelLabel: t("confirmCancel"),
-      variant: "danger",
-    });
-    if (!ok) return;
-    await feedback.attempt(async () => {
-      await admin.sendJson(`/api/admin/invites/${encodeURIComponent(invite.id)}/revoke`, "POST", {});
-      await loadUsers();
-      feedback.notify(t("inviteRevoked"));
-    });
-  }
-
-  async function copyInviteLink() {
-    if (!createdInvite.value) return;
-    try {
-      await navigator.clipboard.writeText(createdInvite.value.link);
-      feedback.notify(t("copiedLink"));
-    } catch {
-      feedback.showError(t("operationFailed"));
-    }
-  }
-
   /** Back to the empty state for logout, setup stores have no `$reset`. */
   function reset() {
-    Object.assign(users, initialUsers());
-    Object.assign(inviteForm, initialInviteForm());
-    createdInvite.value = null;
+    users.sessions = [];
     terminatingSession.value = "";
-    usersLoading.value = false;
-    creatingInvite.value = false;
+    sessionsLoading.value = false;
   }
 
-  return {
-    users,
-    usersLoading,
-    terminatingSession,
-    creatingInvite,
-    inviteForm,
-    createdInvite,
-    loadUsers,
-    terminateSession,
-    createInvite,
-    revokeInvite,
-    copyInviteLink,
-    reset,
-  };
+  return { users, sessionsLoading, terminatingSession, loadSessions, terminateSession, reset };
 });

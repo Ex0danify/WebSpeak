@@ -1,7 +1,7 @@
 <template>
   <AdminPage :title="t('dashboard')">
     <StatusBanner />
-    <Metrics class="grid-cols-3 gap-3 max-desktop:gap-1.75" />
+    <Metrics class="grid-cols-2 gap-3 desktop:grid-cols-4" />
     <div class="grid items-start gap-4 medium:grid-cols-2">
       <component :is="card.component" v-for="card in cards" :key="card.id" :class="card.class" />
     </div>

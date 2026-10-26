@@ -5,6 +5,7 @@ import { useAdminServerDialogStore } from "@/features/admin/gateway/adminServerD
 import { useAdminServerOrderStore } from "@/features/admin/gateway/adminServerOrder";
 import { useAdminServersStore } from "@/features/admin/gateway/adminServers";
 import { useAdminServerSettingsStore } from "@/features/admin/gateway/adminServerSettings";
+import { useAdminInvitesStore } from "@/features/admin/users/invites/adminInvites";
 import { useAdminUsersStore } from "@/features/admin/users/adminUsers";
 
 /** Wires the stores to each other. Call it once before the console is used; stores are resolved when a call happens. */
@@ -21,6 +22,7 @@ export function registerAdminStores(): void {
     resetAll: () => {
       useAdminOverviewStore().reset();
       useAdminUsersStore().reset();
+      useAdminInvitesStore().reset();
       useAdminDiagnosticsStore().reset();
       useAdminServerSettingsStore().reset();
       useAdminServersStore().reset();

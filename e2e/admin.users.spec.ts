@@ -26,6 +26,21 @@ async function guestJoins(page: Page, gateway: Gateway, nickname: string, link =
   return guest;
 }
 
+/** Fills the create dialog and submits it, which leaves the dialog on the created link. */
+async function createInvite(page: Page, fields: { channel?: string; server?: string } = {}) {
+  await page.getByRole("button", { name: "Create invite link" }).click();
+  const dialog = page.getByRole("dialog", { name: "Create invite link" });
+  if (fields.server) {
+    await dialog.getByRole("combobox", { name: "Server" }).click();
+    await page.getByRole("option", { name: fields.server }).click();
+  }
+  if (fields.channel) await dialog.getByLabel("Target channel").fill(fields.channel);
+  await dialog.getByRole("button", { name: "Create", exact: true }).click();
+  const created = page.getByRole("dialog", { name: "Invite link created" });
+  await expect(created).toBeVisible();
+  return created;
+}
+
 const sessionsTable = (page: Page) => page.locator("table").first();
 /** The toast with this text; the announcement in the hidden live region is not a list item. */
 const toast = (page: Page, text: string) => page.locator("li").filter({ hasText: text });
@@ -60,29 +75,46 @@ test.describe("sessions", () => {
 });
 
 test.describe("invites", () => {
-  test("creating one shows its link once, and lists it as active and unused", async ({ page, ownGateway }) => {
+  test("says when there are none; creating one shows its link once, and lists it as active and unused", async ({ page, ownGateway }) => {
     const gateway = await ownGateway();
     await openAdmin(page, gateway, "/users");
-    await page.getByLabel("Target channel").fill("Room A");
-    await page.getByRole("button", { name: "Create invite link" }).click();
+    await expect(page.getByText("No invite links yet.")).toBeVisible();
+    const created = await createInvite(page, { channel: "Room A" });
 
-    await expect(page.getByText("Copy and share it now. For security, the full token will not be shown again.")).toBeVisible();
-    await expect(page.getByLabel("Invite link created")).toHaveValue(new RegExp(`^${gateway.url}/\\?invite=[\\w-]+$`));
+    await expect(created.getByText("Copy and share it now. For security, the full token will not be shown again.")).toBeVisible();
+    await expect(created.getByLabel("Invite link created")).toHaveValue(new RegExp(`^${gateway.url}/\\?invite=[\\w-]+$`));
+    await created.getByRole("button", { name: "Close" }).click();
+    await expect(created).toBeHidden();
     const item = page.locator(".invite-row").filter({ hasText: "Room A" });
     await expect(item).toContainText("Active");
-    await expect(item).toContainText("0/∞");
+    await expect(item).toContainText("0 used");
+    await expect(item).toContainText("Expires");
   });
 
-  test("an invite is made for the server picked in the form, and the first one is the default", async ({ page, ownGateway }) => {
+  test("a limited invite reads 'x of y used'", async ({ page, ownGateway }) => {
+    const gateway = await ownGateway();
+    await openAdmin(page, gateway, "/users");
+    await page.getByRole("button", { name: "Create invite link" }).click();
+    const dialog = page.getByRole("dialog", { name: "Create invite link" });
+    await dialog.getByLabel("Maximum uses").fill("5");
+    await dialog.getByRole("button", { name: "Create", exact: true }).click();
+    await page.getByRole("dialog", { name: "Invite link created" }).getByRole("button", { name: "Close" }).click();
+    await expect(page.locator(".invite-row").first()).toContainText("0 of 5 used");
+  });
+
+  test("an invite is made for the server picked in the dialog, and the first one is the default", async ({ page, ownGateway }) => {
     const gateway = await ownGateway();
     gateway.adminService.createServer({ name: "Clan", target: "clan.example.test:9988" });
     await openAdmin(page, gateway, "/users");
-    const server = page.getByLabel("Server", { exact: true });
-    await expect(server.locator("option")).toHaveText(["WebSpeak", "Clan"]);
-    await expect(server.locator("option:checked")).toHaveText("WebSpeak");
-    await server.selectOption({ label: "Clan" });
-    await page.getByLabel("Target channel").fill("Clan room");
     await page.getByRole("button", { name: "Create invite link" }).click();
+    const server = page.getByRole("dialog", { name: "Create invite link" }).getByRole("combobox", { name: "Server" });
+    await expect(server).toHaveText("WebSpeak");
+    await server.click();
+    await expect(page.getByRole("option")).toHaveText(["WebSpeak", "Clan"]);
+    await page.keyboard.press("Escape");
+    await page.keyboard.press("Escape");
+    const created = await createInvite(page, { server: "Clan", channel: "Clan room" });
+    await created.getByRole("button", { name: "Close" }).click();
     await expect(page.locator(".invite-row").filter({ hasText: "Clan room" })).toContainText("clan.example.test:9988");
   });
 
@@ -90,43 +122,137 @@ test.describe("invites", () => {
     await context.grantPermissions(["clipboard-read", "clipboard-write"]);
     const gateway = await ownGateway();
     await openAdmin(page, gateway, "/users");
-    await page.getByLabel("Target channel").fill("Room A");
-    await page.getByRole("button", { name: "Create invite link" }).click();
-    const link = await page.getByLabel("Invite link created").inputValue();
+    const created = await createInvite(page, { channel: "Room A" });
+    const link = await created.getByLabel("Invite link created").inputValue();
 
-    await page.getByRole("button", { name: "Copy link" }).click();
+    await created.getByRole("button", { name: "Copy link" }).click();
     await expect(toast(page, "Invite link copied.")).toBeVisible();
     expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(link);
+    await created.getByRole("button", { name: "Close" }).click();
 
     const guest = await guestJoins(page, gateway, "ops-invited", link);
     await expect(guest.getByRole("textbox", { name: "Search members" })).toBeVisible();
     const member = [...gateway.ts.members.values()].find((candidate) => candidate.nickname === "ops-invited")!;
     expect(gateway.ts.channels.get(member.channelID)?.name).toBe("Room A");
     await page.getByRole("button", { name: "Refresh" }).click();
-    await expect(page.locator(".invite-row").filter({ hasText: "Room A" })).toContainText("1/∞");
+    await expect(page.locator(".invite-row").filter({ hasText: "Room A" })).toContainText("1 used");
   });
 
   test("Revoke asks first, and a revoked link no longer lets a guest in", async ({ page, ownGateway }) => {
     const gateway = await ownGateway();
     await openAdmin(page, gateway, "/users");
-    await page.getByRole("button", { name: "Create invite link" }).click();
-    const link = await page.getByLabel("Invite link created").inputValue();
+    const created = await createInvite(page);
+    const link = await created.getByLabel("Invite link created").inputValue();
+    await created.getByRole("button", { name: "Close" }).click();
     const item = page.locator(".invite-row").first();
     await expect(item).toContainText("Active");
 
-    await item.getByRole("button", { name: "Revoke" }).click();
+    await item.getByRole("button", { name: "Revoke invite for Default channel" }).click();
     const dialog = page.getByRole("dialog", { name: "Revoke invite link" });
     await expect(dialog).toContainText("Revoke this invite link?");
     await dialog.getByRole("button", { name: "Cancel" }).click();
     await expect(item).toContainText("Active");
 
-    await item.getByRole("button", { name: "Revoke" }).click();
+    await item.getByRole("button", { name: "Revoke invite for Default channel" }).click();
     await page.getByRole("dialog", { name: "Revoke invite link" }).getByRole("button", { name: "Revoke" }).click();
     await expect(item).toContainText("Revoked");
     await expect(item.getByRole("button", { name: "Revoke" })).toHaveCount(0);
 
     const guest = await guestJoins(page, gateway, "ops-late", link);
     await expect(guest.getByText("The invite link is invalid, expired, or revoked")).toBeVisible();
+  });
+});
+
+/** Makes `count` invites for the default server, straight on the gateway, so a test can start with a long list. */
+function seedInvites(gateway: Gateway, count: number): string[] {
+  const serverId = gateway.adminService.listServers()[0]!.id;
+  return Array.from(
+    { length: count },
+    (_, index) =>
+      gateway.adminService.createManagedInvite({
+        serverId,
+        channel: `Seed ${String(index + 1).padStart(2, "0")}`,
+        expiresInHours: 1,
+        maxUses: 0,
+      }).invite.id,
+  );
+}
+
+test.describe("a long list of invites", () => {
+  test("the card shows the newest eight and leads to the full list", async ({ page, ownGateway }) => {
+    const gateway = await ownGateway();
+    seedInvites(gateway, 11);
+    await openAdmin(page, gateway, "/users");
+    await expect(page.locator(".invite-row")).toHaveCount(8);
+    await expect(page.getByText("Showing 8 of 11")).toBeVisible();
+
+    await page.getByRole("link", { name: "View all invites" }).click();
+    await expect(page).toHaveURL(`${gateway.url}/admin/users/invites`);
+    await expect(page.getByRole("heading", { name: "Managed invites", level: 1 })).toBeVisible();
+    await expect(page.locator(".invite-row")).toHaveCount(11);
+    const nav = page.getByRole("navigation", { name: "Admin pages" });
+    await expect(nav.getByRole("link", { name: "Users" })).toHaveAttribute("aria-current", "true");
+
+    await page.getByRole("link", { name: "Users" }).last().click();
+    await expect(page).toHaveURL(`${gateway.url}/admin/users`);
+    await expect(nav.getByRole("link", { name: "Users" })).toHaveAttribute("aria-current", "page");
+  });
+
+  test("the full list has pages and a filter by status", async ({ page, ownGateway }) => {
+    const gateway = await ownGateway();
+    const ids = seedInvites(gateway, 27);
+    gateway.adminService.revokeManagedInvite(ids[0]!);
+    await openAdmin(page, gateway, "/users");
+    await page.goto(`${gateway.url}/admin/users/invites`);
+    await expect(page.locator(".invite-row")).toHaveCount(25);
+    await expect(page.getByText("Page 1 of 2")).toBeVisible();
+    await expect(page.getByRole("button", { name: "Previous" })).toBeDisabled();
+    await page.getByRole("button", { name: "Next" }).click();
+    await expect(page.getByText("Page 2 of 2")).toBeVisible();
+    await expect(page.locator(".invite-row")).toHaveCount(2);
+
+    await page.getByRole("radio", { name: "Revoked" }).click();
+    await expect(page.locator(".invite-row")).toHaveCount(1);
+    await expect(page.locator(".invite-row").first()).toContainText("Seed 01");
+    await expect(page.getByRole("navigation", { name: "Pages", exact: true })).toHaveCount(0);
+    await page.getByRole("radio", { name: "All" }).click();
+    await expect(page.locator(".invite-row")).toHaveCount(25);
+  });
+
+  test("revoking from the full list keeps the list in place", async ({ page, ownGateway }) => {
+    const gateway = await ownGateway();
+    seedInvites(gateway, 3);
+    await openAdmin(page, gateway, "/users");
+    await page.goto(`${gateway.url}/admin/users/invites`);
+    await page.getByRole("radio", { name: "Active" }).click();
+    await expect(page.locator(".invite-row")).toHaveCount(3);
+    await page.getByRole("button", { name: "Revoke invite for Seed 03" }).click();
+    await page.getByRole("dialog", { name: "Revoke invite link" }).getByRole("button", { name: "Revoke" }).click();
+    await expect(page.locator(".invite-row")).toHaveCount(2);
+  });
+
+  test("creating an invite from the full list adds it to the top", async ({ page, ownGateway }) => {
+    const gateway = await ownGateway();
+    seedInvites(gateway, 2);
+    await openAdmin(page, gateway, "/users");
+    await page.goto(`${gateway.url}/admin/users/invites`);
+    const created = await createInvite(page, { channel: "Fresh" });
+    await created.getByRole("button", { name: "Close" }).click();
+    await expect(page.locator(".invite-row")).toHaveCount(3);
+    await expect(page.locator(".invite-row").first()).toContainText("Fresh");
+  });
+});
+
+test.describe("the dashboard", () => {
+  test("counts the active invites and leads to them", async ({ page, ownGateway }) => {
+    const gateway = await ownGateway();
+    const ids = seedInvites(gateway, 3);
+    gateway.adminService.revokeManagedInvite(ids[0]!);
+    await openAdmin(page, gateway, "");
+    const metric = page.getByRole("article").filter({ hasText: "Active invites" });
+    await expect(metric).toContainText("2");
+    await metric.getByRole("link", { name: "Manage invites" }).click();
+    await expect(page).toHaveURL(`${gateway.url}/admin/users/invites`);
   });
 });
 
@@ -140,7 +266,7 @@ test.describe("confirmations", () => {
     const guest = await guestJoins(page, gateway, "ops-notice");
     await expect(guest.getByRole("textbox", { name: "Search members" })).toBeVisible();
     await openAdmin(page, gateway, "/users");
-    await page.getByRole("button", { name: "Create invite link" }).click();
+    await (await createInvite(page)).getByRole("button", { name: "Close" }).click();
     const item = page.locator(".invite-row").first();
     await item.getByRole("button", { name: "Revoke" }).click();
     await page.getByRole("dialog", { name: "Revoke invite link" }).getByRole("button", { name: "Revoke" }).click();
@@ -159,7 +285,7 @@ test.describe("confirmations", () => {
   test("declining the confirmation dialog changes nothing and shows no toast", async ({ page, ownGateway }) => {
     const gateway = await ownGateway();
     await openAdmin(page, gateway, "/users");
-    await page.getByRole("button", { name: "Create invite link" }).click();
+    await (await createInvite(page)).getByRole("button", { name: "Close" }).click();
     const item = page.locator(".invite-row").first();
     await item.getByRole("button", { name: "Revoke" }).click();
     await page.getByRole("dialog", { name: "Revoke invite link" }).getByRole("button", { name: "Cancel" }).click();

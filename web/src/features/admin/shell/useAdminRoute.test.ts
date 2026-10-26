@@ -2,7 +2,7 @@ import { createPinia } from "pinia";
 import { createApp, reactive } from "vue";
 import { routeLocationKey, routerKey } from "vue-router";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { adminRoutes } from "@/features/admin/shell/adminRoutes";
+import { adminNavRoutes, adminRoutes } from "@/features/admin/shell/adminRoutes";
 import { useAdminSessionStore } from "@/features/admin/core/adminSession";
 import { useAdminRoute } from "@/features/admin/shell/useAdminRoute";
 
@@ -39,8 +39,18 @@ describe("adminRoutes", () => {
     expect(new Set(adminRoutes.map((entry) => entry.path)).size).toBe(adminRoutes.length);
   });
 
-  it("names the four pages in the order of the nav", () => {
-    expect(adminRoutes.map((entry) => entry.titleKey)).toEqual(["dashboard", "gateway", "users", "diagnostics"]);
+  it("names the four pages in the order of the nav, then the sub-views", () => {
+    expect(adminNavRoutes.map((entry) => entry.titleKey)).toEqual(["dashboard", "gateway", "users", "diagnostics"]);
+    expect(adminRoutes.filter((entry) => entry.parent).map((entry) => [entry.path, entry.parent])).toEqual([
+      ["/admin/users/invites", "/admin/users"],
+      ["/admin/users/sessions", "/admin/users"],
+    ]);
+  });
+
+  it("gives every sub-view a page that is in the nav", () => {
+    for (const entry of adminRoutes.filter((candidate) => candidate.parent)) {
+      expect(adminNavRoutes.map((page) => page.path)).toContain(entry.parent);
+    }
   });
 });
 
@@ -48,6 +58,12 @@ describe("useAdminRoute", () => {
   it("picks the page of the current path", () => {
     route.path = "/admin/diagnostics";
     expect(use().current.value.titleKey).toBe("diagnostics");
+    expect(replace).not.toHaveBeenCalled();
+  });
+
+  it("shows a sub-view at its own path without correcting the address", () => {
+    route.path = "/admin/users/invites";
+    expect(use().current.value.parent).toBe("/admin/users");
     expect(replace).not.toHaveBeenCalled();
   });
 

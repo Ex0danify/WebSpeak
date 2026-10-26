@@ -12,6 +12,7 @@ const overview = {
     { id: "server-lan", name: "LAN party", target: "192.168.1.20:9987", status: "unreachable", lastTestAt: at(12), latencyMs: null },
   ],
   sessions: { active: 3, peak: 7, limit: 100 },
+  invites: { active: 1 },
   recentEvents: [
     { event: "session.created", createdAt: at(4) },
     { event: "invite.created", createdAt: at(38) },
@@ -120,6 +121,7 @@ const invites = {
       status: "revoked",
     },
   ],
+  total: 3,
 };
 
 const diagnostics = {
@@ -222,6 +224,8 @@ export const adminScreens: Screen[] = [
   { id: "admin-dashboard", path: "/admin", langs: ["en", "de"], admin: true },
   { id: "admin-gateway", path: "/admin/gateway", langs: ["en", "de"], admin: true },
   { id: "admin-users", path: "/admin/users", langs: ["en", "de"], admin: true },
+  { id: "admin-users-invites", path: "/admin/users/invites", langs: ["en", "de"], admin: true },
+  { id: "admin-users-sessions", path: "/admin/users/sessions", langs: ["en", "de"], admin: true },
   { id: "admin-diagnostics", path: "/admin/diagnostics", langs: ["en", "de"], admin: true },
 ];
 
