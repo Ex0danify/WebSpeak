@@ -21,6 +21,12 @@ export const de: Record<string, string> = {
   voiceActivity: "SPRACHAKTIVITÄT",
   you: "Du",
   server: "Server",
+  filterAll: "Alle",
+  listPage: "Seite {{page}} von {{count}}",
+  listShowing: "{{shown}} von {{total}} angezeigt",
+  pageNext: "Weiter",
+  pagePrevious: "Zurück",
+  pagerLabel: "Seiten",
 };
 
 /** What the app needs to know about this language besides its words (read by languages.ts). */

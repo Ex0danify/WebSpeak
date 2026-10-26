@@ -133,6 +133,7 @@ const placeholdersOf = (value: string) => [...new Set([...value.matchAll(PLACEHO
 /** Non-default-language values that may equal their English text (brand names, units, loanwords that are the same in German).
  *  Each entry is `module.key` and a new one needs a reason in review. */
 const SAME_AS_ENGLISH = new Set<string>([
+  "admin.dashboard",
   "admin.gateway",
   "admin.status",
   "admin.version",

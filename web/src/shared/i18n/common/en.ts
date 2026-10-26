@@ -21,6 +21,12 @@ export const en = {
   voiceActivity: "VOICE ACTIVITY",
   you: "You",
   server: "Server",
+  filterAll: "All",
+  listPage: "Page {{page}} of {{count}}",
+  listShowing: "Showing {{shown}} of {{total}}",
+  pageNext: "Next",
+  pagePrevious: "Previous",
+  pagerLabel: "Pages",
 } satisfies Record<string, string>;
 
 /** What the app needs to know about this language besides its words (read by languages.ts). */
