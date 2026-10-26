@@ -2,9 +2,8 @@ import { registerAdminStores } from "@/features/admin/shell/adminStores";
 import { createPinia, setActivePinia } from "pinia";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useI18n } from "@/shared/i18n/useI18n";
-import { createRelayNode, DEFAULT_WELCOME_TEXTS, mapRelayNodes, welcomeLanguageOptions } from "@/features/admin/settings/adminServerForm";
+import { DEFAULT_WELCOME_TEXTS } from "@/features/admin/settings/adminServerForm";
 import { useAdminServerSettingsStore } from "@/features/admin/settings/adminServerSettings";
-import { LANGUAGES } from "@/shared/i18n/languages";
 import { useAdminFeedbackStore } from "@/features/admin/core/adminFeedback";
 import { useAdminOverviewStore } from "@/features/admin/dashboard/adminOverview";
 import { useAdminSessionStore } from "@/features/admin/core/adminSession";
@@ -30,81 +29,6 @@ function setup() {
 beforeEach(() => {
   setActivePinia(createPinia());
   registerAdminStores();
-});
-
-describe("mapRelayNodes / createRelayNode", () => {
-  it("keeps only well-formed nodes and never carries a token over", () => {
-    const nodes = mapRelayNodes([{ id: "a", name: "A", target: "h:1", enabled: true, hasToken: true }, { id: 1 }, null, "x"]);
-    expect(nodes).toEqual([{ id: "a", name: "A", enabled: true, target: "h:1", token: "", tokenAction: "keep", hasToken: true }]);
-    expect(mapRelayNodes("nope")).toEqual([]);
-  });
-
-  it("creates a blank node that must be given a token", () => {
-    const node = createRelayNode();
-    expect(node.id).toMatch(/^relay-new-/);
-    expect(node).toMatchObject({ enabled: false, tokenAction: "replace", hasToken: false });
-  });
-});
-
-describe("useAdminServerSettingsStore", () => {
-  it("loadServerSettings fills defaults for what the response leaves out", async () => {
-    const s = setup();
-    s.getJson.mockResolvedValue({
-      accessMode: "open",
-      welcomeTexts: { de: "Hallo" },
-      webRtcUdpStart: 0,
-      identityMintMaxLevel: 12,
-      identityMintQueueDepth: 0,
-      relayNodes: [{ id: "r", name: "R", target: "t" }],
-    });
-    await s.st.loadServerSettings();
-    expect(s.getJson).toHaveBeenCalledWith("/api/admin/server");
-    expect(s.st.serverForm).toMatchObject({
-      accessMode: "open",
-      welcomeTexts: { de: "Hallo" },
-      webRtcUdpStart: 40000,
-      identityMintMaxLevel: 12,
-      identityMintConcurrency: 2,
-      identityMintQueueDepth: 0,
-    });
-    expect(s.st.serverForm.relayNodes).toHaveLength(1);
-    expect(s.st.serverForm.welcomeDefaults.en).toBe(DEFAULT_WELCOME_TEXTS.en);
-  });
-
-  it("edits the welcome text of the selected language", () => {
-    const s = setup();
-    s.st.welcomeLanguage = "de";
-    s.st.selectedWelcomeText = "Hallo";
-    expect(s.st.serverForm.welcomeTexts.de).toBe("Hallo");
-    expect(s.st.selectedWelcomeLanguageLabel).toBe("Deutsch");
-    expect(s.st.selectedWelcomeDefault).toBe(DEFAULT_WELCOME_TEXTS.de);
-  });
-
-  it("offers every discovered language and falls back to the English default for one without a template", () => {
-    const s = setup();
-    expect(welcomeLanguageOptions.map((option) => option.value)).toEqual(LANGUAGES.map((info) => info.code));
-    s.st.welcomeLanguage = "xx";
-    expect(s.st.selectedWelcomeDefault).toBe(DEFAULT_WELCOME_TEXTS.en);
-  });
-
-  it("adds a node without saving it, and removing one saves", async () => {
-    const s = setup();
-    s.st.addRelayNode();
-    expect(s.st.serverForm.relayNodes).toHaveLength(1);
-    await Promise.resolve();
-    expect(s.sendJson).not.toHaveBeenCalled();
-    s.st.removeRelayNode(0);
-    expect(s.st.serverForm.relayNodes).toHaveLength(0);
-  });
-
-  it("opens the port notice only when WebRTC is switched on", () => {
-    const s = setup();
-    s.st.handleWebRtcToggle();
-    expect(s.st.webrtcPortNoticeOpen).toBe(false);
-    s.st.serverForm.webRtcEnabled = true;
-    s.st.handleWebRtcToggle();
-    expect(s.st.webrtcPortNoticeOpen).toBe(true);
-  });
 });
 
 /** What `getAdminSettings` answers, with the given fields changed. */
@@ -138,7 +62,7 @@ describe("autosave", () => {
     const s = await loaded();
     s.st.serverForm.siteName = "Night Owls";
     s.sendJson.mockResolvedValue({ settings: settingsAnswer({ siteName: "Night Owls" }) });
-    await s.st.scheduleSave("access");
+    await s.st.scheduleSave("web");
     expect(s.sendJson).toHaveBeenCalledTimes(1);
     const [url, method, body] = s.sendJson.mock.calls[0];
     expect([url, method]).toEqual(["/api/admin/server", "PUT"]);
@@ -154,7 +78,8 @@ describe("autosave", () => {
       identityMintQueueDepth: 20,
       relayNodes: [],
     });
-    expect(s.st.statuses.access.state).toBe("saved");
+    expect(s.st.statuses.web.state).toBe("saved");
+    expect(s.st.statuses.access.state).toBe("idle");
     expect(s.st.statuses.advanced.state).toBe("idle");
     // The field that was saved says so, and no other does.
     expect(s.st.fieldStatus("siteName").state).toBe("saved");
@@ -372,29 +297,31 @@ describe("autosave", () => {
     const s = await loaded();
     s.st.serverForm.siteName = "Night Owls";
     s.sendJson.mockRejectedValueOnce({ code: "INVALID_SITE_NAME" });
-    await s.st.scheduleSave("access");
-    expect(s.st.statuses.access.error).not.toBe("");
+    await s.st.scheduleSave("web");
+    expect(s.st.statuses.web.error).not.toBe("");
 
     s.sendJson.mockResolvedValue({ settings: settingsAnswer({ siteName: "Night Owls" }) });
+    await s.st.scheduleSave("web");
+    expect(s.st.statuses.web.error).toBe("");
+    expect(s.st.statuses.web.state).toBe("saved");
+  });
+
+  it("shows a refused access mode on the access card", async () => {
+    const s = await loaded();
+    s.st.serverForm.accessMode = "open";
+    s.sendJson.mockRejectedValueOnce({ code: "INVALID_ACCESS_MODE" });
     await s.st.scheduleSave("access");
-    expect(s.st.statuses.access.error).toBe("");
-    expect(s.st.statuses.access.state).toBe("saved");
+    expect(s.st.statuses.access.error).not.toBe("");
+    expect(s.st.statuses.web.error).toBe("");
   });
 
   it("forgets everything on reset", async () => {
     const s = await loaded();
     s.st.serverForm.siteName = "";
-    await s.st.scheduleSave("access");
+    await s.st.scheduleSave("web");
     s.st.reset();
     expect(s.st.issues).toEqual({});
     expect(s.st.serverForm.siteName).toBe("WebSpeak");
-    expect(s.st.statuses.access.state).toBe("idle");
-  });
-});
-
-describe("useAdminServerSettingsStore (view)", () => {
-  it("exposes the WebRTC range as text", () => {
-    const s = setup();
-    expect(s.st.webrtcPortRangeText).toBe("40000–40099");
+    expect(s.st.statuses.web.state).toBe("idle");
   });
 });

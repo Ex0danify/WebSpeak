@@ -1,9 +1,9 @@
 import type { Locator, Page } from "@playwright/test";
 import { expect, test } from "./fixtures";
-import { openGatewayPage, reloadGatewayPage } from "./helpers/admin";
+import { openGatewayPage, openWebPage, reloadGatewayPage, reloadWebPage } from "./helpers/admin";
 import type { Gateway } from "../test/support/gateway";
 
-// The admin console's Server page: what the administrator edits, what a save keeps, and what the
+// The admin console's Gateway and Web pages: what the administrator edits, what a save keeps, and what the
 // guests then see. Each test has a gateway of its own (`ownGateway`), the console is asked for English.
 
 /** Makes a change and returns the gateway's answer to the save it sets off: there is no Save button, the console saves by itself. */
@@ -28,21 +28,21 @@ const publicConfig = async (gateway: Gateway): Promise<Record<string, unknown>> 
 test.describe("save", () => {
   test("keeps what was edited across a reload, and saving the old value restores it", async ({ page, ownGateway }) => {
     const gateway = await ownGateway();
-    await openGatewayPage(page, gateway);
+    await openWebPage(page, gateway);
     const original = await siteName(page).inputValue();
 
     expect(await saves(page, () => typeInto(siteName(page), "Night Owls"))).toBe(200);
-    await reloadGatewayPage(page, gateway);
+    await reloadWebPage(page, gateway);
     await expect(siteName(page)).toHaveValue("Night Owls");
 
     expect(await saves(page, () => typeInto(siteName(page), original))).toBe(200);
-    await reloadGatewayPage(page, gateway);
+    await reloadWebPage(page, gateway);
     await expect(siteName(page)).toHaveValue(original);
   });
 
   test("the site name reaches the guests' page", async ({ page, ownGateway }) => {
     const gateway = await ownGateway();
-    await openGatewayPage(page, gateway);
+    await openWebPage(page, gateway);
     expect(await saves(page, () => typeInto(siteName(page), "Night Owls Voice"))).toBe(200);
     expect(JSON.stringify(await publicConfig(gateway))).toContain("Night Owls Voice");
   });
@@ -62,7 +62,7 @@ test.describe("save", () => {
 
   test("a value that is not valid yet is not sent, says why and keeps what was typed", async ({ page, ownGateway }) => {
     const gateway = await ownGateway();
-    await openGatewayPage(page, gateway);
+    await openWebPage(page, gateway);
     const original = await siteName(page).inputValue();
     let sent = 0;
     page.on("request", (request) => void (request.method() === "PUT" && request.url().endsWith("/api/admin/server") && sent++));
@@ -74,9 +74,9 @@ test.describe("save", () => {
     expect(sent).toBe(0);
 
     // Another field still saves, and the one that is not valid yet stays as it was.
-    expect(await saves(page, () => page.getByRole("radio", { name: /Also allow other TeamSpeak servers/ }).click())).toBe(200);
+    expect(await saves(page, () => typeInto(page.getByLabel(/^Welcome message · /), "Kept anyway"))).toBe(200);
     await expect(siteName(page)).toHaveValue("");
-    await reloadGatewayPage(page, gateway);
+    await reloadWebPage(page, gateway);
     await expect(siteName(page)).toHaveValue(original);
 
     await typeInto(siteName(page), "Fixed up");
@@ -105,29 +105,29 @@ test.describe("save", () => {
 
   test("a save says Saved next to the section title, with no toast and no button, and it fades", async ({ page, ownGateway }) => {
     const gateway = await ownGateway();
-    await openGatewayPage(page, gateway);
+    await openWebPage(page, gateway);
     await expect(page.getByRole("button", { name: "Save changes" })).toHaveCount(0);
-    const access = page.getByRole("article").filter({ has: page.getByRole("heading", { name: "Access and site identity" }) });
-    const sectionStatus = access.getByRole("status");
-    const fieldSaid = access.locator("label").filter({ hasText: "Site display name" }).getByText("Saved");
-    await expect(access.getByRole("status")).toBeAttached();
-    await expect(access.getByText("Saved")).toHaveCount(0);
+    const identity = page.getByRole("article").filter({ has: page.getByRole("heading", { name: "Site identity" }) });
+    const sectionStatus = identity.getByRole("status");
+    const fieldSaid = identity.locator("label").filter({ hasText: "Site display name" }).getByText("Saved");
+    await expect(identity.getByRole("status")).toBeAttached();
+    await expect(identity.getByText("Saved")).toHaveCount(0);
 
     expect(await saves(page, () => typeInto(siteName(page), "Quiet Save"))).toBe(200);
     // The section's status is for a screen reader, the field's mark is what is seen.
     await expect(sectionStatus).toHaveText("Saved");
     // The field that was saved is marked next to its label, where the person is looking, and no other field is.
     await expect(fieldSaid).toBeVisible();
-    await expect(access.getByText("Saved")).toHaveCount(2);
+    await expect(identity.getByText("Saved")).toHaveCount(2);
     await expect(page.locator("li").filter({ hasText: "Settings saved." })).toHaveCount(0);
-    await expect(access.getByText("Saved")).toHaveCount(0, { timeout: 8000 });
+    await expect(identity.getByText("Saved")).toHaveCount(0, { timeout: 8000 });
   });
 });
 
 test.describe("welcome message", () => {
   test("has one text per language, each kept, and the guests get the one for their language", async ({ page, ownGateway }) => {
     const gateway = await ownGateway();
-    await openGatewayPage(page, gateway);
+    await openWebPage(page, gateway);
     const language = page.getByLabel("Welcome message language");
     await language.selectOption("de");
     await expect(page.getByLabel("Welcome message · Deutsch")).toBeVisible();
@@ -136,7 +136,7 @@ test.describe("welcome message", () => {
     await expect(page.getByLabel("Welcome message · English")).toHaveValue("");
     expect(await saves(page, () => typeInto(page.getByLabel("Welcome message · English"), "Welcome, night owls"))).toBe(200);
 
-    await reloadGatewayPage(page, gateway);
+    await reloadWebPage(page, gateway);
     await page.getByLabel("Welcome message language").selectOption("de");
     await expect(page.getByLabel("Welcome message · Deutsch")).toHaveValue("Willkommen bei den Nachteulen");
     await page.getByLabel("Welcome message language").selectOption("en");

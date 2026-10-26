@@ -63,7 +63,7 @@ test.describe("first sign in", () => {
     await expect(page.getByRole("heading", { name: "Change the default password" })).toBeVisible();
     expect(path(page)).toBe("/admin/change-password");
 
-    for (const other of ["/admin", "/admin/gateway", "/admin/users", "/admin/diagnostics"]) {
+    for (const other of ["/admin", "/admin/gateway", "/admin/web", "/admin/users", "/admin/diagnostics"]) {
       await page.goto(`${gateway.url}${other}`);
       await expect(page.getByRole("heading", { name: "Change the default password" })).toBeVisible();
     }
@@ -129,6 +129,7 @@ test.describe("dashboard and navigation", () => {
     expect(path(page)).toBe("/admin/gateway");
     const nav = page.getByRole("navigation", { name: "Admin pages" });
     for (const [link, address] of [
+      ["Web", "/admin/web"],
       ["Users", "/admin/users"],
       ["Diagnostics", "/admin/diagnostics"],
       ["Dashboard", "/admin"],
@@ -169,7 +170,7 @@ test.describe("dashboard and navigation", () => {
     await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
     expect(await page.evaluate(() => document.documentElement.scrollHeight > innerHeight)).toBe(true);
     expect(await bottom()).toBe(height);
-    for (const link of ["Dashboard", "Gateway", "Users", "Diagnostics"]) {
+    for (const link of ["Dashboard", "Gateway", "Web", "Users", "Diagnostics"]) {
       const box = (await nav.getByRole("link", { name: link }).boundingBox())!;
       expect(box.height, `${link} is at least 44 px tall`).toBeGreaterThanOrEqual(44);
     }

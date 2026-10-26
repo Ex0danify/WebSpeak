@@ -223,6 +223,7 @@ export interface Screen {
 export const adminScreens: Screen[] = [
   { id: "admin-dashboard", path: "/admin", langs: ["en", "de"], admin: true },
   { id: "admin-gateway", path: "/admin/gateway", langs: ["en", "de"], admin: true },
+  { id: "admin-web", path: "/admin/web", langs: ["en", "de"], admin: true },
   { id: "admin-users", path: "/admin/users", langs: ["en", "de"], admin: true },
   { id: "admin-users-invites", path: "/admin/users/invites", langs: ["en", "de"], admin: true },
   { id: "admin-users-sessions", path: "/admin/users/sessions", langs: ["en", "de"], admin: true },

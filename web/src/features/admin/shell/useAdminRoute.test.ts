@@ -39,8 +39,8 @@ describe("adminRoutes", () => {
     expect(new Set(adminRoutes.map((entry) => entry.path)).size).toBe(adminRoutes.length);
   });
 
-  it("names the four pages in the order of the nav, then the sub-views", () => {
-    expect(adminNavRoutes.map((entry) => entry.titleKey)).toEqual(["dashboard", "gateway", "users", "diagnostics"]);
+  it("names the five pages in the order of the nav, then the sub-views", () => {
+    expect(adminNavRoutes.map((entry) => entry.titleKey)).toEqual(["dashboard", "gateway", "web", "users", "diagnostics"]);
     expect(adminRoutes.filter((entry) => entry.parent).map((entry) => [entry.path, entry.parent])).toEqual([
       ["/admin/users/invites", "/admin/users"],
       ["/admin/users/sessions", "/admin/users"],

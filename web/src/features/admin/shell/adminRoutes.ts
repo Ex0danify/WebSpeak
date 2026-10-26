@@ -2,6 +2,7 @@ import type { Component } from "vue";
 import AdminDashboardPage from "@/features/admin/dashboard/AdminDashboardPage.vue";
 import AdminDiagnosticsPage from "@/features/admin/diagnostics/AdminDiagnosticsPage.vue";
 import AdminGatewayPage from "@/features/admin/gateway/AdminGatewayPage.vue";
+import AdminWebPage from "@/features/admin/web/AdminWebPage.vue";
 import AdminUsersPage from "@/features/admin/users/AdminUsersPage.vue";
 import InvitesView from "@/features/admin/users/invites/InvitesView.vue";
 import SessionsView from "@/features/admin/users/sessions/SessionsView.vue";
@@ -21,6 +22,7 @@ export interface AdminRoute {
 export const adminRoutes: readonly AdminRoute[] = [
   { path: "/admin", titleKey: "dashboard", icon: "home", component: AdminDashboardPage },
   { path: "/admin/gateway", titleKey: "gateway", icon: "server", component: AdminGatewayPage },
+  { path: "/admin/web", titleKey: "web", icon: "globe", component: AdminWebPage },
   { path: "/admin/users", titleKey: "users", icon: "users", component: AdminUsersPage },
   { path: "/admin/diagnostics", titleKey: "diagnostics", icon: "activity", component: AdminDiagnosticsPage },
   { path: "/admin/users/invites", titleKey: "invites", icon: "users", component: InvitesView, parent: "/admin/users" },

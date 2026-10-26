@@ -10,7 +10,7 @@
 
 <script setup lang="ts">
 import { useI18n } from "@/shared/i18n/useI18n";
-import AccessIdentityCard from "@/features/admin/gateway/AccessIdentityCard.vue";
+import ServerAccessCard from "@/features/admin/gateway/ServerAccessCard.vue";
 import AdminPage from "@/features/admin/ui/AdminPage.vue";
 import AdvancedSettingsCard from "@/features/admin/gateway/AdvancedSettingsCard.vue";
 import RelayNodesCard from "@/features/admin/gateway/RelayNodesCard.vue";
@@ -27,7 +27,7 @@ const columns: Array<{ id: string; cards: AdminPageCard[] }> = [
     id: "access",
     cards: [
       { id: "servers", component: ServersCard },
-      { id: "access", component: AccessIdentityCard },
+      { id: "access", component: ServerAccessCard },
     ],
   },
   {

@@ -12,7 +12,7 @@ export const SETTING_LIMITS = {
   relayTokenMin: 16,
 } as const;
 
-export type SettingsSection = "access" | "advanced" | "relay";
+export type SettingsSection = "access" | "web" | "advanced" | "relay";
 
 export type SettingsIssue =
   | { code: "siteName" }
