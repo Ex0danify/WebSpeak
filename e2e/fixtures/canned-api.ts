@@ -55,7 +55,6 @@ const server = {
     { id: "fra", name: "Frankfurt relay", enabled: true, target: "relay.example.com:9987", hasToken: true },
     { id: "tyo", name: "Tokyo relay", enabled: false, target: "tokyo.example.com:9987", hasToken: false },
   ],
-  internalPort: 3040,
 };
 
 const sessions = {

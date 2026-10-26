@@ -55,10 +55,6 @@ describe("initialize", () => {
     expect(service.database.listServers()).toMatchObject([{ id: DEFAULT_SERVER_ID, host: "127.0.0.1", port: 9987 }]);
     expect(service.database.recentAudit(50).map((entry) => entry.event)).toContain("ADMIN_INITIALIZED");
   });
-
-  it("shows the port the gateway listens on", () => {
-    expect(ctx.create().getAdminSettings()).toMatchObject({ internalPort: 3040 });
-  });
 });
 
 describe("admin password", () => {

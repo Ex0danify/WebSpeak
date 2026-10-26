@@ -41,7 +41,7 @@ export interface GatewayOptions {
   staticDir?: string;
 }
 
-type ProbeFn = ConstructorParameters<typeof AdminService>[4] & {};
+type ProbeFn = ConstructorParameters<typeof AdminService>[3] & {};
 
 export interface AdminApi {
   readonly csrfToken: string;
@@ -99,7 +99,7 @@ export async function startGateway(options: GatewayOptions = {}): Promise<Gatewa
   const port = await freePort();
   const adminProbe = options.realTeamSpeak && !options.probe ? probeTeamSpeak : probe;
   const adminPing = options.realTeamSpeak && !options.ping ? undefined : ping;
-  const adminService = new AdminService(database, MASTER_SECRET, logger, port, adminProbe as unknown as ProbeFn, "9.9.9", adminPing);
+  const adminService = new AdminService(database, MASTER_SECRET, logger, adminProbe as unknown as ProbeFn, "9.9.9", adminPing);
   if (options.initialize !== false) {
     await adminService.initialize(BOOTSTRAP);
     if (!options.forcePasswordChange) await adminService.changePassword(TEST_ADMIN_PASSWORD);

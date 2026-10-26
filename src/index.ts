@@ -52,7 +52,7 @@ async function runGateway(env: GatewayEnv): Promise<void> {
   const database = new WebSpeakDatabase(path.join(dataDir, "webspeak.db"));
   const pruned = database.pruneAudit();
   const masterSecret = loadOrCreateMasterSecret(path.join(dataDir, "master.key"));
-  const adminService = new AdminService(database, masterSecret, logger, env.port, undefined, APP_VERSION);
+  const adminService = new AdminService(database, masterSecret, logger, undefined, APP_VERSION);
   // The credentials in .env only matter on a fresh database, so they are not even checked once an account exists.
   adminService.pruneManagedInvites();
   const inviteSweep = setInterval(() => adminService.pruneManagedInvites(), INVITE_SWEEP_MS);

@@ -18,14 +18,13 @@ const audit = (gateway: Gateway) => gateway.database.recentAudit(50).map((row) =
 
 describe("GET /server", () => {
   it("shows the defaults, with no password or token in it", async () => {
-    const { gateway, admin } = await start();
+    const { admin } = await start();
     const settings = await json(await admin.get("server"));
     expect(Object.keys(settings).sort()).toEqual([
       "accessMode",
       "identityMintConcurrency",
       "identityMintMaxLevel",
       "identityMintQueueDepth",
-      "internalPort",
       "relayNodes",
       "servers",
       "siteName",
@@ -41,8 +40,6 @@ describe("GET /server", () => {
       relayNodes: [],
       webRtcEnabled: false,
       siteName: "WebSpeak",
-      // The port the harness gateway really listens on, not a fixed one.
-      internalPort: Number(new URL(gateway.url).port),
     });
   });
 });

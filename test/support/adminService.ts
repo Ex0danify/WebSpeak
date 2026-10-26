@@ -6,9 +6,6 @@ import { useDatabaseFixture } from "./database.js";
 export const MASTER_SECRET = Buffer.alloc(32, 7);
 
 /** What `WEBSPEAK_ADMIN_USERNAME` and `WEBSPEAK_ADMIN_PASSWORD` hold in the tests that start from a fresh database. */
-/** The port the admin console shows in tests, nothing listens on it. */
-export const TEST_PORT = 3040;
-
 export const BOOTSTRAP = { username: "admin", password: "initial test password 1" };
 
 export type StubLogger = Logger & Record<"debug" | "info" | "warn" | "error", Mock>;
@@ -48,7 +45,7 @@ export function useAdminService() {
     /** Opens the database and builds a service on it. `secret` defaults to the fixed test secret. */
     create(secret: Buffer = MASTER_SECRET): AdminService {
       const db = database.open();
-      return new AdminService(db, secret, context.logger, TEST_PORT, context.probe as never, "9.9.9", context.ping as never);
+      return new AdminService(db, secret, context.logger, context.probe as never, "9.9.9", context.ping as never);
     },
   };
   return context;

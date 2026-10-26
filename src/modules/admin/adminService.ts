@@ -66,8 +66,6 @@ export class AdminService {
     readonly database: WebSpeakDatabase,
     private readonly masterSecret: Buffer,
     private readonly logger: Logger,
-    /** The port the gateway listens on, shown in the console. */
-    private readonly port: number,
     private readonly probe: ProbeFunction = probeTeamSpeak,
     private readonly version = "0.1.0",
     private readonly hostPing: HostPingFunction = (host) => pingTeamSpeakHost(host, { attempts: 4 }),
@@ -145,7 +143,6 @@ export class AdminService {
       identityMintConcurrency: settings.identityMintConcurrency,
       identityMintQueueDepth: settings.identityMintQueueDepth,
       relayNodes: this.getRelayNodeViews(),
-      internalPort: this.port,
       updatedAt: settings.updatedAt,
     };
   }
