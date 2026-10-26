@@ -73,6 +73,23 @@ describe("/api/public-config", () => {
     expect(JSON.stringify(config)).not.toContain("voice.example.org");
   });
 
+  it("is read-only: nothing a guest sends changes the site name or the welcome texts", async () => {
+    const gateway = await gateways.start();
+    const before = await (await gateway.request("/api/public-config")).json();
+    const body = JSON.stringify(settingsInput({ siteName: "Hijacked", welcomeTexts: { en: "Hijacked" } }));
+    const headers = { "content-type": "application/json" };
+    for (const method of ["POST", "PUT", "PATCH", "DELETE"]) {
+      const response = await gateway.request("/api/public-config", { method, body, headers });
+      expect(response.status, method).toBeGreaterThanOrEqual(400);
+    }
+    expect((await gateway.request("/api/admin/server", { method: "PUT", body, headers })).status).toBe(401);
+    const after = await (await gateway.request("/api/public-config")).json();
+    expect(after).toMatchObject({
+      siteName: (before as { siteName: string }).siteName,
+      welcomeTexts: (before as { welcomeTexts: object }).welcomeTexts,
+    });
+  });
+
   it("never contains the server password or a relay token after they are saved", async () => {
     const gateway = await gateways.start();
     const admin = await gateway.adminLogin();
