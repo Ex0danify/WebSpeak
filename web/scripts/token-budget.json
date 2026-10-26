@@ -1,6 +1,6 @@
 {
   "files": {
-    "src/features/admin/gateway/AdvancedSettingsCard.vue": {
+    "src/features/admin/gateway/WebRtcCard.vue": {
       "arbitrary": 1
     },
     "src/features/admin/gateway/RelayNodesCard.vue": {

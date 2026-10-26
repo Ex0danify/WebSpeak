@@ -25,18 +25,19 @@ import { useAdminFeedbackStore } from "@/features/admin/core/adminFeedback.js";
 import { adminSiblings } from "@/features/admin/core/adminSiblings.js";
 import { useAdminSessionStore } from "@/features/admin/core/adminSession.js";
 
-const SECTIONS: SettingsSection[] = ["access", "web", "advanced", "relay"];
+const SECTIONS: SettingsSection[] = ["access", "web", "webrtc", "mint", "relay"];
 
 /** The section a refused save is about, by the code the gateway answered with. */
 function sectionOfError(code: string | undefined): SettingsSection {
   if (code?.startsWith("INVALID_RELAY")) return "relay";
   if (code === "INVALID_SITE_NAME" || code === "INVALID_WELCOME_TEXT") return "web";
-  if (code?.includes("WEBRTC") || code?.includes("IDENTITY_MINT")) return "advanced";
+  if (code?.includes("WEBRTC")) return "webrtc";
+  if (code?.includes("IDENTITY_MINT")) return "mint";
   return "access";
 }
 
 /**
- * The gateway and web pages' settings: access mode, site name, welcome texts, WebRTC port range and relay nodes. Every change saves by itself: the form
+ * The gateway and web pages' settings: access mode, site name, welcome texts, WebRTC port range, identity minting limits and relay nodes. Every change saves by itself: the form
  * schedules a save when a choice is made or a field is left, saves run one at a time and always send the whole document.
  */
 export const useAdminServerSettingsStore = defineStore("adminServerSettings", () => {
@@ -53,7 +54,13 @@ export const useAdminServerSettingsStore = defineStore("adminServerSettings", ()
   let loaded = false;
   /** What the last save held back, and for which field the person sees a hint. */
   const issues = ref<SettingsIssues>({});
-  const statuses = { access: createSaveStatus(), web: createSaveStatus(), advanced: createSaveStatus(), relay: createSaveStatus() };
+  const statuses = {
+    access: createSaveStatus(),
+    web: createSaveStatus(),
+    webrtc: createSaveStatus(),
+    mint: createSaveStatus(),
+    relay: createSaveStatus(),
+  };
   /** Per field, whether it was just saved: the mark next to its label. */
   const fieldStatuses = new Map<string, SaveStatus>();
   const pending = new Set<SettingsSection>();
@@ -191,7 +198,7 @@ export const useAdminServerSettingsStore = defineStore("adminServerSettings", ()
 
   function handleWebRtcToggle() {
     if (serverForm.webRtcEnabled) webrtcPortNoticeOpen.value = true;
-    void scheduleSave("advanced");
+    void scheduleSave("webrtc");
   }
 
   /** Back to the empty form for logout, setup stores have no `$reset`. */

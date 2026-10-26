@@ -104,7 +104,6 @@ export function initialServerForm() {
     identityMintConcurrency: 2,
     identityMintQueueDepth: 20,
     relayNodes: [] as RelayNodeForm[],
-    internalPort: null as number | null,
   };
 }
 
@@ -117,7 +116,6 @@ export function serverFormFromSettings(value: Record<string, any>): ServerForm {
     accessMode: value.accessMode === "open" ? "open" : "fixed",
     siteName: typeof value.siteName === "string" ? value.siteName : initialServerForm().siteName,
     ...formFieldsFromSettings(value),
-    internalPort: typeof value.internalPort === "number" ? value.internalPort : null,
   };
 }
 

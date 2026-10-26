@@ -45,7 +45,6 @@ function settingsAnswer(changes: Record<string, unknown> = {}) {
     identityMintConcurrency: 2,
     identityMintQueueDepth: 20,
     relayNodes: [],
-    internalPort: 3000,
     ...changes,
   };
 }
@@ -80,7 +79,7 @@ describe("autosave", () => {
     });
     expect(s.st.statuses.web.state).toBe("saved");
     expect(s.st.statuses.access.state).toBe("idle");
-    expect(s.st.statuses.advanced.state).toBe("idle");
+    expect(s.st.statuses.webrtc.state).toBe("idle");
     // The field that was saved says so, and no other does.
     expect(s.st.fieldStatus("siteName").state).toBe("saved");
     expect(s.st.fieldStatus("identityMintMaxLevel").state).toBe("idle");
@@ -227,9 +226,9 @@ describe("autosave", () => {
     s.st.serverForm.webRtcEnabled = true;
     s.st.handleWebRtcToggle();
     expect(s.st.webrtcPortNoticeOpen).toBe(true);
-    await s.st.scheduleSave("advanced");
+    await s.st.scheduleSave("webrtc");
     expect(s.sendJson.mock.calls[0][2]).toMatchObject({ webRtcEnabled: true, webRtcUdpStart: 40000 });
-    expect(s.st.statuses.advanced.state).toBe("saved");
+    expect(s.st.statuses.webrtc.state).toBe("saved");
   });
 
   it("runs saves one at a time, the second sends both changes", async () => {
@@ -243,7 +242,7 @@ describe("autosave", () => {
     s.st.serverForm.accessMode = "open";
     const second = s.st.scheduleSave("access");
     s.st.serverForm.identityMintQueueDepth = 5;
-    void s.st.scheduleSave("advanced");
+    void s.st.scheduleSave("webrtc");
     await Promise.resolve();
     expect(s.sendJson).toHaveBeenCalledTimes(1);
 
@@ -253,7 +252,7 @@ describe("autosave", () => {
     expect(s.sendJson).toHaveBeenCalledTimes(2);
     expect(s.sendJson.mock.calls[1][2]).toMatchObject({ siteName: "First", accessMode: "open", identityMintQueueDepth: 5 });
     expect(s.st.statuses.access.state).toBe("saved");
-    expect(s.st.statuses.advanced.state).toBe("saved");
+    expect(s.st.statuses.webrtc.state).toBe("saved");
   });
 
   it("keeps what was typed while a save was on its way", async () => {
@@ -275,9 +274,9 @@ describe("autosave", () => {
     s.st.serverForm.webRtcUdpStart = 41000;
     s.st.serverForm.webRtcUdpEnd = 41100;
     s.sendJson.mockRejectedValue({ code: "INVALID_WEBRTC_PORT_RANGE" });
-    await s.st.scheduleSave("advanced");
-    expect(s.st.statuses.advanced.error).toBe(s.feedback.errorText("INVALID_WEBRTC_PORT_RANGE"));
-    expect(s.st.statuses.advanced.state).toBe("idle");
+    await s.st.scheduleSave("webrtc");
+    expect(s.st.statuses.webrtc.error).toBe(s.feedback.errorText("INVALID_WEBRTC_PORT_RANGE"));
+    expect(s.st.statuses.webrtc.state).toBe("idle");
     expect(s.st.statuses.access.error).toBe("");
     expect(s.feedback.errorMessage).toBe("");
     expect(s.st.serverForm.webRtcUdpStart).toBe(41000);

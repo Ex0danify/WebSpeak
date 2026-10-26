@@ -1,5 +1,5 @@
 <template>
-  <Card as="article" padding="lg" body-class="grid content-start gap-3" :class="props.class">
+  <component :is="plain ? 'div' : Card" v-bind="frame" :class="props.class">
     <header class="flex items-start justify-between gap-3">
       <div>
         <div v-if="status" class="flex flex-wrap items-center gap-x-3">
@@ -13,10 +13,11 @@
     </header>
     <slot />
     <Banner v-if="status?.error && !offline" variant="danger">{{ status.error }}</Banner>
-  </Card>
+  </component>
 </template>
 
 <script setup lang="ts">
+import { computed } from "vue";
 import { storeToRefs } from "pinia";
 import { Banner } from "@/shared/ui/banner";
 import { Card } from "@/shared/ui/card";
@@ -33,8 +34,14 @@ const props = defineProps<{
   status?: SaveStatusState;
   /** The controls of the section mark their own saves: the status is then only announced, not shown. */
   statusQuiet?: boolean;
+  /** Without a card of its own, for a section that sits inside another card. */
+  plain?: boolean;
   class?: string;
 }>();
+
+const frame = computed(() =>
+  props.plain ? { class: "grid content-start gap-3" } : { as: "article", padding: "lg", bodyClass: "grid content-start gap-3" },
+);
 
 // The top bar already says the gateway is gone, so a save that failed for it shows no message of its own.
 const { offline } = storeToRefs(useAdminGatewayStore());

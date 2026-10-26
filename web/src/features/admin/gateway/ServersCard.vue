@@ -1,5 +1,5 @@
 <template>
-  <AdminSection :title="t('teamSpeakServers')" :lead="t('teamSpeakServersLead')" :status="status">
+  <AdminSection :plain="plain" :title="t('teamSpeakServers')" :lead="t('teamSpeakServersLead')" :status="status">
     <template #action>
       <Button variant="secondary" size="sm" class="shrink-0" @click="openAdd()"><Icon name="plus" :size="16" />{{ t("addServer") }}</Button>
     </template>
@@ -101,6 +101,8 @@ import { useAdminServersStore, type ServerStatus } from "@/features/admin/gatewa
 import type { AdminServer } from "@/features/admin/core/adminTypes";
 import { useServerReorder } from "@/features/admin/gateway/useServerReorder";
 import { useI18n } from "@/shared/i18n/useI18n";
+
+defineProps<{ plain?: boolean }>();
 
 const status = useAdminFeedbackStore().statusOf(SERVER_LIST_STATUS);
 const store = useAdminServersStore();

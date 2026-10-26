@@ -12,7 +12,7 @@ export const SETTING_LIMITS = {
   relayTokenMin: 16,
 } as const;
 
-export type SettingsSection = "access" | "web" | "advanced" | "relay";
+export type SettingsSection = "access" | "web" | "webrtc" | "mint" | "relay";
 
 export type SettingsIssue =
   | { code: "siteName" }
@@ -193,7 +193,6 @@ export function changedFieldKeys(next: SettingsDocument, previous: SettingsDocum
  */
 export function applySavedSettings(form: ServerForm, sent: SettingsDocument, saved: ServerForm): void {
   form.welcomeDefaults = saved.welcomeDefaults;
-  form.internalPort = saved.internalPort;
 
   if (form.accessMode === sent.accessMode) form.accessMode = saved.accessMode;
   if (form.siteName.trim() === sent.siteName) form.siteName = saved.siteName;

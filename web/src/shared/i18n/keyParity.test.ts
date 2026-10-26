@@ -137,6 +137,8 @@ const SAME_AS_ENGLISH = new Set<string>([
   "admin.gateway",
   "admin.status",
   "admin.version",
+  "admin.web",
+  "admin.webrtcSettings",
   "demo.simulated",
   "demo.demoOnline",
   "join.browserSupport",
