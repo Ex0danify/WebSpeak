@@ -20,7 +20,7 @@ import { isValidTeamSpeakPort, splitTeamSpeakTarget } from "@/shared/lib/teamspe
 import type { ThemeMode } from "@/shared/services/theme.js";
 import type { VoiceState } from "@/features/session";
 import { useJoinFormStore } from "@/features/join/stores/joinFormStore";
-import { useGatewayStatus } from "@/features/join/useGatewayStatus";
+import { useGatewayStatus } from "@/shared/composables/useGatewayStatus";
 
 export interface UseJoinFormOptions {
   voiceState: VoiceState;

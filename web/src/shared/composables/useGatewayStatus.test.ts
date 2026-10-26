@@ -1,6 +1,6 @@
 import { effectScope } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { useGatewayStatus } from "@/features/join/useGatewayStatus";
+import { useGatewayStatus } from "@/shared/composables/useGatewayStatus";
 
 function setup(onRecover?: () => void) {
   const scope = effectScope();

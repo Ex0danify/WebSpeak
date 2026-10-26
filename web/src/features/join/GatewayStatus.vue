@@ -15,7 +15,7 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import { useI18n } from "@/shared/i18n/useI18n.js";
-import type { GatewayStatus } from "@/features/join/useGatewayStatus";
+import type { GatewayStatus } from "@/shared/composables/useGatewayStatus";
 
 const props = defineProps<{ status: GatewayStatus; retryIn: number }>();
 

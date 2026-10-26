@@ -150,7 +150,7 @@
 import { computed } from "vue";
 import { Banner } from "@/shared/ui/banner";
 import GatewayStatus from "@/features/join/GatewayStatus.vue";
-import type { GatewayStatus as GatewayStatusValue } from "@/features/join/useGatewayStatus";
+import type { GatewayStatus as GatewayStatusValue } from "@/shared/composables/useGatewayStatus";
 import { Button } from "@/shared/ui/button";
 import { Field } from "@/shared/ui/field";
 import { Icon } from "@/shared/ui/icon";
