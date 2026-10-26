@@ -193,6 +193,27 @@ test.describe("dashboard and navigation", () => {
   });
 });
 
+test.describe("a gateway that goes away", () => {
+  test("the top bar and the dashboard say so, and a page that cannot load does not blame the form", async ({ page, ownGateway }) => {
+    const gateway = await ownGateway();
+    await login(page, gateway);
+    const chip = page.getByRole("banner").getByRole("status");
+    await expect(chip).toContainText("Gateway running");
+
+    await gateway.stop();
+    // The check runs every 20 s, a tab that is shown again checks at once.
+    await page.evaluate(() => document.dispatchEvent(new Event("visibilitychange")));
+    await expect(chip).toContainText("Gateway unreachable");
+    await expect(page.getByRole("heading", { name: "Gateway unreachable" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Retry now" })).toBeVisible();
+
+    await page.getByRole("link", { name: "Gateway", exact: true }).click();
+    await expect(page.getByRole("heading", { name: "Gateway", level: 1 })).toBeVisible();
+    await expect(page.getByText("The request failed")).toHaveCount(0);
+    for (const dot of await page.locator(".server-row i").all()) await expect(dot).not.toHaveClass(/bg-danger/);
+  });
+});
+
 test.describe("unknown page", () => {
   test("an address that is no console page shows the dashboard and is corrected to /admin", async ({ page, ownGateway }) => {
     const gateway = await ownGateway();

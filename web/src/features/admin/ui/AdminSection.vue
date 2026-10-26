@@ -12,14 +12,16 @@
       <slot name="action" />
     </header>
     <slot />
-    <Banner v-if="status?.error" variant="danger">{{ status.error }}</Banner>
+    <Banner v-if="status?.error && !offline" variant="danger">{{ status.error }}</Banner>
   </Card>
 </template>
 
 <script setup lang="ts">
+import { storeToRefs } from "pinia";
 import { Banner } from "@/shared/ui/banner";
 import { Card } from "@/shared/ui/card";
 import type { SaveStatus as SaveStatusState } from "@/features/admin/core/saveStatus";
+import { useAdminGatewayStore } from "@/features/admin/core/adminGateway";
 import SaveStatus from "@/features/admin/ui/SaveStatus.vue";
 
 // A card with a title, a lead line, an action on the right and the body below. It sets no size and no overflow: where a section
@@ -33,4 +35,7 @@ const props = defineProps<{
   statusQuiet?: boolean;
   class?: string;
 }>();
+
+// The top bar already says the gateway is gone, so a save that failed for it shows no message of its own.
+const { offline } = storeToRefs(useAdminGatewayStore());
 </script>

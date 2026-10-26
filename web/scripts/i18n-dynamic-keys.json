@@ -46,6 +46,7 @@
         "setupPasswordShort",
         "changePasswordLead",
         "rateLimited",
+        "adminErr_GATEWAY_UNREACHABLE",
         "requestFailed",
         "adminErr_INVALID_WEBRTC_PORT_RANGE",
         "adminErr_WEBRTC_PORT_LOCKED",

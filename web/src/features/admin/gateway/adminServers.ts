@@ -1,5 +1,6 @@
 import { reactive, ref } from "vue";
 import { defineStore } from "pinia";
+import { GATEWAY_UNREACHABLE, type ApiError } from "@/features/admin/core/adminApi.js";
 import { SERVER_LIST_STATUS, useAdminFeedbackStore } from "@/features/admin/core/adminFeedback.js";
 import { adminSiblings } from "@/features/admin/core/adminSiblings.js";
 import { useAdminSessionStore } from "@/features/admin/core/adminSession.js";
@@ -35,8 +36,10 @@ export const useAdminServersStore = defineStore("adminServers", () => {
     try {
       const result = await admin.sendJson(`/api/admin/servers/${encodeURIComponent(id)}/test`, "POST", {});
       probes[id] = result.ok ? "online" : "unreachable";
-    } catch {
-      probes[id] = "unreachable";
+    } catch (error) {
+      // A gateway that cannot be asked says nothing about the server, so its last known result stays.
+      if ((error as ApiError).code === GATEWAY_UNREACHABLE) delete probes[id];
+      else probes[id] = "unreachable";
     }
   }
 

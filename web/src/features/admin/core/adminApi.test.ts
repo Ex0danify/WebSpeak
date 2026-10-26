@@ -52,4 +52,32 @@ describe("createAdminApi", () => {
     await expect(api.getJson("/x")).rejects.toMatchObject({ code: "REQUEST_FAILED", message: "Server Error" });
     expect(onUnauthorized).not.toHaveBeenCalled();
   });
+
+  it("names a request the gateway never answered, by a failed fetch and by a proxy's 502, 503 or 504", async () => {
+    const api = createAdminApi({ getCsrfToken: () => "", onUnauthorized: vi.fn() });
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => {
+        throw new TypeError("Failed to fetch");
+      }),
+    );
+    await expect(api.getJson("/x")).rejects.toMatchObject({ code: "GATEWAY_UNREACHABLE" });
+    await expect(api.sendJson("/x", "POST", {})).rejects.toMatchObject({ code: "GATEWAY_UNREACHABLE" });
+    for (const status of [502, 503, 504]) {
+      vi.stubGlobal(
+        "fetch",
+        vi.fn(async () => new Response("Bad Gateway", { status })),
+      );
+      await expect(api.getJson("/x")).rejects.toMatchObject({ code: "GATEWAY_UNREACHABLE" });
+    }
+  });
+
+  it("keeps the code of the gateway's own 5xx answer", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => respond(503, { code: "PING_UNAVAILABLE" })),
+    );
+    const api = createAdminApi({ getCsrfToken: () => "", onUnauthorized: vi.fn() });
+    await expect(api.getJson("/x")).rejects.toMatchObject({ code: "PING_UNAVAILABLE" });
+  });
 });

@@ -1,4 +1,5 @@
 import { provideAdminSiblings } from "@/features/admin/core/adminSiblings";
+import { useAdminGatewayStore } from "@/features/admin/core/adminGateway";
 import { useAdminDiagnosticsStore } from "@/features/admin/diagnostics/adminDiagnostics";
 import { useAdminOverviewStore } from "@/features/admin/dashboard/adminOverview";
 import { useAdminServerDialogStore } from "@/features/admin/gateway/adminServerDialog";
@@ -20,6 +21,7 @@ export function registerAdminStores(): void {
     },
     probeServer: (id) => useAdminServersStore().probeServer(id),
     resetAll: () => {
+      useAdminGatewayStore().reset();
       useAdminOverviewStore().reset();
       useAdminUsersStore().reset();
       useAdminInvitesStore().reset();

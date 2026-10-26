@@ -102,6 +102,15 @@ describe("server status", () => {
     expect(s.st.statusOf(s.st.servers[0]!)).toBe("unreachable");
   });
 
+  it("keeps the stored result when the gateway itself cannot be asked", async () => {
+    const s = setup();
+    const stored = server("a", { lastTestAt: "2026-01-01T00:00:00Z" });
+    s.st.servers = [stored];
+    s.sendJson.mockRejectedValue({ code: "GATEWAY_UNREACHABLE" });
+    await s.st.probeServer("a");
+    expect(s.st.statusOf(stored)).toBe("online");
+  });
+
   it("a pass that was overtaken stops probing", async () => {
     const s = setup();
     s.st.servers = [server("a"), server("b")];
