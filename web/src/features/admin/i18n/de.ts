@@ -145,7 +145,7 @@ export const de: Record<string, string> = {
   everythingRunning: "WebSpeak läuft",
   usersLead: "Sehen, wer verbunden ist, und die Einladungslinks für Gäste verwalten.",
   viewAll: "Alle anzeigen",
-  overviewLead: "Der Verwaltungsdienst ist verfügbar. Die Erreichbarkeit von TeamSpeak entspricht dem letzten Verbindungstest.",
+  overviewLead: "Der Verwaltungsdienst ist verfügbar.",
   gateway: "Gateway",
   activeSessions: "Aktive Sitzungen",
   peakSessions: "Höchststand in diesem Lauf: {{count}}",

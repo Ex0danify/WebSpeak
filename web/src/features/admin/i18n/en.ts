@@ -142,7 +142,7 @@ export const en = {
   everythingRunning: "WebSpeak is running",
   usersLead: "See who is connected and manage the invite links for guests.",
   viewAll: "View all",
-  overviewLead: "The management service is available. TeamSpeak reachability reflects the latest connection test.",
+  overviewLead: "The management service is available.",
   gateway: "Gateway",
   activeSessions: "Active sessions",
   peakSessions: "Peak this run: {{count}}",
