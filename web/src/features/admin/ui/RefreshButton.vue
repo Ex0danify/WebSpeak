@@ -1,6 +1,6 @@
 <template>
   <Button variant="secondary" :aria-busy="busy ? 'true' : undefined" :class="busy ? 'pointer-events-none' : undefined">
-    <Icon name="refresh" :size="17" :spin="busy" />{{ t("refresh") }}
+    <Icon name="refresh" :size="17" :spin="busy" :class="busy ? 'motion-reduce:opacity-40' : undefined" />{{ t("refresh") }}
   </Button>
 </template>
 
@@ -11,7 +11,7 @@ import { Icon } from "@/shared/ui/icon";
 import { useI18n } from "@/shared/i18n/useI18n";
 
 // The arrow turns once per second, and a refresh that answers faster must still show whole turns, or the icon only flashes. So it keeps
-// turning until the turn it is in is done. A click goes to the parent, which listens with `@click`.
+// turning until the turn it is in is done. Someone who asked their system for less motion gets a dimmed arrow for the same time. A click goes to the parent, which listens with `@click`.
 const props = defineProps<{ loading: boolean }>();
 
 const TURN_MS = 1000;
