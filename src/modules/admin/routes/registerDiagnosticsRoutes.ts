@@ -1,12 +1,15 @@
 import { existsSync } from "node:fs";
 import type { Router } from "express";
 import { MAX_ACTIVE_SESSIONS } from "../../../shared/constants.js";
+import { resolveClientIp } from "../../../shared/http/clientIp.js";
 import type { AdminOverview } from "../adminService.js";
 import { readConnectionHistory, readRecentLogs } from "../adminLogReader.js";
+import { sendAdminError } from "../adminMiddleware.js";
+import { readAuditQuery } from "../adminAuditQuery.js";
 import { readLimit } from "../adminRequestParsing.js";
 import type { AdminRouterOptions } from "../adminRouterOptions.js";
 
-/** Overview, audit trail, log tail, diagnostics, the downloadable report and the database backup. */
+/** Overview, event log, log tail, diagnostics, the downloadable report and the database backup. */
 export function registerDiagnosticsRoutes(router: Router, options: AdminRouterOptions): void {
   const overview = () => options.service.getOverview(options.getActiveSessions(), options.getPeakSessions(), options.startedAt);
   const logsAvailable = () => Boolean(options.logFile && existsSync(options.logFile));
@@ -33,7 +36,11 @@ export function registerDiagnosticsRoutes(router: Router, options: AdminRouterOp
   });
 
   router.get("/audit", (request, response) => {
-    response.json({ events: options.service.database.recentAudit(readLimit(request.query.limit, 50)) });
+    try {
+      response.json(options.service.database.listAudit(readAuditQuery(request.query)));
+    } catch (error: unknown) {
+      sendAdminError(response, error);
+    }
   });
 
   router.get("/logs", (request, response) => {
@@ -67,17 +74,17 @@ export function registerDiagnosticsRoutes(router: Router, options: AdminRouterOp
         lastError,
       })),
       database: { schemaVersion: options.service.database.schemaVersion },
-      audit: options.service.database.recentAudit(50),
+      audit: options.service.database.listAudit({ limit: 50, offset: 0 }).events,
     };
     response.setHeader("Content-Type", "application/json; charset=utf-8");
     response.setHeader("Content-Disposition", `attachment; filename="webspeak-diagnostic-report.json"`);
     response.send(JSON.stringify(report, null, 2));
   });
 
-  router.get("/backup", (_request, response) => {
+  router.get("/backup", (request, response) => {
     try {
       const backup = options.service.database.exportBackup();
-      options.service.database.addAudit("ADMIN_BACKUP_EXPORTED");
+      options.service.database.addAudit("ADMIN_BACKUP_EXPORTED", { ip: resolveClientIp(request) });
       response.setHeader("Content-Type", "application/octet-stream");
       response.setHeader("Content-Disposition", `attachment; filename="webspeak-backup-${new Date().toISOString().slice(0, 10)}.db"`);
       response.send(backup);

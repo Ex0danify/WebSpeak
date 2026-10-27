@@ -1,6 +1,6 @@
 import type { DatabaseSync } from "node:sqlite";
 
-export const DATABASE_SCHEMA_VERSION = 12;
+export const DATABASE_SCHEMA_VERSION = 13;
 
 /** The oldest schema this build upgrades, 0.7.0 is the first release that writes it. */
 export const MINIMUM_SCHEMA_VERSION = 10;
@@ -64,6 +64,8 @@ const MIGRATIONS: Migration[] = [
           CREATE TABLE audit_events (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             event TEXT NOT NULL,
+            category TEXT NOT NULL DEFAULT 'system' CHECK (category IN ('auth', 'config', 'invites', 'availability', 'system')),
+            severity TEXT NOT NULL DEFAULT 'info' CHECK (severity IN ('info', 'warning', 'error')),
             details_json TEXT NOT NULL,
             created_at TEXT NOT NULL
           );
@@ -156,6 +158,42 @@ const MIGRATIONS: Migration[] = [
           DROP TABLE managed_invites_old;
           CREATE INDEX managed_invites_token_idx ON managed_invites(token_hash);
           CREATE INDEX managed_invites_expiry_idx ON managed_invites(expires_at);
+        `);
+    },
+  },
+  {
+    from: 12,
+    to: 13,
+    up(database) {
+      // The event log filters by category and severity, so both are stored with the row instead of read from the event name.
+      // The old rows are sorted by name once here. Connection tests are no longer logged, only a change of availability is.
+      database.exec(`
+          ALTER TABLE audit_events RENAME TO audit_events_old;
+          CREATE TABLE audit_events (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            event TEXT NOT NULL,
+            category TEXT NOT NULL DEFAULT 'system' CHECK (category IN ('auth', 'config', 'invites', 'availability', 'system')),
+            severity TEXT NOT NULL DEFAULT 'info' CHECK (severity IN ('info', 'warning', 'error')),
+            details_json TEXT NOT NULL,
+            created_at TEXT NOT NULL
+          );
+          INSERT INTO audit_events (id, event, category, severity, details_json, created_at)
+          SELECT
+            id,
+            event,
+            CASE
+              WHEN event IN ('ADMIN_LOGIN_FAILED', 'ADMIN_LOGIN_SUCCEEDED', 'ADMIN_LOGOUT', 'ADMIN_PASSWORD_CHANGED',
+                             'ADMIN_PASSWORD_RESET', 'ADMIN_SESSION_TERMINATED') THEN 'auth'
+              WHEN event IN ('SETTINGS_CHANGED', 'SERVER_ADDED', 'SERVER_UPDATED', 'SERVER_REMOVED', 'SERVERS_REORDERED') THEN 'config'
+              WHEN substr(event, 1, 7) = 'INVITE_' THEN 'invites'
+              ELSE 'system'
+            END,
+            CASE WHEN event IN ('ADMIN_LOGIN_FAILED', 'ADMIN_PASSWORD_RESET') THEN 'warning' ELSE 'info' END,
+            details_json,
+            created_at
+          FROM audit_events_old
+          WHERE event NOT IN ('CONNECTION_TEST_SUCCEEDED', 'CONNECTION_TEST_FAILED');
+          DROP TABLE audit_events_old;
         `);
     },
   },

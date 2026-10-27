@@ -6,7 +6,7 @@ import type { AdminCredential } from "../security/adminPassword.js";
 import { DATABASE_SCHEMA_VERSION, MINIMUM_SCHEMA_VERSION, runMigrations } from "./databaseMigrations.js";
 import type { ManagedInviteRecord, PersistedRelayNode, PersistedServer, PersistedSettings, SettingsUpdate } from "./databaseTypes.js";
 import { AdminCredentialRepository } from "./adminCredentialRepository.js";
-import { AuditRepository } from "./auditRepository.js";
+import { AuditRepository, type AuditEntry, type AuditQuery } from "./auditRepository.js";
 import { ManagedInviteRepository, type ManagedInviteListOptions, type ManagedInviteStatus } from "./managedInviteRepository.js";
 import { MetaRepository } from "./metaRepository.js";
 import { RelayNodeRepository } from "./relayNodeRepository.js";
@@ -116,11 +116,11 @@ export class WebSpeakDatabase {
     this.relayNodes.replace(nodes);
   }
 
-  updateSettings(settings: SettingsUpdate): void {
+  updateSettings(settings: SettingsUpdate, auditDetails: Record<string, unknown> = {}): void {
     const now = new Date().toISOString();
     this.transaction(() => {
       this.settings.write(settings, now);
-      this.audit.insert("SETTINGS_CHANGED", { accessMode: settings.accessMode }, now);
+      this.audit.insert("SETTINGS_CHANGED", { accessMode: settings.accessMode, ...auditDetails }, now);
     });
   }
 
@@ -132,16 +132,27 @@ export class WebSpeakDatabase {
     return this.servers.get(id);
   }
 
-  addServer(server: Pick<PersistedServer, "id" | "name" | "host" | "port" | "passwordEncrypted">): void {
+  addServer(
+    server: Pick<PersistedServer, "id" | "name" | "host" | "port" | "passwordEncrypted">,
+    auditDetails: Record<string, unknown> = {},
+  ): void {
     const now = new Date().toISOString();
     this.transaction(() => {
       this.servers.insert(server, now);
-      this.audit.insert("SERVER_ADDED", { id: server.id, name: server.name, target: `${server.host}:${server.port}` }, now);
+      this.audit.insert(
+        "SERVER_ADDED",
+        { id: server.id, name: server.name, target: `${server.host}:${server.port}`, ...auditDetails },
+        now,
+      );
     });
   }
 
   /** An edit of the address or password revokes the invites made for the server, they carry a copy of both. */
-  updateServer(server: Pick<PersistedServer, "id" | "name" | "host" | "port" | "passwordEncrypted">, connectionChanged: boolean): void {
+  updateServer(
+    server: Pick<PersistedServer, "id" | "name" | "host" | "port" | "passwordEncrypted">,
+    connectionChanged: boolean,
+    auditDetails: Record<string, unknown> = {},
+  ): void {
     const now = new Date().toISOString();
     let revoked = 0;
     this.transaction(() => {
@@ -149,34 +160,51 @@ export class WebSpeakDatabase {
       if (connectionChanged) revoked = this.managedInvites.revokeForServer(server.id);
       this.audit.insert(
         "SERVER_UPDATED",
-        { id: server.id, name: server.name, target: `${server.host}:${server.port}`, revokedInvites: revoked },
+        { id: server.id, name: server.name, target: `${server.host}:${server.port}`, revokedInvites: revoked, ...auditDetails },
         now,
       );
     });
   }
 
-  reorderServers(ids: string[]): void {
+  reorderServers(ids: string[], auditDetails: Record<string, unknown> = {}): void {
     const now = new Date().toISOString();
     this.transaction(() => {
       this.servers.reorder(ids);
-      this.audit.insert("SERVERS_REORDERED", { count: ids.length }, now);
+      this.audit.insert("SERVERS_REORDERED", { count: ids.length, ...auditDetails }, now);
     });
   }
 
-  removeServer(id: string): boolean {
+  removeServer(id: string, auditDetails: Record<string, unknown> = {}): boolean {
     const now = new Date().toISOString();
     let removed = false;
+    const name = this.servers.get(id)?.name;
     this.transaction(() => {
       removed = this.servers.delete(id);
       if (!removed) return;
       const revoked = this.managedInvites.revokeForServer(id);
-      this.audit.insert("SERVER_REMOVED", { id, revokedInvites: revoked }, now);
+      this.audit.insert("SERVER_REMOVED", { id, name, revokedInvites: revoked, ...auditDetails }, now);
     });
     return removed;
   }
 
-  recordConnectionTest(id: string, result: { latencyMs: number | null; error: string | null }): void {
-    this.servers.recordTest(id, result);
+  /** Keeps the result on the server. Only a change of availability is written to the event log, not every test. */
+  recordConnectionTest(
+    id: string,
+    result: { latencyMs: number | null; error: string | null },
+    details: Record<string, unknown> = {},
+  ): void {
+    const server = this.servers.get(id);
+    if (!server) return;
+    const wasUnavailable = server.lastTestAt !== null && server.lastTestError !== null;
+    this.transaction(() => {
+      this.servers.recordTest(id, result);
+      const base = { id, name: server.name, ...details };
+      if (result.error && !wasUnavailable) {
+        this.audit.insert("SERVER_UNAVAILABLE", { ...base, code: result.error }, new Date().toISOString());
+      } else if (!result.error && wasUnavailable) {
+        this.audit.insert("SERVER_AVAILABLE", { ...base, latencyMs: result.latencyMs }, new Date().toISOString());
+      }
+    });
   }
 
   createManagedInvite(record: Omit<ManagedInviteRecord, "createdAt" | "revokedAt" | "useCount">): ManagedInviteRecord {
@@ -244,8 +272,8 @@ export class WebSpeakDatabase {
     return this.audit.prune(keep);
   }
 
-  recentAudit(limit = 8): Array<{ event: string; createdAt: string }> {
-    return this.audit.recent(limit);
+  listAudit(query: AuditQuery): { events: AuditEntry[]; total: number } {
+    return this.audit.list(query);
   }
 
   private migrate(existed: boolean): void {

@@ -42,8 +42,11 @@ describe("schema 12 migration (managed_invites.server_id is NOT NULL)", () => {
 
   it("leaves every other table byte-identical", () => {
     createSchema11Database(fx.path);
-    const tables = ["metadata", "admin_credentials", "audit_events", "ts_servers", "welcome_texts", "relay_nodes", "settings"];
-    const dump = () => tables.map((table) => rows(fx.path, `SELECT * FROM ${table}`));
+    const tables = ["metadata", "admin_credentials", "ts_servers", "welcome_texts", "relay_nodes", "settings"];
+    const dump = () => [
+      ...tables.map((table) => rows(fx.path, `SELECT * FROM ${table}`)),
+      rows(fx.path, "SELECT id, event, details_json, created_at FROM audit_events"),
+    ];
     const before = dump();
     fx.open().close();
     expect(dump()).toEqual(before);

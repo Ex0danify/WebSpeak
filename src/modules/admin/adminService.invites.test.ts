@@ -26,14 +26,14 @@ describe("testConnection with an injected probe and host ping", () => {
     ctx.ping.mockResolvedValue(ping);
   });
 
-  it("returns the handshake's round trip with the host ping, and records the result and an audit entry", async () => {
+  it("returns the handshake's round trip with the host ping and keeps the result, without an event for a first success", async () => {
     ctx.probe.mockResolvedValue({ ok: true, latencyMs: 31 });
     const service = ctx.create();
     expect(await service.testConnection("ts.example.org:9988", DEFAULT_SERVER_ID)).toEqual({ ok: true, latencyMs: 31, hostPing });
     expect(ctx.probe).toHaveBeenCalledWith({ host: "ts.example.org", port: 9988 });
     expect(ctx.ping).toHaveBeenCalledWith("ts.example.org");
     expect(service.database.getServer(DEFAULT_SERVER_ID)).toMatchObject({ lastTestLatencyMs: 31, lastTestError: null });
-    expect(service.database.recentAudit()[0]).toMatchObject({ event: "CONNECTION_TEST_SUCCEEDED" });
+    expect(service.database.listAudit({ limit: 8, offset: 0 }).events).toEqual([]);
   });
 
   it("records nothing when the test belongs to no saved server", async () => {
@@ -41,10 +41,10 @@ describe("testConnection with an injected probe and host ping", () => {
     const service = ctx.create();
     await service.testConnection("ts.example.org");
     expect(service.database.getServer(DEFAULT_SERVER_ID)).toMatchObject({ lastTestAt: null, lastTestLatencyMs: null });
-    expect(service.database.recentAudit()).toEqual([]);
+    expect(service.database.listAudit({ limit: 8, offset: 0 }).events).toEqual([]);
   });
 
-  it("reports a failed handshake as ok false with its code, next to the host ping, and records the code", async () => {
+  it("reports a failed handshake as ok false with its code, next to the host ping, and logs the server as unavailable once", async () => {
     ctx.probe.mockRejectedValue(new TeamSpeakProbeError("NO_ANSWER", "silent"));
     const service = ctx.create();
     expect(await service.testConnection("ts.example.org", DEFAULT_SERVER_ID)).toEqual({
@@ -54,7 +54,26 @@ describe("testConnection with an injected probe and host ping", () => {
       hostPing,
     });
     expect(service.database.getServer(DEFAULT_SERVER_ID)).toMatchObject({ lastTestLatencyMs: null, lastTestError: "NO_ANSWER" });
-    expect(service.database.recentAudit()[0]).toMatchObject({ event: "CONNECTION_TEST_FAILED" });
+    expect(service.database.listAudit({ limit: 8, offset: 0 }).events[0]).toMatchObject({
+      event: "SERVER_UNAVAILABLE",
+      category: "availability",
+      severity: "error",
+      details: { id: DEFAULT_SERVER_ID, code: "NO_ANSWER" },
+    });
+    await service.testConnection("ts.example.org", DEFAULT_SERVER_ID);
+    expect(service.database.listAudit({ limit: 8, offset: 0 }).total).toBe(1);
+  });
+
+  it("logs when a server answers again, with the round trip", async () => {
+    const service = ctx.create();
+    ctx.probe.mockRejectedValueOnce(new TeamSpeakProbeError("NO_ANSWER", "silent"));
+    await service.testConnection("ts.example.org", DEFAULT_SERVER_ID);
+    ctx.probe.mockResolvedValue({ ok: true, latencyMs: 31 });
+    await service.testConnection("ts.example.org", DEFAULT_SERVER_ID);
+    await service.testConnection("ts.example.org", DEFAULT_SERVER_ID);
+    const { events } = service.database.listAudit({ limit: 8, offset: 0 });
+    expect(events.map((entry) => entry.event)).toEqual(["SERVER_AVAILABLE", "SERVER_UNAVAILABLE"]);
+    expect(events[0]).toMatchObject({ severity: "info", details: { latencyMs: 31 } });
   });
 
   it("does not fail the test because the host ignores ping", async () => {
@@ -135,7 +154,7 @@ describe("overview", () => {
     expect(overview.servers).toMatchObject([
       { id: DEFAULT_SERVER_ID, name: "Test server", target: "ts.example.org:9988", status: "unknown", lastTestAt: null },
     ]);
-    expect(overview.recentEvents[0]).toMatchObject({ event: "SERVER_UPDATED" });
+    expect(service.database.listAudit({ limit: 1, offset: 0 }).events[0]).toMatchObject({ event: "SERVER_UPDATED" });
   });
 
   it("never reports a negative uptime", () => {
@@ -188,7 +207,7 @@ describe("managed invites", () => {
     } finally {
       raw.close();
     }
-    expect(service.database.recentAudit()[0]?.event).toBe("INVITE_CREATED");
+    expect(service.database.listAudit({ limit: 8, offset: 0 }).events[0]?.event).toBe("INVITE_CREATED");
     expect(ctx.create().createManagedInvite({ serverId: DEFAULT_SERVER_ID, channel: "", expiresInHours: 1, maxUses: 0 }).token).not.toBe(
       token,
     );
@@ -225,7 +244,7 @@ describe("managed invites", () => {
       channel: "Lobby",
     });
     expect(listInvites(service)[0]).toMatchObject({ useCount: 1, status: "exhausted" });
-    expect(service.database.recentAudit()[0]?.event).toBe("INVITE_CONSUMED");
+    expect(service.database.listAudit({ limit: 8, offset: 0 }).events[0]?.event).toBe("INVITE_CONSUMED");
     expect(service.consumeManagedInvite(token)).toBeNull();
   });
 
@@ -291,7 +310,7 @@ describe("managed invites", () => {
     expect(service.revokeManagedInvite(invite.id)).toBe(true);
     expect(service.revokeManagedInvite(invite.id)).toBe(false);
     expect(service.revokeManagedInvite("invite-unknown")).toBe(false);
-    expect(service.database.recentAudit(50).filter((entry) => entry.event === "INVITE_REVOKED")).toHaveLength(1);
+    expect(service.database.listAudit({ limit: 50, offset: 0 }).events.filter((entry) => entry.event === "INVITE_REVOKED")).toHaveLength(1);
     expect(service.consumeManagedInvite(token)).toBeNull();
     for (const bad of ["", "invite-", "x", "relay-abc", `invite-${"a".repeat(100)}`, "invite-a b", "invite-a'; DROP TABLE"]) {
       expect(rejection(() => service.revokeManagedInvite(bad)).code, JSON.stringify(bad)).toBe("INVALID_INVITE_ID");

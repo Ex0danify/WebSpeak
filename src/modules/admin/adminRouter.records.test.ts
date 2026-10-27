@@ -22,7 +22,7 @@ async function start(options?: Parameters<typeof gateways.start>[0]): Promise<{ 
   return { gateway, admin: await gateway.adminLogin() };
 }
 
-const audit = (gateway: Gateway) => gateway.database.recentAudit(50).map((row) => row.event);
+const audit = (gateway: Gateway) => gateway.database.listAudit({ limit: 50, offset: 0 }).events.map((row) => row.event);
 
 describe("sessions", () => {
   it("lists nothing when nobody is connected", async () => {
@@ -171,6 +171,10 @@ describe("invites", () => {
       ).status,
     ).toBe(201);
     expect((await admin.post(`invites/${revoked.invite.id}/revoke`)).status).toBe(200);
+    expect(gateway.database.listAudit({ limit: 1, offset: 0 }).events[0]).toMatchObject({
+      event: "INVITE_REVOKED",
+      details: { id: revoked.invite.id, serverName: "WebSpeak", useCount: 0, ip: expect.stringMatching(/\S/) },
+    });
     expect(await statuses()).toEqual({
       [single.invite.id]: "exhausted/1",
       [timed.invite.id]: "active/0",
@@ -204,28 +208,71 @@ describe("invites", () => {
 });
 
 describe("audit", () => {
-  it("lists the newest events first with their times", async () => {
+  it("lists the newest events first with their kind, details and times", async () => {
     const { gateway, admin } = await start();
     gateway.database.addAudit("FIRST");
-    gateway.database.addAudit("SECOND");
-    const { events } = await json(await admin.get("audit"));
-    expect(events.slice(0, 2).map((event: { event: string }) => event.event)).toEqual(["SECOND", "FIRST"]);
+    gateway.database.addAudit("ADMIN_LOGIN_FAILED", { reason: "x" });
+    const { events, total } = await json(await admin.get("audit"));
+    expect(total).toBeGreaterThanOrEqual(2);
+    expect(events.slice(0, 2)).toMatchObject([
+      { event: "ADMIN_LOGIN_FAILED", category: "auth", severity: "warning", details: { reason: "x" } },
+      { event: "FIRST", category: "system", severity: "info", details: {} },
+    ]);
     expect(Date.parse(events[0].createdAt)).not.toBeNaN();
   });
 
-  it("takes a limit from 1 up, ignores one that is not a number, and never returns more than 50", async () => {
+  it("pages with a limit from 1 to 100 and an offset, and says how many events there are", async () => {
     const { gateway, admin } = await start();
     for (let i = 0; i < 60; i++) gateway.database.addAudit(`EVENT_${i}`);
-    const count = async (limit?: string) =>
-      (await json(await admin.get(limit === undefined ? "audit" : `audit?limit=${limit}`))).events.length;
-    expect(await count()).toBe(50);
-    expect(await count("3")).toBe(3);
-    expect(await count("2.9")).toBe(2);
-    expect(await count("0")).toBe(1);
-    expect(await count("-5")).toBe(1);
-    expect(await count("abc")).toBe(50);
-    // The route accepts up to 200, but the database returns at most 50.
-    expect(await count("200")).toBe(50);
+    const page = async (query: string) => json(await admin.get(`audit${query}`));
+    expect((await page("")).events).toHaveLength(25);
+    const all = await page("?limit=100");
+    expect(all.events).toHaveLength(all.total);
+    expect(all.total).toBeGreaterThan(60);
+    expect((await page("?limit=3&offset=1")).events.map((event: { event: string }) => event.event)).toEqual([
+      "EVENT_58",
+      "EVENT_57",
+      "EVENT_56",
+    ]);
+    expect((await page("?limit=3&offset=1")).total).toBe(all.total);
+    expect((await page("?offset=1000")).events).toEqual([]);
+  });
+
+  it("filters by category, severity, time and text", async () => {
+    const { gateway, admin } = await start();
+    gateway.database.addAudit("ADMIN_LOGIN_FAILED");
+    gateway.database.addAudit("SERVER_UNAVAILABLE", { name: "Main" });
+    gateway.database.addAudit("INVITE_CREATED", { channel: "Lobby" });
+    const names = async (query: string) =>
+      (await json(await admin.get(`audit?${query}`))).events.map((event: { event: string }) => event.event);
+    expect(await names("categories=availability,invites")).toEqual(["INVITE_CREATED", "SERVER_UNAVAILABLE"]);
+    expect(await names("categories=")).toEqual([]);
+    expect(await names("severities=error")).toEqual(["SERVER_UNAVAILABLE"]);
+    expect(await names("severities=warning,error")).toEqual(["SERVER_UNAVAILABLE", "ADMIN_LOGIN_FAILED"]);
+    expect(await names("severities=")).toEqual([]);
+    expect(await names("q=lobby")).toEqual(["INVITE_CREATED"]);
+    expect(await names(`since=${encodeURIComponent(new Date(Date.now() + HOUR_MS).toISOString())}`)).toEqual([]);
+  });
+
+  it("refuses a query it cannot read", async () => {
+    const { admin } = await start();
+    const queries = [
+      "limit=0",
+      "limit=101",
+      "limit=2.5",
+      "limit=abc",
+      "limit=",
+      "offset=-1",
+      "categories=auth,nope",
+      "severities=loud",
+      "since=yesterday",
+      `q=${"x".repeat(101)}`,
+      "limit=1&limit=2",
+    ];
+    for (const query of queries) {
+      const response = await admin.get(`audit?${query}`);
+      expect([response.status, (await json(response)).code], query).toEqual([400, "INVALID_AUDIT_QUERY"]);
+    }
   });
 });
 

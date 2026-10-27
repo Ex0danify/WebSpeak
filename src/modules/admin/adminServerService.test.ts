@@ -119,7 +119,7 @@ describe("reordering the servers", () => {
       a.id,
     ]);
     expect(service.createServer(serverInput({ name: "C", target: "c.example.org" })).id).toBe(service.listServers().at(-1)!.id);
-    expect(service.database.recentAudit(10).map((entry) => entry.event)).toContain("SERVERS_REORDERED");
+    expect(service.database.listAudit({ limit: 10, offset: 0 }).events.map((entry) => entry.event)).toContain("SERVERS_REORDERED");
   });
 
   it.each([

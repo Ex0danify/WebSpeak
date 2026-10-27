@@ -53,7 +53,7 @@ describe("initialize", () => {
     const service = ctx.create();
     await service.initialize(BOOTSTRAP);
     expect(service.database.listServers()).toMatchObject([{ id: DEFAULT_SERVER_ID, host: "127.0.0.1", port: 9987 }]);
-    expect(service.database.recentAudit(50).map((entry) => entry.event)).toContain("ADMIN_INITIALIZED");
+    expect(service.database.listAudit({ limit: 50, offset: 0 }).events.map((entry) => entry.event)).toContain("ADMIN_INITIALIZED");
   });
 });
 
@@ -73,7 +73,7 @@ describe("admin password", () => {
     expect(await service.verifyPassword("admin", BOOTSTRAP.password)).toBe(false);
     expect(await service.verifyPassword("admin", "a-new-strong-password")).toBe(true);
     expect(service.isPasswordChangeRequired()).toBe(false);
-    expect(service.database.recentAudit()[0]?.event).toBe("ADMIN_PASSWORD_CHANGED");
+    expect(service.database.listAudit({ limit: 8, offset: 0 }).events[0]?.event).toBe("ADMIN_PASSWORD_CHANGED");
   });
 
   it("refuses a short password and keeps the current one", async () => {

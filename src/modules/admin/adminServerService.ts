@@ -4,6 +4,7 @@ import { formatTeamSpeakTarget, parseTeamSpeakTarget, type TeamSpeakTarget } fro
 import type { PersistedServer, WebSpeakDatabase } from "../../infra/persistence/database.js";
 import { decryptSecret, encryptSecret } from "../../infra/security/secretCrypto.js";
 import { AdminInputError } from "./adminErrors.js";
+import { type AuditChange, diffFields } from "./auditChanges.js";
 
 /** More than this is a dropdown nobody can use. */
 export const SERVER_LIMIT = 32;
@@ -43,7 +44,7 @@ export class AdminServerService {
     return this.database.listServers().map(toServerView);
   }
 
-  create(input: ServerInput): ServerView {
+  create(input: ServerInput, ip?: string): ServerView {
     const servers = this.database.listServers();
     if (servers.length >= SERVER_LIMIT) throw new AdminInputError("SERVER_LIMIT", `At most ${SERVER_LIMIT} servers may be configured`);
     const { name, target } = this.readInput(input, servers);
@@ -54,11 +55,11 @@ export class AdminServerService {
       port: target.port,
       passwordEncrypted: input.serverPassword ? encryptSecret(input.serverPassword, this.masterSecret) : null,
     };
-    this.database.addServer(record);
+    this.database.addServer(record, { ip });
     return toServerView(this.require(record.id));
   }
 
-  update(id: string, input: ServerInput): ServerView {
+  update(id: string, input: ServerInput, ip?: string): ServerView {
     const servers = this.database.listServers();
     const current = servers.find((server) => server.id === id);
     if (!current) throw new AdminInputError("SERVER_NOT_FOUND", "Server not found");
@@ -68,12 +69,17 @@ export class AdminServerService {
     if (action === "remove") passwordEncrypted = null;
     if (action === "replace") passwordEncrypted = input.serverPassword ? encryptSecret(input.serverPassword, this.masterSecret) : null;
     const connectionChanged = current.host !== target.host || current.port !== target.port || action !== "keep";
-    this.database.updateServer({ id, name, host: target.host, port: target.port, passwordEncrypted }, connectionChanged);
+    const changes: AuditChange[] = diffFields(
+      { name: current.name, target: `${current.host}:${current.port}` },
+      { name, target: `${target.host}:${target.port}` },
+    );
+    if (action !== "keep") changes.push({ field: "password" });
+    this.database.updateServer({ id, name, host: target.host, port: target.port, passwordEncrypted }, connectionChanged, { changes, ip });
     return toServerView(this.require(id));
   }
 
   /** `ids` must name every server exactly once, a partial list would leave the others at stale positions. */
-  reorder(ids: unknown): void {
+  reorder(ids: unknown, ip?: string): void {
     const current = this.database.listServers().map((server) => server.id);
     if (
       !Array.isArray(ids) ||
@@ -83,16 +89,16 @@ export class AdminServerService {
     ) {
       throw new AdminInputError("INVALID_SERVER_ORDER", "The order must list every server exactly once");
     }
-    this.database.reorderServers(ids as string[]);
+    this.database.reorderServers(ids as string[], { ip });
   }
 
-  remove(id: string, accessMode: string): void {
+  remove(id: string, accessMode: string, ip?: string): void {
     const servers = this.database.listServers();
     if (!servers.some((server) => server.id === id)) throw new AdminInputError("SERVER_NOT_FOUND", "Server not found");
     if (accessMode === "fixed" && servers.length === 1) {
       throw new AdminInputError("SERVERS_REQUIRED", "The last server can only be removed in open access mode");
     }
-    this.database.removeServer(id);
+    this.database.removeServer(id, { ip });
   }
 
   /** The server for a visitor's join, with its password decrypted. */

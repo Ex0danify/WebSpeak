@@ -10,7 +10,7 @@ describe("audit pruning", () => {
     const database = fx.open();
     for (let i = 1; i <= 7; i++) database.addAudit(`EVENT_${i}`);
     expect(database.pruneAudit(3)).toBe(4);
-    expect(database.recentAudit(50).map((entry) => entry.event)).toEqual(["EVENT_7", "EVENT_6", "EVENT_5"]);
+    expect(database.listAudit({ limit: 50, offset: 0 }).events.map((entry) => entry.event)).toEqual(["EVENT_7", "EVENT_6", "EVENT_5"]);
     expect(database.pruneAudit(3)).toBe(0);
   });
 });
@@ -22,7 +22,7 @@ describe("admin credential", () => {
     expect(database.hasAdmin()).toBe(true);
     expect(database.getAdminCredential()).toEqual(credential);
     expect(database.getSettings()).toMatchObject({ siteName: "Test site" });
-    expect(database.recentAudit()[0]?.event).toBe("ADMIN_INITIALIZED");
+    expect(database.listAudit({ limit: 8, offset: 0 }).events[0]?.event).toBe("ADMIN_INITIALIZED");
   });
 
   it("rejects a second initialization and leaves the first one untouched", () => {
@@ -33,7 +33,7 @@ describe("admin credential", () => {
     );
     expect(database.getAdminCredential()?.username).toBe("root");
     expect(database.getSettings().siteName).toBe("Test site");
-    expect(database.recentAudit(50).filter((entry) => entry.event === "ADMIN_INITIALIZED")).toHaveLength(1);
+    expect(database.listAudit({ limit: 50, offset: 0 }).events.filter((entry) => entry.event === "ADMIN_INITIALIZED")).toHaveLength(1);
   });
 
   it("replaces the credential", () => {
@@ -109,7 +109,7 @@ describe("settings", () => {
     database.updateSettings(settings());
     expect(() => database.updateSettings(settings({ siteName: "Changed", webRtcUdpStart: 70000 }))).toThrow();
     expect(database.getSettings()).toMatchObject({ siteName: "Test site", webRtcUdpStart: 41000 });
-    expect(database.recentAudit(50).filter((entry) => entry.event === "SETTINGS_CHANGED")).toHaveLength(1);
+    expect(database.listAudit({ limit: 50, offset: 0 }).events.filter((entry) => entry.event === "SETTINGS_CHANGED")).toHaveLength(1);
     // The failed transaction released its lock: the next write works.
     database.updateSettings(settings({ siteName: "Again" }));
     expect(database.getSettings().siteName).toBe("Again");
@@ -147,7 +147,7 @@ describe("servers", () => {
     database.updateServer(server("one", { name: "Renamed" }), false);
     expect(database.removeServer("one")).toBe(true);
     expect(database.removeServer("one")).toBe(false);
-    const events = database.recentAudit(10).map((entry) => entry.event);
+    const events = database.listAudit({ limit: 10, offset: 0 }).events.map((entry) => entry.event);
     expect(events).toEqual(expect.arrayContaining(["SERVER_ADDED", "SERVER_UPDATED", "SERVER_REMOVED"]));
     expect(events.filter((event) => event === "SERVER_REMOVED")).toHaveLength(1);
   });

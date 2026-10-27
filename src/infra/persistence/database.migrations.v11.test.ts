@@ -25,7 +25,7 @@ function dumpUntouchedTables(file: string): Record<string, unknown[]> {
     return {
       metadata: rows("SELECT * FROM metadata WHERE key <> 'legacy_config_checked' ORDER BY key"),
       admin_credentials: rows("SELECT * FROM admin_credentials"),
-      audit_events: rows("SELECT * FROM audit_events ORDER BY id"),
+      audit_events: rows("SELECT id, event, details_json, created_at FROM audit_events ORDER BY id"),
       managed_invites: rows("SELECT * FROM managed_invites ORDER BY id"),
       ts_servers: rows("SELECT * FROM ts_servers ORDER BY id"),
       welcome_texts: rows("SELECT * FROM welcome_texts ORDER BY language"),

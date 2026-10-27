@@ -55,6 +55,8 @@ describe("schema snapshot", () => {
           "sql": "CREATE TABLE audit_events (
                   id INTEGER PRIMARY KEY AUTOINCREMENT,
                   event TEXT NOT NULL,
+                  category TEXT NOT NULL DEFAULT 'system' CHECK (category IN ('auth', 'config', 'invites', 'availability', 'system')),
+                  severity TEXT NOT NULL DEFAULT 'info' CHECK (severity IN ('info', 'warning', 'error')),
                   details_json TEXT NOT NULL,
                   created_at TEXT NOT NULL
                 )",
@@ -188,6 +190,8 @@ describe("schema snapshot", () => {
           "sql": "CREATE TABLE audit_events (
                   id INTEGER PRIMARY KEY AUTOINCREMENT,
                   event TEXT NOT NULL,
+                  category TEXT NOT NULL DEFAULT 'system' CHECK (category IN ('auth', 'config', 'invites', 'availability', 'system')),
+                  severity TEXT NOT NULL DEFAULT 'info' CHECK (severity IN ('info', 'warning', 'error')),
                   details_json TEXT NOT NULL,
                   created_at TEXT NOT NULL
                 )",

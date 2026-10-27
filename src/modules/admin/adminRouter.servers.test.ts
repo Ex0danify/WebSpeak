@@ -14,7 +14,7 @@ async function start(options?: Parameters<typeof gateways.start>[0]): Promise<{ 
   return { gateway, admin: await gateway.adminLogin() };
 }
 
-const audit = (gateway: Gateway) => gateway.database.recentAudit(50).map((row) => row.event);
+const audit = (gateway: Gateway) => gateway.database.listAudit({ limit: 50, offset: 0 }).events.map((row) => row.event);
 
 describe("the server list", () => {
   const create = (admin: AdminApi, overrides: Record<string, unknown> = {}) => admin.post("servers", { ...serverInput(), ...overrides });
@@ -52,6 +52,24 @@ describe("the server list", () => {
     const response = await admin.put(`servers/${DEFAULT_SERVER_ID}`, serverInput({ name: "Renamed" }));
     expect([response.status, (await json(response)).server]).toMatchObject([200, { id: DEFAULT_SERVER_ID, name: "Renamed" }]);
     expect(audit(gateway)[0]).toBe("SERVER_UPDATED");
+  });
+
+  it("writes down what an edit changed, and that the password did, without its value", async () => {
+    const { gateway, admin } = await start();
+    await admin.put(
+      `servers/${DEFAULT_SERVER_ID}`,
+      serverInput({ name: "Renamed", target: "other.example.org:9987", passwordAction: "replace", serverPassword: "s3cret-pass" }),
+    );
+    const [updated] = gateway.database.listAudit({ limit: 1, offset: 0 }).events;
+    expect(updated?.details).toMatchObject({
+      changes: [
+        { field: "name", from: "WebSpeak", to: "Renamed" },
+        { field: "target", from: "127.0.0.1:9987", to: "other.example.org:9987" },
+        { field: "password" },
+      ],
+      ip: expect.stringMatching(/\S/),
+    });
+    expect(JSON.stringify(updated)).not.toContain("s3cret");
   });
 
   it("removes a server when open access does not need it", async () => {
@@ -138,7 +156,7 @@ describe("the server list", () => {
 describe("POST /servers/:id/test", () => {
   const hostPing = { ok: true, latencyMs: 3, packetLossPercent: 0, attempts: 4, successfulAttempts: 4 };
 
-  it("tests the saved address, keeps the result with the server and audits it", async () => {
+  it("tests the saved address, keeps the result with the server and logs a change of availability", async () => {
     const { gateway, admin } = await start();
     await admin.put(`servers/${DEFAULT_SERVER_ID}`, serverInput());
     expect(await json(await admin.post(`servers/${DEFAULT_SERVER_ID}/test`, {}))).toEqual({ ok: true, latencyMs: 12, hostPing });
@@ -147,7 +165,7 @@ describe("POST /servers/:id/test", () => {
     gateway.probe.mockRejectedValueOnce(new TeamSpeakProbeError("NO_ANSWER", "silent"));
     expect(await json(await admin.post(`servers/${DEFAULT_SERVER_ID}/test`, {}))).toMatchObject({ ok: false, errorCode: "NO_ANSWER" });
     expect((await json(await admin.get("servers"))).servers[0]).toMatchObject({ lastTestLatencyMs: null, lastTestError: "NO_ANSWER" });
-    expect(audit(gateway).slice(0, 2)).toEqual(["CONNECTION_TEST_FAILED", "CONNECTION_TEST_SUCCEEDED"]);
+    expect(audit(gateway).slice(0, 2)).toEqual(["SERVER_UNAVAILABLE", "SERVER_UPDATED"]);
   });
 
   it("forgets the result when the address changes", async () => {
