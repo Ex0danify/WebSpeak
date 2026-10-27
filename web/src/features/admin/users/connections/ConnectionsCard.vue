@@ -9,16 +9,13 @@
         autocomplete="off"
         class="max-w-72 min-w-44 flex-1 max-compact:max-w-none max-compact:basis-full"
       />
-      <Select
+      <ListSelect
         class="w-44"
         :model-value="list.status"
+        :items="statusItems"
         :aria-label="t('connectionStatusFilter')"
         @update:model-value="(value) => filter({ status: value as ConnectionStatusFilter })"
-      >
-        <option value="ended">{{ t("connectionStatusEnded") }}</option>
-        <option value="disconnected">{{ connectionStatusLabel("disconnected") }}</option>
-        <option value="failed">{{ connectionStatusLabel("failed") }}</option>
-      </Select>
+      />
       <Button v-if="filtered" variant="ghost" class="ml-auto" @click="clearFilters()">{{ t("eventFiltersClear") }}</Button>
     </div>
     <div v-if="!list.items.length" class="grid min-h-32.5 place-items-center gap-2 text-center text-caption text-fg-muted">
@@ -46,13 +43,13 @@
 </template>
 
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted, ref, watch } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { storeToRefs } from "pinia";
 import { Button } from "@/shared/ui/button";
 import { Icon } from "@/shared/ui/icon";
 import { Input } from "@/shared/ui/input";
 import { ListFooter, Pager } from "@/shared/ui/list";
-import { Select } from "@/shared/ui/select";
+import { ListSelect, type ListSelectItem } from "@/shared/ui/select";
 import { useI18n } from "@/shared/i18n/useI18n";
 import AdminSection from "@/features/admin/ui/AdminSection.vue";
 import { createAdminFormat } from "@/features/admin/core/adminFormat";
@@ -69,6 +66,11 @@ const { goToPage, filter, clearFilters } = connections;
 
 const { language, t } = useI18n();
 const { connectionStatusLabel } = createAdminFormat(language, t);
+const statusItems = computed<ListSelectItem[]>(() => [
+  { value: "ended", label: t("connectionStatusEnded") },
+  { value: "disconnected", label: connectionStatusLabel("disconnected") },
+  { value: "failed", label: connectionStatusLabel("failed") },
+]);
 
 // Typing asks the gateway only once it pauses, and a reset of the filters empties the box.
 const searchText = ref("");
