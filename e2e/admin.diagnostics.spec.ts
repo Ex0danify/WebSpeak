@@ -2,7 +2,7 @@ import type { Page } from "@playwright/test";
 import { expect, test } from "./fixtures";
 import { TEST_ADMIN_PASSWORD, type Gateway } from "../test/support/gateway";
 
-// The admin console's Diagnostics page: runtime facts with the report and backup, the event log and the logs. Each test has a
+// The admin console's Diagnostics page: runtime facts with the report and backup, the event log and the log retention. Each test has a
 // gateway of its own (`ownGateway`), the console is asked for English.
 
 async function openDiagnostics(page: Page, gateway: Gateway): Promise<void> {
@@ -16,13 +16,31 @@ async function openDiagnostics(page: Page, gateway: Gateway): Promise<void> {
 }
 
 test.describe("diagnostics", () => {
-  test("shows the runtime facts, the event log and the logs, each under its own heading", async ({ page, ownGateway }) => {
+  test("shows the runtime facts, the event log and the log retention, each under its own heading", async ({ page, ownGateway }) => {
     await openDiagnostics(page, await ownGateway());
     await expect(page.getByRole("heading", { name: "System information" })).toBeVisible();
     await expect(page.getByText("Database schema")).toBeVisible();
     await expect(page.getByRole("list", { name: "Event log" })).toContainText("Administrator signed in");
-    await expect(page.getByRole("heading", { name: "Runtime logs" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Log retention" })).toBeVisible();
     await expect(page.getByText("Running version")).toBeVisible();
+  });
+
+  test("the retention of the logs is saved by itself and held back when it is out of bounds", async ({ page, ownGateway }) => {
+    const gateway = await ownGateway();
+    await openDiagnostics(page, gateway);
+    const retention = page.getByRole("article").filter({ has: page.getByRole("heading", { name: "Log retention" }) });
+    const events = retention.getByRole("group", { name: "Event log" });
+    await expect(events.getByLabel("Keep for (days)")).toHaveValue("90");
+    await expect(events.getByLabel("Max entries")).toHaveValue("5000");
+    await events.getByLabel("Keep for (days)").fill("14");
+    await events.getByLabel("Keep for (days)").press("Tab");
+    await expect.poll(() => gateway.database.getSettings().retention.eventLog.days).toBe(14);
+
+    const connections = retention.getByRole("group", { name: "Connection history" });
+    await connections.getByLabel("Max entries").fill("999999999999");
+    await connections.getByLabel("Max entries").press("Tab");
+    await expect(retention.getByText(/100.*100,?000/)).toBeVisible();
+    expect(gateway.database.getSettings().retention.connections.maxRows).toBe(10000);
   });
 
   test("Export database backup downloads the file and the page picks up the new event", async ({ page, ownGateway }) => {

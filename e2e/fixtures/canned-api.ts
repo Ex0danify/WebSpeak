@@ -46,6 +46,10 @@ const server = {
   webRtcEnabled: true,
   webRtcUdpStart: 40000,
   webRtcUdpEnd: 40099,
+  eventLogRetentionDays: 90,
+  eventLogMaxRows: 5000,
+  connectionRetentionDays: 30,
+  connectionMaxRows: 10000,
   relayNodes: [
     { id: "fra", name: "Frankfurt relay", enabled: true, target: "relay.example.com:9987", hasToken: true },
     { id: "tyo", name: "Tokyo relay", enabled: false, target: "tokyo.example.com:9987", hasToken: false },
@@ -124,14 +128,8 @@ const diagnostics = {
   sessions: { created: 128 },
 };
 
-const logs = {
-  available: true,
-  entries: [
-    { timestamp: at(3), level: "info", message: "Browser session connected", context: { nickname: "Alex Rivera" } },
-    { timestamp: at(9), level: "warn", message: "Reconnect attempt failed", context: { attempt: 2 } },
-    { timestamp: at(21), level: "error", message: "TeamSpeak handshake timed out", context: { target: "ts.example.com:9987" } },
-  ],
-  sessions: [
+const connections = {
+  records: [
     {
       id: "c1",
       nickname: "Alex Rivera",
@@ -146,6 +144,7 @@ const logs = {
       status: "active",
       reason: null,
       failureDetail: null,
+      audio: { talkSeconds: 212, framesSent: 10600, framesReceived: 36700, droppedFrames: 0, sendErrors: 0 },
     },
     {
       id: "c2",
@@ -159,8 +158,9 @@ const logs = {
       disconnectedAt: at(70),
       durationSeconds: 1500,
       status: "disconnected",
-      reason: "client-left",
+      reason: null,
       failureDetail: null,
+      audio: { talkSeconds: 640, framesSent: 32000, framesReceived: 90100, droppedFrames: 14, sendErrors: 1 },
     },
     {
       id: "c3",
@@ -174,10 +174,12 @@ const logs = {
       disconnectedAt: at(140),
       durationSeconds: null,
       status: "failed",
-      reason: "handshake-timeout",
+      reason: "TIMEOUT",
       failureDetail: "TeamSpeak did not answer within 10 s",
+      audio: null,
     },
   ],
+  total: 3,
 };
 
 const audit = {
@@ -266,7 +268,7 @@ export function adminApi(pathname: string): [number, unknown] | null {
   if (pathname === "/api/admin/sessions") return [200, sessions];
   if (pathname === "/api/admin/invites") return [200, invites];
   if (pathname === "/api/admin/diagnostics") return [200, diagnostics];
-  if (pathname === "/api/admin/logs") return [200, logs];
+  if (pathname === "/api/admin/connections") return [200, connections];
   if (pathname === "/api/admin/audit") return [200, audit];
   return null;
 }

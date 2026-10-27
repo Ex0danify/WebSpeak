@@ -142,6 +142,7 @@ const categories = computed(() => [
   { value: "config", label: t("eventCategoryConfig") },
   { value: "invites", label: t("eventCategoryInvites") },
   { value: "availability", label: t("eventCategoryAvailability") },
+  { value: "sessions", label: t("eventCategorySessions") },
   { value: "system", label: t("eventCategorySystem") },
 ]);
 

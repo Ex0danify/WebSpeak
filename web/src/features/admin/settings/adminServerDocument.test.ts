@@ -52,6 +52,23 @@ describe("buildSettingsDocument", () => {
     expect(document).toMatchObject({ identityMintMaxLevel: 8, identityMintConcurrency: 2, identityMintQueueDepth: 0 });
   });
 
+  it("holds back a retention that is out of bounds, so no value like 999999999999 reaches the gateway", () => {
+    const form = confirmedForm({
+      eventLogRetentionDays: 400,
+      eventLogMaxRows: 99,
+      connectionRetentionDays: 7,
+      connectionMaxRows: 999_999_999_999,
+    });
+    const { document, issues } = buildSettingsDocument(form, confirmedForm());
+    expect(Object.keys(issues).sort()).toEqual(["connectionMaxRows", "eventLogMaxRows", "eventLogRetentionDays"]);
+    expect(document).toMatchObject({
+      eventLogRetentionDays: 90,
+      eventLogMaxRows: 5000,
+      connectionRetentionDays: 7,
+      connectionMaxRows: 10000,
+    });
+  });
+
   it("sends an unchanged token as keep, and an empty replacement as no change", () => {
     const node = {
       ...createRelayNode(),

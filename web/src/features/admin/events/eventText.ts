@@ -25,6 +25,13 @@ const TITLE_KEYS: Record<string, MessageKey> = {
   INVITE_REVOKED: "inviteRevokedEvent",
   SERVER_AVAILABLE: "serverAvailableEvent",
   SERVER_UNAVAILABLE: "serverUnavailableEvent",
+  SESSION_CONNECTED: "sessionConnectedEvent",
+  SESSION_ENDED: "sessionEndedEvent",
+  SESSION_CONNECT_FAILED: "sessionConnectFailedEvent",
+  GATEWAY_STARTED: "gatewayStartedEvent",
+  GATEWAY_STOPPED: "gatewayStoppedEvent",
+  GATEWAY_ERROR: "gatewayErrorEvent",
+  CAPACITY_REACHED: "capacityReachedEvent",
 };
 
 // Labels of the fields an edit of the settings or of a server can change.
@@ -37,6 +44,10 @@ const FIELD_KEYS: Record<string, MessageKey> = {
   identityMintMaxLevel: "identityMintMaxLevel",
   identityMintConcurrency: "identityMintConcurrency",
   identityMintQueueDepth: "identityMintQueueDepth",
+  eventLogRetentionDays: "eventFieldEventLogDays",
+  eventLogMaxRows: "eventFieldEventLogRows",
+  connectionRetentionDays: "eventFieldConnectionDays",
+  connectionMaxRows: "eventFieldConnectionRows",
   welcomeTexts: "welcomeText",
   relayNodes: "relaySettings",
   name: "serverName",
@@ -57,7 +68,7 @@ function text(value: unknown): string {
 
 /** The headline and the detail of an event of the log. */
 export function createEventText(language: Ref<Language>, t: Translate) {
-  const { connectionFailureText, formatDate } = createAdminFormat(language, t);
+  const { connectionFailureText, formatAge, formatDate } = createAdminFormat(language, t);
 
   function title(event: string) {
     return TITLE_KEYS[event] ? t(TITLE_KEYS[event]) : event.replaceAll("_", " ");
@@ -84,6 +95,10 @@ export function createEventText(language: Ref<Language>, t: Translate) {
         ? [t("eventChange", { field: label, from: value(from), to: value(to) })]
         : [t("eventChanged", { field: label })];
     });
+  }
+
+  function sessionParts(details: AdminEvent["details"]): string[] {
+    return [text(details.nickname), text(details.clientIp) && t("eventIp", { ip: text(details.clientIp) }), text(details.target)];
   }
 
   function uses(details: AdminEvent["details"]): string {
@@ -143,6 +158,30 @@ export function createEventText(language: Ref<Language>, t: Translate) {
         break;
       case "SERVERS_REORDERED":
         if (typeof details.count === "number") parts.push(t("eventServerCount", { count: details.count }));
+        break;
+      case "SESSION_CONNECTED":
+        parts.push(...sessionParts(details));
+        break;
+      case "SESSION_ENDED":
+        parts.push(...sessionParts(details));
+        if (typeof details.durationSeconds === "number") parts.push(t("eventDuration", { duration: formatAge(details.durationSeconds) }));
+        if (text(details.code)) parts.push(connectionFailureText(text(details.code)));
+        break;
+      case "SESSION_CONNECT_FAILED":
+        parts.push(...sessionParts(details), connectionFailureText(text(details.code)));
+        if (text(details.detail)) parts.push(text(details.detail));
+        break;
+      case "GATEWAY_STARTED":
+        if (text(details.version)) parts.push(t("eventVersion", { version: text(details.version) }));
+        break;
+      case "GATEWAY_STOPPED":
+        if (text(details.signal)) parts.push(t("eventSignal", { signal: text(details.signal) }));
+        break;
+      case "GATEWAY_ERROR":
+        parts.push(text(details.message));
+        break;
+      case "CAPACITY_REACHED":
+        if (typeof details.maxSessions === "number") parts.push(t("eventSessionLimit", { count: details.maxSessions }));
         break;
       default:
     }

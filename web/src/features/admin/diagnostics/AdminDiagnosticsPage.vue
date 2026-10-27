@@ -24,7 +24,7 @@ import type { AdminPageCard } from "@/features/admin/ui/adminPage";
 import { useAdminDiagnosticsStore } from "@/features/admin/diagnostics/adminDiagnostics";
 import DiagnosticsCard from "@/features/admin/diagnostics/DiagnosticsCard.vue";
 import EventLogCard from "@/features/admin/events/EventLogCard.vue";
-import LogViewerCard from "@/features/admin/diagnostics/LogViewerCard.vue";
+import RetentionCard from "@/features/admin/diagnostics/RetentionCard.vue";
 
 const diagnosticsStore = useAdminDiagnosticsStore();
 const { diagnostics, diagnosticsLoading } = storeToRefs(diagnosticsStore);
@@ -34,7 +34,7 @@ onMounted(loadDiagnostics);
 
 const { t } = useI18n();
 
-// The facts and the event log side by side, the logs below across the whole width.
+// The facts and the event log side by side, the retention of the logs below across the whole width.
 const rows: Array<{ id: string; class?: string; cards: AdminPageCard[] }> = [
   {
     id: "system",
@@ -44,6 +44,6 @@ const rows: Array<{ id: string; class?: string; cards: AdminPageCard[] }> = [
       { id: "events", component: EventLogCard, props: { limit: 8 } },
     ],
   },
-  { id: "logs", cards: [{ id: "logs", component: LogViewerCard }] },
+  { id: "retention", cards: [{ id: "retention", component: RetentionCard }] },
 ];
 </script>

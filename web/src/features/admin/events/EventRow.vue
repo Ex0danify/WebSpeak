@@ -35,6 +35,7 @@ const icons: Record<AdminEventCategory, IconName> = {
   config: "settings",
   invites: "send",
   availability: "activity",
+  sessions: "users",
   system: "info",
 };
 // The severity is also written out in the chip, the tint only helps scanning.

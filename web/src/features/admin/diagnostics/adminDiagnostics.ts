@@ -1,6 +1,5 @@
 import { reactive, ref } from "vue";
 import { defineStore } from "pinia";
-import type { AdminConnectionRecord, AdminLog } from "@/features/admin/core/adminTypes.js";
 import { useAdminFeedbackStore } from "@/features/admin/core/adminFeedback.js";
 import { adminSiblings } from "@/features/admin/core/adminSiblings.js";
 import { useAdminSessionStore } from "@/features/admin/core/adminSession.js";
@@ -14,25 +13,17 @@ interface AdminFacts {
   createdSessions: number;
 }
 
-interface AdminLogs {
-  available: boolean;
-  entries: AdminLog[];
-  sessions: AdminConnectionRecord[];
-}
-
 interface DiagnosticsData {
   facts: AdminFacts;
-  logs: AdminLogs;
 }
 
 function initialDiagnostics(): DiagnosticsData {
   return {
     facts: { version: "", node: "", platform: "", arch: "", schemaVersion: 0, createdSessions: 0 },
-    logs: { available: false, entries: [], sessions: [] },
   };
 }
 
-/** The diagnostics page: runtime facts with the database backup, the logs. */
+/** The diagnostics page: runtime facts with the database backup. */
 export const useAdminDiagnosticsStore = defineStore("adminDiagnostics", () => {
   const admin = useAdminSessionStore();
   const feedback = useAdminFeedbackStore();
@@ -44,7 +35,7 @@ export const useAdminDiagnosticsStore = defineStore("adminDiagnostics", () => {
     diagnosticsLoading.value = true;
     await feedback.attempt(
       async () => {
-        const [facts, logs] = await Promise.all([admin.getJson("/api/admin/diagnostics"), admin.getJson("/api/admin/logs?limit=100")]);
+        const facts = await admin.getJson("/api/admin/diagnostics");
         diagnostics.facts = {
           version: String(facts.gateway?.version || ""),
           node: String(facts.gateway?.node || ""),
@@ -52,11 +43,6 @@ export const useAdminDiagnosticsStore = defineStore("adminDiagnostics", () => {
           arch: String(facts.gateway?.arch || ""),
           schemaVersion: Number(facts.database?.schemaVersion || 0),
           createdSessions: Number(facts.sessions?.created || 0),
-        };
-        diagnostics.logs = {
-          available: Boolean(logs.available),
-          entries: Array.isArray(logs.entries) ? logs.entries : [],
-          sessions: Array.isArray(logs.sessions) ? logs.sessions : [],
         };
       },
       () => {

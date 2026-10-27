@@ -35,8 +35,16 @@ describe("createAdminFormat", () => {
     expect(setup().format.formatDate(null)).toBe("—");
   });
 
-  it("joins a log context as key=value pairs", () => {
-    expect(setup().format.formatContext({ a: 1, b: "x", c: true })).toBe("a=1 · b=x · c=true");
+  it("describes what a session carried, and mentions drops and send errors only when there were some", () => {
+    const { format } = setupReal("en");
+    const audio = { talkSeconds: 125, framesSent: 6250, framesReceived: 1800, droppedFrames: 0, sendErrors: 0 };
+    expect(format.connectionAudioLines(null)).toEqual([]);
+    expect(format.connectionAudioLines(audio)).toEqual(["Talked 2m · 6,250 frames sent · 1,800 received"]);
+    expect(format.connectionAudioLines({ ...audio, droppedFrames: 3, sendErrors: 1 })).toEqual([
+      "Talked 2m · 6,250 frames sent · 1,800 received",
+      "3 frames dropped",
+      "1 send errors",
+    ]);
   });
 
   it("labels session states, falling back to the raw state", () => {

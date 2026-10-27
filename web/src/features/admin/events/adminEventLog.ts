@@ -20,9 +20,12 @@ function storedPageSize(): number {
   }
 }
 
-export const EVENT_CATEGORIES: readonly AdminEventCategory[] = ["auth", "config", "invites", "availability", "system"];
-/** Availability changes are in the log but not in the way, the filter brings them in. */
-export const DEFAULT_EVENT_CATEGORIES: readonly AdminEventCategory[] = EVENT_CATEGORIES.filter((category) => category !== "availability");
+export const EVENT_CATEGORIES: readonly AdminEventCategory[] = ["auth", "config", "invites", "availability", "sessions", "system"];
+/** Availability changes and every session are in the log but not in the way, the filter brings them in. */
+const QUIET_CATEGORIES: readonly AdminEventCategory[] = ["availability", "sessions"];
+export const DEFAULT_EVENT_CATEGORIES: readonly AdminEventCategory[] = EVENT_CATEGORIES.filter(
+  (category) => !QUIET_CATEGORIES.includes(category),
+);
 
 export const EVENT_SEVERITIES: readonly AdminEventSeverity[] = ["info", "warning", "error"];
 export type EventRange = "" | "day" | "week" | "month";

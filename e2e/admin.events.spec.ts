@@ -72,6 +72,18 @@ test.describe("the full event log", () => {
     await expect(page.getByText("Server not reachable")).toBeHidden();
   });
 
+  test("hides the sessions until their category is switched on", async ({ page, ownGateway }) => {
+    const gateway = await ownGateway();
+    gateway.database.addAudit("SESSION_CONNECTED", { id: "w-1", nickname: "alice", clientIp: "10.0.0.1", target: "ts.test:9987" });
+    gateway.database.addAudit("GATEWAY_STARTED", { version: "1.2.3" });
+    await openAdmin(page, gateway, "/diagnostics/events");
+    await expect(rows(page).filter({ hasText: "Gateway started" })).toContainText("Version 1.2.3");
+    await expect(page.getByText("Session connected")).toBeHidden();
+    await openCategories(page);
+    await page.getByRole("checkbox", { name: "Sessions" }).click();
+    await expect(rows(page).filter({ hasText: "Session connected" })).toContainText("alice · IP 10.0.0.1 · ts.test:9987");
+  });
+
   test("filters by category and by severity, and says when nothing matches", async ({ page, ownGateway }) => {
     const gateway = await ownGateway();
     gateway.database.addAudit("ADMIN_LOGIN_FAILED");

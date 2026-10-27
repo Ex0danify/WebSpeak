@@ -47,9 +47,37 @@ describe("createEventText", () => {
       "INVITE_REVOKED",
       "SERVER_AVAILABLE",
       "SERVER_UNAVAILABLE",
+      "SESSION_CONNECTED",
+      "SESSION_ENDED",
+      "SESSION_CONNECT_FAILED",
+      "GATEWAY_STARTED",
+      "GATEWAY_STOPPED",
+      "GATEWAY_ERROR",
+      "CAPACITY_REACHED",
     ]) {
       expect(title(event), event).not.toBe(event.replaceAll("_", " "));
     }
+  });
+
+  it("says who a session was, where from and how it went", () => {
+    const { detail } = setup();
+    const session = { nickname: "alice", clientIp: "10.0.0.1", target: "ts.test:9987" };
+    expect(detail(entry("SESSION_CONNECTED", session)).summary).toBe("alice · IP 10.0.0.1 · ts.test:9987");
+    expect(detail(entry("SESSION_ENDED", { ...session, durationSeconds: 125 })).summary).toBe(
+      "alice · IP 10.0.0.1 · ts.test:9987 · Duration 2m",
+    );
+    expect(detail(entry("SESSION_ENDED", { ...session, durationSeconds: 5, code: "KICKED" })).summary).toContain("Duration 5s");
+    expect(detail(entry("SESSION_CONNECT_FAILED", { ...session, code: "TIMEOUT", detail: "no answer" })).summary).toBe(
+      "alice · IP 10.0.0.1 · ts.test:9987 · Network request timed out · no answer",
+    );
+  });
+
+  it("describes the events of the gateway itself", () => {
+    const { detail } = setup();
+    expect(detail(entry("GATEWAY_STARTED", { version: "1.2.3" })).summary).toBe("Version 1.2.3");
+    expect(detail(entry("GATEWAY_STOPPED", { signal: "SIGTERM" })).summary).toBe("Signal SIGTERM");
+    expect(detail(entry("GATEWAY_ERROR", { source: "request", message: "boom" })).summary).toBe("boom");
+    expect(detail(entry("CAPACITY_REACHED", { maxSessions: 100 })).summary).toBe("Limit of 100 sessions");
   });
 
   it("says which server and what happened to it", () => {

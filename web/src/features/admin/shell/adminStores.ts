@@ -7,6 +7,7 @@ import { useAdminServerDialogStore } from "@/features/admin/gateway/adminServerD
 import { useAdminServerOrderStore } from "@/features/admin/gateway/adminServerOrder";
 import { useAdminServersStore } from "@/features/admin/gateway/adminServers";
 import { useAdminServerSettingsStore } from "@/features/admin/settings/adminServerSettings";
+import { useAdminConnectionsStore } from "@/features/admin/users/connections/adminConnections";
 import { useAdminInvitesStore } from "@/features/admin/users/invites/adminInvites";
 import { useAdminUsersStore } from "@/features/admin/users/adminUsers";
 
@@ -27,6 +28,7 @@ export function registerAdminStores(): void {
       useAdminOverviewStore().reset();
       useAdminUsersStore().reset();
       useAdminInvitesStore().reset();
+      useAdminConnectionsStore().reset();
       useAdminEventLogStore().reset();
       useAdminDiagnosticsStore().reset();
       useAdminServerSettingsStore().reset();

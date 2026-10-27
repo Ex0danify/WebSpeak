@@ -16,7 +16,6 @@ function setup() {
         database: { schemaVersion: 3 },
         sessions: { created: 7 },
       };
-    if (url.startsWith("/api/admin/logs")) return { available: true, entries: [{ level: "INFO" }], sessions: [] };
     return { events: [{ event: "X", createdAt: "now" }] };
   });
   // The stores look these up on each other at call time, so replacing them observes the calls.
@@ -35,7 +34,7 @@ afterEach(() => {
 });
 
 describe("useAdminDiagnosticsStore", () => {
-  it("loadDiagnostics fills the facts and the logs and stops the loading flag", async () => {
+  it("loadDiagnostics fills the facts and stops the loading flag", async () => {
     const s = setup();
     await s.store.loadDiagnostics();
     expect(s.store.diagnostics.facts).toEqual({
@@ -46,7 +45,7 @@ describe("useAdminDiagnosticsStore", () => {
       schemaVersion: 3,
       createdSessions: 7,
     });
-    expect(s.store.diagnostics.logs.available).toBe(true);
+    expect(s.getJson).toHaveBeenCalledTimes(1);
     expect(s.getJson).not.toHaveBeenCalledWith(expect.stringContaining("/audit"));
     expect(s.store.diagnosticsLoading).toBe(false);
   });
@@ -90,7 +89,6 @@ describe("useAdminDiagnosticsStore", () => {
     const s = setup();
     await s.store.loadDiagnostics();
     s.store.reset();
-    expect(s.store.diagnostics.logs.entries).toEqual([]);
     expect(s.store.diagnostics.facts.version).toBe("");
   });
 });

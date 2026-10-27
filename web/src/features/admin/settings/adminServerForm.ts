@@ -103,6 +103,10 @@ export function initialServerForm() {
     identityMintMaxLevel: 8,
     identityMintConcurrency: 2,
     identityMintQueueDepth: 20,
+    eventLogRetentionDays: 90,
+    eventLogMaxRows: 5000,
+    connectionRetentionDays: 30,
+    connectionMaxRows: 10000,
     relayNodes: [] as RelayNodeForm[],
   };
 }
@@ -134,6 +138,10 @@ export function formFieldsFromSettings(value: Record<string, any>) {
     identityMintMaxLevel: Number(value.identityMintMaxLevel || 8),
     identityMintConcurrency: Number(value.identityMintConcurrency || 2),
     identityMintQueueDepth: Number(value.identityMintQueueDepth ?? 20),
+    eventLogRetentionDays: Number(value.eventLogRetentionDays || 90),
+    eventLogMaxRows: Number(value.eventLogMaxRows || 5000),
+    connectionRetentionDays: Number(value.connectionRetentionDays || 30),
+    connectionMaxRows: Number(value.connectionMaxRows || 10000),
     relayNodes: mapRelayNodes(value.relayNodes),
   };
 }

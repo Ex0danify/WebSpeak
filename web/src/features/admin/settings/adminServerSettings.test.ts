@@ -44,6 +44,10 @@ function settingsAnswer(changes: Record<string, unknown> = {}) {
     identityMintMaxLevel: 8,
     identityMintConcurrency: 2,
     identityMintQueueDepth: 20,
+    eventLogRetentionDays: 90,
+    eventLogMaxRows: 5000,
+    connectionRetentionDays: 30,
+    connectionMaxRows: 10000,
     relayNodes: [],
     ...changes,
   };
@@ -75,6 +79,10 @@ describe("autosave", () => {
       identityMintMaxLevel: 8,
       identityMintConcurrency: 2,
       identityMintQueueDepth: 20,
+      eventLogRetentionDays: 90,
+      eventLogMaxRows: 5000,
+      connectionRetentionDays: 30,
+      connectionMaxRows: 10000,
       relayNodes: [],
     });
     expect(s.st.statuses.web.state).toBe("saved");

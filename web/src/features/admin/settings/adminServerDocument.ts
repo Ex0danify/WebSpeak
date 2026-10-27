@@ -7,12 +7,16 @@ export const SETTING_LIMITS = {
   identityMintMaxLevel: { min: 1, max: 24 },
   identityMintConcurrency: { min: 1, max: 8 },
   identityMintQueueDepth: { min: 0, max: 100 },
+  eventLogRetentionDays: { min: 1, max: 365 },
+  eventLogMaxRows: { min: 100, max: 50000 },
+  connectionRetentionDays: { min: 1, max: 365 },
+  connectionMaxRows: { min: 100, max: 100000 },
   relayNameMax: 80,
   relayTargetMax: 300,
   relayTokenMin: 16,
 } as const;
 
-export type SettingsSection = "access" | "web" | "webrtc" | "mint" | "relay";
+export type SettingsSection = "access" | "web" | "webrtc" | "mint" | "retention" | "relay";
 
 export type SettingsIssue =
   | { code: "siteName" }
@@ -47,12 +51,25 @@ export interface SettingsDocument {
   identityMintMaxLevel: number;
   identityMintConcurrency: number;
   identityMintQueueDepth: number;
+  eventLogRetentionDays: number;
+  eventLogMaxRows: number;
+  connectionRetentionDays: number;
+  connectionMaxRows: number;
   relayNodes: RelayNodeDocument[];
 }
 
 type Limit = { min: number; max: number };
-type MintField = "identityMintMaxLevel" | "identityMintConcurrency" | "identityMintQueueDepth";
-const MINT_FIELDS: MintField[] = ["identityMintMaxLevel", "identityMintConcurrency", "identityMintQueueDepth"];
+/** The settings that are one whole number within limits. */
+const NUMBER_FIELDS = [
+  "identityMintMaxLevel",
+  "identityMintConcurrency",
+  "identityMintQueueDepth",
+  "eventLogRetentionDays",
+  "eventLogMaxRows",
+  "connectionRetentionDays",
+  "connectionMaxRows",
+] as const;
+type NumberField = (typeof NUMBER_FIELDS)[number];
 
 const integerIn = (value: unknown, limit: Limit): value is number =>
   typeof value === "number" && Number.isInteger(value) && value >= limit.min && value <= limit.max;
@@ -119,12 +136,12 @@ export function buildSettingsDocument(form: ServerForm, confirmed: ServerForm): 
   if (!orderOk) issues.webRtcUdpEnd = { code: "portOrder" };
   const rangeOk = startOk && endOk && orderOk;
 
-  const mint = {} as Record<MintField, number>;
-  for (const field of MINT_FIELDS) {
+  const numbers = {} as Record<NumberField, number>;
+  for (const field of NUMBER_FIELDS) {
     const limit = SETTING_LIMITS[field];
     const ok = integerIn(form[field], limit);
     if (!ok) issues[field] = { code: "number", ...limit };
-    mint[field] = ok ? form[field] : confirmed[field];
+    numbers[field] = ok ? form[field] : confirmed[field];
   }
 
   const previous = new Map(confirmed.relayNodes.map((node) => [node.id, node]));
@@ -149,7 +166,7 @@ export function buildSettingsDocument(form: ServerForm, confirmed: ServerForm): 
       webRtcEnabled: form.webRtcEnabled,
       webRtcUdpStart: rangeOk ? form.webRtcUdpStart : confirmed.webRtcUdpStart,
       webRtcUdpEnd: rangeOk ? form.webRtcUdpEnd : confirmed.webRtcUdpEnd,
-      ...mint,
+      ...numbers,
       relayNodes,
     },
     issues,
@@ -174,7 +191,7 @@ export function changedFieldKeys(next: SettingsDocument, previous: SettingsDocum
   if (next.siteName !== previous.siteName) keys.push("siteName");
   if (JSON.stringify(withoutEmptyTexts(next).welcomeTexts) !== JSON.stringify(withoutEmptyTexts(previous).welcomeTexts))
     keys.push("welcomeText");
-  for (const field of ["webRtcUdpStart", "webRtcUdpEnd", ...MINT_FIELDS] as const) if (next[field] !== previous[field]) keys.push(field);
+  for (const field of ["webRtcUdpStart", "webRtcUdpEnd", ...NUMBER_FIELDS] as const) if (next[field] !== previous[field]) keys.push(field);
   const before = new Map(previous.relayNodes.map((node) => [node.id, node]));
   for (const node of next.relayNodes) {
     const old = before.get(node.id);
@@ -203,7 +220,7 @@ export function applySavedSettings(form: ServerForm, sent: SettingsDocument, sav
     form.webRtcUdpStart = saved.webRtcUdpStart;
     form.webRtcUdpEnd = saved.webRtcUdpEnd;
   }
-  for (const field of MINT_FIELDS) if (form[field] === sent[field]) form[field] = saved[field];
+  for (const field of NUMBER_FIELDS) if (form[field] === sent[field]) form[field] = saved[field];
 
   const sentNodes = new Map(sent.relayNodes.map((node) => [node.id, JSON.stringify(node)]));
   const savedNodes = new Map(saved.relayNodes.map((node) => [node.id, node]));

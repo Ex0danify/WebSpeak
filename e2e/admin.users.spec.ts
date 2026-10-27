@@ -74,6 +74,38 @@ test.describe("sessions", () => {
   });
 });
 
+test.describe("connection history", () => {
+  const records = (page: Page) => page.locator(".connection-row");
+
+  test("keeps a guest after the session ended, with how long it lasted, and filters by status and name", async ({ page, ownGateway }) => {
+    const gateway = await ownGateway();
+    await openAdmin(page, gateway, "/users");
+    await expect(page.getByText("No connections recorded yet.")).toBeVisible();
+
+    const guest = await guestJoins(page, gateway, "history-guest");
+    await expect(guest.getByRole("textbox", { name: "Search members" })).toBeVisible();
+    await page.getByRole("button", { name: "Refresh" }).click();
+    await expect(records(page).filter({ hasText: "history-guest" })).toContainText("Connected");
+
+    await guest.close();
+    await expect(async () => {
+      await page.getByRole("button", { name: "Refresh" }).click();
+      await expect(records(page).filter({ hasText: "history-guest" })).toContainText("Disconnected", { timeout: 1000 });
+    }).toPass();
+    const row = records(page).filter({ hasText: "history-guest" });
+    await expect(row).toContainText("Duration");
+    await expect(row).toContainText("From 127.0.0.1");
+
+    await page.getByRole("combobox", { name: "Status" }).selectOption({ label: "Connection failed" });
+    await expect(page.getByText("No connections match these filters.")).toBeVisible();
+    await page.getByRole("button", { name: "Reset filters" }).click();
+    await page.getByRole("searchbox", { name: "Search by name, address or server" }).fill("history-g");
+    await expect(records(page)).toHaveCount(1);
+    await page.getByRole("searchbox", { name: "Search by name, address or server" }).fill("nobody");
+    await expect(page.getByText("No connections match these filters.")).toBeVisible();
+  });
+});
+
 test.describe("invites", () => {
   test("says when there are none; creating one shows its link once, and lists it as active and unused", async ({ page, ownGateway }) => {
     const gateway = await ownGateway();

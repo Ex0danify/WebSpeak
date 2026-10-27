@@ -29,7 +29,7 @@ export interface ManagedInvite {
   revokedAt: string | null;
   status: "active" | "expired" | "exhausted" | "revoked";
 }
-export type AdminEventCategory = "auth" | "config" | "invites" | "availability" | "system";
+export type AdminEventCategory = "auth" | "config" | "invites" | "availability" | "sessions" | "system";
 export type AdminEventSeverity = "info" | "warning" | "error";
 export interface AdminEvent {
   id: number;
@@ -39,11 +39,12 @@ export interface AdminEvent {
   details: Record<string, unknown>;
   createdAt: string;
 }
-export interface AdminLog {
-  timestamp: string | null;
-  level: string;
-  message: string;
-  context: Record<string, string | number | boolean>;
+export interface AdminConnectionAudio {
+  talkSeconds: number;
+  framesSent: number;
+  framesReceived: number;
+  droppedFrames: number;
+  sendErrors: number;
 }
 export interface AdminConnectionRecord {
   id: string;
@@ -59,4 +60,5 @@ export interface AdminConnectionRecord {
   status: "active" | "connecting" | "disconnected" | "failed";
   reason: string | null;
   failureDetail: string | null;
+  audio: AdminConnectionAudio | null;
 }

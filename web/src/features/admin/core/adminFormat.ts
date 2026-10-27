@@ -1,7 +1,7 @@
 import type { MessageKey } from "@/shared/i18n/messageKeys";
 import { intlLocale, type Language } from "@/shared/i18n/languages";
 import { createFormat } from "@/shared/i18n/useFormat";
-import type { AdminConnectionRecord, ManagedInvite } from "@/features/admin/core/adminTypes.js";
+import type { AdminConnectionAudio, AdminConnectionRecord, ManagedInvite } from "@/features/admin/core/adminTypes.js";
 
 const CONNECTION_FAILED: MessageKey = "connectionFailed";
 
@@ -47,6 +47,10 @@ const ADMIN_ERROR_KEYS: Record<string, MessageKey> = {
   INVALID_IDENTITY_MINT_LEVEL: "adminErr_INVALID_IDENTITY_MINT_LEVEL",
   INVALID_IDENTITY_MINT_CONCURRENCY: "adminErr_INVALID_IDENTITY_MINT_CONCURRENCY",
   INVALID_IDENTITY_MINT_QUEUE_DEPTH: "adminErr_INVALID_IDENTITY_MINT_QUEUE_DEPTH",
+  INVALID_EVENT_LOG_RETENTION: "adminErr_INVALID_EVENT_LOG_RETENTION",
+  INVALID_EVENT_LOG_ROWS: "adminErr_INVALID_EVENT_LOG_ROWS",
+  INVALID_CONNECTION_RETENTION: "adminErr_INVALID_CONNECTION_RETENTION",
+  INVALID_CONNECTION_ROWS: "adminErr_INVALID_CONNECTION_ROWS",
 };
 
 /** The admin console's display formatters, bound to the current language (`language.value` is read on
@@ -80,6 +84,21 @@ export function createAdminFormat(language: { value: Language }, t: Translate) {
     const relay = [record.relayName, record.relayTarget].filter(Boolean).join(" · ") || "—";
     return `${route} · ${t("connectionViaRelay", { relay })}`;
   }
+  /** What a session carried, one line each: the voice traffic, and the drops and errors when there were any. */
+  function connectionAudioLines(audio: AdminConnectionAudio | null): string[] {
+    if (!audio) return [];
+    const count = (value: number) => new Intl.NumberFormat(intlLocale(language.value)).format(value);
+    const lines = [
+      t("connectionAudioSummary", {
+        talk: formatAge(audio.talkSeconds),
+        sent: count(audio.framesSent),
+        received: count(audio.framesReceived),
+      }),
+    ];
+    if (audio.droppedFrames > 0) lines.push(t("connectionAudioDropped", { count: count(audio.droppedFrames) }));
+    if (audio.sendErrors > 0) lines.push(t("connectionAudioSendErrors", { count: count(audio.sendErrors) }));
+    return lines;
+  }
   function sessionStateLabel(state: string) {
     return SESSION_STATE_KEYS[state] ? t(SESSION_STATE_KEYS[state]) : state;
   }
@@ -91,11 +110,6 @@ export function createAdminFormat(language: { value: Language }, t: Translate) {
       revoked: "revoked",
     };
     return t(names[status]);
-  }
-  function formatContext(context: Record<string, string | number | boolean>) {
-    return Object.entries(context)
-      .map(([key, value]) => `${key}=${value}`)
-      .join(" · ");
   }
   function errorText(code?: string) {
     return ADMIN_ERROR_KEYS[code || ""] ? t(ADMIN_ERROR_KEYS[code || ""]) : t("requestFailed");
@@ -118,6 +132,7 @@ export function createAdminFormat(language: { value: Language }, t: Translate) {
       SERVER_REJECTED: "serverRejectedError",
       NO_ANSWER: "noAnswerError",
       PING_UNAVAILABLE: "pingUnavailableError",
+      GATEWAY_RESTARTED: "gatewayRestartedError",
       CONNECTION_FAILED: CONNECTION_FAILED,
     };
     return names[code || ""] ? t(names[code || ""]) : errorText(code);
@@ -129,9 +144,9 @@ export function createAdminFormat(language: { value: Language }, t: Translate) {
     formatAge,
     connectionStatusLabel,
     connectionRoute,
+    connectionAudioLines,
     sessionStateLabel,
     inviteStatusLabel,
-    formatContext,
     errorText,
     connectionFailureText,
   };
