@@ -9,9 +9,8 @@ import { TeamSpeakProbeError } from "../src/modules/teamspeak/teamSpeakProbe";
 
 const row = (page: Page, name: string): Locator => page.locator(".server-row").filter({ hasText: name });
 const dialog = (page: Page, name: string): Locator => page.getByRole("dialog", { name });
-/** The server list's own card: what it says after a change it saved by itself (add, edit, remove, reorder). */
-const listCard = (page: Page): Locator =>
-  page.getByRole("article").filter({ has: page.getByRole("heading", { name: "TeamSpeak servers" }) });
+/** The servers section: what it says after a change it saved by itself (add, edit, remove, reorder). */
+const listCard = (page: Page): Locator => page.getByRole("region", { name: "Servers and access" });
 const listSaved = (page: Page): Locator => listCard(page).getByRole("status").getByText("Saved");
 
 /** Fills the add/edit dialog with a name and an address, the port is left alone unless given. */
