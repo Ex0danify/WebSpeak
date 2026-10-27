@@ -35,4 +35,12 @@ describe("ListSelect", () => {
     });
     expect(wrapper.get("#device").element.tagName).toBe("BUTTON");
   });
+
+  it("carries an item with an empty value and reports it as an empty string", async () => {
+    const withEmpty: ListSelectItem[] = [{ value: "", label: "Default" }, ...items];
+    const wrapper = mount(ListSelect, { props: { items: withEmpty, modelValue: "", "onUpdate:modelValue": () => {} } });
+    expect(wrapper.get("button").text()).toContain("Default");
+    await wrapper.setProps({ modelValue: "b" });
+    expect(wrapper.get("button").text()).toContain("Beta");
+  });
 });

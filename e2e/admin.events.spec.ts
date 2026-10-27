@@ -119,7 +119,8 @@ test.describe("the full event log", () => {
     await expect(rows(page).first()).toContainText("Quiz night");
     await page.getByRole("searchbox", { name: "Search events" }).fill("");
     await expect(rows(page).filter({ hasText: "Lobby" })).toHaveCount(1);
-    await page.getByRole("combobox", { name: "Time range" }).selectOption("day");
+    await page.getByRole("combobox", { name: "Time range" }).click();
+    await page.getByRole("option", { name: "Last 24 hours" }).click();
     await expect(rows(page).filter({ hasText: "Lobby" })).toHaveCount(1);
   });
 
@@ -149,11 +150,12 @@ test.describe("the full event log", () => {
     await expect(page.getByText("Page 10 of 10")).toBeVisible();
     await page.getByRole("button", { name: "Page 9", exact: true }).click();
     await expect(page.getByText("Page 9 of 10")).toBeVisible();
-    await page.getByRole("combobox", { name: "Entries per page" }).selectOption("100");
+    await page.getByRole("combobox", { name: "Entries per page" }).click();
+    await page.getByRole("option", { name: "100", exact: true }).click();
     await expect(page.getByText("Page 3 of 3")).toBeVisible();
     await page.reload();
     await expect(rows(page)).toHaveCount(100);
-    await expect(page.getByRole("combobox", { name: "Entries per page" })).toHaveValue("100");
+    await expect(page.getByRole("combobox", { name: "Entries per page" })).toHaveText("100");
   });
 
   test("says where an entry came from and what it changed", async ({ page, ownGateway }) => {

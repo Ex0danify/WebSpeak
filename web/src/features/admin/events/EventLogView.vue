@@ -13,14 +13,13 @@
           autocomplete="off"
           class="max-w-72 min-w-44 flex-1 max-compact:max-w-none max-compact:basis-full"
         />
-        <Select
+        <ListSelect
           class="w-40"
           :model-value="list.range"
+          :items="ranges"
           :aria-label="t('eventRange')"
           @update:model-value="(value) => filter({ range: value as EventRange })"
-        >
-          <option v-for="option in ranges" :key="option.value" :value="option.value">{{ option.label }}</option>
-        </Select>
+        />
         <Popover align="start" class="w-64" :label="t('eventSeverityFilter')">
           <template #trigger>
             <Button variant="outline">
@@ -84,9 +83,13 @@
       <ListFooter :summary="t('listShowing', { shown: list.items.length, total: list.total })">
         <label class="flex items-center gap-2 text-2xs text-fg-muted">
           {{ t("eventPageSize") }}
-          <Select class="w-20" :model-value="String(list.limit)" @update:model-value="(value) => setPageSize(Number(value))">
-            <option v-for="size in EVENT_PAGE_SIZES" :key="size" :value="String(size)">{{ size }}</option>
-          </Select>
+          <ListSelect
+            class="w-24"
+            :model-value="String(list.limit)"
+            :items="pageSizes"
+            :aria-label="t('eventPageSize')"
+            @update:model-value="(value) => setPageSize(Number(value))"
+          />
         </label>
       </ListFooter>
     </Card>
@@ -103,7 +106,7 @@ import { Icon } from "@/shared/ui/icon";
 import { Input } from "@/shared/ui/input";
 import { ListFooter, Pager } from "@/shared/ui/list";
 import { Popover } from "@/shared/ui/popover";
-import { Select } from "@/shared/ui/select";
+import { ListSelect, type ListSelectItem } from "@/shared/ui/select";
 import { useI18n } from "@/shared/i18n/useI18n";
 import AdminPage from "@/features/admin/ui/AdminPage.vue";
 import RefreshButton from "@/features/admin/ui/RefreshButton.vue";
@@ -153,7 +156,9 @@ const severities = computed(() => [
   { value: "error", label: t("eventSeverityError") },
 ]);
 
-const ranges = computed(() => [
+const pageSizes: ListSelectItem[] = EVENT_PAGE_SIZES.map((size) => ({ value: String(size), label: String(size) }));
+
+const ranges = computed<ListSelectItem[]>(() => [
   { value: "", label: t("eventRangeAll") },
   { value: "day", label: t("eventRangeDay") },
   { value: "week", label: t("eventRangeWeek") },

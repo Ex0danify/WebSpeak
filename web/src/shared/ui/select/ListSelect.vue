@@ -32,7 +32,17 @@ const props = withDefaults(
   { invalid: false },
 );
 
+// reka's select refuses an empty value, so the "default" or "all" row that has one is carried under a stand-in.
+const EMPTY = "__empty__";
+const toInner = (value: string) => (value === "" ? EMPTY : value);
+
 const model = defineModel<string>();
+const inner = computed({
+  get: () => (model.value === undefined ? undefined : toInner(model.value)),
+  set: (value) => {
+    model.value = value === EMPTY ? "" : value;
+  },
+});
 const field = inject(fieldContextKey, null);
 
 const isInvalid = computed(() => props.invalid || Boolean(field?.invalid.value));
@@ -42,7 +52,7 @@ const selected = computed(() => props.items.find((item) => item.value === model.
 </script>
 
 <template>
-  <SelectRoot v-model="model">
+  <SelectRoot v-model="inner">
     <SelectTrigger
       :id="triggerId"
       :aria-label="ariaLabel"
@@ -68,7 +78,7 @@ const selected = computed(() => props.items.find((item) => item.value === model.
           <SelectItem
             v-for="item in items"
             :key="item.value"
-            :value="item.value"
+            :value="toInner(item.value)"
             :text-value="item.label"
             :disabled="item.disabled"
             :class="listSelectItemClass"

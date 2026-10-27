@@ -6,9 +6,7 @@
     <div class="grid gap-2.5 rounded-lg border border-line bg-surface-0 p-3">
       <div class="grid grid-cols-[minmax(0,1fr)_minmax(180px,1fr)] items-end gap-3 max-narrow:grid-cols-1 max-narrow:gap-1.5">
         <Field :label="t('welcomeLanguage')">
-          <Select v-model="welcomeLanguage"
-            ><option v-for="option in welcomeLanguageOptions" :key="option.value" :value="option.value">{{ option.label }}</option></Select
-          >
+          <ListSelect v-model="welcomeLanguage" :items="welcomeLanguageOptions" />
         </Field>
         <small class="text-2xs leading-normal text-fg-muted">{{ t("welcomeLanguageHint") }}</small>
       </div>
@@ -33,7 +31,7 @@
 <script setup lang="ts">
 import { Field } from "@/shared/ui/field";
 import { Input } from "@/shared/ui/input";
-import { Select } from "@/shared/ui/select";
+import { ListSelect } from "@/shared/ui/select";
 import { Textarea } from "@/shared/ui/textarea";
 import { storeToRefs } from "pinia";
 import SettingField from "@/features/admin/settings/SettingField.vue";

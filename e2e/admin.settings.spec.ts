@@ -128,18 +128,21 @@ test.describe("welcome message", () => {
   test("has one text per language, each kept, and the guests get the one for their language", async ({ page, ownGateway }) => {
     const gateway = await ownGateway();
     await openWebPage(page, gateway);
-    const language = page.getByLabel("Welcome message language");
-    await language.selectOption("de");
+    const pickLanguage = async (name: string) => {
+      await page.getByRole("combobox", { name: "Welcome message language" }).click();
+      await page.getByRole("option", { name, exact: true }).click();
+    };
+    await pickLanguage("Deutsch");
     await expect(page.getByLabel("Welcome message · Deutsch")).toBeVisible();
     expect(await saves(page, () => typeInto(page.getByLabel("Welcome message · Deutsch"), "Willkommen bei den Nachteulen"))).toBe(200);
-    await language.selectOption("en");
+    await pickLanguage("English");
     await expect(page.getByLabel("Welcome message · English")).toHaveValue("");
     expect(await saves(page, () => typeInto(page.getByLabel("Welcome message · English"), "Welcome, night owls"))).toBe(200);
 
     await reloadWebPage(page, gateway);
-    await page.getByLabel("Welcome message language").selectOption("de");
+    await pickLanguage("Deutsch");
     await expect(page.getByLabel("Welcome message · Deutsch")).toHaveValue("Willkommen bei den Nachteulen");
-    await page.getByLabel("Welcome message language").selectOption("en");
+    await pickLanguage("English");
     await expect(page.getByLabel("Welcome message · English")).toHaveValue("Welcome, night owls");
 
     // A guest's page shows the text of its own language.
