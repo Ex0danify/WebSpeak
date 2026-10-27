@@ -1,4 +1,4 @@
-export const AUDIT_CATEGORIES = ["auth", "config", "invites", "availability", "system"] as const;
+export const AUDIT_CATEGORIES = ["auth", "config", "invites", "availability", "sessions", "system"] as const;
 export const AUDIT_SEVERITIES = ["info", "warning", "error"] as const;
 
 export type AuditCategory = (typeof AUDIT_CATEGORIES)[number];
@@ -26,6 +26,13 @@ const KINDS: Record<string, AuditEventKind> = {
   INVITE_REVOKED: { category: "invites", severity: "info" },
   SERVER_AVAILABLE: { category: "availability", severity: "info" },
   SERVER_UNAVAILABLE: { category: "availability", severity: "error" },
+  SESSION_CONNECTED: { category: "sessions", severity: "info" },
+  SESSION_CONNECT_FAILED: { category: "sessions", severity: "warning" },
+  SESSION_ENDED: { category: "sessions", severity: "info" },
+  GATEWAY_STARTED: { category: "system", severity: "info" },
+  GATEWAY_STOPPED: { category: "system", severity: "info" },
+  GATEWAY_ERROR: { category: "system", severity: "error" },
+  CAPACITY_REACHED: { category: "system", severity: "warning" },
   ADMIN_INITIALIZED: { category: "system", severity: "info" },
   ADMIN_BACKUP_EXPORTED: { category: "system", severity: "info" },
 };

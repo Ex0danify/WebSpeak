@@ -13,6 +13,15 @@ import {
   IDENTITY_MINT_QUEUE_DEPTH_MAX,
   IDENTITY_MINT_QUEUE_DEPTH_MIN,
 } from "../../config/identityMintConfig.js";
+import {
+  CONNECTION_ROWS_MAX,
+  CONNECTION_ROWS_MIN,
+  DEFAULT_RETENTION_POLICY,
+  EVENT_LOG_ROWS_MAX,
+  EVENT_LOG_ROWS_MIN,
+  RETENTION_DAYS_MAX,
+  RETENTION_DAYS_MIN,
+} from "../../config/retentionConfig.js";
 import { AdminInputError } from "./adminErrors.js";
 
 type StoredSettings = ReturnType<WebSpeakDatabase["getSettings"]>;
@@ -28,6 +37,10 @@ export interface AdminSettingsInput {
   identityMintMaxLevel?: number;
   identityMintConcurrency?: number;
   identityMintQueueDepth?: number;
+  eventLogRetentionDays?: number;
+  eventLogMaxRows?: number;
+  connectionRetentionDays?: number;
+  connectionMaxRows?: number;
   relayNodes?: RelayNodeInput[];
 }
 
@@ -110,6 +123,40 @@ export function normalizeSettings(input: AdminSettingsInput, current: StoredSett
     "INVALID_IDENTITY_MINT_QUEUE_DEPTH",
     `Identity mint queue depth must be between ${IDENTITY_MINT_QUEUE_DEPTH_MIN} and ${IDENTITY_MINT_QUEUE_DEPTH_MAX}`,
   );
+  const retention = {
+    eventLog: {
+      days: boundedInteger(
+        input.eventLogRetentionDays ?? current.retention.eventLog.days ?? DEFAULT_RETENTION_POLICY.eventLog.days,
+        RETENTION_DAYS_MIN,
+        RETENTION_DAYS_MAX,
+        "INVALID_EVENT_LOG_RETENTION",
+        `Event log retention must be between ${RETENTION_DAYS_MIN} and ${RETENTION_DAYS_MAX} days`,
+      ),
+      maxRows: boundedInteger(
+        input.eventLogMaxRows ?? current.retention.eventLog.maxRows ?? DEFAULT_RETENTION_POLICY.eventLog.maxRows,
+        EVENT_LOG_ROWS_MIN,
+        EVENT_LOG_ROWS_MAX,
+        "INVALID_EVENT_LOG_ROWS",
+        `Event log size must be between ${EVENT_LOG_ROWS_MIN} and ${EVENT_LOG_ROWS_MAX} entries`,
+      ),
+    },
+    connections: {
+      days: boundedInteger(
+        input.connectionRetentionDays ?? current.retention.connections.days ?? DEFAULT_RETENTION_POLICY.connections.days,
+        RETENTION_DAYS_MIN,
+        RETENTION_DAYS_MAX,
+        "INVALID_CONNECTION_RETENTION",
+        `Connection history retention must be between ${RETENTION_DAYS_MIN} and ${RETENTION_DAYS_MAX} days`,
+      ),
+      maxRows: boundedInteger(
+        input.connectionMaxRows ?? current.retention.connections.maxRows ?? DEFAULT_RETENTION_POLICY.connections.maxRows,
+        CONNECTION_ROWS_MIN,
+        CONNECTION_ROWS_MAX,
+        "INVALID_CONNECTION_ROWS",
+        `Connection history size must be between ${CONNECTION_ROWS_MIN} and ${CONNECTION_ROWS_MAX} entries`,
+      ),
+    },
+  };
 
   return {
     siteName,
@@ -121,6 +168,7 @@ export function normalizeSettings(input: AdminSettingsInput, current: StoredSett
     identityMintMaxLevel,
     identityMintConcurrency,
     identityMintQueueDepth,
+    retention,
   };
 }
 
@@ -188,5 +236,6 @@ export function toSettingsUpdate(settings: StoredSettings): SettingsUpdate {
     identityMintMaxLevel: settings.identityMintMaxLevel,
     identityMintConcurrency: settings.identityMintConcurrency,
     identityMintQueueDepth: settings.identityMintQueueDepth,
+    retention: settings.retention,
   };
 }

@@ -13,6 +13,5 @@ export interface AdminRouterOptions {
   getSessionSummaries?: () => AdminSessionSummary[];
   terminateSession?: (id: string) => Promise<boolean>;
   version?: string;
-  logFile?: string;
   startedAt: number;
 }

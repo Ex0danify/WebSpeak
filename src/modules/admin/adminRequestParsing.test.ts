@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { AdminInputError } from "./adminService.js";
-import { asRecord, readLimit, readOptionalNumber, readOptionalString, readSettingsInput, readString } from "./adminRequestParsing.js";
+import { asRecord, readOptionalNumber, readOptionalString, readSettingsInput, readString } from "./adminRequestParsing.js";
 
 describe("adminRequestParsing", () => {
   it("asRecord rejects non-objects and arrays", () => {
@@ -24,13 +24,6 @@ describe("adminRequestParsing", () => {
     expect(readOptionalNumber({}, "k", 7)).toBe(7);
     expect(readOptionalNumber({ k: 2 }, "k", 7)).toBe(2);
     expect(readOptionalNumber({ k: "2" }, "k", 7)).toBeNaN();
-  });
-
-  it("readLimit clamps to 1..200 and falls back on bad input", () => {
-    expect(readLimit("500", 50)).toBe(200);
-    expect(readLimit("0", 50)).toBe(1);
-    expect(readLimit("abc", 50)).toBe(50);
-    expect(readLimit(undefined, 50)).toBe(50);
   });
 
   it("readSettingsInput normalises relay nodes", () => {

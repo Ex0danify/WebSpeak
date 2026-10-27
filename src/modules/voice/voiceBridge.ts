@@ -10,6 +10,7 @@ import { sendInitialState } from "./session/voiceConnection.js";
 import { admitConnection, type AdmissionDeps, type ConnectionHooks } from "./voiceAdmission.js";
 import type { WebRtcAudioOptions } from "../../config/webrtcConfig.js";
 import type { TsClientVersion } from "../../config/env.js";
+import type { SessionRecorder } from "./session/voiceSessionRecorder.js";
 import { cleanupEntry, getSessionSummaries, terminateSession, type SessionCleanupDeps } from "./session/voiceSessionAdmin.js";
 import type { ConfiguredAccelerationRelay } from "../relay/index.js";
 import {
@@ -28,6 +29,7 @@ export interface VoiceBridgeOptions {
   screenShareIceServers?: ScreenShareIceServer[] | (() => ScreenShareIceServer[]);
   acceleration?: ConfiguredAccelerationRelay[] | (() => ConfiguredAccelerationRelay[]);
   accelerationName?: string | (() => string | undefined);
+  sessionRecorder?: SessionRecorder;
   createClient?: (options: TSClientOptions, logger: LoggerType) => TSClient;
   clientVersion?: TsClientVersion;
   /** How long a connected TeamSpeak client may take to deliver its first directory snapshot. */
@@ -67,6 +69,7 @@ export class VoiceBridge {
       getScreenShareIceServers: () => this.getScreenShareIceServers(),
       directorySyncTimeoutMs: () => this.options.directorySyncTimeoutMs ?? DIRECTORY_SYNC_TIMEOUT_MS,
       discoverExistingTeamSpeakStreams: (entry) => discoverExistingTeamSpeakStreams(this.screenHub, entry),
+      sessionRecorder: this.options.sessionRecorder,
     };
     this.directoryDeps = {
       sendInitialState: (ctx) => sendInitialState(ctx, this.hooks),
@@ -79,6 +82,7 @@ export class VoiceBridge {
       entries: this.entries,
       identityLeases: this.identityLeases,
       logger: this.logger,
+      sessionRecorder: this.options.sessionRecorder,
       removeScreenSharePeer: (entryId) => this.screenHub.removeScreenSharePeer(entryId),
       forgetScreenStreams: () => {
         this.screenHub.screenStreams.clear();

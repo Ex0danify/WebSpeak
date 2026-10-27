@@ -44,7 +44,14 @@ describe("schema 12 migration (managed_invites.server_id is NOT NULL)", () => {
     createSchema11Database(fx.path);
     const tables = ["metadata", "admin_credentials", "ts_servers", "welcome_texts", "relay_nodes", "settings"];
     const dump = () => [
-      ...tables.map((table) => rows(fx.path, `SELECT * FROM ${table}`)),
+      ...tables.map((table) =>
+        rows(
+          fx.path,
+          table === "settings"
+            ? `SELECT id, site_name, access_mode, updated_at, webrtc_enabled, webrtc_udp_start, webrtc_udp_end, identity_mint_max_level, identity_mint_concurrency, identity_mint_queue_depth FROM settings`
+            : `SELECT * FROM ${table}`,
+        ),
+      ),
       rows(fx.path, "SELECT id, event, details_json, created_at FROM audit_events"),
     ];
     const before = dump();

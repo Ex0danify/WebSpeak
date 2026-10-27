@@ -27,6 +27,7 @@ import { createAudioFlowStats } from "./audio/audioStats.js";
 import { handleVoiceData } from "./audio/audioDownlink.js";
 import { handleUplinkFrame } from "./audio/audioUplink.js";
 import { createUplinkOpusEncoder } from "./audio/opusEncoder.js";
+import type { SessionRecorder } from "./session/voiceSessionRecorder.js";
 import { registerVoiceDirectory, type VoiceDirectoryDeps } from "./directory/voiceDirectory.js";
 import { connectTeamSpeak, registerVoiceConnection } from "./session/voiceConnection.js";
 import { registerVoiceChat } from "./messages/voiceChat.js";
@@ -47,6 +48,7 @@ export interface ConnectionHooks {
   getScreenShareIceServers(): ScreenShareIceServer[];
   directorySyncTimeoutMs(): number;
   discoverExistingTeamSpeakStreams(entry: WebClientEntry): Promise<void>;
+  sessionRecorder?: SessionRecorder;
 }
 
 export interface AdmissionDeps {
@@ -104,6 +106,7 @@ export function admitConnection(deps: AdmissionDeps, ws: WebSocket, req: Incomin
   });
   if (!session) {
     deps.logger.warn({ max: deps.sessionManager.maxSessions }, "Max clients reached");
+    deps.hooks.sessionRecorder?.capacityReached(deps.sessionManager.maxSessions);
     ws.close(4004, "GATEWAY_FULL");
     return;
   }
@@ -132,6 +135,17 @@ export function admitConnection(deps: AdmissionDeps, ws: WebSocket, req: Incomin
     },
     "WebClient connecting",
   );
+  deps.hooks.sessionRecorder?.started({
+    id: entryId,
+    nickname,
+    clientIp,
+    target: formatTeamSpeakTarget(target),
+    ...(acceleration
+      ? {
+          relay: { name: acceleration.name, target: formatTeamSpeakTarget({ host: acceleration.relayHost, port: acceleration.relayPort }) },
+        }
+      : {}),
+  });
   let tsClient: TSClient;
   try {
     const clientOptions: TSClientOptions = {
@@ -147,6 +161,13 @@ export function admitConnection(deps: AdmissionDeps, ws: WebSocket, req: Incomin
   } catch (error: unknown) {
     if (identityLeaseKey) deps.identityLeases.release(identityLeaseKey, entryId);
     deps.logger.error({ err: error, entryId }, "Could not create TeamSpeak client");
+    // No cleanup runs for a session that never got a context, so its record is closed here.
+    deps.hooks.sessionRecorder?.ended(entryId, {
+      reason: "teamSpeak-connect-failed",
+      failureCode: "TEAM_SPEAK_CLIENT_UNAVAILABLE",
+      durationSeconds: 0,
+      audio: null,
+    });
     void deps.sessionManager.teardown(entryId, "teamSpeak-connect-failed");
     // A bare 4003 close would read as identity rejected, so send a structured failure saying the
     // TS client could not be created (server down or unreachable).

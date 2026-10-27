@@ -26,6 +26,11 @@ describe("schema snapshot", () => {
     expect(dumpSchema(fx.path)).toMatchInlineSnapshot(`
       [
         {
+          "name": "connection_records_started_idx",
+          "sql": "CREATE INDEX connection_records_started_idx ON connection_records(started_at)",
+          "type": "index",
+        },
+        {
           "name": "managed_invites_expiry_idx",
           "sql": "CREATE INDEX managed_invites_expiry_idx ON managed_invites(expires_at)",
           "type": "index",
@@ -55,10 +60,30 @@ describe("schema snapshot", () => {
           "sql": "CREATE TABLE audit_events (
                   id INTEGER PRIMARY KEY AUTOINCREMENT,
                   event TEXT NOT NULL,
-                  category TEXT NOT NULL DEFAULT 'system' CHECK (category IN ('auth', 'config', 'invites', 'availability', 'system')),
+                  category TEXT NOT NULL DEFAULT 'system' CHECK (category IN ('auth', 'config', 'invites', 'availability', 'sessions', 'system')),
                   severity TEXT NOT NULL DEFAULT 'info' CHECK (severity IN ('info', 'warning', 'error')),
                   details_json TEXT NOT NULL,
                   created_at TEXT NOT NULL
+                )",
+          "type": "table",
+        },
+        {
+          "name": "connection_records",
+          "sql": "CREATE TABLE connection_records (
+                  id TEXT PRIMARY KEY,
+                  nickname TEXT NOT NULL,
+                  client_ip TEXT NOT NULL,
+                  target TEXT NOT NULL,
+                  relay_name TEXT,
+                  relay_target TEXT,
+                  started_at TEXT NOT NULL,
+                  connected_at TEXT,
+                  disconnected_at TEXT,
+                  duration_seconds INTEGER,
+                  status TEXT NOT NULL CHECK (status IN ('connecting', 'active', 'disconnected', 'failed')),
+                  reason TEXT,
+                  failure_detail TEXT,
+                  audio_json TEXT
                 )",
           "type": "table",
         },
@@ -114,6 +139,10 @@ describe("schema snapshot", () => {
                   identity_mint_max_level INTEGER NOT NULL DEFAULT 8 CHECK (identity_mint_max_level BETWEEN 1 AND 24),
                   identity_mint_concurrency INTEGER NOT NULL DEFAULT 2 CHECK (identity_mint_concurrency BETWEEN 1 AND 8),
                   identity_mint_queue_depth INTEGER NOT NULL DEFAULT 20 CHECK (identity_mint_queue_depth BETWEEN 0 AND 100),
+                  event_log_retention_days INTEGER NOT NULL DEFAULT 90 CHECK (event_log_retention_days BETWEEN 1 AND 365),
+                  event_log_max_rows INTEGER NOT NULL DEFAULT 5000 CHECK (event_log_max_rows BETWEEN 100 AND 50000),
+                  connection_retention_days INTEGER NOT NULL DEFAULT 30 CHECK (connection_retention_days BETWEEN 1 AND 365),
+                  connection_max_rows INTEGER NOT NULL DEFAULT 10000 CHECK (connection_max_rows BETWEEN 100 AND 100000),
                   updated_at TEXT NOT NULL
                 )",
           "type": "table",
@@ -161,6 +190,11 @@ describe("schema snapshot", () => {
     expect(upgraded).toMatchInlineSnapshot(`
       [
         {
+          "name": "connection_records_started_idx",
+          "sql": "CREATE INDEX connection_records_started_idx ON connection_records(started_at)",
+          "type": "index",
+        },
+        {
           "name": "managed_invites_expiry_idx",
           "sql": "CREATE INDEX managed_invites_expiry_idx ON managed_invites(expires_at)",
           "type": "index",
@@ -190,10 +224,30 @@ describe("schema snapshot", () => {
           "sql": "CREATE TABLE audit_events (
                   id INTEGER PRIMARY KEY AUTOINCREMENT,
                   event TEXT NOT NULL,
-                  category TEXT NOT NULL DEFAULT 'system' CHECK (category IN ('auth', 'config', 'invites', 'availability', 'system')),
+                  category TEXT NOT NULL DEFAULT 'system' CHECK (category IN ('auth', 'config', 'invites', 'availability', 'sessions', 'system')),
                   severity TEXT NOT NULL DEFAULT 'info' CHECK (severity IN ('info', 'warning', 'error')),
                   details_json TEXT NOT NULL,
                   created_at TEXT NOT NULL
+                )",
+          "type": "table",
+        },
+        {
+          "name": "connection_records",
+          "sql": "CREATE TABLE connection_records (
+                  id TEXT PRIMARY KEY,
+                  nickname TEXT NOT NULL,
+                  client_ip TEXT NOT NULL,
+                  target TEXT NOT NULL,
+                  relay_name TEXT,
+                  relay_target TEXT,
+                  started_at TEXT NOT NULL,
+                  connected_at TEXT,
+                  disconnected_at TEXT,
+                  duration_seconds INTEGER,
+                  status TEXT NOT NULL CHECK (status IN ('connecting', 'active', 'disconnected', 'failed')),
+                  reason TEXT,
+                  failure_detail TEXT,
+                  audio_json TEXT
                 )",
           "type": "table",
         },
@@ -244,7 +298,7 @@ describe("schema snapshot", () => {
                   site_name TEXT NOT NULL,
                   access_mode TEXT NOT NULL CHECK (access_mode IN ('fixed', 'open')),
                   updated_at TEXT NOT NULL
-                , webrtc_enabled INTEGER NOT NULL DEFAULT 0 CHECK (webrtc_enabled IN (0, 1)), webrtc_udp_start INTEGER NOT NULL DEFAULT 40000 CHECK (webrtc_udp_start BETWEEN 1 AND 65535), webrtc_udp_end INTEGER NOT NULL DEFAULT 40099 CHECK (webrtc_udp_end BETWEEN 1 AND 65535), identity_mint_max_level INTEGER NOT NULL DEFAULT 8 CHECK (identity_mint_max_level BETWEEN 1 AND 24), identity_mint_concurrency INTEGER NOT NULL DEFAULT 2 CHECK (identity_mint_concurrency BETWEEN 1 AND 8), identity_mint_queue_depth INTEGER NOT NULL DEFAULT 20 CHECK (identity_mint_queue_depth BETWEEN 0 AND 100))",
+                , webrtc_enabled INTEGER NOT NULL DEFAULT 0 CHECK (webrtc_enabled IN (0, 1)), webrtc_udp_start INTEGER NOT NULL DEFAULT 40000 CHECK (webrtc_udp_start BETWEEN 1 AND 65535), webrtc_udp_end INTEGER NOT NULL DEFAULT 40099 CHECK (webrtc_udp_end BETWEEN 1 AND 65535), identity_mint_max_level INTEGER NOT NULL DEFAULT 8 CHECK (identity_mint_max_level BETWEEN 1 AND 24), identity_mint_concurrency INTEGER NOT NULL DEFAULT 2 CHECK (identity_mint_concurrency BETWEEN 1 AND 8), identity_mint_queue_depth INTEGER NOT NULL DEFAULT 20 CHECK (identity_mint_queue_depth BETWEEN 0 AND 100), event_log_retention_days INTEGER NOT NULL DEFAULT 90 CHECK (event_log_retention_days BETWEEN 1 AND 365), event_log_max_rows INTEGER NOT NULL DEFAULT 5000 CHECK (event_log_max_rows BETWEEN 100 AND 50000), connection_retention_days INTEGER NOT NULL DEFAULT 30 CHECK (connection_retention_days BETWEEN 1 AND 365), connection_max_rows INTEGER NOT NULL DEFAULT 10000 CHECK (connection_max_rows BETWEEN 100 AND 100000))",
           "type": "table",
         },
         {

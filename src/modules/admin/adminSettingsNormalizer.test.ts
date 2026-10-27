@@ -18,6 +18,7 @@ const stored = (overrides: Partial<PersistedSettings> = {}): PersistedSettings =
   identityMintMaxLevel: 8,
   identityMintConcurrency: 2,
   identityMintQueueDepth: 20,
+  retention: { eventLog: { days: 90, maxRows: 5000 }, connections: { days: 30, maxRows: 10000 } },
   updatedAt: "2026-01-01T00:00:00.000Z",
   ...overrides,
 });
@@ -72,6 +73,13 @@ describe("normalizeSettings", () => {
     ["a mint concurrency below 1", { identityMintConcurrency: 0 }, "INVALID_IDENTITY_MINT_CONCURRENCY"],
     ["a mint concurrency above 8", { identityMintConcurrency: 9 }, "INVALID_IDENTITY_MINT_CONCURRENCY"],
     ["a mint queue depth above 100", { identityMintQueueDepth: 101 }, "INVALID_IDENTITY_MINT_QUEUE_DEPTH"],
+    ["an event log retention of 0 days", { eventLogRetentionDays: 0 }, "INVALID_EVENT_LOG_RETENTION"],
+    ["an event log retention above a year", { eventLogRetentionDays: 366 }, "INVALID_EVENT_LOG_RETENTION"],
+    ["an event log size below 100", { eventLogMaxRows: 99 }, "INVALID_EVENT_LOG_ROWS"],
+    ["an event log size above 50000", { eventLogMaxRows: 999_999_999_999 }, "INVALID_EVENT_LOG_ROWS"],
+    ["a connection retention above a year", { connectionRetentionDays: 9999 }, "INVALID_CONNECTION_RETENTION"],
+    ["a connection history size above 100000", { connectionMaxRows: 100_001 }, "INVALID_CONNECTION_ROWS"],
+    ["a fractional retention", { connectionRetentionDays: 1.5 }, "INVALID_CONNECTION_RETENTION"],
   ];
   it.each(rejects)("rejects %s", (_name, overrides, code) => {
     expect(codeOf(() => normalizeSettings(settingsInput(overrides), stored()))).toBe(code);
@@ -108,6 +116,17 @@ describe("normalizeSettings", () => {
       identityMintQueueDepth: 50,
     });
     expect(normalizeSettings(settingsInput({ identityMintQueueDepth: 0 }), current).identityMintQueueDepth).toBe(0);
+  });
+
+  it("keeps the current retention for omitted fields and takes the bounds as they are", () => {
+    const current = stored({ retention: { eventLog: { days: 10, maxRows: 200 }, connections: { days: 5, maxRows: 300 } } });
+    expect(normalizeSettings(settingsInput(), current).retention).toEqual(current.retention);
+    expect(
+      normalizeSettings(
+        settingsInput({ eventLogRetentionDays: 365, eventLogMaxRows: 50_000, connectionRetentionDays: 1, connectionMaxRows: 100_000 }),
+        current,
+      ).retention,
+    ).toEqual({ eventLog: { days: 365, maxRows: 50_000 }, connections: { days: 1, maxRows: 100_000 } });
   });
 
   it("locks the UDP range while WebRTC is enabled", () => {

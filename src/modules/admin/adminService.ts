@@ -142,6 +142,10 @@ export class AdminService {
       identityMintMaxLevel: settings.identityMintMaxLevel,
       identityMintConcurrency: settings.identityMintConcurrency,
       identityMintQueueDepth: settings.identityMintQueueDepth,
+      eventLogRetentionDays: settings.retention.eventLog.days,
+      eventLogMaxRows: settings.retention.eventLog.maxRows,
+      connectionRetentionDays: settings.retention.connections.days,
+      connectionMaxRows: settings.retention.connections.maxRows,
       relayNodes: this.getRelayNodeViews(),
       updatedAt: settings.updatedAt,
     };
@@ -203,6 +207,10 @@ export class AdminService {
         identityMintMaxLevel: current.identityMintMaxLevel,
         identityMintConcurrency: current.identityMintConcurrency,
         identityMintQueueDepth: current.identityMintQueueDepth,
+        eventLogRetentionDays: current.retention.eventLog.days,
+        eventLogMaxRows: current.retention.eventLog.maxRows,
+        connectionRetentionDays: current.retention.connections.days,
+        connectionMaxRows: current.retention.connections.maxRows,
       },
       {
         siteName: settings.siteName,
@@ -213,6 +221,10 @@ export class AdminService {
         identityMintMaxLevel: settings.identityMintMaxLevel,
         identityMintConcurrency: settings.identityMintConcurrency,
         identityMintQueueDepth: settings.identityMintQueueDepth,
+        eventLogRetentionDays: settings.retention?.eventLog.days,
+        eventLogMaxRows: settings.retention?.eventLog.maxRows,
+        connectionRetentionDays: settings.retention?.connections.days,
+        connectionMaxRows: settings.retention?.connections.maxRows,
       },
     );
     if (
@@ -223,6 +235,8 @@ export class AdminService {
     }
     if (relayNodes !== undefined && relayNodesChanged(this.database.listRelayNodes(), relayNodes)) changes.push({ field: "relayNodes" });
     this.database.updateSettings(settings, { changes, ip });
+    // A smaller limit takes effect now and not at the next daily sweep.
+    this.database.pruneByRetention();
     if (relayNodes !== undefined) this.database.replaceRelayNodes(relayNodes);
   }
 

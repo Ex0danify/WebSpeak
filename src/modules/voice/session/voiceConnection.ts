@@ -1,3 +1,4 @@
+import type { SessionRecorder } from "./voiceSessionRecorder.js";
 import { WebSocket } from "ws";
 import {
   clientConnectionFailureCode,
@@ -21,6 +22,7 @@ export interface VoiceConnectionDeps {
   getScreenShareIceServers(): ScreenShareIceServer[];
   directorySyncTimeoutMs(): number;
   discoverExistingTeamSpeakStreams(entry: WebClientEntry): Promise<void>;
+  sessionRecorder?: SessionRecorder;
 }
 
 /** Registers the kick and disconnect listeners, call it before connect(). */
@@ -43,6 +45,7 @@ export function registerVoiceConnection(ctx: VoiceConnection, hooks: VoiceConnec
     const failureCode = clientConnectionFailureCode(kick, ctx.serverPassword);
     const failureDetail = publicFailureDetail(kick);
     ctx.entry.connectionFailureCode = failureCode;
+    ctx.entry.connectionFailureDetail = describeTeamSpeakError(kick);
     ctx.logger.warn(
       { entryId: ctx.entry.id, code: failureCode, normalizedCode: kick.code, failureDetail: describeTeamSpeakError(kick) },
       "TeamSpeak session ended by kick/ban",
@@ -142,6 +145,7 @@ function handleConnectFailure(ctx: VoiceConnection, hooks: VoiceConnectionDeps, 
   const failureCode = clientConnectionFailureCode(normalized, ctx.serverPassword);
   const failureDetail = publicFailureDetail(normalized);
   ctx.entry.connectionFailureCode = failureCode;
+  ctx.entry.connectionFailureDetail = describeTeamSpeakError(normalized);
   if (failureCode === "INVALID_SERVER_PASSWORD") ctx.reportPasswordOutcome?.(false);
   ctx.logger.warn(
     {
@@ -264,6 +268,7 @@ export function sendInitialState(ctx: VoiceConnection, hooks: VoiceConnectionDep
       },
       "Web client connected to TeamSpeak",
     );
+    hooks.sessionRecorder?.connected(ctx.entry.id);
   }
   ctx.session.transition("connected");
   ctx.sendJson({
@@ -308,6 +313,7 @@ function failReconnect(ctx: VoiceConnection, hooks: VoiceConnectionDeps, normali
   const failureCode = clientConnectionFailureCode(normalized, ctx.serverPassword);
   const failureDetail = publicFailureDetail(normalized);
   ctx.entry.connectionFailureCode = failureCode;
+  ctx.entry.connectionFailureDetail = describeTeamSpeakError(normalized);
   ctx.sendJson({ type: "reconnectFailed", code: failureCode, ...(failureDetail ? { detail: failureDetail } : {}) });
   void hooks.teardown(ctx.entry.id, "teamSpeak-connect-failed");
 }

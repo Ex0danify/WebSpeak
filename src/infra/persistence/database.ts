@@ -8,12 +8,20 @@ import type { ManagedInviteRecord, PersistedRelayNode, PersistedServer, Persiste
 import { AdminCredentialRepository } from "./adminCredentialRepository.js";
 import { AuditRepository, type AuditEntry, type AuditQuery } from "./auditRepository.js";
 import { ManagedInviteRepository, type ManagedInviteListOptions, type ManagedInviteStatus } from "./managedInviteRepository.js";
+import {
+  ConnectionRepository,
+  type ConnectionFinish,
+  type ConnectionQuery,
+  type ConnectionRecord,
+  type ConnectionStart,
+} from "./connectionRepository.js";
 import { MetaRepository } from "./metaRepository.js";
 import { RelayNodeRepository } from "./relayNodeRepository.js";
 import { ServerRepository } from "./serverRepository.js";
 import { SettingsRepository } from "./settingsRepository.js";
 
 export { DATABASE_SCHEMA_VERSION };
+export type { ConnectionAudioSummary, ConnectionRecord, ConnectionStatus } from "./connectionRepository.js";
 export type {
   AccessMode,
   ManagedInviteRecord,
@@ -33,6 +41,7 @@ export class WebSpeakDatabase {
   private readonly relayNodes: RelayNodeRepository;
   private readonly managedInvites: ManagedInviteRepository;
   private readonly audit: AuditRepository;
+  private readonly connections: ConnectionRepository;
   private readonly meta: MetaRepository;
 
   constructor(private readonly path: string) {
@@ -48,6 +57,7 @@ export class WebSpeakDatabase {
       this.relayNodes = new RelayNodeRepository(context);
       this.managedInvites = new ManagedInviteRepository(context);
       this.audit = new AuditRepository(context);
+      this.connections = new ConnectionRepository(context);
       this.meta = new MetaRepository(context);
       this.migrate(existed);
     } catch (error) {
@@ -267,9 +277,42 @@ export class WebSpeakDatabase {
     this.audit.insert(event, details, new Date().toISOString());
   }
 
-  /** The audit log only grows, so startup trims it to the newest rows. */
-  pruneAudit(keep = 5000): number {
-    return this.audit.prune(keep);
+  /** The event log and the connection records only grow, so they are trimmed to the retention of the settings. */
+  pruneByRetention(now = Date.now()): { events: number; connections: number } {
+    const { eventLog, connections } = this.settings.get().retention;
+    const cutoff = (days: number) => new Date(now - days * 86_400_000).toISOString();
+    return {
+      events: this.audit.prune(eventLog.maxRows, cutoff(eventLog.days)),
+      connections: this.connections.prune(connections.maxRows, cutoff(connections.days)),
+    };
+  }
+
+  beginConnection(start: ConnectionStart): void {
+    this.connections.begin(start, new Date().toISOString());
+  }
+
+  markConnectionConnected(id: string): void {
+    this.connections.markConnected(id, new Date().toISOString());
+  }
+
+  finishConnection(id: string, result: ConnectionFinish): ConnectionRecord | null {
+    return this.connections.finish(id, result, new Date().toISOString());
+  }
+
+  getConnection(id: string): ConnectionRecord | null {
+    return this.connections.get(id);
+  }
+
+  listConnections(query: ConnectionQuery): { records: ConnectionRecord[]; total: number } {
+    return this.connections.list(query);
+  }
+
+  recentConnections(limit: number): ConnectionRecord[] {
+    return this.connections.recent(limit);
+  }
+
+  closeOpenConnections(): number {
+    return this.connections.closeOpen(new Date().toISOString());
   }
 
   listAudit(query: AuditQuery): { events: AuditEntry[]; total: number } {

@@ -305,19 +305,16 @@ describe("backup", () => {
 });
 
 describe("diagnostics", () => {
-  it("summarizes the gateway, the sessions, TeamSpeak, the database and the log", async () => {
+  it("summarizes the gateway, the sessions, TeamSpeak and the database", async () => {
     const { gateway, admin } = await start();
     const socket = await gateway.openVoice();
     await socket.waitForMessage("connected");
     const body = await json(await admin.get("diagnostics"));
-    expect(Object.keys(body).sort()).toEqual(["database", "gateway", "generatedAt", "logs", "servers", "sessions"]);
+    expect(Object.keys(body).sort()).toEqual(["database", "gateway", "generatedAt", "servers", "sessions"]);
     expect(body.gateway).toMatchObject({ version: "9.9.9", node: process.version, platform: process.platform, arch: process.arch });
     expect(body.sessions).toEqual({ active: 1, peak: 1, created: 1, limit: 100 });
     expect(body.servers).toMatchObject([{ status: "unknown" }]);
     expect(body.database).toEqual({ schemaVersion: gateway.database.schemaVersion });
-    expect(body.logs).toEqual({ available: false });
-    writeFileSync(gateway.logFile, "");
-    expect((await json(await admin.get("diagnostics"))).logs).toEqual({ available: true });
   });
 
   it("downloads a report that carries no secret", async () => {
@@ -336,7 +333,7 @@ describe("diagnostics", () => {
     expect(response.headers.get("content-disposition")).toBe('attachment; filename="webspeak-diagnostic-report.json"');
     const text = await response.text();
     const report = JSON.parse(text);
-    expect(Object.keys(report).sort()).toEqual(["audit", "database", "gateway", "generatedAt", "servers", "sessions"]);
+    expect(Object.keys(report).sort()).toEqual(["audit", "connections", "database", "gateway", "generatedAt", "servers", "sessions"]);
     expect(report.audit.map((entry: { event: string }) => entry.event)).toContain("SETTINGS_CHANGED");
     expect(text).toContain('\n  "gateway"');
     const credential = gateway.database.getAdminCredential()!;

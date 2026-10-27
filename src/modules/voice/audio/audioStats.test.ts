@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createAudioFlowStats, snapshotAudioStats } from "./audioStats.js";
+import { createAudioFlowStats, snapshotAudioStats, summarizeAudioStats } from "./audioStats.js";
 import type { WebClientEntry } from "../voiceTypes.js";
 
 describe("audioStats", () => {
@@ -27,5 +27,28 @@ describe("audioStats", () => {
     const snap = snapshotAudioStats(entry);
     expect(snap.webrtcQueuePeakFrames).toBe(7);
     expect(entry.audio.webrtcQueuePeakFrames).toBe(0);
+  });
+
+  it("has no summary for a session that carried no audio", () => {
+    expect(summarizeAudioStats(createAudioFlowStats())).toBeNull();
+  });
+
+  it("boils the counters down: a voice frame is 20 ms and every kind of drop adds up", () => {
+    const stats = createAudioFlowStats();
+    Object.assign(stats, {
+      tsSendFrames: 1510,
+      tsReceiveFrames: 900,
+      tsSendErrors: 2,
+      ingressDroppedFrames: 1,
+      egressDroppedFrames: 4,
+      webrtcQueueDroppedFrames: 8,
+    });
+    expect(summarizeAudioStats(stats)).toEqual({
+      talkSeconds: 30,
+      framesSent: 1510,
+      framesReceived: 900,
+      droppedFrames: 13,
+      sendErrors: 2,
+    });
   });
 });

@@ -44,7 +44,7 @@ describe("admin router layer order", () => {
         "GET /diagnostics",
         "GET /diagnostics/report",
         "GET /invites",
-        "GET /logs",
+        "GET /connections",
         "GET /overview",
         "GET /server",
         "GET /servers",

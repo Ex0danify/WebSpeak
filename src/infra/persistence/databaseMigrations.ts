@@ -1,6 +1,6 @@
 import type { DatabaseSync } from "node:sqlite";
 
-export const DATABASE_SCHEMA_VERSION = 13;
+export const DATABASE_SCHEMA_VERSION = 14;
 
 /** The oldest schema this build upgrades, 0.7.0 is the first release that writes it. */
 export const MINIMUM_SCHEMA_VERSION = 10;
@@ -42,6 +42,10 @@ const MIGRATIONS: Migration[] = [
             identity_mint_max_level INTEGER NOT NULL DEFAULT 8 CHECK (identity_mint_max_level BETWEEN 1 AND 24),
             identity_mint_concurrency INTEGER NOT NULL DEFAULT 2 CHECK (identity_mint_concurrency BETWEEN 1 AND 8),
             identity_mint_queue_depth INTEGER NOT NULL DEFAULT 20 CHECK (identity_mint_queue_depth BETWEEN 0 AND 100),
+            event_log_retention_days INTEGER NOT NULL DEFAULT 90 CHECK (event_log_retention_days BETWEEN 1 AND 365),
+            event_log_max_rows INTEGER NOT NULL DEFAULT 5000 CHECK (event_log_max_rows BETWEEN 100 AND 50000),
+            connection_retention_days INTEGER NOT NULL DEFAULT 30 CHECK (connection_retention_days BETWEEN 1 AND 365),
+            connection_max_rows INTEGER NOT NULL DEFAULT 10000 CHECK (connection_max_rows BETWEEN 100 AND 100000),
             updated_at TEXT NOT NULL
           );
           CREATE TABLE welcome_texts (
@@ -64,7 +68,7 @@ const MIGRATIONS: Migration[] = [
           CREATE TABLE audit_events (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             event TEXT NOT NULL,
-            category TEXT NOT NULL DEFAULT 'system' CHECK (category IN ('auth', 'config', 'invites', 'availability', 'system')),
+            category TEXT NOT NULL DEFAULT 'system' CHECK (category IN ('auth', 'config', 'invites', 'availability', 'sessions', 'system')),
             severity TEXT NOT NULL DEFAULT 'info' CHECK (severity IN ('info', 'warning', 'error')),
             details_json TEXT NOT NULL,
             created_at TEXT NOT NULL
@@ -96,6 +100,23 @@ const MIGRATIONS: Migration[] = [
             updated_at TEXT NOT NULL
           );
           CREATE INDEX relay_nodes_enabled_idx ON relay_nodes(enabled);
+          CREATE TABLE connection_records (
+            id TEXT PRIMARY KEY,
+            nickname TEXT NOT NULL,
+            client_ip TEXT NOT NULL,
+            target TEXT NOT NULL,
+            relay_name TEXT,
+            relay_target TEXT,
+            started_at TEXT NOT NULL,
+            connected_at TEXT,
+            disconnected_at TEXT,
+            duration_seconds INTEGER,
+            status TEXT NOT NULL CHECK (status IN ('connecting', 'active', 'disconnected', 'failed')),
+            reason TEXT,
+            failure_detail TEXT,
+            audio_json TEXT
+          );
+          CREATE INDEX connection_records_started_idx ON connection_records(started_at);
         `);
       const now = new Date().toISOString();
       database.prepare("INSERT INTO settings (id, site_name, access_mode, updated_at) VALUES (1, 'WebSpeak', 'fixed', ?)").run(now);
@@ -194,6 +215,49 @@ const MIGRATIONS: Migration[] = [
           FROM audit_events_old
           WHERE event NOT IN ('CONNECTION_TEST_SUCCEEDED', 'CONNECTION_TEST_FAILED');
           DROP TABLE audit_events_old;
+        `);
+    },
+  },
+  {
+    from: 13,
+    to: 14,
+    up(database) {
+      // Sessions get their own category and a table of their own, one row per session. Retention for both is a setting.
+      // The event log table is rebuilt because SQLite cannot change a CHECK, the ids and rows stay as they are.
+      database.exec(`
+          ALTER TABLE audit_events RENAME TO audit_events_old;
+          CREATE TABLE audit_events (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            event TEXT NOT NULL,
+            category TEXT NOT NULL DEFAULT 'system' CHECK (category IN ('auth', 'config', 'invites', 'availability', 'sessions', 'system')),
+            severity TEXT NOT NULL DEFAULT 'info' CHECK (severity IN ('info', 'warning', 'error')),
+            details_json TEXT NOT NULL,
+            created_at TEXT NOT NULL
+          );
+          INSERT INTO audit_events (id, event, category, severity, details_json, created_at)
+          SELECT id, event, category, severity, details_json, created_at FROM audit_events_old;
+          DROP TABLE audit_events_old;
+          ALTER TABLE settings ADD COLUMN event_log_retention_days INTEGER NOT NULL DEFAULT 90 CHECK (event_log_retention_days BETWEEN 1 AND 365);
+          ALTER TABLE settings ADD COLUMN event_log_max_rows INTEGER NOT NULL DEFAULT 5000 CHECK (event_log_max_rows BETWEEN 100 AND 50000);
+          ALTER TABLE settings ADD COLUMN connection_retention_days INTEGER NOT NULL DEFAULT 30 CHECK (connection_retention_days BETWEEN 1 AND 365);
+          ALTER TABLE settings ADD COLUMN connection_max_rows INTEGER NOT NULL DEFAULT 10000 CHECK (connection_max_rows BETWEEN 100 AND 100000);
+          CREATE TABLE connection_records (
+            id TEXT PRIMARY KEY,
+            nickname TEXT NOT NULL,
+            client_ip TEXT NOT NULL,
+            target TEXT NOT NULL,
+            relay_name TEXT,
+            relay_target TEXT,
+            started_at TEXT NOT NULL,
+            connected_at TEXT,
+            disconnected_at TEXT,
+            duration_seconds INTEGER,
+            status TEXT NOT NULL CHECK (status IN ('connecting', 'active', 'disconnected', 'failed')),
+            reason TEXT,
+            failure_detail TEXT,
+            audio_json TEXT
+          );
+          CREATE INDEX connection_records_started_idx ON connection_records(started_at);
         `);
     },
   },

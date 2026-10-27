@@ -5,13 +5,39 @@ import type { AdminCredential } from "../security/adminPassword.js";
 
 const fx = useDatabaseFixture();
 
-describe("audit pruning", () => {
-  it("keeps only the newest rows", () => {
+describe("retention pruning", () => {
+  const saveRetention = (database: ReturnType<typeof fx.open>, retention: NonNullable<ReturnType<typeof settings>["retention"]>) => {
+    database.initializeAdmin(credential, settings({ retention }));
+    database.pruneByRetention();
+  };
+
+  it("keeps only the newest event log rows and none older than the retention", () => {
     const database = fx.open();
-    for (let i = 1; i <= 7; i++) database.addAudit(`EVENT_${i}`);
-    expect(database.pruneAudit(3)).toBe(4);
-    expect(database.listAudit({ limit: 50, offset: 0 }).events.map((entry) => entry.event)).toEqual(["EVENT_7", "EVENT_6", "EVENT_5"]);
-    expect(database.pruneAudit(3)).toBe(0);
+    for (let i = 1; i <= 120; i++) database.addAudit(`EVENT_${i}`);
+    saveRetention(database, { eventLog: { days: 30, maxRows: 100 }, connections: { days: 30, maxRows: 100 } });
+    const events = database.listAudit({ limit: 100, offset: 0 });
+    // The 120 rows plus the initialization, cut to the newest 100.
+    expect(events.total).toBe(100);
+    expect(events.events[0]?.event).toBe("ADMIN_INITIALIZED");
+    expect(database.pruneByRetention()).toEqual({ events: 0, connections: 0 });
+    expect(database.pruneByRetention(Date.now() + 31 * 86_400_000).events).toBe(100);
+  });
+
+  it("prunes connection records by size and age but never an open session", () => {
+    const database = fx.open();
+    const start = (id: string) =>
+      database.beginConnection({ id, nickname: id, clientIp: "10.0.0.1", target: "ts:9987", relayName: null, relayTarget: null });
+    for (let i = 1; i <= 102; i++) {
+      start(`w-${i}`);
+      database.finishConnection(`w-${i}`, { reason: null, failureDetail: null, durationSeconds: 1, audio: null });
+    }
+    start("w-open");
+    saveRetention(database, { eventLog: { days: 30, maxRows: 5000 }, connections: { days: 30, maxRows: 100 } });
+    const ids = database.listConnections({ limit: 100, offset: 0 }).records.map((record) => record.id);
+    expect(ids).toHaveLength(100);
+    expect(ids).toContain("w-open");
+    expect(database.pruneByRetention(Date.now() + 31 * 86_400_000).connections).toBe(99);
+    expect(database.listConnections({ limit: 100, offset: 0 }).records.map((record) => record.id)).toEqual(["w-open"]);
   });
 });
 

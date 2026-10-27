@@ -22,6 +22,10 @@ describe("GET /server", () => {
     const settings = await json(await admin.get("server"));
     expect(Object.keys(settings).sort()).toEqual([
       "accessMode",
+      "connectionMaxRows",
+      "connectionRetentionDays",
+      "eventLogMaxRows",
+      "eventLogRetentionDays",
       "identityMintConcurrency",
       "identityMintMaxLevel",
       "identityMintQueueDepth",

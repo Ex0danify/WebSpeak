@@ -54,3 +54,23 @@ export function snapshotAudioStats(entry: WebClientEntry): AudioFlowStats {
   if (webRtcStats) Object.assign(stats, webRtcStats);
   return stats;
 }
+
+/** The counters of a finished session boiled down to what an admin reads. A voice frame is 20 ms. */
+export interface SessionAudioSummary {
+  talkSeconds: number;
+  framesSent: number;
+  framesReceived: number;
+  droppedFrames: number;
+  sendErrors: number;
+}
+
+export function summarizeAudioStats(stats: AudioFlowStats): SessionAudioSummary | null {
+  if (stats.tsSendFrames === 0 && stats.tsReceiveFrames === 0) return null;
+  return {
+    talkSeconds: Math.round(stats.tsSendFrames / 50),
+    framesSent: stats.tsSendFrames,
+    framesReceived: stats.tsReceiveFrames,
+    droppedFrames: stats.ingressDroppedFrames + stats.egressDroppedFrames + stats.webrtcQueueDroppedFrames,
+    sendErrors: stats.tsSendErrors,
+  };
+}

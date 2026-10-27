@@ -45,7 +45,15 @@ describe("schema 13 migration (the event log stores category and severity)", () 
   it("keeps the ids and the details, and leaves every other table byte-identical", () => {
     createSchema12Database(fx.path);
     const tables = ["metadata", "admin_credentials", "ts_servers", "welcome_texts", "relay_nodes", "settings", "managed_invites"];
-    const dump = () => tables.map((table) => rows(fx.path, `SELECT * FROM ${table}`));
+    const dump = () =>
+      tables.map((table) =>
+        rows(
+          fx.path,
+          table === "settings"
+            ? `SELECT id, site_name, access_mode, updated_at, webrtc_enabled, webrtc_udp_start, webrtc_udp_end, identity_mint_max_level, identity_mint_concurrency, identity_mint_queue_depth FROM settings`
+            : `SELECT * FROM ${table}`,
+        ),
+      );
     const before = dump();
     fx.open().close();
     expect(dump()).toEqual(before);

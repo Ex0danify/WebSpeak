@@ -24,6 +24,10 @@ export interface SettingsRow extends Record<string, unknown> {
   identity_mint_max_level: number;
   identity_mint_concurrency: number;
   identity_mint_queue_depth: number;
+  event_log_retention_days: number;
+  event_log_max_rows: number;
+  connection_retention_days: number;
+  connection_max_rows: number;
   updated_at: string;
 }
 

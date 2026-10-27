@@ -1,3 +1,5 @@
+import type { RetentionPolicy } from "../../config/retentionConfig.js";
+
 /** "fixed" offers the configured server list only, "open" also takes an address typed by the visitor. */
 export type AccessMode = "fixed" | "open";
 
@@ -12,6 +14,7 @@ export interface PersistedSettings {
   identityMintMaxLevel: number;
   identityMintConcurrency: number;
   identityMintQueueDepth: number;
+  retention: RetentionPolicy;
   updatedAt: string;
 }
 
@@ -26,6 +29,7 @@ export interface SettingsUpdate {
   identityMintMaxLevel?: number;
   identityMintConcurrency?: number;
   identityMintQueueDepth?: number;
+  retention?: RetentionPolicy;
 }
 
 export interface PersistedServer {

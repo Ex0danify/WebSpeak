@@ -120,6 +120,7 @@ export interface WebClientEntry {
   webrtc: WebRtcAudioSession | null;
   lastLatencyProbeAt: number;
   connectionFailureCode?: string;
+  connectionFailureDetail?: string;
   screenPeerId: string;
 }
 

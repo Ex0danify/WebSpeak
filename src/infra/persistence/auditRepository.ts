@@ -55,11 +55,11 @@ export class AuditRepository {
     return { events: rows.map(mapAuditRow), total: Number(counted.total) };
   }
 
-  /** Deletes all but the newest `keep` rows and returns how many went. */
-  prune(keep: number): number {
+  /** Deletes the rows older than the cutoff and all but the newest `keep`, and returns how many went. */
+  prune(keep: number, olderThan: string): number {
     const result = this.context.database
-      .prepare("DELETE FROM audit_events WHERE id <= (SELECT MAX(id) FROM audit_events) - ?")
-      .run(Math.max(0, Math.floor(keep)));
+      .prepare("DELETE FROM audit_events WHERE created_at < ? OR id NOT IN (SELECT id FROM audit_events ORDER BY id DESC LIMIT ?)")
+      .run(olderThan, Math.max(0, Math.floor(keep)));
     return Number(result.changes);
   }
 }

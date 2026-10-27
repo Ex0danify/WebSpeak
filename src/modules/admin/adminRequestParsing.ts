@@ -26,6 +26,10 @@ export function readSettingsInput(body: Record<string, unknown>): AdminSettingsI
     identityMintMaxLevel: readOptionalInteger(body, "identityMintMaxLevel"),
     identityMintConcurrency: readOptionalInteger(body, "identityMintConcurrency"),
     identityMintQueueDepth: readOptionalInteger(body, "identityMintQueueDepth"),
+    eventLogRetentionDays: readOptionalInteger(body, "eventLogRetentionDays"),
+    eventLogMaxRows: readOptionalInteger(body, "eventLogMaxRows"),
+    connectionRetentionDays: readOptionalInteger(body, "connectionRetentionDays"),
+    connectionMaxRows: readOptionalInteger(body, "connectionMaxRows"),
     relayNodes,
   };
 }
@@ -79,9 +83,4 @@ export function readOptionalString(body: Record<string, unknown>, key: string, m
 
 export function readOptionalNumber(body: Record<string, unknown>, key: string, fallback: number): number {
   return body[key] === undefined ? fallback : typeof body[key] === "number" ? body[key] : Number.NaN;
-}
-
-export function readLimit(value: unknown, fallback: number): number {
-  const limit = typeof value === "string" ? Number(value) : fallback;
-  return Number.isFinite(limit) ? Math.max(1, Math.min(200, Math.floor(limit))) : fallback;
 }

@@ -14,6 +14,7 @@ const STATIC_DIR = path.join(ROOT_DIR, "web", "dist");
 const APP_VERSION = readPackageVersion();
 const SHUTDOWN_TIMEOUT_MS = 10_000;
 const INVITE_SWEEP_MS = 24 * 60 * 60 * 1000;
+const RETENTION_SWEEP_MS = 6 * 60 * 60 * 1000;
 
 async function main() {
   // A .env next to package.json, see .env.example. Variables from the real environment win over it.
@@ -38,7 +39,7 @@ async function runGateway(env: GatewayEnv): Promise<void> {
     { createWebServer },
     { WebSpeakDatabase },
     { loadOrCreateMasterSecret },
-    { AdminService, parseAdminBootstrap },
+    { AdminService, GatewayEvents, SessionHistoryRecorder, parseAdminBootstrap },
     { JoinTicketStore },
   ] = await Promise.all([
     import("./shared/logger.js"),
@@ -50,7 +51,10 @@ async function runGateway(env: GatewayEnv): Promise<void> {
   ]);
   const logger = createLogger(logDir);
   const database = new WebSpeakDatabase(path.join(dataDir, "webspeak.db"));
-  const pruned = database.pruneAudit();
+  // Sessions still open belong to a gateway that is gone, and the logs are trimmed to the retention of the settings.
+  database.closeOpenConnections();
+  const pruned = database.pruneByRetention();
+  const gatewayEvents = new GatewayEvents(database);
   const masterSecret = loadOrCreateMasterSecret(path.join(dataDir, "master.key"));
   const adminService = new AdminService(database, masterSecret, logger, undefined, APP_VERSION);
   // The credentials in .env only matter on a fresh database, so they are not even checked once an account exists.
@@ -63,10 +67,15 @@ async function runGateway(env: GatewayEnv): Promise<void> {
   const joinTickets = new JoinTicketStore();
 
   logger.info({ dataDir }, "Starting WebSpeak server");
-  if (pruned > 0) logger.info({ pruned }, "Trimmed the audit log");
+  if (pruned.events > 0 || pruned.connections > 0) logger.info(pruned, "Trimmed the event log and the connection history");
+  gatewayEvents.started(APP_VERSION);
+  const retentionSweep = setInterval(() => database.pruneByRetention(), RETENTION_SWEEP_MS);
+  retentionSweep.unref();
   // One stray rejection must not take every live session down. A thrown exception still crashes on purpose.
   process.on("unhandledRejection", (reason) => {
-    logger.error({ err: reason instanceof Error ? reason.message : String(reason) }, "Unhandled promise rejection");
+    const message = reason instanceof Error ? reason.message : String(reason);
+    logger.error({ err: message }, "Unhandled promise rejection");
+    gatewayEvents.error("process", message);
   });
 
   const hasCert = existsSync(path.join(CERT_DIR, "cert.pem"));
@@ -75,7 +84,6 @@ async function runGateway(env: GatewayEnv): Promise<void> {
     host: env.host,
     port: env.port,
     version: APP_VERSION,
-    logFile: path.join(logDir, "webspeak.log"),
     staticDir: STATIC_DIR,
     certDir: hasCert ? CERT_DIR : undefined,
     voiceBridgeOptions: {
@@ -87,8 +95,10 @@ async function runGateway(env: GatewayEnv): Promise<void> {
       acceleration: () => adminService.getAccelerationRelayOptions(),
       accelerationName: () => adminService.getAccelerationRelayName(),
       clientVersion: env.tsClientVersion,
+      sessionRecorder: new SessionHistoryRecorder(database, gatewayEvents, logger),
     },
     adminService,
+    gatewayEvents,
     logger,
     nextVisitorNumber: () => database.nextVisitorNumber(),
     visitorCount: () => database.getVisitorCount(),
@@ -112,6 +122,7 @@ async function runGateway(env: GatewayEnv): Promise<void> {
     } finally {
       clearTimeout(timer);
     }
+    gatewayEvents.stopped(signal);
     database.close();
     process.exit(exitCode);
   };
