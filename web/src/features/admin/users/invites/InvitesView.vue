@@ -49,6 +49,7 @@ import { Pager } from "@/shared/ui/list";
 import { Segment, Segmented } from "@/shared/ui/tabs";
 import { useI18n } from "@/shared/i18n/useI18n";
 import AdminPage from "@/features/admin/ui/AdminPage.vue";
+import { useLiveRefresh } from "@/features/admin/core/useLiveRefresh";
 import { createAdminFormat } from "@/features/admin/core/adminFormat";
 import InviteDialog from "@/features/admin/users/invites/InviteDialog.vue";
 import InviteRow from "@/features/admin/users/invites/InviteRow.vue";
@@ -58,6 +59,7 @@ const invitesStore = useAdminInvitesStore();
 const { list, pageCount } = storeToRefs(invitesStore);
 const { openCreateInvite, showPages, goToPage, filterByStatus } = invitesStore;
 onMounted(() => showPages());
+useLiveRefresh(() => invitesStore.loadInvites(true), 15_000);
 
 const { language, t } = useI18n();
 const { inviteStatusLabel } = createAdminFormat(language, t);

@@ -1,6 +1,6 @@
 <template>
   <!-- `connection-row` is the e2e locator -->
-  <AdminListRow as="li" class="connection-row grid gap-1.75">
+  <AdminListRow as="li" bordered class="connection-row grid gap-1.75">
     <div class="flex min-w-0 flex-wrap items-start justify-between gap-x-3 gap-y-1">
       <div class="min-w-0">
         <strong class="block text-caption wrap-anywhere">{{ record.nickname }}</strong>

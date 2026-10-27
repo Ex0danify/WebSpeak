@@ -18,6 +18,7 @@ export function registerAdminStores(): void {
     loadServerSettings: () => useAdminServerSettingsStore().loadServerSettings(),
     loadServers: () => useAdminServersStore().loadServers(),
     loadEvents: () => useAdminEventLogStore().loadEvents(),
+    loadConnections: () => useAdminConnectionsStore().loadConnections(),
     serverList: () => useAdminServersStore().servers,
     replaceServers: (next) => {
       useAdminServersStore().servers = next;

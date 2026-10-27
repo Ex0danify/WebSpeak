@@ -22,16 +22,18 @@ export const useAdminUsersStore = defineStore("adminUsers", () => {
   const terminatingSession = ref("");
   const users = reactive({ sessions: [] as AdminSession[] });
 
-  async function loadSessions() {
-    sessionsLoading.value = true;
+  /** `silent` is a refresh in the background: no spinner, no banner when it fails. */
+  async function loadSessions(silent = false) {
+    if (!silent) sessionsLoading.value = true;
     await feedback.attempt(
       async () => {
         const sessions = await admin.getJson("/api/admin/sessions");
         users.sessions = Array.isArray(sessions.sessions) ? sessions.sessions : [];
       },
       () => {
-        sessionsLoading.value = false;
+        if (!silent) sessionsLoading.value = false;
       },
+      silent,
     );
   }
 
@@ -49,7 +51,13 @@ export const useAdminUsersStore = defineStore("adminUsers", () => {
     await feedback.attempt(
       async () => {
         await admin.sendJson(`/api/admin/sessions/${encodeURIComponent(target.id)}/terminate`, "POST", {});
-        await Promise.all([loadSessions(), adminSiblings().loadOverview()]);
+        // The termination is an event and a finished session, so both logs show it at once.
+        await Promise.all([
+          loadSessions(),
+          adminSiblings().loadOverview(),
+          adminSiblings().loadEvents(),
+          adminSiblings().loadConnections(),
+        ]);
         feedback.notify(t("sessionTerminated"));
       },
       () => {

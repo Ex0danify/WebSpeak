@@ -22,7 +22,7 @@ describe("the connection history", () => {
   it("loads the first page without filters", async () => {
     const s = setup();
     await s.store.loadConnections();
-    expect(s.getJson).toHaveBeenCalledWith("/api/admin/connections?limit=10&offset=0");
+    expect(s.getJson).toHaveBeenCalledWith("/api/admin/connections?limit=10&offset=0&statuses=disconnected%2Cfailed");
     expect(s.store.list.items).toHaveLength(2);
     expect(s.store.list.total).toBe(31);
     expect(s.store.pageCount).toBe(4);
@@ -34,7 +34,7 @@ describe("the connection history", () => {
     const s = setup();
     await s.store.loadConnections();
     await s.store.goToPage(3);
-    expect(s.getJson).toHaveBeenLastCalledWith("/api/admin/connections?limit=10&offset=20");
+    expect(s.getJson).toHaveBeenLastCalledWith("/api/admin/connections?limit=10&offset=20&statuses=disconnected%2Cfailed");
     await s.store.goToPage(99);
     expect(s.store.list.page).toBe(4);
     await s.store.goToPage(-2);
@@ -50,8 +50,21 @@ describe("the connection history", () => {
     expect(s.store.list.page).toBe(1);
     expect(s.store.filtered).toBe(true);
     await s.store.clearFilters();
-    expect(s.getJson).toHaveBeenLastCalledWith("/api/admin/connections?limit=10&offset=0");
+    expect(s.getJson).toHaveBeenLastCalledWith("/api/admin/connections?limit=10&offset=0&statuses=disconnected%2Cfailed");
     expect(s.store.filtered).toBe(false);
+  });
+
+  it("refreshes in the background without the spinner or a banner, on the page and filters that are set", async () => {
+    const s = setup();
+    await s.store.filter({ status: "failed" });
+    await s.store.goToPage(2);
+    const pending = s.store.loadConnections(true);
+    expect(s.store.list.loading).toBe(false);
+    await pending;
+    expect(s.getJson).toHaveBeenLastCalledWith("/api/admin/connections?limit=10&offset=10&statuses=failed");
+    s.getJson.mockRejectedValueOnce({ code: "RATE_LIMITED" });
+    await s.store.loadConnections(true);
+    expect(s.feedback.errorMessage).toBe("");
   });
 
   it("keeps the answer of the newest query when an older one arrives late", async () => {
@@ -60,7 +73,7 @@ describe("the connection history", () => {
     s.getJson.mockImplementationOnce(() => new Promise((resolve) => (release = resolve)) as never);
     const slow = s.store.loadConnections();
     s.getJson.mockResolvedValueOnce({ records: [{ id: "new" }], total: 1 });
-    await s.store.filter({ status: "active" });
+    await s.store.filter({ status: "disconnected" });
     release({ records: [{ id: "old" }], total: 9 });
     await slow;
     expect(s.store.list.items).toEqual([{ id: "new" }]);
@@ -74,6 +87,6 @@ describe("the connection history", () => {
     expect(s.feedback.errorMessage).toBe(s.feedback.errorText("RATE_LIMITED"));
     await s.store.loadConnections();
     s.store.reset();
-    expect(s.store.list).toMatchObject({ items: [], total: 0, page: 1, status: "", search: "" });
+    expect(s.store.list).toMatchObject({ items: [], total: 0, page: 1, status: "ended", search: "" });
   });
 });

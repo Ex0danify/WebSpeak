@@ -77,22 +77,23 @@ test.describe("sessions", () => {
 test.describe("connection history", () => {
   const records = (page: Page) => page.locator(".connection-row");
 
-  test("keeps a guest after the session ended, with how long it lasted, and filters by status and name", async ({ page, ownGateway }) => {
+  test("lists a guest once the session ended, by itself, with how long it lasted, and filters by status and name", async ({
+    page,
+    ownGateway,
+  }) => {
     const gateway = await ownGateway();
     await openAdmin(page, gateway, "/users");
-    await expect(page.getByText("No connections recorded yet.")).toBeVisible();
+    await expect(page.getByText("No ended sessions yet.")).toBeVisible();
 
+    // The sessions card and the history follow the gateway without a Refresh.
     const guest = await guestJoins(page, gateway, "history-guest");
-    await expect(guest.getByRole("textbox", { name: "Search members" })).toBeVisible();
-    await page.getByRole("button", { name: "Refresh" }).click();
-    await expect(records(page).filter({ hasText: "history-guest" })).toContainText("Connected");
+    await expect(sessionsTable(page).getByRole("row").filter({ hasText: "history-guest" })).toContainText("Connected", { timeout: 15_000 });
+    await expect(records(page)).toHaveCount(0);
 
     await guest.close();
-    await expect(async () => {
-      await page.getByRole("button", { name: "Refresh" }).click();
-      await expect(records(page).filter({ hasText: "history-guest" })).toContainText("Disconnected", { timeout: 1000 });
-    }).toPass();
     const row = records(page).filter({ hasText: "history-guest" });
+    await expect(row).toContainText("Disconnected", { timeout: 15_000 });
+    await expect(sessionsTable(page).getByRole("row").filter({ hasText: "history-guest" })).toHaveCount(0);
     await expect(row).toContainText("Duration");
     await expect(row).toContainText("From 127.0.0.1");
 
@@ -103,6 +104,16 @@ test.describe("connection history", () => {
     await expect(records(page)).toHaveCount(1);
     await page.getByRole("searchbox", { name: "Search by name, address or server" }).fill("nobody");
     await expect(page.getByText("No connections match these filters.")).toBeVisible();
+  });
+
+  test("a terminated session is in the history at once", async ({ page, ownGateway }) => {
+    const gateway = await ownGateway();
+    const guest = await guestJoins(page, gateway, "ops-terminated");
+    await expect(guest.getByRole("textbox", { name: "Search members" })).toBeVisible();
+    await openAdmin(page, gateway, "/users");
+    await sessionsTable(page).getByRole("row").filter({ hasText: "ops-terminated" }).getByRole("button", { name: "Terminate" }).click();
+    await page.getByRole("dialog", { name: "Terminate session" }).getByRole("button", { name: "Terminate" }).click();
+    await expect(records(page).filter({ hasText: "ops-terminated" })).toContainText("Disconnected", { timeout: 3000 });
   });
 });
 

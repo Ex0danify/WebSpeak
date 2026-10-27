@@ -1,6 +1,6 @@
 <template>
   <!-- `invite-row` is the e2e locator -->
-  <li class="invite-row flex min-w-0 items-center gap-3 rounded-lg border border-line bg-surface-0 p-3 max-narrow:flex-wrap">
+  <AdminListRow as="li" bordered class="invite-row flex min-w-0 items-center gap-3 max-narrow:flex-wrap">
     <div class="min-w-0 flex-1 max-narrow:basis-40">
       <strong class="block truncate text-xs max-narrow:overflow-visible max-narrow:wrap-anywhere max-narrow:whitespace-normal">{{
         invite.channel || t("defaultChannel")
@@ -25,7 +25,7 @@
         >{{ t("revoke") }}</Button
       >
     </div>
-  </li>
+  </AdminListRow>
 </template>
 
 <script setup lang="ts">
@@ -33,6 +33,7 @@ import { computed } from "vue";
 import { Button } from "@/shared/ui/button";
 import { Chip } from "@/shared/ui/chip";
 import { useI18n } from "@/shared/i18n/useI18n";
+import AdminListRow from "@/features/admin/ui/AdminListRow.vue";
 import { createAdminFormat } from "@/features/admin/core/adminFormat";
 import type { ManagedInvite } from "@/features/admin/core/adminTypes";
 import { useAdminInvitesStore } from "@/features/admin/users/invites/adminInvites";

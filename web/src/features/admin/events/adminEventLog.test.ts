@@ -49,6 +49,21 @@ describe("the event log", () => {
     expect(lastQuery(s.getJson).get("limit")).toBe(String(EVENT_PREVIEW));
   });
 
+  it("refreshLive reloads the first page quietly and leaves a page further back alone", async () => {
+    const s = setup();
+    s.getJson.mockResolvedValue({ events: [{ id: 1 }], total: 60 });
+    await s.store.showPages();
+    s.getJson.mockClear();
+    const pending = s.store.refreshLive();
+    expect(s.store.list.loading).toBe(false);
+    await pending;
+    expect(s.getJson).toHaveBeenCalledTimes(1);
+    await s.store.goToPage(2);
+    s.getJson.mockClear();
+    await s.store.refreshLive();
+    expect(s.getJson).not.toHaveBeenCalled();
+  });
+
   it("falls back to an empty list when the answer has no events", async () => {
     const s = setup();
     s.getJson.mockResolvedValue({});

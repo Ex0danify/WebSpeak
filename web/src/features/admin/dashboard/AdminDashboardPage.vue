@@ -10,6 +10,8 @@
 
 <script setup lang="ts">
 import AdminPage from "@/features/admin/ui/AdminPage.vue";
+import { adminSiblings } from "@/features/admin/core/adminSiblings";
+import { useLiveRefresh } from "@/features/admin/core/useLiveRefresh";
 import type { AdminPageCard } from "@/features/admin/ui/adminPage";
 import Metrics from "@/features/admin/dashboard/Metrics.vue";
 import EventLogCard from "@/features/admin/events/EventLogCard.vue";
@@ -18,6 +20,7 @@ import StatusBanner from "@/features/admin/dashboard/StatusBanner.vue";
 import { useI18n } from "@/shared/i18n/useI18n";
 
 const { t } = useI18n();
+useLiveRefresh(() => adminSiblings().loadOverview(), 5000);
 
 const cards: AdminPageCard[] = [
   { id: "serverHealth", component: ServerHealthCard },

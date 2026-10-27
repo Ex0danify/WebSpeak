@@ -31,8 +31,9 @@ export const useAdminDiagnosticsStore = defineStore("adminDiagnostics", () => {
   const diagnosticsLoading = ref(false);
   const diagnostics = reactive(initialDiagnostics());
 
-  async function loadDiagnostics() {
-    diagnosticsLoading.value = true;
+  /** `silent` is a refresh in the background: no spinner, no banner when it fails. */
+  async function loadDiagnostics(silent = false) {
+    if (!silent) diagnosticsLoading.value = true;
     await feedback.attempt(
       async () => {
         const facts = await admin.getJson("/api/admin/diagnostics");
@@ -46,8 +47,9 @@ export const useAdminDiagnosticsStore = defineStore("adminDiagnostics", () => {
         };
       },
       () => {
-        diagnosticsLoading.value = false;
+        if (!silent) diagnosticsLoading.value = false;
       },
+      silent,
     );
   }
 

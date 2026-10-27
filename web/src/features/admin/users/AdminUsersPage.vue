@@ -5,8 +5,10 @@
         <Icon v-if="!loading" name="refresh" :size="17" />{{ t("refresh") }}
       </Button>
     </template>
-    <div v-for="row in rows" :key="row.id" :class="row.class">
-      <component :is="card.component" v-for="card in row.cards" :key="card.id" :class="card.class" />
+    <div class="grid items-start gap-4 wide:grid-cols-5">
+      <div v-for="column in columns" :key="column.id" :class="['grid min-w-0 content-start gap-4', column.class]">
+        <component :is="card.component" v-for="card in column.cards" :key="card.id" />
+      </div>
     </div>
   </AdminPage>
 </template>
@@ -38,16 +40,16 @@ const refresh = () => Promise.all([usersStore.loadSessions(), invitesStore.loadI
 
 const { t } = useI18n();
 
-// Who is here and the invites side by side, the history of everyone who was below across the whole width.
-const rows: Array<{ id: string; class?: string; cards: AdminPageCard[] }> = [
+// Who is here with the history of everyone who was beneath it, the invites beside them.
+const columns: Array<{ id: string; class: string; cards: AdminPageCard[] }> = [
   {
-    id: "now",
-    class: "grid items-start gap-4 wide:grid-cols-5",
+    id: "people",
+    class: "wide:col-span-3",
     cards: [
-      { id: "sessions", component: SessionsCard, class: "wide:col-span-3" },
-      { id: "invites", component: InvitesCard, class: "wide:col-span-2" },
+      { id: "sessions", component: SessionsCard },
+      { id: "connections", component: ConnectionsCard },
     ],
   },
-  { id: "history", cards: [{ id: "connections", component: ConnectionsCard }] },
+  { id: "invites", class: "wide:col-span-2", cards: [{ id: "invites", component: InvitesCard }] },
 ];
 </script>

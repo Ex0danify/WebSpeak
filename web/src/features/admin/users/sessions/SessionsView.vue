@@ -36,6 +36,7 @@ import { Icon } from "@/shared/ui/icon";
 import { Pager } from "@/shared/ui/list";
 import { useI18n } from "@/shared/i18n/useI18n";
 import AdminPage from "@/features/admin/ui/AdminPage.vue";
+import { useLiveRefresh } from "@/features/admin/core/useLiveRefresh";
 import SessionsTable from "@/features/admin/users/sessions/SessionsTable.vue";
 import { SESSION_PAGE_SIZE, useAdminUsersStore } from "@/features/admin/users/adminUsers";
 
@@ -43,6 +44,7 @@ const usersStore = useAdminUsersStore();
 const { users, sessionsLoading } = storeToRefs(usersStore);
 const { loadSessions } = usersStore;
 onMounted(loadSessions);
+useLiveRefresh(() => loadSessions(true), 5000);
 
 // The gateway sends every live session (at most 100), so the pages are cut here.
 const page = ref(1);

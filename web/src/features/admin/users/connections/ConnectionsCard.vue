@@ -15,8 +15,9 @@
         :aria-label="t('connectionStatusFilter')"
         @update:model-value="(value) => filter({ status: value as ConnectionStatusFilter })"
       >
-        <option value="">{{ t("connectionStatusAll") }}</option>
-        <option v-for="status in statuses" :key="status" :value="status">{{ connectionStatusLabel(status) }}</option>
+        <option value="ended">{{ t("connectionStatusEnded") }}</option>
+        <option value="disconnected">{{ connectionStatusLabel("disconnected") }}</option>
+        <option value="failed">{{ connectionStatusLabel("failed") }}</option>
       </Select>
       <Button v-if="filtered" variant="ghost" class="ml-auto" @click="clearFilters()">{{ t("eventFiltersClear") }}</Button>
     </div>
@@ -55,10 +56,12 @@ import { Select } from "@/shared/ui/select";
 import { useI18n } from "@/shared/i18n/useI18n";
 import AdminSection from "@/features/admin/ui/AdminSection.vue";
 import { createAdminFormat } from "@/features/admin/core/adminFormat";
+import { useLiveRefresh } from "@/features/admin/core/useLiveRefresh";
 import ConnectionRow from "@/features/admin/users/connections/ConnectionRow.vue";
 import { useAdminConnectionsStore, type ConnectionStatusFilter } from "@/features/admin/users/connections/adminConnections";
 
 const SEARCH_DELAY_MS = 300;
+const LIVE_REFRESH_MS = 5000;
 
 const connections = useAdminConnectionsStore();
 const { list, pageCount, filtered } = storeToRefs(connections);
@@ -66,7 +69,6 @@ const { goToPage, filter, clearFilters } = connections;
 
 const { language, t } = useI18n();
 const { connectionStatusLabel } = createAdminFormat(language, t);
-const statuses = ["active", "connecting", "disconnected", "failed"] as const;
 
 // Typing asks the gateway only once it pauses, and a reset of the filters empties the box.
 const searchText = ref("");
@@ -83,5 +85,6 @@ watch(
   },
 );
 onMounted(() => connections.loadConnections());
+useLiveRefresh(() => connections.loadConnections(true), LIVE_REFRESH_MS);
 onBeforeUnmount(() => clearTimeout(searchTimer));
 </script>

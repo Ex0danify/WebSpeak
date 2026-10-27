@@ -48,12 +48,12 @@ export const useAdminFeedbackStore = defineStore("adminFeedback", () => {
     errorMessage.value = "";
   }
 
-  /** Runs `action`, shows a failure in the banner, and always runs `cleanup` after. */
-  async function attempt(action: () => Promise<void>, cleanup?: () => void) {
+  /** Runs `action`, shows a failure in the banner (not when `quiet`, for a refresh nobody asked for), and always runs `cleanup` after. */
+  async function attempt(action: () => Promise<void>, cleanup?: () => void, quiet = false) {
     try {
       await action();
     } catch (error) {
-      fail(error);
+      if (!quiet) fail(error);
     } finally {
       cleanup?.();
     }

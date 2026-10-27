@@ -70,9 +70,10 @@ export const useAdminEventLogStore = defineStore("adminEventLog", () => {
       DEFAULT_EVENT_CATEGORIES.some((category) => !list.categories.includes(category)),
   );
 
-  async function loadEvents() {
+  /** `silent` is a refresh in the background: no spinner, no banner when it fails. */
+  async function loadEvents(silent = false) {
     const request = ++latest;
-    list.loading = true;
+    if (!silent) list.loading = true;
     await feedback.attempt(
       async () => {
         const query = new URLSearchParams({
@@ -89,9 +90,15 @@ export const useAdminEventLogStore = defineStore("adminEventLog", () => {
         list.total = Number(result.total) || 0;
       },
       () => {
-        if (request === latest) list.loading = false;
+        if (request === latest && !silent) list.loading = false;
       },
+      silent,
     );
+  }
+
+  /** The live refresh. Only the first page moves, someone reading further back keeps the page they are on. */
+  function refreshLive() {
+    return list.page === 1 ? loadEvents(true) : undefined;
   }
 
   /** The newest few without filters, for a card. */
@@ -140,5 +147,5 @@ export const useAdminEventLogStore = defineStore("adminEventLog", () => {
     Object.assign(list, initialList());
   }
 
-  return { list, pageCount, filtered, loadEvents, showPreview, showPages, goToPage, setPageSize, filter, clearFilters, reset };
+  return { list, pageCount, filtered, loadEvents, refreshLive, showPreview, showPages, goToPage, setPageSize, filter, clearFilters, reset };
 });

@@ -37,8 +37,9 @@ export const useAdminInvitesStore = defineStore("adminInvites", () => {
 
   const pageCount = computed(() => Math.max(1, Math.ceil(list.total / list.limit)));
 
-  async function loadInvites() {
-    list.loading = true;
+  /** `silent` is a refresh in the background: no spinner, no banner when it fails. */
+  async function loadInvites(silent = false) {
+    if (!silent) list.loading = true;
     await feedback.attempt(
       async () => {
         const query = new URLSearchParams({ limit: String(list.limit), offset: String((list.page - 1) * list.limit) });
@@ -48,8 +49,9 @@ export const useAdminInvitesStore = defineStore("adminInvites", () => {
         list.total = Number(result.total) || 0;
       },
       () => {
-        list.loading = false;
+        if (!silent) list.loading = false;
       },
+      silent,
     );
   }
 

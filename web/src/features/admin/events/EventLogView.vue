@@ -108,6 +108,7 @@ import { Popover } from "@/shared/ui/popover";
 import { Select } from "@/shared/ui/select";
 import { useI18n } from "@/shared/i18n/useI18n";
 import AdminPage from "@/features/admin/ui/AdminPage.vue";
+import { useLiveRefresh } from "@/features/admin/core/useLiveRefresh";
 import type { AdminEventCategory, AdminEventSeverity } from "@/features/admin/core/adminTypes";
 import EventRow from "@/features/admin/events/EventRow.vue";
 import { EVENT_PAGE_SIZES, useAdminEventLogStore, type EventRange } from "@/features/admin/events/adminEventLog";
@@ -135,6 +136,7 @@ watch(
   },
 );
 onMounted(() => eventLog.showPages());
+useLiveRefresh(() => eventLog.refreshLive(), 5000);
 onBeforeUnmount(() => clearTimeout(searchTimer));
 
 const categories = computed(() => [

@@ -67,6 +67,19 @@ describe("useAdminUsersStore", () => {
     expect(s.store.sessionsLoading).toBe(false);
   });
 
+  it("loadSessions(true) refreshes without the spinner and keeps quiet when it fails", async () => {
+    const s = setup();
+    s.getJson.mockResolvedValueOnce({ sessions: [{ id: "s1" }] });
+    const pending = s.store.loadSessions(true);
+    expect(s.store.sessionsLoading).toBe(false);
+    await pending;
+    expect(s.store.users.sessions).toEqual([{ id: "s1" }]);
+    s.getJson.mockRejectedValueOnce({ code: "RATE_LIMITED" });
+    await s.store.loadSessions(true);
+    expect(s.feedback.errorMessage).toBe("");
+    expect(s.store.users.sessions).toEqual([{ id: "s1" }]);
+  });
+
   it("terminateSession does nothing when the confirmation is declined", async () => {
     const s = setup();
     const done = s.store.terminateSession({ id: "s1", nickname: "Ann" } as never);
@@ -83,6 +96,9 @@ describe("useAdminUsersStore", () => {
     await done;
     expect(s.sendJson).toHaveBeenCalledWith("/api/admin/sessions/a%2Fb/terminate", "POST", {});
     expect(s.loadOverview).toHaveBeenCalled();
+    // The event log and the connection history show the termination at once.
+    expect(s.getJson).toHaveBeenCalledWith(expect.stringMatching(/^\/api\/admin\/audit\?/));
+    expect(s.getJson).toHaveBeenCalledWith(expect.stringMatching(/^\/api\/admin\/connections\?/));
     expect(s.notify).toHaveBeenCalledWith(t("sessionTerminated"));
     expect(s.store.terminatingSession).toBe("");
   });

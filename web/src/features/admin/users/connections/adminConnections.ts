@@ -6,7 +6,14 @@ import { useAdminSessionStore } from "@/features/admin/core/adminSession.js";
 
 export const CONNECTION_PAGE_SIZE = 10;
 
-export type ConnectionStatusFilter = "" | AdminConnectionRecord["status"];
+/** What the history lists: live sessions are in the sessions card, so it is the sessions that ended, or one way of ending. */
+export type ConnectionStatusFilter = "ended" | "disconnected" | "failed";
+
+const STATUSES_OF: Record<ConnectionStatusFilter, string> = {
+  ended: "disconnected,failed",
+  disconnected: "disconnected",
+  failed: "failed",
+};
 
 function initialList() {
   return {
@@ -14,7 +21,7 @@ function initialList() {
     total: 0,
     page: 1,
     loading: false,
-    status: "" as ConnectionStatusFilter,
+    status: "ended" as ConnectionStatusFilter,
     search: "",
   };
 }
@@ -29,15 +36,16 @@ export const useAdminConnectionsStore = defineStore("adminConnections", () => {
   let latest = 0;
 
   const pageCount = computed(() => Math.max(1, Math.ceil(list.total / CONNECTION_PAGE_SIZE)));
-  const filtered = computed(() => list.status !== "" || list.search.trim() !== "");
+  const filtered = computed(() => list.status !== "ended" || list.search.trim() !== "");
 
-  async function loadConnections() {
+  /** `silent` is a refresh in the background: no spinner, no banner when it fails. */
+  async function loadConnections(silent = false) {
     const request = ++latest;
-    list.loading = true;
+    if (!silent) list.loading = true;
     await feedback.attempt(
       async () => {
         const query = new URLSearchParams({ limit: String(CONNECTION_PAGE_SIZE), offset: String((list.page - 1) * CONNECTION_PAGE_SIZE) });
-        if (list.status) query.set("statuses", list.status);
+        query.set("statuses", STATUSES_OF[list.status]);
         if (list.search.trim()) query.set("q", list.search.trim());
         const result = await admin.getJson(`/api/admin/connections?${query}`);
         if (request !== latest) return;
@@ -45,8 +53,9 @@ export const useAdminConnectionsStore = defineStore("adminConnections", () => {
         list.total = Number(result.total) || 0;
       },
       () => {
-        if (request === latest) list.loading = false;
+        if (request === latest && !silent) list.loading = false;
       },
+      silent,
     );
   }
 
@@ -62,7 +71,7 @@ export const useAdminConnectionsStore = defineStore("adminConnections", () => {
   }
 
   function clearFilters() {
-    return filter({ status: "", search: "" });
+    return filter({ status: "ended", search: "" });
   }
 
   /** Back to the empty state for logout, setup stores have no `$reset`. */

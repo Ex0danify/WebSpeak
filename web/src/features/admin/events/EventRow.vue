@@ -1,6 +1,6 @@
 <template>
   <!-- `event-row` is the e2e locator -->
-  <AdminListRow as="li" class="event-row flex min-w-0 items-center gap-2.5">
+  <AdminListRow as="li" bordered class="event-row flex min-w-0 items-center gap-2.5">
     <span :class="cn('grid size-6.75 shrink-0 place-items-center rounded-md', tone[event.severity])">
       <Icon :name="icons[event.category]" :size="14" />
     </span>

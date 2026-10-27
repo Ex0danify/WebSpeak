@@ -6,7 +6,7 @@
       }}</RouterLink>
     </template>
     <ul class="m-0 grid list-none gap-2.5 p-0">
-      <AdminListRow v-for="server in overview.servers" :key="server.id" as="li" size="lg" class="flex items-center gap-3">
+      <AdminListRow v-for="server in overview.servers" :key="server.id" as="li" bordered class="flex items-center gap-3">
         <i class="size-1.75 shrink-0 rounded-full" :class="statusDot(server.status)" aria-hidden="true"></i>
         <div class="min-w-0 flex-1">
           <strong class="block truncate text-xs">{{ server.name }}</strong>
@@ -16,7 +16,7 @@
           >
         </div>
       </AdminListRow>
-      <AdminListRow v-if="!overview.servers.length" as="li" size="lg" class="text-center text-caption text-fg-muted">
+      <AdminListRow v-if="!overview.servers.length" as="li" bordered class="text-center text-caption text-fg-muted">
         {{ t("serverListEmpty") }}
       </AdminListRow>
     </ul>

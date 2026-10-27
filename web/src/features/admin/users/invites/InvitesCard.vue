@@ -29,6 +29,7 @@ import { Icon } from "@/shared/ui/icon";
 import { ListFooter } from "@/shared/ui/list";
 import { useI18n } from "@/shared/i18n/useI18n";
 import AdminSection from "@/features/admin/ui/AdminSection.vue";
+import { useLiveRefresh } from "@/features/admin/core/useLiveRefresh";
 import InviteDialog from "@/features/admin/users/invites/InviteDialog.vue";
 import InviteRow from "@/features/admin/users/invites/InviteRow.vue";
 import { useAdminInvitesStore } from "@/features/admin/users/invites/adminInvites";
@@ -37,6 +38,7 @@ const invitesStore = useAdminInvitesStore();
 const { list } = storeToRefs(invitesStore);
 const { openCreateInvite, showPreview } = invitesStore;
 onMounted(showPreview);
+useLiveRefresh(() => invitesStore.loadInvites(true), 15_000);
 
 const { t } = useI18n();
 </script>

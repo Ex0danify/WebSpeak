@@ -21,6 +21,7 @@ import { storeToRefs } from "pinia";
 import { ListFooter } from "@/shared/ui/list";
 import { useI18n } from "@/shared/i18n/useI18n";
 import AdminSection from "@/features/admin/ui/AdminSection.vue";
+import { useLiveRefresh } from "@/features/admin/core/useLiveRefresh";
 import EventRow from "@/features/admin/events/EventRow.vue";
 import { useAdminEventLogStore } from "@/features/admin/events/adminEventLog";
 
@@ -30,6 +31,7 @@ const props = defineProps<{ limit: number }>();
 const eventLog = useAdminEventLogStore();
 const { list } = storeToRefs(eventLog);
 onMounted(() => eventLog.showPreview(props.limit));
+useLiveRefresh(() => eventLog.refreshLive(), 5000);
 
 const { t } = useI18n();
 </script>
