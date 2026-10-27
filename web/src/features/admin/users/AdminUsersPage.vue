@@ -1,9 +1,7 @@
 <template>
   <AdminPage :title="t('users')" :lead="t('usersLead')">
     <template #action>
-      <Button variant="secondary" :loading="loading" @click="refresh()">
-        <Icon v-if="!loading" name="refresh" :size="17" />{{ t("refresh") }}
-      </Button>
+      <RefreshButton :loading="loading" @click="refresh()" />
     </template>
     <div class="grid items-start gap-4 wide:grid-cols-5">
       <div v-for="column in columns" :key="column.id" :class="['grid min-w-0 content-start gap-4', column.class]">
@@ -16,10 +14,9 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import { storeToRefs } from "pinia";
-import { Button } from "@/shared/ui/button";
-import { Icon } from "@/shared/ui/icon";
 import { useI18n } from "@/shared/i18n/useI18n";
 import AdminPage from "@/features/admin/ui/AdminPage.vue";
+import RefreshButton from "@/features/admin/ui/RefreshButton.vue";
 import type { AdminPageCard } from "@/features/admin/ui/adminPage";
 import { useAdminUsersStore } from "@/features/admin/users/adminUsers";
 import { useAdminInvitesStore } from "@/features/admin/users/invites/adminInvites";

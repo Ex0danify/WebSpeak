@@ -1,9 +1,7 @@
 <template>
   <AdminPage :title="t('diagnostics')" :lead="t('diagnosticsLead')">
     <template #action>
-      <Button variant="secondary" :loading="diagnosticsLoading" @click="loadDiagnostics()">
-        <Icon v-if="!diagnosticsLoading" name="refresh" :size="17" />{{ t("refresh") }}
-      </Button>
+      <RefreshButton :loading="diagnosticsLoading" @click="loadDiagnostics()" />
     </template>
     <Banner>{{ t("updateNotice", { version: diagnostics.facts.version || "—" }) }}</Banner>
     <div class="grid items-start gap-4 wide:grid-cols-2">
@@ -18,10 +16,9 @@
 import { onMounted } from "vue";
 import { storeToRefs } from "pinia";
 import { Banner } from "@/shared/ui/banner";
-import { Button } from "@/shared/ui/button";
-import { Icon } from "@/shared/ui/icon";
 import { useI18n } from "@/shared/i18n/useI18n";
 import AdminPage from "@/features/admin/ui/AdminPage.vue";
+import RefreshButton from "@/features/admin/ui/RefreshButton.vue";
 import { useLiveRefresh } from "@/features/admin/core/useLiveRefresh";
 import type { AdminPageCard } from "@/features/admin/ui/adminPage";
 import { useAdminDiagnosticsStore } from "@/features/admin/diagnostics/adminDiagnostics";

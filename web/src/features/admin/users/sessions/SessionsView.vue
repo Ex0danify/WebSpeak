@@ -1,9 +1,7 @@
 <template>
   <AdminPage :title="t('sessions')" :lead="t('sessionsLead')" back-to="/admin/users" :back-label="t('users')">
     <template #action>
-      <Button variant="secondary" :loading="sessionsLoading" @click="loadSessions()">
-        <Icon v-if="!sessionsLoading" name="refresh" :size="17" />{{ t("refresh") }}
-      </Button>
+      <RefreshButton :loading="sessionsLoading" @click="loadSessions()" />
     </template>
     <Card padding="lg" body-class="grid content-start gap-3">
       <SessionsTable v-if="users.sessions.length" :sessions="shown" />
@@ -30,12 +28,12 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from "vue";
 import { storeToRefs } from "pinia";
-import { Button } from "@/shared/ui/button";
 import { Card } from "@/shared/ui/card";
 import { Icon } from "@/shared/ui/icon";
 import { Pager } from "@/shared/ui/list";
 import { useI18n } from "@/shared/i18n/useI18n";
 import AdminPage from "@/features/admin/ui/AdminPage.vue";
+import RefreshButton from "@/features/admin/ui/RefreshButton.vue";
 import { useLiveRefresh } from "@/features/admin/core/useLiveRefresh";
 import SessionsTable from "@/features/admin/users/sessions/SessionsTable.vue";
 import { SESSION_PAGE_SIZE, useAdminUsersStore } from "@/features/admin/users/adminUsers";

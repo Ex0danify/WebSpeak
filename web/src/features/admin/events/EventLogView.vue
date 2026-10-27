@@ -1,9 +1,7 @@
 <template>
   <AdminPage :title="t('adminEventLog')" :lead="t('eventLogViewLead')" back-to="/admin/diagnostics" :back-label="t('diagnostics')">
     <template #action>
-      <Button variant="secondary" :loading="list.loading" @click="loadEvents()">
-        <Icon v-if="!list.loading" name="refresh" :size="17" />{{ t("refresh") }}
-      </Button>
+      <RefreshButton :loading="list.loading" @click="loadEvents()" />
     </template>
     <Card padding="lg" body-class="grid content-start gap-4">
       <div class="flex flex-wrap items-center gap-2">
@@ -108,6 +106,7 @@ import { Popover } from "@/shared/ui/popover";
 import { Select } from "@/shared/ui/select";
 import { useI18n } from "@/shared/i18n/useI18n";
 import AdminPage from "@/features/admin/ui/AdminPage.vue";
+import RefreshButton from "@/features/admin/ui/RefreshButton.vue";
 import { useLiveRefresh } from "@/features/admin/core/useLiveRefresh";
 import type { AdminEventCategory, AdminEventSeverity } from "@/features/admin/core/adminTypes";
 import EventRow from "@/features/admin/events/EventRow.vue";
