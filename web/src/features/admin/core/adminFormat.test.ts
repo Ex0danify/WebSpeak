@@ -47,6 +47,16 @@ describe("createAdminFormat", () => {
     ]);
   });
 
+  it("says where a live session comes from, with the relay only when there is one", () => {
+    const { format } = setupReal("en");
+    const session = { clientIp: "203.0.113.24", relayName: null, relayTarget: null };
+    expect(format.sessionOrigin(session)).toBe("IP 203.0.113.24");
+    expect(format.sessionOrigin({ ...session, relayName: "Frankfurt", relayTarget: "relay.test:9987" })).toBe(
+      "IP 203.0.113.24 · Via relay Frankfurt · relay.test:9987",
+    );
+    expect(format.sessionOrigin({ ...session, clientIp: "" })).toBe("");
+  });
+
   it("labels session states, falling back to the raw state", () => {
     const { setLanguage, format } = setupReal("de");
     expect(format.sessionStateLabel("connected")).toBe("Verbunden");

@@ -1,7 +1,7 @@
 import type { MessageKey } from "@/shared/i18n/messageKeys";
 import { intlLocale, type Language } from "@/shared/i18n/languages";
 import { createFormat } from "@/shared/i18n/useFormat";
-import type { AdminConnectionAudio, AdminConnectionRecord, ManagedInvite } from "@/features/admin/core/adminTypes.js";
+import type { AdminConnectionAudio, AdminConnectionRecord, AdminSession, ManagedInvite } from "@/features/admin/core/adminTypes.js";
 
 const CONNECTION_FAILED: MessageKey = "connectionFailed";
 
@@ -99,6 +99,13 @@ export function createAdminFormat(language: { value: Language }, t: Translate) {
     if (audio.sendErrors > 0) lines.push(t("connectionAudioSendErrors", { count: count(audio.sendErrors) }));
     return lines;
   }
+  /** Where a live session comes from: the guest's address, and the relay when it goes through one. */
+  function sessionOrigin(session: Pick<AdminSession, "clientIp" | "relayName" | "relayTarget">) {
+    const parts = [session.clientIp && t("eventIp", { ip: session.clientIp })];
+    const relay = [session.relayName, session.relayTarget].filter(Boolean).join(" · ");
+    if (relay) parts.push(t("connectionViaRelay", { relay }));
+    return parts.filter(Boolean).join(" · ");
+  }
   function sessionStateLabel(state: string) {
     return SESSION_STATE_KEYS[state] ? t(SESSION_STATE_KEYS[state]) : state;
   }
@@ -145,6 +152,7 @@ export function createAdminFormat(language: { value: Language }, t: Translate) {
     connectionStatusLabel,
     connectionRoute,
     connectionAudioLines,
+    sessionOrigin,
     sessionStateLabel,
     inviteStatusLabel,
     errorText,

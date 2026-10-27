@@ -2,6 +2,9 @@ export interface AdminSession {
   id: string;
   nickname: string;
   target: string;
+  clientIp: string;
+  relayName: string | null;
+  relayTarget: string | null;
   state: string;
   createdAt: string;
   ageSeconds: number;

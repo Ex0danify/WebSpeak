@@ -42,6 +42,9 @@ describe("sessions", () => {
     expect(alice).toMatchObject({
       id: expect.stringMatching(/^w-/),
       target: "ts.test:9987",
+      clientIp: expect.any(String),
+      relayName: null,
+      relayTarget: null,
       state: "connected",
       tsClientId: (gateway.ts.created[0] as FakeTSClient).getClientId(),
       channelId: "1",
@@ -49,6 +52,7 @@ describe("sessions", () => {
       ageSeconds: expect.any(Number),
     });
     expect(bob).toMatchObject({ channelId: "3", memberCount: 2 });
+    expect(alice.clientIp).toMatch(/127\.0\.0\.1|::1/);
     expect(Date.parse(alice.createdAt)).not.toBeNaN();
     expect(alice.audio).toMatchObject({
       ingressFrames: 0,

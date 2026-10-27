@@ -13,6 +13,10 @@ export interface AdminSessionSummary {
   id: string;
   nickname: string;
   target: string;
+  clientIp: string;
+  /** The acceleration relay the session goes through, null for a direct one. */
+  relayName: string | null;
+  relayTarget: string | null;
   state: string;
   createdAt: string;
   ageSeconds: number;

@@ -17,6 +17,7 @@
           <td :class="[td, 'max-narrow:wrap-anywhere max-narrow:whitespace-normal']">
             <strong class="block">{{ session.nickname }}</strong>
             <small :class="tdSmall">{{ session.target }}</small>
+            <small v-if="sessionOrigin(session)" :class="tdSmall">{{ sessionOrigin(session) }}</small>
           </td>
           <td :class="td">
             <Chip variant="accent">{{ sessionStateLabel(session.state) }}</Chip>
@@ -51,7 +52,7 @@ const { terminatingSession } = storeToRefs(usersStore);
 const { terminateSession } = usersStore;
 
 const { language, t } = useI18n();
-const { formatAge, sessionStateLabel } = createAdminFormat(language, t);
+const { formatAge, sessionOrigin, sessionStateLabel } = createAdminFormat(language, t);
 
 const th = "border-b border-line px-3.5 py-3 text-2xs font-bold whitespace-nowrap text-fg-muted";
 const td = "border-b border-line px-3.5 py-3 text-caption whitespace-nowrap";
