@@ -17,11 +17,10 @@ function initialOverview() {
     servers: [] as OverviewServer[],
     sessions: { active: 0, peak: 0, limit: 100 },
     invites: { active: 0 },
-    recentEvents: [] as Array<{ event: string; createdAt: string }>,
   };
 }
 
-/** The overview page's data: gateway, server and session status and the recent events. */
+/** The overview page's data: gateway, server and session status and the active invites. */
 export const useAdminOverviewStore = defineStore("adminOverview", () => {
   const session = useAdminSessionStore();
 

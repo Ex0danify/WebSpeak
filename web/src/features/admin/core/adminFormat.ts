@@ -19,19 +19,6 @@ const SESSION_STATE_KEYS: Record<string, MessageKey> = {
   idle: "stateIdle",
 };
 
-const EVENT_KEYS: Record<string, MessageKey> = {
-  ADMIN_LOGIN_FAILED: "adminLoginFailedEvent",
-  CONNECTION_TEST_SUCCEEDED: "connectionTestSucceededEvent",
-  CONNECTION_TEST_FAILED: "connectionTestFailedEvent",
-  ADMIN_LOGIN_SUCCEEDED: "loginEvent",
-  ADMIN_LOGOUT: "logoutEvent",
-  SETTINGS_CHANGED: "settingsEvent",
-  ADMIN_INITIALIZED: "initializedEvent",
-  SERVER_ADDED: "serverAddedEvent",
-  SERVER_UPDATED: "serverUpdatedEvent",
-  SERVER_REMOVED: "serverRemovedEvent",
-};
-
 const ADMIN_ERROR_KEYS: Record<string, MessageKey> = {
   INVALID_PASSWORD: "invalidPassword",
   INVALID_ADMIN_PASSWORD: "setupPasswordShort",
@@ -110,9 +97,6 @@ export function createAdminFormat(language: { value: Language }, t: Translate) {
       .map(([key, value]) => `${key}=${value}`)
       .join(" · ");
   }
-  function eventName(event: string) {
-    return EVENT_KEYS[event] ? t(EVENT_KEYS[event]) : event.replaceAll("_", " ");
-  }
   function errorText(code?: string) {
     return ADMIN_ERROR_KEYS[code || ""] ? t(ADMIN_ERROR_KEYS[code || ""]) : t("requestFailed");
   }
@@ -148,7 +132,6 @@ export function createAdminFormat(language: { value: Language }, t: Translate) {
     sessionStateLabel,
     inviteStatusLabel,
     formatContext,
-    eventName,
     errorText,
     connectionFailureText,
   };

@@ -8,6 +8,7 @@ export interface AdminSiblings {
   loadOverview(): Promise<void>;
   loadServerSettings(): Promise<void>;
   loadServers(): Promise<void>;
+  loadEvents(): Promise<void>;
   /** The server list belongs to adminServers. Reordering and the add/edit dialog read it and put their result back through these. */
   serverList(): AdminServer[];
   replaceServers(next: AdminServer[]): void;

@@ -7,7 +7,7 @@
     </template>
     <Banner>{{ t("updateNotice", { version: diagnostics.facts.version || "—" }) }}</Banner>
     <div v-for="row in rows" :key="row.id" :class="row.class">
-      <component :is="card.component" v-for="card in row.cards" :key="card.id" />
+      <component :is="card.component" v-for="card in row.cards" :key="card.id" v-bind="card.props" />
     </div>
   </AdminPage>
 </template>
@@ -22,8 +22,8 @@ import { useI18n } from "@/shared/i18n/useI18n";
 import AdminPage from "@/features/admin/ui/AdminPage.vue";
 import type { AdminPageCard } from "@/features/admin/ui/adminPage";
 import { useAdminDiagnosticsStore } from "@/features/admin/diagnostics/adminDiagnostics";
-import AuditCard from "@/features/admin/diagnostics/AuditCard.vue";
 import DiagnosticsCard from "@/features/admin/diagnostics/DiagnosticsCard.vue";
+import EventLogCard from "@/features/admin/events/EventLogCard.vue";
 import LogViewerCard from "@/features/admin/diagnostics/LogViewerCard.vue";
 
 const diagnosticsStore = useAdminDiagnosticsStore();
@@ -34,14 +34,14 @@ onMounted(loadDiagnostics);
 
 const { t } = useI18n();
 
-// The facts and the audit trail side by side, the logs below across the whole width.
+// The facts and the event log side by side, the logs below across the whole width.
 const rows: Array<{ id: string; class?: string; cards: AdminPageCard[] }> = [
   {
     id: "system",
     class: "grid items-start gap-4 wide:grid-cols-2",
     cards: [
       { id: "facts", component: DiagnosticsCard },
-      { id: "audit", component: AuditCard },
+      { id: "events", component: EventLogCard, props: { limit: 8 } },
     ],
   },
   { id: "logs", cards: [{ id: "logs", component: LogViewerCard }] },

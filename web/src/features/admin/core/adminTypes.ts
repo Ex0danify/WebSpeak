@@ -29,6 +29,16 @@ export interface ManagedInvite {
   revokedAt: string | null;
   status: "active" | "expired" | "exhausted" | "revoked";
 }
+export type AdminEventCategory = "auth" | "config" | "invites" | "availability" | "system";
+export type AdminEventSeverity = "info" | "warning" | "error";
+export interface AdminEvent {
+  id: number;
+  event: string;
+  category: AdminEventCategory;
+  severity: AdminEventSeverity;
+  details: Record<string, unknown>;
+  createdAt: string;
+}
 export interface AdminLog {
   timestamp: string | null;
   level: string;

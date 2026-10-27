@@ -1,6 +1,7 @@
 import { provideAdminSiblings } from "@/features/admin/core/adminSiblings";
 import { useAdminGatewayStore } from "@/features/admin/core/adminGateway";
 import { useAdminDiagnosticsStore } from "@/features/admin/diagnostics/adminDiagnostics";
+import { useAdminEventLogStore } from "@/features/admin/events/adminEventLog";
 import { useAdminOverviewStore } from "@/features/admin/dashboard/adminOverview";
 import { useAdminServerDialogStore } from "@/features/admin/gateway/adminServerDialog";
 import { useAdminServerOrderStore } from "@/features/admin/gateway/adminServerOrder";
@@ -15,6 +16,7 @@ export function registerAdminStores(): void {
     loadOverview: () => useAdminOverviewStore().loadOverview(),
     loadServerSettings: () => useAdminServerSettingsStore().loadServerSettings(),
     loadServers: () => useAdminServersStore().loadServers(),
+    loadEvents: () => useAdminEventLogStore().loadEvents(),
     serverList: () => useAdminServersStore().servers,
     replaceServers: (next) => {
       useAdminServersStore().servers = next;
@@ -25,6 +27,7 @@ export function registerAdminStores(): void {
       useAdminOverviewStore().reset();
       useAdminUsersStore().reset();
       useAdminInvitesStore().reset();
+      useAdminEventLogStore().reset();
       useAdminDiagnosticsStore().reset();
       useAdminServerSettingsStore().reset();
       useAdminServersStore().reset();

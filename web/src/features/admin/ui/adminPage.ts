@@ -8,4 +8,6 @@ export interface AdminPageCard {
   id: string;
   component: Component;
   class?: string;
+  /** Props for the card, where one page wants it set differently from another. */
+  props?: Record<string, unknown>;
 }

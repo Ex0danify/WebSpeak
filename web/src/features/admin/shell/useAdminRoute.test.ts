@@ -42,6 +42,7 @@ describe("adminRoutes", () => {
   it("names the five pages in the order of the nav, then the sub-views", () => {
     expect(adminNavRoutes.map((entry) => entry.titleKey)).toEqual(["dashboard", "gateway", "web", "users", "diagnostics"]);
     expect(adminRoutes.filter((entry) => entry.parent).map((entry) => [entry.path, entry.parent])).toEqual([
+      ["/admin/diagnostics/events", "/admin/diagnostics"],
       ["/admin/users/invites", "/admin/users"],
       ["/admin/users/sessions", "/admin/users"],
     ]);

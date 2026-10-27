@@ -47,13 +47,6 @@ describe("createAdminFormat", () => {
     expect(format.sessionStateLabel("connected")).toBe("Connected");
   });
 
-  it("names audit events, falling back to the event code", () => {
-    const { format } = setupReal("en");
-    expect(format.eventName("ADMIN_LOGIN_FAILED")).toBe("Administrator login failed");
-    expect(format.eventName("ADMIN_LOGOUT")).toBe("Administrator signed out");
-    expect(format.eventName("SOME_NEW_EVENT")).toBe("SOME NEW EVENT");
-  });
-
   it("describes a connection route with and without a relay", () => {
     const { format } = setup();
     const base = { clientIp: "1.2.3.4", target: "ts:9987" } as any;

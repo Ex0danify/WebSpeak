@@ -35,7 +35,7 @@ afterEach(() => {
 });
 
 describe("useAdminDiagnosticsStore", () => {
-  it("loadDiagnostics fills the facts, the logs and the audit trail and stops the loading flag", async () => {
+  it("loadDiagnostics fills the facts and the logs and stops the loading flag", async () => {
     const s = setup();
     await s.store.loadDiagnostics();
     expect(s.store.diagnostics.facts).toEqual({
@@ -47,7 +47,7 @@ describe("useAdminDiagnosticsStore", () => {
       createdSessions: 7,
     });
     expect(s.store.diagnostics.logs.available).toBe(true);
-    expect(s.store.diagnostics.audit).toHaveLength(1);
+    expect(s.getJson).not.toHaveBeenCalledWith(expect.stringContaining("/audit"));
     expect(s.store.diagnosticsLoading).toBe(false);
   });
 
@@ -59,7 +59,7 @@ describe("useAdminDiagnosticsStore", () => {
     expect(s.store.diagnosticsLoading).toBe(false);
   });
 
-  it("downloadBackup saves the file and refreshes the page to show the audit event", async () => {
+  it("downloadBackup saves the file and refreshes the page and the event log to show the backup event", async () => {
     const s = setup();
     vi.stubGlobal(
       "fetch",
@@ -71,7 +71,7 @@ describe("useAdminDiagnosticsStore", () => {
     await s.store.downloadBackup();
     expect(click).toHaveBeenCalled();
     expect(URL.revokeObjectURL).toHaveBeenCalledWith("blob:x");
-    expect(s.getJson).toHaveBeenCalledWith("/api/admin/audit?limit=50");
+    expect(s.getJson).toHaveBeenCalledWith(expect.stringMatching(/^\/api\/admin\/audit\?limit=/));
   });
 
   it("downloadBackup reports a failed download in the shared banner and does not refresh", async () => {
@@ -90,7 +90,7 @@ describe("useAdminDiagnosticsStore", () => {
     const s = setup();
     await s.store.loadDiagnostics();
     s.store.reset();
-    expect(s.store.diagnostics.audit).toEqual([]);
+    expect(s.store.diagnostics.logs.entries).toEqual([]);
     expect(s.store.diagnostics.facts.version).toBe("");
   });
 });

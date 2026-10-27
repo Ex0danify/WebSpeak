@@ -2,12 +2,8 @@ import { reactive, ref } from "vue";
 import { defineStore } from "pinia";
 import type { AdminConnectionRecord, AdminLog } from "@/features/admin/core/adminTypes.js";
 import { useAdminFeedbackStore } from "@/features/admin/core/adminFeedback.js";
+import { adminSiblings } from "@/features/admin/core/adminSiblings.js";
 import { useAdminSessionStore } from "@/features/admin/core/adminSession.js";
-
-interface AdminAuditEvent {
-  event: string;
-  createdAt: string;
-}
 
 interface AdminFacts {
   version: string;
@@ -27,18 +23,16 @@ interface AdminLogs {
 interface DiagnosticsData {
   facts: AdminFacts;
   logs: AdminLogs;
-  audit: AdminAuditEvent[];
 }
 
 function initialDiagnostics(): DiagnosticsData {
   return {
     facts: { version: "", node: "", platform: "", arch: "", schemaVersion: 0, createdSessions: 0 },
     logs: { available: false, entries: [], sessions: [] },
-    audit: [],
   };
 }
 
-/** The diagnostics page: runtime facts with the database backup, the logs and the audit trail. */
+/** The diagnostics page: runtime facts with the database backup, the logs. */
 export const useAdminDiagnosticsStore = defineStore("adminDiagnostics", () => {
   const admin = useAdminSessionStore();
   const feedback = useAdminFeedbackStore();
@@ -50,11 +44,7 @@ export const useAdminDiagnosticsStore = defineStore("adminDiagnostics", () => {
     diagnosticsLoading.value = true;
     await feedback.attempt(
       async () => {
-        const [facts, logs, audit] = await Promise.all([
-          admin.getJson("/api/admin/diagnostics"),
-          admin.getJson("/api/admin/logs?limit=100"),
-          admin.getJson("/api/admin/audit?limit=50"),
-        ]);
+        const [facts, logs] = await Promise.all([admin.getJson("/api/admin/diagnostics"), admin.getJson("/api/admin/logs?limit=100")]);
         diagnostics.facts = {
           version: String(facts.gateway?.version || ""),
           node: String(facts.gateway?.node || ""),
@@ -68,7 +58,6 @@ export const useAdminDiagnosticsStore = defineStore("adminDiagnostics", () => {
           entries: Array.isArray(logs.entries) ? logs.entries : [],
           sessions: Array.isArray(logs.sessions) ? logs.sessions : [],
         };
-        diagnostics.audit = Array.isArray(audit.events) ? audit.events : [];
       },
       () => {
         diagnosticsLoading.value = false;
@@ -87,8 +76,8 @@ export const useAdminDiagnosticsStore = defineStore("adminDiagnostics", () => {
       anchor.download = `webspeak-backup-${new Date().toISOString().slice(0, 10)}.db`;
       anchor.click();
       URL.revokeObjectURL(url);
-      // The export is written to the audit trail, which the page shows.
-      await loadDiagnostics();
+      // The export is written to the event log, which the page shows.
+      await Promise.all([loadDiagnostics(), adminSiblings().loadEvents()]);
     } catch (error) {
       feedback.fail(error);
     }
