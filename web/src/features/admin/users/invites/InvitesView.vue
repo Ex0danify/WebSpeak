@@ -28,6 +28,9 @@
         :label="t('pagerLabel')"
         :previous-label="t('pagePrevious')"
         :next-label="t('pageNext')"
+        :first-label="t('pageFirst')"
+        :last-label="t('pageLast')"
+        :page-label="(number) => t('pageNumber', { page: number })"
         :summary="t('listPage', { page: list.page, count: pageCount })"
         @update:model-value="goToPage"
       />

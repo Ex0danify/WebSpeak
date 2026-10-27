@@ -26,6 +26,9 @@ export const en = {
   listShowing: "Showing {{shown}} of {{total}}",
   pageNext: "Next",
   pagePrevious: "Previous",
+  pageFirst: "First page",
+  pageLast: "Last page",
+  pageNumber: "Page {{page}}",
   pagerLabel: "Pages",
 } satisfies Record<string, string>;
 
