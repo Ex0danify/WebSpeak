@@ -13,11 +13,6 @@ const overview = {
   ],
   sessions: { active: 3, peak: 7, limit: 100 },
   invites: { active: 1 },
-  recentEvents: [
-    { event: "session.created", createdAt: at(4) },
-    { event: "invite.created", createdAt: at(38) },
-    { event: "server.updated", createdAt: at(190) },
-  ],
 };
 
 const servers = {
@@ -187,10 +182,39 @@ const logs = {
 
 const audit = {
   events: [
-    { event: "admin.login", createdAt: at(2) },
-    { event: "invite.created", createdAt: at(38) },
-    { event: "server.updated", createdAt: at(190) },
+    {
+      id: 5,
+      event: "ADMIN_LOGIN_FAILED",
+      category: "auth",
+      severity: "warning",
+      details: { username: "root", ip: "203.0.113.7" },
+      createdAt: at(2),
+    },
+    {
+      id: 4,
+      event: "INVITE_CREATED",
+      category: "invites",
+      severity: "info",
+      details: { serverName: "Main server", channel: "Lobby", maxUses: 5, expiresAt: at(-1440), ip: "198.51.100.4" },
+      createdAt: at(38),
+    },
+    {
+      id: 3,
+      event: "SERVER_UPDATED",
+      category: "config",
+      severity: "info",
+      details: {
+        name: "Main server",
+        target: "ts.example.com:9987",
+        changes: [{ field: "name", from: "Main", to: "Main server" }, { field: "password" }],
+        ip: "198.51.100.4",
+      },
+      createdAt: at(190),
+    },
+    { id: 2, event: "ADMIN_LOGIN_SUCCEEDED", category: "auth", severity: "info", details: {}, createdAt: at(200) },
+    { id: 1, event: "ADMIN_INITIALIZED", category: "system", severity: "info", details: {}, createdAt: at(1440) },
   ],
+  total: 5,
 };
 
 export const publicConfig = {
@@ -227,6 +251,7 @@ export const adminScreens: Screen[] = [
   { id: "admin-users-invites", path: "/admin/users/invites", langs: ["en", "de"], admin: true },
   { id: "admin-users-sessions", path: "/admin/users/sessions", langs: ["en", "de"], admin: true },
   { id: "admin-diagnostics", path: "/admin/diagnostics", langs: ["en", "de"], admin: true },
+  { id: "admin-diagnostics-events", path: "/admin/diagnostics/events", langs: ["en", "de"], admin: true },
 ];
 
 // Returns [status, body] for an authenticated admin request, or null when not mocked.

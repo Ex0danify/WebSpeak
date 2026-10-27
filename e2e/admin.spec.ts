@@ -113,7 +113,7 @@ test.describe("dashboard and navigation", () => {
     await login(page, gateway);
     await expect(page.getByRole("heading", { name: "WebSpeak is running" })).toBeVisible();
     await expect(page.getByRole("heading", { name: "Server health" })).toBeVisible();
-    await expect(page.getByRole("heading", { name: "Recent events" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Event log" })).toBeVisible();
     await expect(page.getByText("Administrator signed in")).toBeVisible();
     // The guest page link is in the sidebar on a desktop and in the account menu on a phone.
     if (isMobile) {
@@ -141,13 +141,13 @@ test.describe("dashboard and navigation", () => {
     }
   });
 
-  test("View all leads from the recent events to the audit trail", async ({ page, ownGateway }) => {
+  test("the event log link leads from the dashboard to the full log", async ({ page, ownGateway }) => {
     const gateway = await ownGateway();
     await login(page, gateway);
-    await page.getByRole("link", { name: "View all" }).click();
-    await expect(page.getByRole("heading", { name: "Diagnostics", level: 1 })).toBeVisible();
-    await expect(page.getByRole("heading", { name: "Audit trail" })).toBeVisible();
-    await expect(page.getByRole("region", { name: "Audit trail" })).toContainText("Administrator signed in");
+    await page.getByRole("link", { name: "Open the event log" }).click();
+    await expect(page.getByRole("heading", { name: "Event log", level: 1 })).toBeVisible();
+    expect(path(page)).toBe("/admin/diagnostics/events");
+    await expect(page.getByRole("list", { name: "Event log" })).toContainText("Administrator signed in");
   });
 
   test("the page nav is a bar along the bottom edge of a phone and stays there while the page scrolls", async ({
