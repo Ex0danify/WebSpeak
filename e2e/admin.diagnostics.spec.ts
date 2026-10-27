@@ -53,6 +53,15 @@ test.describe("diagnostics", () => {
     await expect(events.getByRole("listitem")).toHaveCount(before + 1);
   });
 
+  test("Refresh turns its arrow for a whole turn, also for someone who asked for less motion", async ({ page, ownGateway }) => {
+    await openDiagnostics(page, await ownGateway());
+    const refresh = page.getByRole("button", { name: "Refresh" });
+    await refresh.click();
+    await expect(refresh).toHaveAttribute("aria-busy", "true");
+    expect(await refresh.locator("svg").evaluate((icon) => getComputedStyle(icon).animationName)).toBe("spin");
+    await expect(refresh).not.toHaveAttribute("aria-busy", "true", { timeout: 3000 });
+  });
+
   test("Refresh reloads the page's data", async ({ page, ownGateway }) => {
     await openDiagnostics(page, await ownGateway());
     const answer = page.waitForResponse((response) => response.url().endsWith("/api/admin/diagnostics"));

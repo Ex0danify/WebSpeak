@@ -1,7 +1,7 @@
 <template>
   <svg
     class="ui-icon block shrink-0"
-    :class="spin ? 'animate-spin motion-reduce:animate-none' : undefined"
+    :class="spin ? (essential ? 'animate-spin' : 'animate-spin motion-reduce:animate-none') : undefined"
     :width="px"
     :height="px"
     viewBox="0 0 24 24"
@@ -126,7 +126,12 @@
 import { computed } from "vue";
 import { iconSizes, type IconName, type IconSize } from "@/shared/ui/icon/icon";
 
-// `spin` turns the icon once a second, and not at all under reduced motion.
-const props = withDefaults(defineProps<{ name: IconName; size?: IconSize; spin?: boolean }>(), { size: "md", spin: false });
+// `spin` turns the icon once a second, and not at all under reduced motion unless the turn is `essential`: the only sign that
+// something the person asked for is under way.
+const props = withDefaults(defineProps<{ name: IconName; size?: IconSize; spin?: boolean; essential?: boolean }>(), {
+  size: "md",
+  spin: false,
+  essential: false,
+});
 const px = computed(() => (typeof props.size === "number" ? props.size : iconSizes[props.size]));
 </script>
