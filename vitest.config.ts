@@ -32,6 +32,8 @@ export default defineConfig({
           name: "gateway",
           environment: "node",
           include: ["src/**/*.test.ts", "test/**/*.test.ts"],
+          // Disk work on the Windows runner is slow enough that ordinary tests take 4-5 s there.
+          testTimeout: ci ? 15_000 : 5_000,
         },
       },
       {
