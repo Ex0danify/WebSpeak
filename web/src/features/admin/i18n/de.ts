@@ -138,6 +138,10 @@ export const de: Record<string, string> = {
   welcomeFallbackHint: "Ein leeres Feld verwendet automatisch die Vorlage dieser Sprache.",
   unknown: "Unbekannt",
   savedStatus: "Gespeichert",
+  privacyNoticeUrl: "Link zur Datenschutzerklärung",
+  privacyNoticeUrlHint:
+    "Wird Gästen als Link in der Fußzeile der Startseite angezeigt. Leer lassen für keinen. Erkläre dort, was du speicherst, wozu und wie lange.",
+  issuePrivacyUrl: "Gib eine Webadresse an, die mit http:// oder https:// beginnt.",
   issueSiteName: "Nicht gespeichert: 1 bis 80 Zeichen eingeben.",
   issuePort: "Nicht gespeichert: Port von {{min}} bis {{max}} eingeben.",
   issuePortOrder: "Nicht gespeichert: Der Endport darf nicht unter dem Startport liegen.",

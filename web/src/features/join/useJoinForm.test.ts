@@ -258,6 +258,21 @@ describe("loadPublicConfig (run on mount)", () => {
     expect(vm.browserError).toBe("");
   });
 
+  it.each([
+    ["an https address", "https://example.org/privacy", "https://example.org/privacy"],
+    ["an address with spaces around it", "  http://example.org/p  ", "http://example.org/p"],
+    ["a script address, which would run on a click", "javascript:alert(1)", ""],
+    ["something that is no address", "privacy", ""],
+    ["a value that is no text", 42, ""],
+  ])("takes the privacy notice link from %s", async (_name, sent, expected) => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response(JSON.stringify({ initialized: true, privacyNoticeUrl: sent }), { status: 200 })),
+    );
+    const { vm } = await mountUseJoinForm();
+    expect(vm.privacyNoticeUrl).toBe(expected);
+  });
+
   it("surfaces checkSupport's text as browserError", async () => {
     const { vm } = await mountUseJoinForm({ checkSupport: vi.fn(() => ({ key: "audioDecodingUnsupported" as const })) });
     expect(vm.browserError).toEqual({ key: "audioDecodingUnsupported" });

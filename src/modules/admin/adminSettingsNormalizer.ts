@@ -31,6 +31,8 @@ export interface AdminSettingsInput {
   siteName: string;
   /** Texts to store by language code, a language left out keeps its text and an empty one clears it. */
   welcomeTexts?: Record<string, string>;
+  /** An http(s) address, empty clears it, left out keeps it. */
+  privacyNoticeUrl?: string;
   webRtcEnabled: boolean;
   webRtcUdpStart?: number;
   webRtcUdpEnd?: number;
@@ -74,9 +76,27 @@ function mergeWelcomeTexts(current: Record<string, string>, input: Record<string
   return merged;
 }
 
+export const PRIVACY_NOTICE_URL_MAX = 300;
+
+function normalizePrivacyNoticeUrl(value: string): string {
+  const trimmed = value.trim();
+  if (!trimmed) return "";
+  const invalid = () => new AdminInputError("INVALID_PRIVACY_NOTICE_URL", "The privacy notice must be an http or https address");
+  if (trimmed.length > PRIVACY_NOTICE_URL_MAX) throw invalid();
+  try {
+    const url = new URL(trimmed);
+    // A link in front of every guest, so no scheme that runs script and no login in the address.
+    if ((url.protocol !== "http:" && url.protocol !== "https:") || url.username || url.password) throw invalid();
+  } catch (error: unknown) {
+    throw error instanceof AdminInputError ? error : invalid();
+  }
+  return trimmed;
+}
+
 export function normalizeSettings(input: AdminSettingsInput, current: StoredSettings): SettingsUpdate {
   const siteName = input.siteName.trim();
   const welcomeTexts = mergeWelcomeTexts(current.welcomeTexts, input.welcomeTexts);
+  const privacyNoticeUrl = normalizePrivacyNoticeUrl(input.privacyNoticeUrl ?? current.privacyNoticeUrl);
   if (!siteName || siteName.length > 80) throw new AdminInputError("INVALID_SITE_NAME", "Site name must contain 1 to 80 characters");
   if (Object.values(welcomeTexts).some((text) => text.length > 500)) {
     throw new AdminInputError("INVALID_WELCOME_TEXT", "Welcome text cannot exceed 500 characters");
@@ -161,6 +181,7 @@ export function normalizeSettings(input: AdminSettingsInput, current: StoredSett
   return {
     siteName,
     welcomeTexts,
+    privacyNoticeUrl,
     accessMode: input.accessMode,
     webRtcEnabled: input.webRtcEnabled,
     webRtcUdpStart,
@@ -229,6 +250,7 @@ export function toSettingsUpdate(settings: StoredSettings): SettingsUpdate {
   return {
     siteName: settings.siteName,
     welcomeTexts: settings.welcomeTexts,
+    privacyNoticeUrl: settings.privacyNoticeUrl,
     accessMode: settings.accessMode,
     webRtcEnabled: settings.webRtcEnabled,
     webRtcUdpStart: settings.webRtcUdpStart,

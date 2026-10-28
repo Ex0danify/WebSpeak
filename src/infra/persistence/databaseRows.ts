@@ -28,6 +28,7 @@ export interface SettingsRow extends Record<string, unknown> {
   event_log_max_rows: number;
   connection_retention_days: number;
   connection_max_rows: number;
+  privacy_notice_url: string;
   updated_at: string;
 }
 

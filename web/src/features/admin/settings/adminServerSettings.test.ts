@@ -73,6 +73,7 @@ describe("autosave", () => {
       accessMode: "fixed",
       siteName: "Night Owls",
       welcomeTexts: {},
+      privacyNoticeUrl: "",
       webRtcEnabled: false,
       webRtcUdpStart: 40000,
       webRtcUdpEnd: 40099,

@@ -3,6 +3,7 @@ import type { AccessMode, RelayNodeForm, ServerForm } from "@/features/admin/set
 /** The limits the gateway enforces on the settings document, so a value outside them is held back instead of refused. */
 export const SETTING_LIMITS = {
   siteNameMax: 80,
+  privacyNoticeUrlMax: 300,
   port: { min: 1024, max: 65535 },
   identityMintMaxLevel: { min: 1, max: 24 },
   identityMintConcurrency: { min: 1, max: 8 },
@@ -20,6 +21,7 @@ export type SettingsSection = "access" | "web" | "webrtc" | "mint" | "retention"
 
 export type SettingsIssue =
   | { code: "siteName" }
+  | { code: "privacyUrl" }
   | { code: "port"; min: number; max: number }
   | { code: "portOrder" }
   | { code: "number"; min: number; max: number }
@@ -45,6 +47,7 @@ export interface SettingsDocument {
   accessMode: AccessMode;
   siteName: string;
   welcomeTexts: Record<string, string>;
+  privacyNoticeUrl: string;
   webRtcEnabled: boolean;
   webRtcUdpStart: number;
   webRtcUdpEnd: number;
@@ -70,6 +73,18 @@ const NUMBER_FIELDS = [
   "connectionMaxRows",
 ] as const;
 type NumberField = (typeof NUMBER_FIELDS)[number];
+
+/** What the gateway takes as the privacy notice: nothing, or an http(s) address without a login in it. */
+function isPrivacyUrl(text: string): boolean {
+  if (!text) return true;
+  if (text.length > SETTING_LIMITS.privacyNoticeUrlMax) return false;
+  try {
+    const url = new URL(text);
+    return (url.protocol === "http:" || url.protocol === "https:") && !url.username && !url.password;
+  } catch {
+    return false;
+  }
+}
 
 const integerIn = (value: unknown, limit: Limit): value is number =>
   typeof value === "number" && Number.isInteger(value) && value >= limit.min && value <= limit.max;
@@ -127,6 +142,10 @@ export function buildSettingsDocument(form: ServerForm, confirmed: ServerForm): 
   const siteNameOk = siteName.length >= 1 && siteName.length <= SETTING_LIMITS.siteNameMax;
   if (!siteNameOk) issues.siteName = { code: "siteName" };
 
+  const privacyNoticeUrl = form.privacyNoticeUrl.trim();
+  const privacyUrlOk = isPrivacyUrl(privacyNoticeUrl);
+  if (!privacyUrlOk) issues.privacyNoticeUrl = { code: "privacyUrl" };
+
   const port = SETTING_LIMITS.port;
   const startOk = integerIn(form.webRtcUdpStart, port);
   const endOk = integerIn(form.webRtcUdpEnd, port);
@@ -163,6 +182,7 @@ export function buildSettingsDocument(form: ServerForm, confirmed: ServerForm): 
       accessMode: form.accessMode,
       siteName: siteNameOk ? siteName : confirmed.siteName,
       welcomeTexts: form.welcomeTexts,
+      privacyNoticeUrl: privacyUrlOk ? privacyNoticeUrl : confirmed.privacyNoticeUrl,
       webRtcEnabled: form.webRtcEnabled,
       webRtcUdpStart: rangeOk ? form.webRtcUdpStart : confirmed.webRtcUdpStart,
       webRtcUdpEnd: rangeOk ? form.webRtcUdpEnd : confirmed.webRtcUdpEnd,
@@ -189,6 +209,7 @@ export function changedFieldKeys(next: SettingsDocument, previous: SettingsDocum
   if (next.accessMode !== previous.accessMode) keys.push("accessMode");
   if (next.webRtcEnabled !== previous.webRtcEnabled) keys.push("webRtcEnabled");
   if (next.siteName !== previous.siteName) keys.push("siteName");
+  if (next.privacyNoticeUrl !== previous.privacyNoticeUrl) keys.push("privacyNoticeUrl");
   if (JSON.stringify(withoutEmptyTexts(next).welcomeTexts) !== JSON.stringify(withoutEmptyTexts(previous).welcomeTexts))
     keys.push("welcomeText");
   for (const field of ["webRtcUdpStart", "webRtcUdpEnd", ...NUMBER_FIELDS] as const) if (next[field] !== previous[field]) keys.push(field);
@@ -213,6 +234,7 @@ export function applySavedSettings(form: ServerForm, sent: SettingsDocument, sav
 
   if (form.accessMode === sent.accessMode) form.accessMode = saved.accessMode;
   if (form.siteName.trim() === sent.siteName) form.siteName = saved.siteName;
+  if (form.privacyNoticeUrl.trim() === sent.privacyNoticeUrl) form.privacyNoticeUrl = saved.privacyNoticeUrl;
   if (JSON.stringify(form.welcomeTexts) === JSON.stringify(sent.welcomeTexts)) form.welcomeTexts = saved.welcomeTexts;
   if (form.webRtcEnabled === sent.webRtcEnabled) form.webRtcEnabled = saved.webRtcEnabled;
   // While WebRTC is on the range cannot be edited, so it only ever shows what the gateway keeps.

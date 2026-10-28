@@ -11,6 +11,7 @@ const TOKEN = "relay-token-1234567";
 const stored = (overrides: Partial<PersistedSettings> = {}): PersistedSettings => ({
   siteName: "Old",
   welcomeTexts: { en: "en", de: "de" },
+  privacyNoticeUrl: "",
   accessMode: "fixed",
   webRtcEnabled: false,
   webRtcUdpStart: 40000,
@@ -55,6 +56,26 @@ describe("normalizeSettings", () => {
       webRtcUdpStart: 40000,
       webRtcUdpEnd: 40100,
     });
+  });
+
+  it("keeps the privacy notice address when it is left out, trims it, and clears it with an empty one", () => {
+    const current = stored({ privacyNoticeUrl: "https://example.org/privacy" });
+    expect(normalizeSettings(settingsInput(), current).privacyNoticeUrl).toBe("https://example.org/privacy");
+    expect(normalizeSettings(settingsInput({ privacyNoticeUrl: "  http://example.org/p?x=1#top  " }), current).privacyNoticeUrl).toBe(
+      "http://example.org/p?x=1#top",
+    );
+    expect(normalizeSettings(settingsInput({ privacyNoticeUrl: " " }), current).privacyNoticeUrl).toBe("");
+  });
+
+  it.each([
+    ["a script address", "javascript:alert(1)"],
+    ["a data address", "data:text/html,hi"],
+    ["a file address", "file:///etc/passwd"],
+    ["something that is no address", "privacy page"],
+    ["an address with a login in it", "https://user:secret@example.org/privacy"],
+    ["an address over 300 characters", `https://example.org/${"x".repeat(300)}`],
+  ])("refuses %s as the privacy notice", (_name, url) => {
+    expect(codeOf(() => normalizeSettings(settingsInput({ privacyNoticeUrl: url }), stored()))).toBe("INVALID_PRIVACY_NOTICE_URL");
   });
 
   const rejects: Array<[string, Parameters<typeof settingsInput>[0], string]> = [

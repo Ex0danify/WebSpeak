@@ -31,6 +31,7 @@ describe("/api/public-config", () => {
       "accelerationRelays",
       "accessMode",
       "initialized",
+      "privacyNoticeUrl",
       "servers",
       "siteName",
       "version",
@@ -42,6 +43,7 @@ describe("/api/public-config", () => {
       version: "9.9.9",
       initialized: true,
       siteName: "WebSpeak",
+      privacyNoticeUrl: "",
       accelerationAvailable: false,
       accelerationRelays: [],
     });

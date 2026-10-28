@@ -69,6 +69,7 @@ export function useJoinForm(options: UseJoinFormOptions) {
   const initialized = ref(lastKnownInitialized);
   const siteName = ref("WebSpeak");
   const welcomeTexts = ref<Record<string, string>>({});
+  const privacyNoticeUrl = ref("");
   const appVersion = ref("0.2.4");
   const visitorNumber = ref<number | null>(null);
   const visitorTotal = ref<number | null>(null);
@@ -179,6 +180,7 @@ export function useJoinForm(options: UseJoinFormOptions) {
         initialized?: unknown;
         siteName?: unknown;
         welcomeTexts?: unknown;
+        privacyNoticeUrl?: unknown;
         accessMode?: unknown;
         servers?: unknown;
         visitorNumber?: unknown;
@@ -203,6 +205,11 @@ export function useJoinForm(options: UseJoinFormOptions) {
           Object.entries(config.welcomeTexts).filter((entry): entry is [string, string] => typeof entry[1] === "string"),
         );
       }
+      // The gateway only stores http(s) addresses, the link is checked again here because it ends up in an href.
+      privacyNoticeUrl.value =
+        typeof config.privacyNoticeUrl === "string" && /^https?:\/\//i.test(config.privacyNoticeUrl.trim())
+          ? config.privacyNoticeUrl.trim()
+          : "";
       accessMode.value = config.accessMode === "open" ? "open" : "fixed";
       accelerationRelays.value = Array.isArray(config.accelerationRelays)
         ? config.accelerationRelays.flatMap((value) => {
@@ -311,6 +318,7 @@ export function useJoinForm(options: UseJoinFormOptions) {
     initialized,
     siteName,
     welcomeTexts,
+    privacyNoticeUrl,
     localizedWelcomeText,
     appVersion,
     visitorNumber,

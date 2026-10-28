@@ -13,6 +13,7 @@ export class SettingsRepository {
     return {
       siteName: row.site_name,
       welcomeTexts: this.readWelcomeTexts(),
+      privacyNoticeUrl: row.privacy_notice_url,
       accessMode: row.access_mode === "open" ? "open" : "fixed",
       webRtcEnabled: row.webrtc_enabled === 1,
       webRtcUdpStart: row.webrtc_udp_start,
@@ -36,7 +37,7 @@ export class SettingsRepository {
          site_name = ?, access_mode = ?, webrtc_enabled = ?, webrtc_udp_start = ?,
          webrtc_udp_end = ?, identity_mint_max_level = ?, identity_mint_concurrency = ?,
          identity_mint_queue_depth = ?, event_log_retention_days = ?, event_log_max_rows = ?,
-         connection_retention_days = ?, connection_max_rows = ?, updated_at = ?
+         connection_retention_days = ?, connection_max_rows = ?, privacy_notice_url = ?, updated_at = ?
        WHERE id = 1`,
       )
       .run(
@@ -52,6 +53,7 @@ export class SettingsRepository {
         retention.eventLog.maxRows,
         retention.connections.days,
         retention.connections.maxRows,
+        settings.privacyNoticeUrl ?? "",
         now,
       );
     this.writeWelcomeTexts(settings.welcomeTexts ?? {});

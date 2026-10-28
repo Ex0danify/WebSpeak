@@ -31,6 +31,22 @@ describe("buildSettingsDocument", () => {
     expect(document).toMatchObject({ siteName: "Night Owls", accessMode: "open", identityMintMaxLevel: 10, relayNodes: [] });
   });
 
+  it.each(["", "https://example.org/privacy", "http://example.org:8080/p?x=1#top"])("takes %j as the privacy notice", (url) => {
+    const { document, issues } = buildSettingsDocument(confirmedForm({ privacyNoticeUrl: ` ${url} ` }), confirmedForm());
+    expect(issues).toEqual({});
+    expect(document.privacyNoticeUrl).toBe(url);
+  });
+
+  it.each(["javascript:alert(1)", "example.org/privacy", "ftp://example.org", "https://user:pw@example.org/", `https://example.org/${"x".repeat(300)}`])(
+    "holds back %j as the privacy notice and keeps the one the gateway has",
+    (url) => {
+      const confirmed = confirmedForm({ privacyNoticeUrl: "https://example.org/old" });
+      const { document, issues } = buildSettingsDocument(confirmedForm({ privacyNoticeUrl: url }), confirmed);
+      expect(issues).toEqual({ privacyNoticeUrl: { code: "privacyUrl" } });
+      expect(document.privacyNoticeUrl).toBe("https://example.org/old");
+    },
+  );
+
   it("takes a port that is not a number, outside the range or backwards for a mistake in the whole range", () => {
     for (const [start, end] of [
       ["", 40099],
@@ -109,6 +125,16 @@ describe("applySavedSettings", () => {
     expect(form.identityMintMaxLevel).toBe(14);
   });
 
+  it("takes the privacy notice as the gateway saved it, unless it was edited since", () => {
+    const form = confirmedForm({ privacyNoticeUrl: " https://example.org/p " });
+    const sent = buildSettingsDocument(form, confirmedForm()).document;
+    applySavedSettings(form, sent, saved({ privacyNoticeUrl: "https://example.org/p" }));
+    expect(form.privacyNoticeUrl).toBe("https://example.org/p");
+    form.privacyNoticeUrl = "https://example.org/typed-since";
+    applySavedSettings(form, sent, saved({ privacyNoticeUrl: "https://example.org/p" }));
+    expect(form.privacyNoticeUrl).toBe("https://example.org/typed-since");
+  });
+
   it("shows the range the gateway keeps while WebRTC is on", () => {
     const form = confirmedForm({ webRtcEnabled: true, webRtcUdpStart: 50000, webRtcUdpEnd: 45000 });
     const sent = buildSettingsDocument(form, confirmedForm()).document;
@@ -144,6 +170,7 @@ describe("changedFieldKeys", () => {
   it("names the fields and choices that differ", () => {
     const form = confirmedForm({ siteName: "Night Owls", identityMintQueueDepth: 5, accessMode: "open", webRtcEnabled: true });
     expect(changedFieldKeys(documentOf(form), before)).toEqual(["accessMode", "webRtcEnabled", "siteName", "identityMintQueueDepth"]);
+    expect(changedFieldKeys(documentOf(confirmedForm({ privacyNoticeUrl: "https://example.org/p" })), before)).toEqual(["privacyNoticeUrl"]);
   });
 
   it("names the welcome text only when its words change", () => {

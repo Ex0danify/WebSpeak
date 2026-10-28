@@ -37,6 +37,7 @@ const TITLE_KEYS: Record<string, MessageKey> = {
 // Labels of the fields an edit of the settings or of a server can change.
 const FIELD_KEYS: Record<string, MessageKey> = {
   siteName: "siteName",
+  privacyNoticeUrl: "privacyNoticeUrl",
   accessMode: "eventFieldAccessMode",
   webRtcEnabled: "webrtcEnabled",
   webRtcUdpStart: "webrtcPortStart",

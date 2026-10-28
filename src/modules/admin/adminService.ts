@@ -122,6 +122,7 @@ export class AdminService {
       siteName: settings.siteName,
       // Complete map with the default filled in for every language without a stored text.
       welcomeTexts,
+      privacyNoticeUrl: settings.privacyNoticeUrl,
       accessMode: settings.accessMode,
       // Names only, the addresses of the configured servers stay with the administrator.
       servers: this.servers.list().map(({ id, name }) => ({ id, name })),
@@ -135,6 +136,7 @@ export class AdminService {
       accessMode: settings.accessMode,
       siteName: settings.siteName,
       welcomeTexts: settings.welcomeTexts,
+      privacyNoticeUrl: settings.privacyNoticeUrl,
       welcomeDefaults: DEFAULT_WELCOME_TEXTS,
       webRtcEnabled: settings.webRtcEnabled,
       webRtcUdpStart: settings.webRtcUdpStart,
@@ -200,6 +202,7 @@ export class AdminService {
     const changes = diffFields(
       {
         siteName: current.siteName,
+        privacyNoticeUrl: current.privacyNoticeUrl,
         accessMode: current.accessMode,
         webRtcEnabled: current.webRtcEnabled,
         webRtcUdpStart: current.webRtcUdpStart,
@@ -214,6 +217,7 @@ export class AdminService {
       },
       {
         siteName: settings.siteName,
+        privacyNoticeUrl: settings.privacyNoticeUrl,
         accessMode: settings.accessMode,
         webRtcEnabled: settings.webRtcEnabled,
         webRtcUdpStart: settings.webRtcUdpStart,

@@ -30,7 +30,7 @@ const SECTIONS: SettingsSection[] = ["access", "web", "webrtc", "mint", "retenti
 /** The section a refused save is about, by the code the gateway answered with. */
 function sectionOfError(code: string | undefined): SettingsSection {
   if (code?.startsWith("INVALID_RELAY")) return "relay";
-  if (code === "INVALID_SITE_NAME" || code === "INVALID_WELCOME_TEXT") return "web";
+  if (code === "INVALID_SITE_NAME" || code === "INVALID_WELCOME_TEXT" || code === "INVALID_PRIVACY_NOTICE_URL") return "web";
   if (code?.includes("WEBRTC")) return "webrtc";
   if (code?.includes("IDENTITY_MINT")) return "mint";
   if (code?.includes("RETENTION") || code?.includes("_ROWS")) return "retention";
@@ -180,6 +180,8 @@ export const useAdminServerSettingsStore = defineStore("adminServerSettings", ()
     switch (issue.code) {
       case "siteName":
         return t("issueSiteName");
+      case "privacyUrl":
+        return t("issuePrivacyUrl");
       case "port":
         return t("issuePort", { min: issue.min, max: issue.max });
       case "portOrder":

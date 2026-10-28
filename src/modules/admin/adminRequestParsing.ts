@@ -1,6 +1,6 @@
 import { AdminInputError, type AdminSettingsInput, type RelayNodeInput } from "./adminService.js";
 import type { ServerInput } from "./adminServerService.js";
-import { WELCOME_LANGUAGE_MAX } from "./adminSettingsNormalizer.js";
+import { PRIVACY_NOTICE_URL_MAX, WELCOME_LANGUAGE_MAX } from "./adminSettingsNormalizer.js";
 
 export function readSettingsInput(body: Record<string, unknown>): AdminSettingsInput {
   const relayNodes = Array.isArray(body.relayNodes)
@@ -20,6 +20,7 @@ export function readSettingsInput(body: Record<string, unknown>): AdminSettingsI
     accessMode: body.accessMode === "open" ? "open" : body.accessMode === "fixed" ? "fixed" : (body.accessMode as never),
     siteName: readString(body, "siteName", 80),
     welcomeTexts: readWelcomeTexts(body.welcomeTexts),
+    privacyNoticeUrl: typeof body.privacyNoticeUrl === "string" ? body.privacyNoticeUrl.slice(0, PRIVACY_NOTICE_URL_MAX + 1) : undefined,
     webRtcEnabled: body.webRtcEnabled === true,
     webRtcUdpStart: readOptionalInteger(body, "webRtcUdpStart"),
     webRtcUdpEnd: readOptionalInteger(body, "webRtcUdpEnd"),

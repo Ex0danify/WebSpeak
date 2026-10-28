@@ -47,6 +47,34 @@ test.describe("save", () => {
     expect(JSON.stringify(await publicConfig(gateway))).toContain("Night Owls Voice");
   });
 
+  test("the privacy notice link is kept, reaches the guests' footer, and a script address is refused", async ({ page, ownGateway }) => {
+    const gateway = await ownGateway();
+    await openWebPage(page, gateway);
+    const link = page.getByLabel("Privacy notice link");
+    expect(await saves(page, () => typeInto(link, "https://example.org/privacy"))).toBe(200);
+    await reloadWebPage(page, gateway);
+    await expect(link).toHaveValue("https://example.org/privacy");
+
+    const guest = await page.context().newPage();
+    await guest.goto(`${gateway.url}/`);
+    const notice = guest.getByRole("contentinfo").getByRole("link", { name: /Privacy information/ });
+    await expect(notice).toHaveAttribute("href", "https://example.org/privacy");
+    await expect(notice).toHaveAttribute("target", "_blank");
+    await expect(notice).toHaveAttribute("rel", /noopener/);
+    // The longer footer row wraps instead of pushing the page sideways.
+    expect(await guest.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+    await guest.close();
+
+    // Held back before it is sent, the console says why and keeps the saved address.
+    await link.fill("javascript:alert(1)");
+    await link.blur();
+    await expect(page.getByText("Enter a web address starting with http:// or https://.")).toBeVisible();
+    expect(await publicConfig(gateway)).toMatchObject({ privacyNoticeUrl: "https://example.org/privacy" });
+
+    expect(await saves(page, () => typeInto(link, ""))).toBe(200);
+    expect(await publicConfig(gateway)).toMatchObject({ privacyNoticeUrl: "" });
+  });
+
   test("the guest access mode is a choice of two, and the choice is kept", async ({ page, ownGateway }) => {
     const gateway = await ownGateway();
     await openGatewayPage(page, gateway);

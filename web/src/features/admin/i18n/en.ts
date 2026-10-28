@@ -135,6 +135,10 @@ export const en = {
   welcomeFallbackHint: "An empty field falls back to the built-in template for this language.",
   unknown: "Unknown",
   savedStatus: "Saved",
+  privacyNoticeUrl: "Privacy notice link",
+  privacyNoticeUrlHint:
+    "Shown to guests as a link in the footer of the join page. Leave empty for none. Say there what you store, why and for how long.",
+  issuePrivacyUrl: "Enter a web address starting with http:// or https://.",
   issueSiteName: "Not saved: enter 1 to 80 characters.",
   issuePort: "Not saved: enter a port from {{min}} to {{max}}.",
   issuePortOrder: "Not saved: the end port must not be below the start port.",

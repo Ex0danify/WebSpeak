@@ -29,6 +29,7 @@ describe("GET /server", () => {
       "identityMintConcurrency",
       "identityMintMaxLevel",
       "identityMintQueueDepth",
+      "privacyNoticeUrl",
       "relayNodes",
       "servers",
       "siteName",
@@ -79,6 +80,19 @@ describe("PUT /server", () => {
     });
     await admin.put("server", settingsInput({ siteName: "Renamed", accessMode: "open", welcomeTexts: { en: "hello" } }));
     expect(details()).toMatchObject({ changes: [] });
+  });
+
+  it("saves the privacy notice address, reports it to guests, audits the change and refuses a bad one", async () => {
+    const { gateway, admin } = await start();
+    const saved = await admin.put("server", settingsInput({ privacyNoticeUrl: "https://example.org/privacy" }));
+    expect((await json(saved)).settings.privacyNoticeUrl).toBe("https://example.org/privacy");
+    expect(await (await gateway.request("/api/public-config")).json()).toMatchObject({ privacyNoticeUrl: "https://example.org/privacy" });
+    expect(gateway.database.listAudit({ limit: 1, offset: 0 }).events[0]?.details).toMatchObject({
+      changes: expect.arrayContaining([{ field: "privacyNoticeUrl", from: "", to: "https://example.org/privacy" }]),
+    });
+    const refused = await admin.put("server", settingsInput({ privacyNoticeUrl: "javascript:alert(1)" }));
+    expect([refused.status, (await json(refused)).code]).toEqual([400, "INVALID_PRIVACY_NOTICE_URL"]);
+    expect((await json(await admin.get("server"))).privacyNoticeUrl).toBe("https://example.org/privacy");
   });
 
   it("round-trips: the values the console reads can be written back unchanged, and the password survives", async () => {

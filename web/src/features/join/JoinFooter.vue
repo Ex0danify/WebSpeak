@@ -7,6 +7,18 @@
     ><span :class="separatorClass">·</span><span>{{ t("teamSpeakClient") }}</span
     ><span class="flex-1 max-compact:hidden"></span><span :class="`${separatorClass} compact:hidden`">·</span
     ><Button variant="soft" size="inline" @click="$emit('clear-local-data')">{{ t("clearLocalData") }}</Button
+    ><template v-if="privacyNoticeUrl"
+      ><span :class="separatorClass">·</span
+      ><Button
+        as="a"
+        variant="link"
+        size="inline"
+        :href="privacyNoticeUrl"
+        target="_blank"
+        rel="noopener noreferrer"
+        :aria-label="t('privacyNoticeNewTab')"
+        >{{ t("privacyNotice") }}</Button
+      ></template
     ><span :class="separatorClass">·</span><span class="max-compact:ml-auto">{{ t("browserSupport") }}</span>
     <nav class="hidden basis-full flex-wrap gap-x-4 max-compact:flex" :aria-label="t('moreLinks')">
       <Button as="a" variant="link" size="inline" :href="CHANGELOG_URL" target="_blank" rel="noreferrer">{{ t("viewChangelog") }}</Button>
@@ -21,7 +33,7 @@ import { Button } from "@/shared/ui/button";
 import { APP_NAME, CHANGELOG_URL, VERSION_PREFIX } from "@/shared/lib/brand";
 import { useI18n } from "@/shared/i18n/useI18n.js";
 
-defineProps<{ appVersion: string }>();
+defineProps<{ appVersion: string; privacyNoticeUrl: string }>();
 
 defineEmits<{
   (e: "clear-local-data"): void;

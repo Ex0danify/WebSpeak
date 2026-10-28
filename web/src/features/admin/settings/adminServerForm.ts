@@ -96,6 +96,7 @@ export function initialServerForm() {
     accessMode: "fixed" as AccessMode,
     siteName: "WebSpeak",
     welcomeTexts: {} as Record<string, string>,
+    privacyNoticeUrl: "",
     welcomeDefaults: { ...DEFAULT_WELCOME_TEXTS },
     webRtcEnabled: false,
     webRtcUdpStart: 40000,
@@ -128,6 +129,7 @@ export function serverFormFromSettings(value: Record<string, any>): ServerForm {
 export function formFieldsFromSettings(value: Record<string, any>) {
   return {
     welcomeTexts: mapWelcomeTexts(value.welcomeTexts),
+    privacyNoticeUrl: typeof value.privacyNoticeUrl === "string" ? value.privacyNoticeUrl : "",
     welcomeDefaults: {
       ...DEFAULT_WELCOME_TEXTS,
       ...(value.welcomeDefaults && typeof value.welcomeDefaults === "object" ? value.welcomeDefaults : {}),

@@ -43,6 +43,8 @@ export const de: Record<string, string> = {
   removeFavorite: "Aus Favoriten entfernen",
   savedFavoriteToast: "Als Favorit gespeichert",
   removedFavoriteToast: "Aus Favoriten entfernt",
+  privacyNotice: "Datenschutz",
+  privacyNoticeNewTab: "Datenschutzhinweise (öffnet in einem neuen Tab)",
   clearLocalData: "Lokale Daten löschen",
   clearLocalDataConfirm: "Identität, Favoriten, letzte Verbindungen und Audioeinstellungen dieses Geräts löschen?",
   clearLocalDataTitle: "Lokale Daten löschen",

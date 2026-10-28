@@ -1,6 +1,6 @@
 import type { DatabaseSync } from "node:sqlite";
 
-export const DATABASE_SCHEMA_VERSION = 15;
+export const DATABASE_SCHEMA_VERSION = 16;
 
 /** The oldest schema this build upgrades, 0.7.0 is the first release that writes it. */
 export const MINIMUM_SCHEMA_VERSION = 10;
@@ -46,6 +46,7 @@ const MIGRATIONS: Migration[] = [
             event_log_max_rows INTEGER NOT NULL DEFAULT 5000 CHECK (event_log_max_rows BETWEEN 100 AND 50000),
             connection_retention_days INTEGER NOT NULL DEFAULT 30 CHECK (connection_retention_days BETWEEN 1 AND 365),
             connection_max_rows INTEGER NOT NULL DEFAULT 10000 CHECK (connection_max_rows BETWEEN 100 AND 100000),
+            privacy_notice_url TEXT NOT NULL DEFAULT '',
             updated_at TEXT NOT NULL
           );
           CREATE TABLE welcome_texts (
@@ -268,6 +269,14 @@ const MIGRATIONS: Migration[] = [
     up(database) {
       // The browser a guest joined with, as the voice socket reported it.
       database.exec("ALTER TABLE connection_records ADD COLUMN user_agent TEXT");
+    },
+  },
+  {
+    from: 15,
+    to: 16,
+    up(database) {
+      // Where a guest can read what the operator does with the data. Empty for none.
+      database.exec("ALTER TABLE settings ADD COLUMN privacy_notice_url TEXT NOT NULL DEFAULT ''");
     },
   },
 ];

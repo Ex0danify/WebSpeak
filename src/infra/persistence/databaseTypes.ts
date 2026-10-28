@@ -7,6 +7,8 @@ export interface PersistedSettings {
   siteName: string;
   /** Non-empty welcome texts by language code. */
   welcomeTexts: Record<string, string>;
+  /** An http(s) address, empty when the operator named none. */
+  privacyNoticeUrl: string;
   accessMode: AccessMode;
   webRtcEnabled: boolean;
   webRtcUdpStart: number;
@@ -22,6 +24,7 @@ export interface SettingsUpdate {
   siteName: string;
   /** Replaces the stored welcome texts, empty values are not stored. */
   welcomeTexts?: Record<string, string>;
+  privacyNoticeUrl?: string;
   accessMode: AccessMode;
   webRtcEnabled: boolean;
   webRtcUdpStart?: number;

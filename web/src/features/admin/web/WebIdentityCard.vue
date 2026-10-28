@@ -3,6 +3,15 @@
     <SettingField :label="t('siteName')" field="siteName"
       ><Input v-model.trim="serverForm.siteName" maxlength="80" @change="scheduleSave('web')"
     /></SettingField>
+    <SettingField :label="t('privacyNoticeUrl')" field="privacyNoticeUrl" :hint="t('privacyNoticeUrlHint')"
+      ><Input
+        v-model.trim="serverForm.privacyNoticeUrl"
+        type="url"
+        inputmode="url"
+        maxlength="300"
+        :placeholder="PRIVACY_URL_EXAMPLE"
+        @change="scheduleSave('web')"
+    /></SettingField>
     <div class="grid gap-2.5 rounded-lg border border-line bg-surface-0 p-3">
       <div class="grid grid-cols-[minmax(0,1fr)_minmax(180px,1fr)] items-end gap-3 max-narrow:grid-cols-1 max-narrow:gap-1.5">
         <Field :label="t('welcomeLanguage')">
@@ -44,4 +53,6 @@ const settings = useAdminServerSettingsStore();
 const { serverForm, welcomeLanguage, selectedWelcomeText, selectedWelcomeLanguageLabel, selectedWelcomeDefault } = storeToRefs(settings);
 const { statuses, scheduleSave } = settings;
 const { t } = useI18n();
+
+const PRIVACY_URL_EXAMPLE = "https://example.org/privacy";
 </script>
