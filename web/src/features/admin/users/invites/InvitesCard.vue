@@ -1,34 +1,32 @@
 <template>
-  <AdminSection :title="t('invites')" :lead="t('invitesLead')">
+  <AdminListCard
+    :title="t('invites')"
+    :lead="t('invitesLead')"
+    :items="list.items"
+    :key-of="(invite) => invite.id"
+    :total="list.total"
+    :empty-text="t('inviteListEmpty')"
+    empty-icon="send"
+    more-to="/admin/users/invites"
+    :more-label="t('viewAllInvites')"
+  >
     <template #action>
       <Button variant="secondary" size="sm" class="shrink-0" @click="openCreateInvite()"
         ><Icon name="plus" :size="16" />{{ t("createInvite") }}</Button
       >
     </template>
-    <div v-if="!list.items.length" class="rounded-md border border-dashed border-line bg-surface-0 px-3 py-2.5 text-caption text-fg-muted">
-      {{ t("inviteListEmpty") }}
-    </div>
-    <ul v-else class="m-0 grid list-none gap-2.5 p-0" :aria-label="t('invites')">
-      <InviteRow v-for="invite in list.items" :key="invite.id" :invite="invite" />
-    </ul>
-    <ListFooter v-if="list.total > list.items.length" :summary="t('listShowing', { shown: list.items.length, total: list.total })">
-      <RouterLink to="/admin/users/invites" class="text-caption font-bold whitespace-nowrap text-accent no-underline">{{
-        t("viewAllInvites")
-      }}</RouterLink>
-    </ListFooter>
-    <InviteDialog />
-  </AdminSection>
+    <template #row="{ item }"><InviteRow :invite="item" /></template>
+  </AdminListCard>
+  <InviteDialog />
 </template>
 
 <script setup lang="ts">
 import { onMounted } from "vue";
-import { RouterLink } from "vue-router";
 import { storeToRefs } from "pinia";
 import { Button } from "@/shared/ui/button";
 import { Icon } from "@/shared/ui/icon";
-import { ListFooter } from "@/shared/ui/list";
 import { useI18n } from "@/shared/i18n/useI18n";
-import AdminSection from "@/features/admin/ui/AdminSection.vue";
+import AdminListCard from "@/features/admin/ui/AdminListCard.vue";
 import { useLiveRefresh } from "@/features/admin/core/useLiveRefresh";
 import InviteDialog from "@/features/admin/users/invites/InviteDialog.vue";
 import InviteRow from "@/features/admin/users/invites/InviteRow.vue";

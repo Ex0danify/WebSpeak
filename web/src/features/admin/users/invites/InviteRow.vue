@@ -13,9 +13,6 @@
     <div class="flex shrink-0 items-center gap-3 text-2xs text-fg-muted">
       <Chip :variant="invite.status === 'active' ? 'accent' : 'danger'">{{ inviteStatusLabel(invite.status) }}</Chip>
       <span>{{ usedText }}</span>
-    </div>
-    <!-- The slot keeps its width when there is nothing to revoke, so the rows line up. -->
-    <div class="flex w-22 shrink-0 justify-end max-narrow:w-auto">
       <Button
         v-if="invite.status === 'active'"
         variant="dangerSoft"

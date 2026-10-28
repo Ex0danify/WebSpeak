@@ -1,39 +1,29 @@
 <template>
-  <AdminPage :title="t('sessions')" :lead="t('sessionsLead')" back-to="/admin/users" :back-label="t('users')">
-    <template #action>
-      <RefreshButton :loading="sessionsLoading" @click="loadSessions()" />
-    </template>
-    <Card padding="lg" body-class="grid content-start gap-3">
-      <SessionsTable v-if="users.sessions.length" :sessions="shown" />
-      <div v-else class="grid min-h-32.5 place-items-center gap-2 text-center text-caption text-fg-muted">
-        <Icon name="users" :size="22" class="text-accent" />
-        <span>{{ t("sessionEmpty") }}</span>
-      </div>
-      <Pager
-        v-if="pageCount > 1"
-        v-model="page"
-        :page-count="pageCount"
-        :label="t('pagerLabel')"
-        :previous-label="t('pagePrevious')"
-        :next-label="t('pageNext')"
-        :first-label="t('pageFirst')"
-        :last-label="t('pageLast')"
-        :page-label="(number) => t('pageNumber', { page: number })"
-        :summary="t('listPage', { page, count: pageCount })"
-      />
-    </Card>
-  </AdminPage>
+  <AdminListView
+    :title="t('sessions')"
+    :lead="t('sessionsLead')"
+    back-to="/admin/users"
+    :back-label="t('users')"
+    :loading="sessionsLoading"
+    :items="shown"
+    :key-of="(session) => session.id"
+    :total="users.sessions.length"
+    :empty-text="t('sessionEmpty')"
+    empty-icon="users"
+    :page="page"
+    :page-count="pageCount"
+    @update:page="(value: number) => (page = value)"
+    @refresh="loadSessions()"
+  >
+    <template #list><SessionsTable :sessions="shown" /></template>
+  </AdminListView>
 </template>
 
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from "vue";
 import { storeToRefs } from "pinia";
-import { Card } from "@/shared/ui/card";
-import { Icon } from "@/shared/ui/icon";
-import { Pager } from "@/shared/ui/list";
 import { useI18n } from "@/shared/i18n/useI18n";
-import AdminPage from "@/features/admin/ui/AdminPage.vue";
-import RefreshButton from "@/features/admin/ui/RefreshButton.vue";
+import AdminListView from "@/features/admin/ui/AdminListView.vue";
 import { useLiveRefresh } from "@/features/admin/core/useLiveRefresh";
 import SessionsTable from "@/features/admin/users/sessions/SessionsTable.vue";
 import { SESSION_PAGE_SIZE, useAdminUsersStore } from "@/features/admin/users/adminUsers";
