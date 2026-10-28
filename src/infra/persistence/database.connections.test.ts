@@ -1,3 +1,4 @@
+import { DatabaseSync } from "node:sqlite";
 import { describe, expect, it } from "vitest";
 import { useDatabaseFixture } from "../../../test/support/database.js";
 
@@ -10,6 +11,7 @@ const start = (id: string, overrides = {}) => ({
   target: "ts.test:9987",
   relayName: null,
   relayTarget: null,
+  userAgent: null,
   ...overrides,
 });
 const ended = { reason: null, failureDetail: null, durationSeconds: 60, audio: null };
@@ -21,9 +23,53 @@ describe("connection records", () => {
     expect(database.getConnection("w-1")).toMatchObject({ status: "connecting", connectedAt: null, relayName: "Relay" });
     database.markConnectionConnected("w-1");
     expect(database.getConnection("w-1")).toMatchObject({ status: "active", disconnectedAt: null, durationSeconds: expect.any(Number) });
-    const audio = { talkSeconds: 12, framesSent: 600, framesReceived: 900, droppedFrames: 3, sendErrors: 0 };
+    const audio = { talkSeconds: 12, framesSent: 600, framesReceived: 900, droppedFrames: 3, sendErrors: 0, path: null };
     database.finishConnection("w-1", { ...ended, audio });
     expect(database.getConnection("w-1")).toMatchObject({ status: "disconnected", durationSeconds: 60, reason: null, audio });
+  });
+
+  it("keeps the user agent the voice socket reported", () => {
+    const database = fx.open();
+    database.beginConnection(start("w-1", { userAgent: "Mozilla/5.0 (X11; Linux x86_64; rv:140.0) Gecko/20100101 Firefox/140.0" }));
+    database.beginConnection(start("w-2"));
+    expect(database.getConnection("w-1")?.userAgent).toBe("Mozilla/5.0 (X11; Linux x86_64; rv:140.0) Gecko/20100101 Firefox/140.0");
+    expect(database.getConnection("w-2")?.userAgent).toBeNull();
+  });
+
+  it("keeps how the audio travelled, and reads a summary from before the path was kept", () => {
+    const database = fx.open();
+    const path = {
+      transport: "webrtc" as const,
+      uplinkFrames: 4200,
+      uplinkMaxGapMs: 180,
+      downlinkFrames: 5100,
+      downlinkMaxGapMs: 60,
+      queueUnderruns: 2,
+      lateTicks: 1,
+      decodeErrors: 0,
+      ice: { state: "connected", localType: "host", remoteType: "srflx", protocol: "udp", rttMs: 38, connectMs: 410 },
+    };
+    database.beginConnection(start("w-1"));
+    database.markConnectionConnected("w-1");
+    database.finishConnection("w-1", { ...ended, audio: { talkSeconds: 1, framesSent: 2, framesReceived: 3, droppedFrames: 0, sendErrors: 0, path } });
+    expect(database.getConnection("w-1")?.audio?.path).toEqual(path);
+
+    database.beginConnection(start("w-old"));
+    database.finishConnection("w-old", ended);
+    database.close();
+    const raw = new DatabaseSync(fx.path);
+    raw
+      .prepare("UPDATE connection_records SET audio_json = ? WHERE id = 'w-old'")
+      .run('{"talkSeconds":5,"framesSent":250,"framesReceived":10,"droppedFrames":0,"sendErrors":0}');
+    raw.close();
+    expect(fx.open().getConnection("w-old")?.audio).toEqual({
+      talkSeconds: 5,
+      framesSent: 250,
+      framesReceived: 10,
+      droppedFrames: 0,
+      sendErrors: 0,
+      path: null,
+    });
   });
 
   it("calls a session that never connected failed, with its reason and no duration", () => {

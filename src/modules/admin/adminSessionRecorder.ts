@@ -20,6 +20,7 @@ export class SessionHistoryRecorder implements SessionRecorder {
         target: session.target,
         relayName: session.relay?.name ?? null,
         relayTarget: session.relay?.target ?? null,
+        userAgent: session.userAgent ?? null,
       }),
     );
   }

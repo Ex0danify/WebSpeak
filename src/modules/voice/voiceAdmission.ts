@@ -34,7 +34,7 @@ import { registerVoiceChat } from "./messages/voiceChat.js";
 import { resolveClientIp } from "../../shared/http/clientIp.js";
 import { sendProtocolError } from "./session/voiceFailures.js";
 import { AUDIO_RATE_LIMIT_CLOSE_REASON, RATE_LIMIT_CLOSE_CODE, VoiceRateLimits } from "./session/voiceRateLimits.js";
-import { resolveWebRtcPublicHost } from "./session/voiceRequestInfo.js";
+import { readUserAgent, resolveWebRtcPublicHost } from "./session/voiceRequestInfo.js";
 import { routeTextFrame } from "./messages/voiceMessageRouter.js";
 
 export interface ConnectionHooks {
@@ -85,6 +85,7 @@ export function admitConnection(deps: AdmissionDeps, ws: WebSocket, req: Incomin
   }
   const clientIp = resolveClientIp(req);
   const webrtcPublicHost = resolveWebRtcPublicHost(req);
+  const userAgent = readUserAgent(req);
   let identity;
   try {
     identity = connection.identity ? identityFromString(connection.identity) : undefined;
@@ -140,6 +141,7 @@ export function admitConnection(deps: AdmissionDeps, ws: WebSocket, req: Incomin
     nickname,
     clientIp,
     target: formatTeamSpeakTarget(target),
+    ...(userAgent ? { userAgent } : {}),
     ...(acceleration
       ? {
           relay: { name: acceleration.name, target: formatTeamSpeakTarget({ host: acceleration.relayHost, port: acceleration.relayPort }) },

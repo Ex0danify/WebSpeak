@@ -73,7 +73,7 @@ export interface Gateway {
   /** Puts a join ticket straight into the store, bypassing `/api/join-ticket` and its rate limit. */
   ticket(payload?: Partial<JoinTicketPayload>): string;
   /** Opens `/ws/voice` with a ticket (a fresh one for `nickname` by default). Closed with the gateway. */
-  openVoice(ticket?: string): Promise<WsClient>;
+  openVoice(ticket?: string, headers?: Record<string, string>): Promise<WsClient>;
   adminLogin(password?: string): Promise<AdminApi>;
   /** The gateway's own `stop()`, for tests of shutdown. `close()` still cleans up afterwards. */
   stop(): Promise<void>;
@@ -147,8 +147,8 @@ export async function startGateway(options: GatewayOptions = {}): Promise<Gatewa
     request,
     ticket: (payload = {}) =>
       joinTickets.create({ target: { host: "ts.test", port: 9987 }, serverPassword: "", nickname: "tester", ...payload }),
-    async openVoice(ticket = gateway.ticket()) {
-      const socket = await WsClient.open(`${gateway.wsUrl}?ticket=${encodeURIComponent(ticket)}`);
+    async openVoice(ticket = gateway.ticket(), headers) {
+      const socket = await WsClient.open(`${gateway.wsUrl}?ticket=${encodeURIComponent(ticket)}`, headers);
       sockets.add(socket);
       return socket;
     },

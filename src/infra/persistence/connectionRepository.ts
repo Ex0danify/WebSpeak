@@ -3,13 +3,37 @@ import type { PersistenceContext } from "./persistenceContext.js";
 export const CONNECTION_STATUSES = ["connecting", "active", "disconnected", "failed"] as const;
 export type ConnectionStatus = (typeof CONNECTION_STATUSES)[number];
 
-/** What a session sent and received, boiled down from the raw counters. */
+/** How the selected WebRTC path looked when the session ended, as the gateway saw it. */
+export interface ConnectionIceSummary {
+  state: string;
+  localType: string | null;
+  remoteType: string | null;
+  protocol: string | null;
+  rttMs: number | null;
+  connectMs: number | null;
+}
+
+/** Where audio stalled or got lost between the browser, the gateway and TeamSpeak. */
+export interface ConnectionAudioPath {
+  transport: "webrtc" | "websocket";
+  uplinkFrames: number;
+  uplinkMaxGapMs: number;
+  downlinkFrames: number;
+  downlinkMaxGapMs: number;
+  queueUnderruns: number;
+  lateTicks: number;
+  decodeErrors: number;
+  ice: ConnectionIceSummary | null;
+}
+
+/** What a session sent and received, boiled down from the raw counters. `path` is null on a row from before it was kept. */
 export interface ConnectionAudioSummary {
   talkSeconds: number;
   framesSent: number;
   framesReceived: number;
   droppedFrames: number;
   sendErrors: number;
+  path: ConnectionAudioPath | null;
 }
 
 export interface ConnectionRecord {
@@ -27,9 +51,11 @@ export interface ConnectionRecord {
   reason: string | null;
   failureDetail: string | null;
   audio: ConnectionAudioSummary | null;
+  /** As the voice socket sent it, cut to a sane length. Null when the browser sent none. */
+  userAgent: string | null;
 }
 
-export type ConnectionStart = Pick<ConnectionRecord, "id" | "nickname" | "clientIp" | "target" | "relayName" | "relayTarget">;
+export type ConnectionStart = Pick<ConnectionRecord, "id" | "nickname" | "clientIp" | "target" | "relayName" | "relayTarget" | "userAgent">;
 
 export interface ConnectionFinish {
   reason: string | null;
@@ -61,11 +87,12 @@ interface ConnectionRow {
   reason: string | null;
   failure_detail: string | null;
   audio_json: string | null;
+  user_agent: string | null;
 }
 
 const MAX_PAGE = 100;
 const COLUMNS =
-  "id, nickname, client_ip, target, relay_name, relay_target, started_at, connected_at, disconnected_at, duration_seconds, status, reason, failure_detail, audio_json";
+  "id, nickname, client_ip, target, relay_name, relay_target, started_at, connected_at, disconnected_at, duration_seconds, status, reason, failure_detail, audio_json, user_agent";
 
 export class ConnectionRepository {
   constructor(private readonly context: PersistenceContext) {}
@@ -73,10 +100,10 @@ export class ConnectionRepository {
   begin(start: ConnectionStart, now: string): void {
     this.context.database
       .prepare(
-        `INSERT OR REPLACE INTO connection_records (id, nickname, client_ip, target, relay_name, relay_target, started_at, status)
-         VALUES (?, ?, ?, ?, ?, ?, ?, 'connecting')`,
+        `INSERT OR REPLACE INTO connection_records (id, nickname, client_ip, target, relay_name, relay_target, started_at, status, user_agent)
+         VALUES (?, ?, ?, ?, ?, ?, ?, 'connecting', ?)`,
       )
-      .run(start.id, start.nickname, start.clientIp, start.target, start.relayName, start.relayTarget, now);
+      .run(start.id, start.nickname, start.clientIp, start.target, start.relayName, start.relayTarget, now, start.userAgent);
   }
 
   markConnected(id: string, now: string): void {
@@ -186,6 +213,7 @@ function mapConnectionRow(row: ConnectionRow, now: number): ConnectionRecord {
     reason: row.reason,
     failureDetail: row.failure_detail,
     audio: parseAudio(row.audio_json),
+    userAgent: row.user_agent,
   };
 }
 
@@ -199,8 +227,34 @@ function parseAudio(json: string | null): ConnectionAudioSummary | null {
       framesReceived: Number(value.framesReceived) || 0,
       droppedFrames: Number(value.droppedFrames) || 0,
       sendErrors: Number(value.sendErrors) || 0,
+      path: parsePath(value.path),
     };
   } catch {
     return null;
   }
+}
+
+function parsePath(value: Partial<ConnectionAudioPath> | null | undefined): ConnectionAudioPath | null {
+  if (!value || (value.transport !== "webrtc" && value.transport !== "websocket")) return null;
+  const ice = value.ice;
+  return {
+    transport: value.transport,
+    uplinkFrames: Number(value.uplinkFrames) || 0,
+    uplinkMaxGapMs: Number(value.uplinkMaxGapMs) || 0,
+    downlinkFrames: Number(value.downlinkFrames) || 0,
+    downlinkMaxGapMs: Number(value.downlinkMaxGapMs) || 0,
+    queueUnderruns: Number(value.queueUnderruns) || 0,
+    lateTicks: Number(value.lateTicks) || 0,
+    decodeErrors: Number(value.decodeErrors) || 0,
+    ice: ice
+      ? {
+          state: String(ice.state ?? ""),
+          localType: ice.localType ?? null,
+          remoteType: ice.remoteType ?? null,
+          protocol: ice.protocol ?? null,
+          rttMs: ice.rttMs ?? null,
+          connectMs: ice.connectMs ?? null,
+        }
+      : null,
+  };
 }

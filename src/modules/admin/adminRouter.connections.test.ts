@@ -45,6 +45,16 @@ describe("connection history", () => {
     });
   });
 
+  it("keeps the browser the guest joined with, as reported and as read", async () => {
+    const { gateway, admin } = await start();
+    const agent = "Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Mobile Safari/537.36";
+    const socket = await gateway.openVoice(gateway.ticket({ nickname: "alice" }), { "user-agent": agent });
+    await socket.waitForMessage("connected");
+    const [record] = (await json(await admin.get("connections"))).records;
+    expect(record.userAgent).toBe(agent);
+    expect(record.client).toMatchObject({ browser: "Chrome", os: "Android", platform: "mobile" });
+  });
+
   it("records a refused join as failed, with the reason TeamSpeak gave and a warning in the event log", async () => {
     const { gateway, admin } = await start();
     gateway.ts.failNext("connect", new TeamSpeakServerError({ id: 513, serverMessage: "nickname is already in use" }));

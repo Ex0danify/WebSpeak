@@ -6,6 +6,7 @@ export interface SessionStart {
   clientIp: string;
   target: string;
   relay?: { name: string; target: string };
+  userAgent?: string;
 }
 
 export interface SessionEnd {

@@ -7,6 +7,7 @@ import type { MessageParams } from "../../shared/messageCodes.js";
 import type { AccelerationRelayOptions } from "../relay/index.js";
 import type { ManagedSession } from "./session/voiceSessionManager.js";
 import type { WebRtcAudioSession } from "./webrtc/webrtcAudioSession.js";
+import type { WebRtcIceInfo } from "./iceInfo.js";
 import type { OpusCodec } from "./voiceOpus.js";
 
 export interface AdminSessionSummary {
@@ -70,6 +71,7 @@ export interface AudioFlowStats {
   webrtcDownlinkDecodedFrames: number;
   webrtcDownlinkDecodeErrors: number;
   webrtcDownlinkShortFrames: number;
+  webrtcIce: WebRtcIceInfo | null;
 }
 
 export interface ChannelMember {

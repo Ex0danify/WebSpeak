@@ -4,9 +4,10 @@ import { zipSync, strToU8 } from "fflate";
 import { MAX_ACTIVE_SESSIONS } from "../../../shared/constants.js";
 import { isProxyTrusted } from "../../../shared/http/clientIp.js";
 import type { AuditEntry } from "../../../infra/persistence/auditRepository.js";
-import type { ConnectionRecord, WebSpeakDatabase } from "../../../infra/persistence/database.js";
+import type { WebSpeakDatabase } from "../../../infra/persistence/database.js";
 import type { AdminSessionSummary } from "../../voice/index.js";
 import type { AdminOverview } from "../adminService.js";
+import { withClient, type ConnectionView } from "../clientInfo.js";
 import { coalesceSettingsChanges } from "./coalesceEvents.js";
 import { readLogTail } from "./logTail.js";
 import { Pseudonyms } from "./pseudonyms.js";
@@ -91,15 +92,15 @@ export function zipBundle(files: Record<string, string>): Uint8Array {
 }
 
 /** Every failed session in the retention window up to a cap, plus the newest of the rest. */
-function collectConnections(database: WebSpeakDatabase): ConnectionRecord[] {
-  const byId = new Map<string, ConnectionRecord>();
+function collectConnections(database: WebSpeakDatabase): ConnectionView[] {
+  const byId = new Map<string, ConnectionView>();
   for (const [statuses, pages] of [
     [["failed"], FAILED_CONNECTION_PAGES],
     [undefined, RECENT_CONNECTION_PAGES],
   ] as const) {
     for (let page = 0; page < pages; page += 1) {
       const { records, total } = database.listConnections({ limit: PAGE, offset: page * PAGE, statuses });
-      for (const record of records) byId.set(record.id, record);
+      for (const record of records) byId.set(record.id, withClient(record));
       if ((page + 1) * PAGE >= total) break;
     }
   }
@@ -122,7 +123,7 @@ function collectEvents(database: WebSpeakDatabase): AuditEntry[] {
   return coalesceSettingsChanges([...byId.values()].sort((left, right) => right.id - left.id));
 }
 
-function summary(input: BundleInput, generatedAt: string, connections: ConnectionRecord[], events: AuditEntry[]) {
+function summary(input: BundleInput, generatedAt: string, connections: ConnectionView[], events: AuditEntry[]) {
   const countBy = <T>(items: T[], key: (item: T) => string | null) => {
     const counts: Record<string, number> = {};
     for (const item of items) {
@@ -148,6 +149,7 @@ function summary(input: BundleInput, generatedAt: string, connections: Connectio
       included: connections.length,
       byStatus: countBy(connections, (record) => record.status),
       byReason: countBy(connections, (record) => record.reason),
+      byBrowser: countBy(connections, (record) => (record.userAgent ? (record.client?.browser ?? "unknown") : null)),
     },
     events: { included: events.length, bySeverity: countBy(events, (event) => event.severity) },
     latestProblems: events.filter((event) => event.severity !== "info").slice(0, SUMMARY_PROBLEMS),

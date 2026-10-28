@@ -5,6 +5,7 @@ import { sendAdminError } from "../adminMiddleware.js";
 import { readAuditQuery } from "../adminAuditQuery.js";
 import { readConnectionQuery } from "../adminConnectionQuery.js";
 import type { AdminRouterOptions } from "../adminRouterOptions.js";
+import { withClient } from "../clientInfo.js";
 import { buildBundleFiles, zipBundle } from "../diagnostics/diagnosticBundle.js";
 
 /** Overview, event log, connection history, diagnostics, the diagnostic bundle and the database backup. */
@@ -24,7 +25,8 @@ export function registerDiagnosticsRoutes(router: Router, options: AdminRouterOp
 
   router.get("/connections", (request, response) => {
     try {
-      response.json(options.service.database.listConnections(readConnectionQuery(request.query)));
+      const { records, total } = options.service.database.listConnections(readConnectionQuery(request.query));
+      response.json({ records: records.map(withClient), total });
     } catch (error: unknown) {
       sendAdminError(response, error);
     }

@@ -83,7 +83,8 @@ describe("schema snapshot", () => {
                   status TEXT NOT NULL CHECK (status IN ('connecting', 'active', 'disconnected', 'failed')),
                   reason TEXT,
                   failure_detail TEXT,
-                  audio_json TEXT
+                  audio_json TEXT,
+                  user_agent TEXT
                 )",
           "type": "table",
         },
@@ -248,7 +249,7 @@ describe("schema snapshot", () => {
                   reason TEXT,
                   failure_detail TEXT,
                   audio_json TEXT
-                )",
+                , user_agent TEXT)",
           "type": "table",
         },
         {

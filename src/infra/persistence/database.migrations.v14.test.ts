@@ -25,7 +25,10 @@ describe("schema 14 migration (sessions, retention settings)", () => {
     const fresh = join(fx.dir, "fresh", "webspeak.db");
     mkdirSyncFor(fresh);
     fx.open(fresh).close();
-    for (const table of ["audit_events", "connection_records"]) expect(rows(fx.path, OBJECTS(table))).toEqual(rows(fresh, OBJECTS(table)));
+    expect(rows(fx.path, OBJECTS("audit_events"))).toEqual(rows(fresh, OBJECTS("audit_events")));
+    // Later columns are added in place, so the stored statement differs in layout while the table is the same.
+    expect(rows(fx.path, "PRAGMA table_info(connection_records)")).toEqual(rows(fresh, "PRAGMA table_info(connection_records)"));
+    expect(rows(fx.path, "PRAGMA index_list(connection_records)")).toEqual(rows(fresh, "PRAGMA index_list(connection_records)"));
     expect(rows(fx.path, "PRAGMA user_version")).toEqual([{ user_version: DATABASE_SCHEMA_VERSION }]);
   });
 

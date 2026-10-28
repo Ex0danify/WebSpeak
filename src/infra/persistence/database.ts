@@ -21,7 +21,7 @@ import { ServerRepository } from "./serverRepository.js";
 import { SettingsRepository } from "./settingsRepository.js";
 
 export { DATABASE_SCHEMA_VERSION };
-export type { ConnectionAudioSummary, ConnectionRecord, ConnectionStatus } from "./connectionRepository.js";
+export type { ConnectionAudioPath, ConnectionAudioSummary, ConnectionIceSummary, ConnectionRecord, ConnectionStatus } from "./connectionRepository.js";
 export type {
   AccessMode,
   ManagedInviteRecord,

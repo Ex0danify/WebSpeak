@@ -42,6 +42,7 @@ function seededDatabase(dir: string): WebSpeakDatabase {
     target: "ts.clan.example.org:9987",
     relayName: null,
     relayTarget: null,
+    userAgent: "Mozilla/5.0 (X11; Linux x86_64; rv:140.0) Gecko/20100101 Firefox/140.0 mallory@example.org",
   });
   database.finishConnection("w-1", {
     reason: "CONNECTION_REFUSED",
@@ -126,6 +127,18 @@ describe("buildBundleFiles", () => {
     const failed = JSON.parse(files["events.json"]!).find((event: { event: string }) => event.event === "ADMIN_LOGIN_FAILED");
     expect(failed.details).toEqual({ username: "user-1", ip: expect.stringMatching(/^ip-\d+\/public$/) });
     expect(failed.details.ip).not.toBe("ip-1/public");
+  });
+
+  it("carries the user agent, the browser it names and a count per browser, without a mail address in it", () => {
+    const dir = tempDir();
+    const database = seededDatabase(dir);
+    const files = buildBundleFiles({ database, overview, version: "1.2.3", runtime: { tls: false }, liveSessions: [], createdSessions: 0 });
+    database.close();
+    const [record] = JSON.parse(files["sessions.json"]!).history;
+    expect(record.userAgent).toContain("Firefox/140.0");
+    expect(record.userAgent).not.toContain("mallory@example.org");
+    expect(record.client).toMatchObject({ browser: "Firefox", browserVersion: "140.0", os: "Linux", platform: "desktop" });
+    expect(JSON.parse(files["summary.json"]!).connections.byBrowser).toEqual({ Firefox: 1 });
   });
 
   it("keeps event names readable and labels the admin account the same in every file", () => {

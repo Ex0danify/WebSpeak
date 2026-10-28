@@ -1,6 +1,6 @@
 import type { DatabaseSync } from "node:sqlite";
 
-export const DATABASE_SCHEMA_VERSION = 14;
+export const DATABASE_SCHEMA_VERSION = 15;
 
 /** The oldest schema this build upgrades, 0.7.0 is the first release that writes it. */
 export const MINIMUM_SCHEMA_VERSION = 10;
@@ -114,7 +114,8 @@ const MIGRATIONS: Migration[] = [
             status TEXT NOT NULL CHECK (status IN ('connecting', 'active', 'disconnected', 'failed')),
             reason TEXT,
             failure_detail TEXT,
-            audio_json TEXT
+            audio_json TEXT,
+            user_agent TEXT
           );
           CREATE INDEX connection_records_started_idx ON connection_records(started_at);
         `);
@@ -259,6 +260,14 @@ const MIGRATIONS: Migration[] = [
           );
           CREATE INDEX connection_records_started_idx ON connection_records(started_at);
         `);
+    },
+  },
+  {
+    from: 14,
+    to: 15,
+    up(database) {
+      // The browser a guest joined with, as the voice socket reported it.
+      database.exec("ALTER TABLE connection_records ADD COLUMN user_agent TEXT");
     },
   },
 ];
