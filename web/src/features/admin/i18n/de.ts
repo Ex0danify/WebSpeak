@@ -309,6 +309,8 @@ export const de: Record<string, string> = {
   retentionConnections: "Verbindungsverlauf",
   retentionDays: "Tage",
   retentionMaxRows: "Max. Einträge",
+  adminErr_INVALID_PRIVACY_NOTICE_URL:
+    "Der Link zur Datenschutzerklärung ist ungültig. Verwende eine http://- oder https://-Adresse mit höchstens 300 Zeichen.",
   adminErr_INVALID_EVENT_LOG_RETENTION: "Die Aufbewahrung des Ereignisprotokolls ist ungültig. Verwende 1–365 Tage.",
   adminErr_INVALID_EVENT_LOG_ROWS: "Die Größe des Ereignisprotokolls ist ungültig. Verwende 100–50.000 Einträge.",
   adminErr_INVALID_CONNECTION_RETENTION: "Die Aufbewahrung des Verbindungsverlaufs ist ungültig. Verwende 1–365 Tage.",

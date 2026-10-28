@@ -306,6 +306,7 @@ export const en = {
   retentionConnections: "Connection history",
   retentionDays: "Days",
   retentionMaxRows: "Max entries",
+  adminErr_INVALID_PRIVACY_NOTICE_URL: "The privacy notice link is invalid. Use an http:// or https:// address of up to 300 characters.",
   adminErr_INVALID_EVENT_LOG_RETENTION: "The event log retention is invalid. Use 1–365 days.",
   adminErr_INVALID_EVENT_LOG_ROWS: "The event log size is invalid. Use 100–50,000 entries.",
   adminErr_INVALID_CONNECTION_RETENTION: "The connection history retention is invalid. Use 1–365 days.",

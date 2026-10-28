@@ -80,6 +80,7 @@ const ADMIN_ERROR_KEYS: Record<string, MessageKey> = {
   INVALID_EVENT_LOG_ROWS: "adminErr_INVALID_EVENT_LOG_ROWS",
   INVALID_CONNECTION_RETENTION: "adminErr_INVALID_CONNECTION_RETENTION",
   INVALID_CONNECTION_ROWS: "adminErr_INVALID_CONNECTION_ROWS",
+  INVALID_PRIVACY_NOTICE_URL: "adminErr_INVALID_PRIVACY_NOTICE_URL",
 };
 
 /** The admin console's display formatters, bound to the current language (`language.value` is read on
