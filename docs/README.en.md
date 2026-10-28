@@ -243,6 +243,27 @@ docker compose exec webspeak node dist/index.js reset-admin-password   # Docker
 npm run admin:reset-password                                            # release package or source
 ```
 
+## 🔒 Data stored and privacy
+
+WebSpeak is self-hosted, so whoever runs a gateway decides what it keeps and is the one who has to tell guests about it. This section lists what the gateway stores, to help you write that notice. It is not legal advice. Under **Administration → Web → Site identity** you can set a **privacy notice link**, guests then see it in the footer of the join page.
+
+| Where | What | Why | Kept |
+|---|---|---|---|
+| Connection records (database) | Nickname, the guest's IP address, target server and relay, start, end and duration, how it ended, a summary of the audio path (packet counts, longest gaps, ICE connection type and round trip) and the browser's user agent | Show who connected and find out why a connection failed or sounded bad | 30 days and 10,000 records by default |
+| Event log (database) | Session start and end with nickname, IP address and server. Admin sign-ins with the IP address, a failed one also with the user name that was tried. Changes to settings, servers and invites with the admin's IP address | Audit trail and security | 90 days and 5,000 events by default |
+| Log file `data/logs/webspeak.log` | Operating messages with nickname, IP address, server, TeamSpeak client ids and error details | Troubleshooting | Until the file rotates: 10 MB per file, the current and the three before it. The same lines go to standard output, where your container runtime applies its own rules |
+| Cookie `webspeak_visitor_number` | A number for the "visitor #N" line on the join page | Cosmetic | One year |
+| The guest's browser | Nickname, language, theme, audio devices and screen-share settings, the remembered TeamSpeak identity, favorites and recent servers | Convenience. They stay on the guest's device, **Clear local data** on the join page removes them | Until cleared |
+
+Retention for the connection records and the event log is set under **Administration → Diagnostics → Log retention**, a smaller limit applies at once. Audio is relayed live and never recorded, and chat messages are passed on without being saved. The remembered identity is used to connect and is not stored by the gateway. The TeamSpeak server sees the nickname and identity the guest uses and the address of the gateway, not the guest's IP address.
+
+Two files leave the gateway on request, both from **Administration → Diagnostics**:
+
+- The **diagnostic bundle** is meant for a public bug report. Addresses, nicknames, user names, TeamSpeak client ids and host names are replaced by labels, sessions name the browser (for example "Firefox 140") and not the raw user agent. Labels are pseudonyms, not anonymisation, so look through it before you post it.
+- The **database backup** holds everything above and the account data. Keep it private and never attach it to an issue.
+
+The cookie is not needed for voice to work. In some places, for example under the EU's ePrivacy rules, a cookie like that needs the visitor's consent, ask your legal advisor whether that applies to you.
+
 ## ⚠️ Requirements and notes
 
 | Area | Requirement or note |

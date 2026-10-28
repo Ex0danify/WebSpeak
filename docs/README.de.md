@@ -243,6 +243,27 @@ docker compose exec webspeak node dist/index.js reset-admin-password   # Docker
 npm run admin:reset-password                                            # Release-Paket oder Quellcode
 ```
 
+## 🔒 Gespeicherte Daten und Datenschutz
+
+WebSpeak wird selbst betrieben. Wer ein Gateway betreibt, entscheidet daher, was es speichert, und muss die Gäste darüber informieren. Dieser Abschnitt listet auf, was das Gateway speichert, damit du diese Information schreiben kannst. Er ist keine Rechtsberatung. Unter **Administration → Web → Website-Informationen** kannst du einen **Link zur Datenschutzerklärung** eintragen, Gäste sehen ihn dann in der Fußzeile der Startseite.
+
+| Wo | Was | Wozu | Aufbewahrung |
+|---|---|---|---|
+| Verbindungsprotokoll (Datenbank) | Nickname, IP-Adresse des Gastes, Zielserver und Relay, Beginn, Ende und Dauer, wie die Sitzung endete, eine Zusammenfassung des Audiowegs (Paketzahlen, größte Lücken, ICE-Verbindungsart und Laufzeit) und der User-Agent des Browsers | Zeigen, wer verbunden war, und klären, warum eine Verbindung scheiterte oder schlecht klang | Standardmäßig 30 Tage und 10.000 Einträge |
+| Ereignisprotokoll (Datenbank) | Beginn und Ende von Sitzungen mit Nickname, IP-Adresse und Server. Admin-Anmeldungen mit IP-Adresse, bei einem Fehlschlag auch mit dem versuchten Benutzernamen. Änderungen an Einstellungen, Servern und Einladungen mit der IP-Adresse des Admins | Nachvollziehbarkeit und Sicherheit | Standardmäßig 90 Tage und 5.000 Ereignisse |
+| Logdatei `data/logs/webspeak.log` | Betriebsmeldungen mit Nickname, IP-Adresse, Server, TeamSpeak-Client-IDs und Fehlerdetails | Fehlersuche | Bis die Datei rotiert: 10 MB pro Datei, die aktuelle und die drei davor. Dieselben Zeilen gehen an die Standardausgabe, dort gelten die Regeln deiner Container-Laufzeit |
+| Cookie `webspeak_visitor_number` | Eine Nummer für die Zeile „Besucher Nr. N“ auf der Startseite | Kosmetisch | Ein Jahr |
+| Browser des Gastes | Nickname, Sprache, Design, Audiogeräte und Bildschirmfreigabe-Einstellungen, die gemerkte TeamSpeak-Identität, Favoriten und zuletzt genutzte Server | Komfort. Sie bleiben auf dem Gerät des Gastes, **Lokale Daten löschen** auf der Startseite entfernt sie | Bis zum Löschen |
+
+Die Aufbewahrung von Verbindungs- und Ereignisprotokoll stellst du unter **Administration → Diagnose → Aufbewahrung der Protokolle** ein, ein kleineres Limit gilt sofort. Audio wird live weitergereicht und nie aufgezeichnet, Chatnachrichten werden weitergegeben und nicht gespeichert. Die gemerkte Identität dient dem Verbinden und wird vom Gateway nicht gespeichert. Der TeamSpeak-Server sieht den Nickname und die Identität des Gastes sowie die Adresse des Gateways, nicht die IP-Adresse des Gastes.
+
+Zwei Dateien verlassen das Gateway auf Anfrage, beide unter **Administration → Diagnose**:
+
+- Das **Diagnosepaket** ist für einen öffentlichen Fehlerbericht gedacht. Adressen, Nicknames, Benutzernamen, TeamSpeak-Client-IDs und Hostnamen sind durch Bezeichner ersetzt, Sitzungen nennen den Browser (zum Beispiel „Firefox 140“) und nicht den rohen User-Agent. Die Bezeichner sind Pseudonyme, keine Anonymisierung, sieh es also durch, bevor du es veröffentlichst.
+- Die **Datenbanksicherung** enthält alles Obige und die Kontodaten. Halte sie privat und hänge sie nie an ein Issue.
+
+Das Cookie wird für die Sprachverbindung nicht gebraucht. Ein solches Cookie kann etwa nach den ePrivacy-Regeln der EU die Einwilligung des Besuchers erfordern, kläre mit deiner Rechtsberatung, ob das für dich gilt.
+
 ## ⚠️ Voraussetzungen und Hinweise
 
 | Bereich | Hinweis |
