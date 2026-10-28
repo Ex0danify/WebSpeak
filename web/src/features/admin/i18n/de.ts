@@ -236,6 +236,7 @@ export const de: Record<string, string> = {
   gatewayRestartedError: "Das Gateway wurde neu gestartet",
   connectionFromTo: "Von {{ip}} zu {{target}}",
   connectionViaRelay: "Über Relay {{relay}}",
+  sessionGuestIp: "Gast-IP {{ip}}",
   connectionActive: "Verbunden",
   connectionConnecting: "Verbindung wird hergestellt",
   connectionDisconnected: "Getrennt",

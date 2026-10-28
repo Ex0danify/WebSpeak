@@ -57,7 +57,7 @@ test.describe("sessions", () => {
     const row = sessionsTable(page).getByRole("row").filter({ hasText: "ops-guest" });
     await expect(row).toContainText("Connected");
     await expect(row).toContainText("127.0.0.1:9987");
-    await expect(row).toContainText(/IP \S+/);
+    await expect(row).toContainText(/Guest IP \S+/);
     await expect(page.getByText("There are no active sessions.")).toBeHidden();
   });
 

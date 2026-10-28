@@ -101,7 +101,7 @@ export function createAdminFormat(language: { value: Language }, t: Translate) {
   }
   /** Where a live session comes from: the guest's address, and the relay when it goes through one. */
   function sessionOrigin(session: Pick<AdminSession, "clientIp" | "relayName" | "relayTarget">) {
-    const parts = [session.clientIp && t("eventIp", { ip: session.clientIp })];
+    const parts = [session.clientIp && t("sessionGuestIp", { ip: session.clientIp })];
     const relay = [session.relayName, session.relayTarget].filter(Boolean).join(" · ");
     if (relay) parts.push(t("connectionViaRelay", { relay }));
     return parts.filter(Boolean).join(" · ");

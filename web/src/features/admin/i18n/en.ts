@@ -233,6 +233,7 @@ export const en = {
   gatewayRestartedError: "The gateway restarted",
   connectionFromTo: "From {{ip}} To {{target}}",
   connectionViaRelay: "Via relay {{relay}}",
+  sessionGuestIp: "Guest IP {{ip}}",
   connectionActive: "Connected",
   connectionConnecting: "Connecting",
   connectionDisconnected: "Disconnected",
