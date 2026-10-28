@@ -100,6 +100,9 @@ describe("audioStats", () => {
   it("still reports a WebRTC session whose browser never sent a packet, that silence is the finding", () => {
     const stats = createAudioFlowStats();
     stats.webrtcIce = { state: "failed", localType: null, remoteType: null, protocol: null, rttMs: null, connectMs: null };
-    expect(summarizeAudioStats(stats)).toMatchObject({ talkSeconds: 0, path: { transport: "webrtc", uplinkFrames: 0, ice: { state: "failed" } } });
+    expect(summarizeAudioStats(stats)).toMatchObject({
+      talkSeconds: 0,
+      path: { transport: "webrtc", uplinkFrames: 0, ice: { state: "failed" } },
+    });
   });
 });

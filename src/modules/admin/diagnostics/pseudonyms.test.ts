@@ -103,7 +103,15 @@ describe("redact", () => {
 
   it("keeps codes intact even when a guest picked a nickname that matches one", () => {
     const p = new Pseudonyms();
-    expect(redact(p, { nickname: "web", component: "web", event: "web_started", msg: "web joined from 203.0.113.9", reason: "from 203.0.113.9" })).toEqual({
+    expect(
+      redact(p, {
+        nickname: "web",
+        component: "web",
+        event: "web_started",
+        msg: "web joined from 203.0.113.9",
+        reason: "from 203.0.113.9",
+      }),
+    ).toEqual({
       nickname: "guest-1",
       component: "web",
       event: "web_started",

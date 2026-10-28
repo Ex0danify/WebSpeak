@@ -143,7 +143,9 @@ describe("normalizeSettings", () => {
   });
 
   it("keeps the current retention for omitted fields and takes the bounds as they are", () => {
-    const current = stored({ retention: { eventLog: { days: 10, maxRows: 200 }, connections: { days: 5, maxRows: 300 }, logs: { days: 7 } } });
+    const current = stored({
+      retention: { eventLog: { days: 10, maxRows: 200 }, connections: { days: 5, maxRows: 300 }, logs: { days: 7 } },
+    });
     expect(normalizeSettings(settingsInput(), current).retention).toEqual(current.retention);
     expect(
       normalizeSettings(

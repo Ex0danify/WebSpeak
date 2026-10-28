@@ -51,7 +51,10 @@ describe("connection records", () => {
     };
     database.beginConnection(start("w-1"));
     database.markConnectionConnected("w-1");
-    database.finishConnection("w-1", { ...ended, audio: { talkSeconds: 1, framesSent: 2, framesReceived: 3, droppedFrames: 0, sendErrors: 0, path } });
+    database.finishConnection("w-1", {
+      ...ended,
+      audio: { talkSeconds: 1, framesSent: 2, framesReceived: 3, droppedFrames: 0, sendErrors: 0, path },
+    });
     expect(database.getConnection("w-1")?.audio?.path).toEqual(path);
 
     database.beginConnection(start("w-old"));

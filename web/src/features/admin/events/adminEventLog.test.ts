@@ -41,7 +41,9 @@ describe("the event log", () => {
     const s = setup();
     s.getJson.mockResolvedValue({ events: [{ id: 2 }, { id: 1 }], total: 40 });
     await s.store.showPreview(5);
-    expect(s.getJson).toHaveBeenCalledWith(`/api/admin/audit?limit=5&offset=0&categories=${encodeURIComponent(DEFAULTS)}&severities=info%2Cwarning%2Cerror`);
+    expect(s.getJson).toHaveBeenCalledWith(
+      `/api/admin/audit?limit=5&offset=0&categories=${encodeURIComponent(DEFAULTS)}&severities=info%2Cwarning%2Cerror`,
+    );
     expect(s.store.list.items).toHaveLength(2);
     expect(s.store.list.total).toBe(40);
     expect(s.store.list.loading).toBe(false);

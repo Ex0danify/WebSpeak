@@ -26,7 +26,15 @@ describe("retention pruning", () => {
   it("prunes connection records by size and age but never an open session", () => {
     const database = fx.open();
     const start = (id: string) =>
-      database.beginConnection({ id, nickname: id, clientIp: "10.0.0.1", target: "ts:9987", relayName: null, relayTarget: null, userAgent: null });
+      database.beginConnection({
+        id,
+        nickname: id,
+        clientIp: "10.0.0.1",
+        target: "ts:9987",
+        relayName: null,
+        relayTarget: null,
+        userAgent: null,
+      });
     for (let i = 1; i <= 102; i++) {
       start(`w-${i}`);
       database.finishConnection(`w-${i}`, { reason: null, failureDetail: null, durationSeconds: 1, audio: null });

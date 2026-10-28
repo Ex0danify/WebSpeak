@@ -16,7 +16,10 @@ const MAX_USER_AGENT_LENGTH = 512;
 /** What the browser called itself on the voice socket, free of control characters and cut to a sane length. */
 export function readUserAgent(request: IncomingMessage): string | undefined {
   const value = firstHeader(request.headers["user-agent"]);
-  const clean = value?.replace(/\p{Cc}/gu, " ").trim().slice(0, MAX_USER_AGENT_LENGTH);
+  const clean = value
+    ?.replace(/\p{Cc}/gu, " ")
+    .trim()
+    .slice(0, MAX_USER_AGENT_LENGTH);
   return clean || undefined;
 }
 

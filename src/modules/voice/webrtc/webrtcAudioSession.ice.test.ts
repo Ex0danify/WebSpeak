@@ -47,7 +47,12 @@ describe("the ICE result of a WebRTC session", () => {
       connectMs: expect.any(Number),
     });
     await session.close();
-    expect(session.getStats().webrtcIce).toMatchObject({ state: "connected", remoteType: expect.any(String), protocol: "udp", connectMs: expect.any(Number) });
+    expect(session.getStats().webrtcIce).toMatchObject({
+      state: "connected",
+      remoteType: expect.any(String),
+      protocol: "udp",
+      connectMs: expect.any(Number),
+    });
   });
 
   it("records a session whose browser never completed ICE, without a path, which is what a blocked UDP range looks like", async () => {
@@ -58,6 +63,12 @@ describe("the ICE result of a WebRTC session", () => {
     await browser.setLocalDescription(await browser.createOffer());
     await session.createAnswer({ type: "offer", sdp: browser.localDescription!.sdp });
     await session.close();
-    expect(session.getStats().webrtcIce).toMatchObject({ state: expect.stringMatching(/^(new|connecting)$/), remoteType: null, protocol: null, rttMs: null, connectMs: null });
+    expect(session.getStats().webrtcIce).toMatchObject({
+      state: expect.stringMatching(/^(new|connecting)$/),
+      remoteType: null,
+      protocol: null,
+      rttMs: null,
+      connectMs: null,
+    });
   });
 });

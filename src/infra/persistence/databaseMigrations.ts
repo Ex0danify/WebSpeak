@@ -285,7 +285,9 @@ const MIGRATIONS: Migration[] = [
     to: 17,
     up(database) {
       // How many days the log files keep their lines, they were only ever capped by size.
-      database.exec("ALTER TABLE settings ADD COLUMN log_retention_days INTEGER NOT NULL DEFAULT 30 CHECK (log_retention_days BETWEEN 1 AND 365)");
+      database.exec(
+        "ALTER TABLE settings ADD COLUMN log_retention_days INTEGER NOT NULL DEFAULT 30 CHECK (log_retention_days BETWEEN 1 AND 365)",
+      );
     },
   },
 ];

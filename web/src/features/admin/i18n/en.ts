@@ -224,8 +224,7 @@ export const en = {
   databaseSchema: "Database schema",
   createdSessions: "Sessions created",
   downloadBundle: "Download diagnostic bundle",
-  bundleHint:
-    "A zip with the configuration, recent sessions, events and log. Addresses, names and secrets are replaced or left out.",
+  bundleHint: "A zip with the configuration, recent sessions, events and log. Addresses, names and secrets are replaced or left out.",
   exportBackup: "Export database backup",
   backupHint: "The whole database with accounts, addresses and history. Keep it private.",
   connectionHistory: "User connection records",
