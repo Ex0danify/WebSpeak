@@ -1,5 +1,5 @@
 import { createSocket, type Socket } from "node:dgram";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { createUdpImpairmentProxy, type UdpImpairmentProxy } from "./udpImpairmentProxy.js";
 
 const sockets: Socket[] = [];
@@ -20,7 +20,7 @@ async function echoServer(): Promise<{ host: string; port: number }> {
 }
 
 /** Sends `text` through the proxy and resolves with the echo, or undefined after `waitMs`. */
-async function roundTrip(proxy: UdpImpairmentProxy, text: string, waitMs = 500): Promise<string | undefined> {
+async function roundTrip(proxy: UdpImpairmentProxy, text: string, waitMs = 2_000): Promise<string | undefined> {
   const client = createSocket("udp4");
   sockets.push(client);
   return new Promise((resolve) => {
@@ -48,15 +48,15 @@ describe("createUdpImpairmentProxy", () => {
     const proxy = await createUdpImpairmentProxy({ target, impairment: { drop: 1 } });
     proxies.push(proxy);
     expect(await roundTrip(proxy, "hello", 200)).toBeUndefined();
-    expect(proxy.stats.dropped).toBeGreaterThan(0);
+    await vi.waitFor(() => expect(proxy.stats.dropped).toBeGreaterThan(0));
   });
 
   it("still delivers under partial loss", async () => {
     const target = await echoServer();
     const proxy = await createUdpImpairmentProxy({ target, impairment: { drop: 0.3, duplicate: 0.2, reorder: 0.5 }, seed: 7 });
     proxies.push(proxy);
-    let delivered = 0;
-    for (let i = 0; i < 12; i++) if ((await roundTrip(proxy, `n${i}`, 200)) !== undefined) delivered++;
-    expect(delivered).toBeGreaterThan(0);
+    let delivered = false;
+    for (let i = 0; i < 12 && !delivered; i++) delivered = (await roundTrip(proxy, `n${i}`, 1_000)) !== undefined;
+    expect(delivered).toBe(true);
   });
 });

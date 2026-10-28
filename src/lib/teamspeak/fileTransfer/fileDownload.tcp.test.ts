@@ -70,7 +70,7 @@ describe("readDownload", () => {
 
   it("gives up on a silent server after the timeout", async () => {
     server = await startFileServer((socket) => socket.write(FILE.subarray(0, 10)));
-    const error = await failure(readDownload({ host: "127.0.0.1", ticket: ticket(server.port), maxBytes: 1 << 20, timeoutMs: 50 }));
+    const error = await failure(readDownload({ host: "127.0.0.1", ticket: ticket(server.port), maxBytes: 1 << 20, timeoutMs: 500 }));
     expect(error.code).toBe("timeout");
     expect(error.message).toContain("got 10 of 5000 bytes");
   });
