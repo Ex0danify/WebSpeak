@@ -27,7 +27,7 @@ const overview = {
 };
 
 function seededDatabase(dir: string): WebSpeakDatabase {
-  const database = new WebSpeakDatabase(join(dir, "webspeak.db"));
+  const database = new WebSpeakDatabase(join(dir, "webspeak.db"), { synchronous: "off" });
   database.addServer({
     id: "server-1",
     name: "Clan Server",

@@ -50,12 +50,17 @@ export class WebSpeakDatabase {
   private readonly connections: ConnectionRepository;
   private readonly meta: MetaRepository;
 
-  constructor(private readonly path: string) {
+  /** `synchronous: "off"` skips the fsync on every commit. For tests on slow disks only, a crash can corrupt the file. */
+  constructor(
+    private readonly path: string,
+    options: { synchronous?: "off" } = {},
+  ) {
     mkdirSync(dirname(path), { recursive: true });
     const existed = existsSync(path);
     this.database = new DatabaseSync(path);
     try {
       this.database.exec("PRAGMA foreign_keys = ON; PRAGMA journal_mode = WAL;");
+      if (options.synchronous === "off") this.database.exec("PRAGMA synchronous = OFF;");
       const context = { database: this.database, transaction: (action: () => void) => this.transaction(action) };
       this.adminCredentials = new AdminCredentialRepository(context);
       this.settings = new SettingsRepository(context);

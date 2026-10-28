@@ -1,5 +1,4 @@
-import { DatabaseSync } from "node:sqlite";
-import { mkdirSyncFor } from "./database.js";
+import { openSeedDatabase } from "./database.js";
 
 // The schema a fresh database got at schema 11, before managed_invites.server_id became NOT NULL.
 const SCHEMA_11 = `
@@ -79,8 +78,7 @@ CREATE INDEX relay_nodes_enabled_idx ON relay_nodes(enabled);
 
 /** A schema 11 database with a row in every table, and invites in every state the migration must carry over. */
 export function createSchema11Database(file: string): void {
-  mkdirSyncFor(file);
-  const raw = new DatabaseSync(file);
+  const raw = openSeedDatabase(file);
   raw.exec(SCHEMA_11);
   raw.exec(`
     INSERT INTO settings (id, site_name, access_mode, updated_at, webrtc_enabled, webrtc_udp_start, webrtc_udp_end)

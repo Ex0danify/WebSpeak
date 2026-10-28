@@ -89,7 +89,7 @@ export async function startGateway(options: GatewayOptions = {}): Promise<Gatewa
   const dataDir = mkdtempSync(join(tmpdir(), "webspeak-gateway-"));
   const logger = stubLogger();
   const ts = options.ts ?? new FakeTeamSpeakServer();
-  const database = new WebSpeakDatabase(join(dataDir, "webspeak.db"));
+  const database = new WebSpeakDatabase(join(dataDir, "webspeak.db"), { synchronous: "off" });
   const probe = vi.fn(options.probe ?? (async () => ({ ok: true as const, latencyMs: 12 })));
   const ping = vi.fn(
     options.ping ??

@@ -1,6 +1,7 @@
 import { mkdirSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
+import { DatabaseSync } from "node:sqlite";
 import { afterEach, beforeEach, vi } from "vitest";
 import type { AdminCredential } from "../../src/infra/security/adminPassword.js";
 import { type ManagedInviteRecord, type SettingsUpdate, WebSpeakDatabase } from "../../src/infra/persistence/database.js";
@@ -24,7 +25,7 @@ export function useDatabaseFixture(): DatabaseFixture {
       return join(root, "nested", "webspeak.db");
     },
     open(file = fixture.path) {
-      const database = new WebSpeakDatabase(file);
+      const database = new WebSpeakDatabase(file, { synchronous: "off" });
       opened.push(database);
       return database;
     },
@@ -49,6 +50,14 @@ export function useDatabaseFixture(): DatabaseFixture {
 
 export function mkdirSyncFor(file: string): void {
   mkdirSync(dirname(file), { recursive: true });
+}
+
+/** A plain connection for building old-schema files. Without fsync, since every statement is its own commit and Windows CI disks are slow. */
+export function openSeedDatabase(file: string): DatabaseSync {
+  mkdirSyncFor(file);
+  const raw = new DatabaseSync(file);
+  raw.exec("PRAGMA synchronous = OFF;");
+  return raw;
 }
 
 export const credential: AdminCredential = {

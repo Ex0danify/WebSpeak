@@ -1,5 +1,4 @@
-import { DatabaseSync } from "node:sqlite";
-import { mkdirSyncFor } from "./database.js";
+import { openSeedDatabase } from "./database.js";
 
 // The schema a fresh database got at schema 12, before the event log got its category and severity.
 const SCHEMA_12 = `
@@ -79,8 +78,7 @@ CREATE INDEX relay_nodes_enabled_idx ON relay_nodes(enabled);
 
 /** A schema 12 database with a row in every table and audit events of every kind the migration sorts. */
 export function createSchema12Database(file: string): void {
-  mkdirSyncFor(file);
-  const raw = new DatabaseSync(file);
+  const raw = openSeedDatabase(file);
   raw.exec(SCHEMA_12);
   raw.exec(`
     INSERT INTO settings (id, site_name, access_mode, updated_at, webrtc_enabled, webrtc_udp_start, webrtc_udp_end)

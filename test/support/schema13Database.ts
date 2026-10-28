@@ -1,5 +1,4 @@
-import { DatabaseSync } from "node:sqlite";
-import { mkdirSyncFor } from "./database.js";
+import { openSeedDatabase } from "./database.js";
 
 // The schema a fresh database got at schema 13, before sessions got a category, a table and the retention settings.
 const SCHEMA_13 = `
@@ -81,8 +80,7 @@ CREATE INDEX relay_nodes_enabled_idx ON relay_nodes(enabled);
 
 /** A schema 13 database with a row in every table and event log rows that already carry a category and a severity. */
 export function createSchema13Database(file: string): void {
-  mkdirSyncFor(file);
-  const raw = new DatabaseSync(file);
+  const raw = openSeedDatabase(file);
   raw.exec(SCHEMA_13);
   raw.exec(`
     INSERT INTO settings (id, site_name, access_mode, updated_at, webrtc_enabled, webrtc_udp_start, webrtc_udp_end)

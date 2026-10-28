@@ -1,5 +1,4 @@
-import { DatabaseSync } from "node:sqlite";
-import { mkdirSyncFor } from "./database.js";
+import { openSeedDatabase } from "./database.js";
 
 // The schema exactly as 0.7.0 created it, statement text included, so the schema 11 migration runs on the real DDL.
 const SCHEMA_10 = `
@@ -72,8 +71,7 @@ CREATE TABLE ts_servers (
 
 /** A 0.7.0 database (schema 10) with a row in every table, the single-relay columns and the WebRTC public host filled. */
 export function createSchema10Database(file: string): void {
-  mkdirSyncFor(file);
-  const raw = new DatabaseSync(file);
+  const raw = openSeedDatabase(file);
   raw.exec(SCHEMA_10);
   raw.exec(`
     INSERT INTO settings (id, site_name, access_mode, updated_at, webrtc_enabled, webrtc_public_host, webrtc_udp_start, webrtc_udp_end,

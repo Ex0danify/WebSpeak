@@ -11,7 +11,7 @@ let dir = "";
 
 beforeEach(async () => {
   dir = mkdtempSync(join(tmpdir(), "webspeak-reset-"));
-  const database = new WebSpeakDatabase(join(dir, "webspeak.db"));
+  const database = new WebSpeakDatabase(join(dir, "webspeak.db"), { synchronous: "off" });
   database.initializeAdmin(await hashAdminPassword("the password nobody remembers", { username: "ops" }), {
     siteName: "",
     welcomeTexts: {},
