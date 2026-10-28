@@ -297,7 +297,7 @@ export const en = {
     "How long the gateway keeps the event log and the connection history, and how many entries at most. Older entries are deleted automatically.",
   retentionEventLog: "Event log",
   retentionConnections: "Connection history",
-  retentionDays: "Keep for (days)",
+  retentionDays: "Days",
   retentionMaxRows: "Max entries",
   adminErr_INVALID_EVENT_LOG_RETENTION: "The event log retention is invalid. Use 1–365 days.",
   adminErr_INVALID_EVENT_LOG_ROWS: "The event log size is invalid. Use 100–50,000 entries.",

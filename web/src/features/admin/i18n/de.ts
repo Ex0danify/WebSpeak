@@ -300,7 +300,7 @@ export const de: Record<string, string> = {
     "Wie lange das Gateway das Ereignisprotokoll und den Verbindungsverlauf aufbewahrt und wie viele Einträge höchstens. Ältere Einträge werden automatisch gelöscht.",
   retentionEventLog: "Ereignisprotokoll",
   retentionConnections: "Verbindungsverlauf",
-  retentionDays: "Aufbewahren (Tage)",
+  retentionDays: "Tage",
   retentionMaxRows: "Max. Einträge",
   adminErr_INVALID_EVENT_LOG_RETENTION: "Die Aufbewahrung des Ereignisprotokolls ist ungültig. Verwende 1–365 Tage.",
   adminErr_INVALID_EVENT_LOG_ROWS: "Die Größe des Ereignisprotokolls ist ungültig. Verwende 100–50.000 Einträge.",

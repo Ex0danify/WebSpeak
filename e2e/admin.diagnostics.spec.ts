@@ -30,10 +30,15 @@ test.describe("diagnostics", () => {
     await openDiagnostics(page, gateway);
     const retention = page.getByRole("article").filter({ has: page.getByRole("heading", { name: "Log retention" }) });
     const events = retention.getByRole("group", { name: "Event log" });
-    await expect(events.getByLabel("Keep for (days)")).toHaveValue("90");
+    await expect(events.getByLabel("Days")).toHaveValue("90");
     await expect(events.getByLabel("Max entries")).toHaveValue("5000");
-    await events.getByLabel("Keep for (days)").fill("14");
-    await events.getByLabel("Keep for (days)").press("Tab");
+    const days = events.getByLabel("Days");
+    const offset = async () => (await days.boundingBox())!.y - (await events.boundingBox())!.y;
+    const before = await offset();
+    await days.fill("14");
+    await days.press("Tab");
+    await expect(events.getByText("Saved")).toBeVisible();
+    expect(await offset()).toBe(before);
     await expect.poll(() => gateway.database.getSettings().retention.eventLog.days).toBe(14);
 
     const connections = retention.getByRole("group", { name: "Connection history" });

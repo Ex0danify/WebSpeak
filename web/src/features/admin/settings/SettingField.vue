@@ -3,7 +3,7 @@
     <template #label>
       <span class="flex items-baseline justify-between gap-2"
         ><span>{{ label }}</span
-        ><FieldSaved :status="fieldStatus(field)"
+        ><FieldSaved :status="fieldStatus(field)" class="leading-none"
       /></span>
     </template>
     <slot />
