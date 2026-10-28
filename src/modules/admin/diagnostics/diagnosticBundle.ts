@@ -79,7 +79,7 @@ export function buildBundleFiles(input: BundleInput): Record<string, string> {
     "environment.json": json(environment(input)),
     "config.json": json(config(database, servers.length)),
     "servers.json": json(servers),
-    "sessions.json": json({ live: input.liveSessions, history: connections }),
+    "sessions.json": json({ live: input.liveSessions, history: connections.map(withoutUserAgent) }),
     "events.json": json(events),
   };
   files["log-tail.ndjson"] = `${readLogTail(input.runtime.logDir, pseudonyms)}\n`;
@@ -89,6 +89,11 @@ export function buildBundleFiles(input: BundleInput): Record<string, string> {
 
 export function zipBundle(files: Record<string, string>): Uint8Array {
   return zipSync(Object.fromEntries(Object.entries(files).map(([name, text]) => [name, strToU8(text)])), { level: 6 });
+}
+
+// The raw string can be rare enough to point at one device, and the bundle ends up in a public issue. The browser it names stays.
+function withoutUserAgent({ userAgent: _userAgent, ...record }: ConnectionView) {
+  return record;
 }
 
 /** Every failed session in the retention window up to a cap, plus the newest of the rest. */
@@ -218,8 +223,9 @@ function readme(generatedAt: string, version: string, files: string[]): string {
     "",
     "Addresses, nicknames, user names, TeamSpeak client ids, server and relay names and host names are replaced by labels",
     "(ip-1/public, guest-2, host-3.org). A label is the same in every file of this bundle. Passwords, tokens and the admin",
-    "account are not part of it. Free text is scrubbed of addresses, e-mail addresses and home folders, but please",
-    "have a look before you post it. This is not the database backup, that file holds everything and is not for issues.",
+    "account are not part of it. Sessions name the browser (Firefox 140, Android), not the raw user agent. Free text is",
+    "scrubbed of addresses, e-mail addresses and home folders, but please have a look before you post it. This is not the",
+    "database backup, that file holds everything and is not for issues.",
     "",
     "Files:",
     ...files.map((name) => `  ${name}`),

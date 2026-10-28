@@ -129,15 +129,15 @@ describe("buildBundleFiles", () => {
     expect(failed.details.ip).not.toBe("ip-1/public");
   });
 
-  it("carries the user agent, the browser it names and a count per browser, without a mail address in it", () => {
+  it("names the browser of a session and counts them, but leaves the raw user agent out of the public bundle", () => {
     const dir = tempDir();
     const database = seededDatabase(dir);
     const files = buildBundleFiles({ database, overview, version: "1.2.3", runtime: { tls: false }, liveSessions: [], createdSessions: 0 });
     database.close();
     const [record] = JSON.parse(files["sessions.json"]!).history;
-    expect(record.userAgent).toContain("Firefox/140.0");
-    expect(record.userAgent).not.toContain("mallory@example.org");
     expect(record.client).toMatchObject({ browser: "Firefox", browserVersion: "140.0", os: "Linux", platform: "desktop" });
+    expect(record).not.toHaveProperty("userAgent");
+    expect(Object.values(files).join("\n")).not.toContain("Gecko/20100101");
     expect(JSON.parse(files["summary.json"]!).connections.byBrowser).toEqual({ Firefox: 1 });
   });
 
