@@ -7,7 +7,10 @@
       enter-from-class="opacity-0"
       leave-to-class="opacity-0"
     >
-      <span v-if="status.state !== 'idle'" :class="quiet ? 'sr-only' : 'inline-flex items-center gap-1'">
+      <span
+        v-if="status.state !== 'idle'"
+        :class="quiet ? 'sr-only' : ['inline-flex items-center gap-1', status.state === 'saved' && 'text-success italic']"
+      >
         <Icon v-if="status.state === 'saved' && !quiet" name="check" :size="14" />
         {{ status.state === "saved" ? t("savedStatus") : t("saving") }}
       </span>
