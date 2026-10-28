@@ -228,9 +228,9 @@ export const de: Record<string, string> = {
   createdSessions: "Erstellte Sitzungen",
   downloadBundle: "Diagnosepaket herunterladen",
   bundleHint:
-    "Ein Zip mit Konfiguration, letzten Sitzungen, Ereignissen und Log für ein GitHub-Issue. Adressen, Namen und Geheimnisse sind ersetzt oder weggelassen.",
+    "Ein Zip mit Konfiguration, letzten Sitzungen, Ereignissen und Log. Adressen, Namen und Geheimnisse sind ersetzt oder weggelassen.",
   exportBackup: "Datenbanksicherung exportieren",
-  backupHint: "Die ganze Datenbank mit Konten, Adressen und Verlauf. Privat halten, nie an ein Issue anhängen.",
+  backupHint: "Die ganze Datenbank mit Konten, Adressen und Verlauf. Privat halten.",
   connectionHistory: "Verbindungsaufzeichnungen",
   connectionHistoryLead: "Jede beendete Gastsitzung, wie sie verlief und wie viel Audio übetragen wurde.",
   connectionSearch: "Nach Name, Adresse oder Server suchen",

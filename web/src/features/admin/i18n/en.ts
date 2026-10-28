@@ -225,9 +225,9 @@ export const en = {
   createdSessions: "Sessions created",
   downloadBundle: "Download diagnostic bundle",
   bundleHint:
-    "A zip with the configuration, recent sessions, events and log, for a GitHub issue. Addresses, names and secrets are replaced or left out.",
+    "A zip with the configuration, recent sessions, events and log. Addresses, names and secrets are replaced or left out.",
   exportBackup: "Export database backup",
-  backupHint: "The whole database with accounts, addresses and history. Keep it private, never attach it to an issue.",
+  backupHint: "The whole database with accounts, addresses and history. Keep it private.",
   connectionHistory: "User connection records",
   connectionHistoryLead: "Every guest session that ended, with how it went and how much audio it carried",
   connectionSearch: "Search by name, address or server",

@@ -6,15 +6,15 @@
         <dd class="mt-1 truncate text-caption font-bold">{{ fact.value }}</dd>
       </AdminListRow>
     </dl>
-    <div class="flex flex-wrap items-start gap-x-6 gap-y-3.5">
-      <div class="flex max-w-80 flex-col items-start gap-1.5">
-        <Button variant="secondary" as="a" href="/api/admin/diagnostics/bundle" aria-describedby="bundle-hint">{{
+    <div class="grid grid-cols-2 items-start gap-2.25 max-narrow:grid-cols-1">
+      <div class="flex flex-col items-start gap-1.5">
+        <Button variant="secondary" size="sm" as="a" href="/api/admin/diagnostics/bundle" aria-describedby="bundle-hint">{{
           t("downloadBundle")
         }}</Button>
         <p id="bundle-hint" class="m-0 text-2xs text-fg-muted">{{ t("bundleHint") }}</p>
       </div>
-      <div class="flex max-w-80 flex-col items-start gap-1.5">
-        <Button variant="secondary" aria-describedby="backup-hint" @click="downloadBackup()">{{ t("exportBackup") }}</Button>
+      <div class="flex flex-col items-start gap-1.5">
+        <Button variant="secondary" size="sm" aria-describedby="backup-hint" @click="downloadBackup()">{{ t("exportBackup") }}</Button>
         <p id="backup-hint" class="m-0 text-2xs text-fg-muted">{{ t("backupHint") }}</p>
       </div>
     </div>
