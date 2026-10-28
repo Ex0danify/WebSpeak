@@ -1,17 +1,23 @@
 <template>
   <AdminSection :title="t('systemInfo')" :lead="t('systemInfoLead')">
-    <template #action>
-      <a class="text-2xs font-bold whitespace-nowrap text-accent no-underline" href="/api/admin/diagnostics/report">{{
-        t("downloadReport")
-      }}</a>
-    </template>
     <dl class="grid grid-cols-2 gap-2.25 max-narrow:grid-cols-1">
       <AdminListRow v-for="fact in diagnosticFacts" :key="fact.label">
         <dt class="text-2xs text-fg-muted">{{ fact.label }}</dt>
         <dd class="mt-1 truncate text-caption font-bold">{{ fact.value }}</dd>
       </AdminListRow>
     </dl>
-    <Button variant="secondary" @click="downloadBackup()">{{ t("exportBackup") }}</Button>
+    <div class="flex flex-wrap items-start gap-x-6 gap-y-3.5">
+      <div class="flex max-w-80 flex-col items-start gap-1.5">
+        <Button variant="secondary" as="a" href="/api/admin/diagnostics/bundle" aria-describedby="bundle-hint">{{
+          t("downloadBundle")
+        }}</Button>
+        <p id="bundle-hint" class="m-0 text-2xs text-fg-muted">{{ t("bundleHint") }}</p>
+      </div>
+      <div class="flex max-w-80 flex-col items-start gap-1.5">
+        <Button variant="secondary" aria-describedby="backup-hint" @click="downloadBackup()">{{ t("exportBackup") }}</Button>
+        <p id="backup-hint" class="m-0 text-2xs text-fg-muted">{{ t("backupHint") }}</p>
+      </div>
+    </div>
   </AdminSection>
 </template>
 

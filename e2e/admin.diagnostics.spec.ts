@@ -48,6 +48,13 @@ test.describe("diagnostics", () => {
     expect(gateway.database.getSettings().retention.connections.maxRows).toBe(10000);
   });
 
+  test("Download diagnostic bundle downloads a zip", async ({ page, ownGateway }) => {
+    await openDiagnostics(page, await ownGateway());
+    const download = page.waitForEvent("download");
+    await page.getByRole("link", { name: "Download diagnostic bundle" }).click();
+    expect((await download).suggestedFilename()).toMatch(/^webspeak-diagnostics-.+-\d{4}-\d{2}-\d{2}\.zip$/);
+  });
+
   test("Export database backup downloads the file and the page picks up the new event", async ({ page, ownGateway }) => {
     await openDiagnostics(page, await ownGateway());
     const events = page.getByRole("list", { name: "Event log" });
