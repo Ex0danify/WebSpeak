@@ -23,7 +23,7 @@ export type ModuleLanguages = Readonly<Record<string, readonly string[]>>;
 
 /** Every code that has a file in some module, complete or not (check:i18n reports the incomplete ones). */
 export function languageCodesFound(modules: ModuleLanguages): string[] {
-  return [...new Set(Object.values(modules).flat())].sort();
+  return [...new Set(Object.values(modules).flat())].sort((a, b) => a.localeCompare(b));
 }
 
 /** The languages every module has a file for (and that say who they are in `meta`), default first, then alphabetical by code.
