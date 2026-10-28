@@ -59,6 +59,21 @@ test.describe("diagnostics", () => {
     expect(gateway.database.getSettings().retention.connections.maxRows).toBe(10000);
   });
 
+  test("the bundle and backup actions are compact buttons that share a row on a wide screen", async ({ page, ownGateway }) => {
+    await openDiagnostics(page, await ownGateway());
+    const bundle = page.getByRole("link", { name: "Download diagnostic bundle" });
+    const backup = page.getByRole("button", { name: "Export database backup" });
+    const [first, second] = [(await bundle.boundingBox())!, (await backup.boundingBox())!];
+    // 32 px on a mouse screen, 44 px where a finger taps.
+    expect(first.height).toBeLessThanOrEqual(44);
+    expect(second.height).toBeLessThanOrEqual(44);
+    if ((page.viewportSize()?.width ?? 0) >= 1000) expect(Math.abs(first.y - second.y)).toBeLessThan(2);
+    else expect(second.y).toBeGreaterThan(first.y + first.height);
+    // Each action reads its own hint.
+    await expect(bundle).toHaveAccessibleDescription(/zip with the configuration/);
+    await expect(backup).toHaveAccessibleDescription(/whole database/);
+  });
+
   test("Download diagnostic bundle downloads a zip", async ({ page, ownGateway }) => {
     await openDiagnostics(page, await ownGateway());
     const download = page.waitForEvent("download");
@@ -69,6 +84,8 @@ test.describe("diagnostics", () => {
   test("Export database backup downloads the file and the page picks up the new event", async ({ page, ownGateway }) => {
     await openDiagnostics(page, await ownGateway());
     const events = page.getByRole("list", { name: "Event log" });
+    // Counted once the list is there, not while it is still loading.
+    await expect(events.getByRole("listitem").first()).toBeVisible();
     const before = await events.getByRole("listitem").count();
     const download = page.waitForEvent("download");
     await page.getByRole("button", { name: "Export database backup" }).click();
