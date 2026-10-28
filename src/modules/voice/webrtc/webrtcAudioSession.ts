@@ -1,5 +1,5 @@
 import { randomInt } from "node:crypto";
-import { MediaStreamTrack, RtpHeader, RtpPacket, RTCPeerConnection, useOPUS } from "werift";
+import { MediaStreamTrack, RtpHeader, RtpPacket, RTCPeerConnection, type RTCRtpTransceiver, useOPUS } from "werift";
 import type { Logger as LoggerType } from "../../../shared/logger.js";
 import type { TSVoiceData } from "../../teamspeak/index.js";
 import { createOpusCodec, type OpusCodec } from "../voiceOpus.js";
@@ -57,6 +57,7 @@ export interface WebRtcAudioStats {
  */
 export class WebRtcAudioSession {
   readonly peer: RTCPeerConnection;
+  private readonly transceiver: RTCRtpTransceiver;
   private readonly logger: LoggerType;
   private readonly onVoiceFrame: (data: Buffer, codec: 4 | 5) => void;
   private readonly onVoiceActivity: (clientIds: number[]) => void;
@@ -96,7 +97,24 @@ export class WebRtcAudioSession {
     webrtcDownlinkShortFrames: 0,
   };
 
-  constructor(options: WebRtcAudioSessionOptions) {
+  /** Async setup lives here, a constructor can't be awaited and would hide a failed track attach. */
+  static async create(options: WebRtcAudioSessionOptions): Promise<WebRtcAudioSession> {
+    let encoder: OpusCodec;
+    try {
+      encoder = options.createEncoder?.() ?? createOpusCodec(AUDIO_SAMPLE_RATE, 1);
+    } catch (error: unknown) {
+      options.logger.error(
+        { connectionId: options.connectionId, err: error instanceof Error ? error.message : String(error) },
+        "Could not create WebRTC mixer encoder",
+      );
+      throw new Error("WebRTC Opus codec is unavailable", { cause: error });
+    }
+    const session = new WebRtcAudioSession(options, encoder);
+    await session.open();
+    return session;
+  }
+
+  private constructor(options: WebRtcAudioSessionOptions, encoder: OpusCodec) {
     this.logger = options.logger.child({ component: "webrtc-audio", connectionId: options.connectionId });
     this.onVoiceFrame = options.onVoiceFrame;
     this.onVoiceActivity = options.onVoiceActivity;
@@ -116,8 +134,20 @@ export class WebRtcAudioSession {
       ...(iceAdditionalHostAddresses ? { iceAdditionalHostAddresses } : {}),
     });
 
-    const audio = this.peer.addTransceiver("audio", { direction: "sendrecv" });
-    audio.onTrack.subscribe((track) => {
+    this.transceiver = this.peer.addTransceiver("audio", { direction: "sendrecv" });
+    this.mixer = new WebRtcMixer(encoder, this.stats, this.logger);
+
+    this.nextAudioDeadline = performance.now();
+    this.scheduleAudioTick();
+    this.activityTimer = setInterval(() => this.flushSpeakerActivity(), SPEAKER_ACTIVITY_INTERVAL_MS);
+    this.activityTimer.unref?.();
+    this.peer.onconnectionstatechange = () => {
+      this.logger.info({ state: this.peer.connectionState }, "WebRTC connection state changed");
+    };
+  }
+
+  private async open(): Promise<void> {
+    this.transceiver.onTrack.subscribe((track) => {
       track.onReceiveRtp.subscribe((rtp) => {
         if (this.closed) return;
         const receivedAt = performance.now();
@@ -139,33 +169,13 @@ export class WebRtcAudioSession {
         // causes gaps, clicks and decoder recovery artifacts.
         this.onVoiceFrame(payload, this.accompanimentActive ? 5 : 4);
       });
-      void audio.sender.replaceTrack(this.outgoingTrack).catch((error: unknown) => {
+      void this.transceiver.sender.replaceTrack(this.outgoingTrack).catch((error: unknown) => {
         this.logger.warn({ err: error instanceof Error ? error.message : String(error) }, "Could not attach WebRTC output track");
       });
     });
-    void audio.sender.replaceTrack(this.outgoingTrack).catch((error: unknown) => {
+    await this.transceiver.sender.replaceTrack(this.outgoingTrack).catch((error: unknown) => {
       this.logger.warn({ err: error instanceof Error ? error.message : String(error) }, "Could not prepare WebRTC output track");
     });
-
-    let encoder: OpusCodec;
-    try {
-      encoder = options.createEncoder?.() ?? createOpusCodec(AUDIO_SAMPLE_RATE, 1);
-    } catch (error: unknown) {
-      this.logger.error({ err: error instanceof Error ? error.message : String(error) }, "Could not create WebRTC mixer encoder");
-      this.outgoingTrack.stop();
-      // The caller never receives this instance, so nothing else can close the peer built above.
-      void this.peer.close().catch(() => undefined);
-      throw new Error("WebRTC Opus codec is unavailable", { cause: error });
-    }
-    this.mixer = new WebRtcMixer(encoder, this.stats, this.logger);
-
-    this.nextAudioDeadline = performance.now();
-    this.scheduleAudioTick();
-    this.activityTimer = setInterval(() => this.flushSpeakerActivity(), SPEAKER_ACTIVITY_INTERVAL_MS);
-    this.activityTimer.unref?.();
-    this.peer.onconnectionstatechange = () => {
-      this.logger.info({ state: this.peer.connectionState }, "WebRTC connection state changed");
-    };
   }
 
   getStats(): WebRtcAudioStats {

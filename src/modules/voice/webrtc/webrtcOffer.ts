@@ -48,7 +48,7 @@ export async function handleWebRtcOffer(
   // A stop or a newer offer may have arrived while the mute sync or the address lookup was pending. Creating the peer now would undo the stop
   // or leave the older peer open next to the newer one.
   if (overtaken()) return;
-  const peer = new WebRtcAudioSession({
+  const peer = await WebRtcAudioSession.create({
     connectionId: entry.id,
     ...(publicAddresses.length ? { publicAddresses } : {}),
     udpPortRange: config.udpPortRange,
