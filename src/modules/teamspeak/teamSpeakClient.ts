@@ -6,6 +6,7 @@ import {
   clientUpdate,
   generateIdentity,
   sendTextMessage,
+  TeamSpeakServerError,
   TextMessageTarget,
   VERSION_PROFILES,
   type Identity,
@@ -147,6 +148,7 @@ export class TSClient extends EventEmitter {
         {
           failureCode: "DIRECTORY_SNAPSHOT_UNAVAILABLE",
           failureDetail: error instanceof Error ? error.message : String(error),
+          failedPermissionId: error instanceof TeamSpeakServerError ? error.failedPermissionId : undefined,
         },
         "TeamSpeak directory snapshot unavailable",
       );
