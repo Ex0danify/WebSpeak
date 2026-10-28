@@ -1,11 +1,40 @@
 import type { MessageKey } from "@/shared/i18n/messageKeys";
 import { intlLocale, type Language } from "@/shared/i18n/languages";
 import { createFormat } from "@/shared/i18n/useFormat";
-import type { AdminConnectionAudio, AdminConnectionRecord, AdminSession, ManagedInvite } from "@/features/admin/core/adminTypes.js";
+import type {
+  AdminConnectionAudio,
+  AdminConnectionAudioPath,
+  AdminConnectionRecord,
+  AdminSession,
+  ManagedInvite,
+} from "@/features/admin/core/adminTypes.js";
 
 const CONNECTION_FAILED: MessageKey = "connectionFailed";
 
 type Translate = (key: MessageKey, params?: Record<string, string | number>) => string;
+
+const PLATFORM_KEYS: Record<string, MessageKey> = {
+  desktop: "connectionPlatformDesktop",
+  mobile: "connectionPlatformMobile",
+  tablet: "connectionPlatformTablet",
+  tv: "connectionPlatformTv",
+};
+
+const ICE_STATE_KEYS: Record<string, MessageKey> = {
+  new: "connectionIceNew",
+  connecting: "connectionIceConnecting",
+  connected: "connectionIceConnected",
+  disconnected: "connectionIceDisconnected",
+  failed: "connectionIceFailed",
+  closed: "connectionIceClosed",
+};
+
+const ICE_TYPE_KEYS: Record<string, MessageKey> = {
+  host: "connectionIceHost",
+  srflx: "connectionIceSrflx",
+  prflx: "connectionIcePrflx",
+  relay: "connectionIceRelay",
+};
 
 const SESSION_STATE_KEYS: Record<string, MessageKey> = {
   connecting: "stateConnecting",
@@ -84,7 +113,7 @@ export function createAdminFormat(language: { value: Language }, t: Translate) {
     const relay = [record.relayName, record.relayTarget].filter(Boolean).join(" · ") || "—";
     return `${route} · ${t("connectionViaRelay", { relay })}`;
   }
-  /** What a session carried, one line each: the voice traffic, and the drops and errors when there were any. */
+  /** What a session carried, one line each: the voice traffic, the drops and errors when there were any, and the way it travelled. */
   function connectionAudioLines(audio: AdminConnectionAudio | null): string[] {
     if (!audio) return [];
     const count = (value: number) => new Intl.NumberFormat(intlLocale(language.value)).format(value);
@@ -97,6 +126,53 @@ export function createAdminFormat(language: { value: Language }, t: Translate) {
     ];
     if (audio.droppedFrames > 0) lines.push(t("connectionAudioDropped", { count: count(audio.droppedFrames) }));
     if (audio.sendErrors > 0) lines.push(t("connectionAudioSendErrors", { count: count(audio.sendErrors) }));
+    if (audio.path) lines.push(...connectionPathLines(audio.path, count));
+    return lines;
+  }
+  function connectionPathLines(path: AdminConnectionAudioPath, count: (value: number) => string): string[] {
+    const lines = [
+      t(path.transport === "webrtc" ? "connectionPathWebrtc" : "connectionPathSocket", {
+        up: count(path.uplinkFrames),
+        upGap: count(path.uplinkMaxGapMs),
+        down: count(path.downlinkFrames),
+        downGap: count(path.downlinkMaxGapMs),
+      }),
+    ];
+    if (path.queueUnderruns + path.lateTicks + path.decodeErrors > 0) {
+      lines.push(
+        t("connectionPathGateway", {
+          underruns: count(path.queueUnderruns),
+          late: count(path.lateTicks),
+          errors: count(path.decodeErrors),
+        }),
+      );
+    }
+    const { ice } = path;
+    if (ice) {
+      const parts = [t("connectionIceState", { state: ICE_STATE_KEYS[ice.state] ? t(ICE_STATE_KEYS[ice.state]!) : ice.state })];
+      if (ice.remoteType) {
+        const type = ICE_TYPE_KEYS[ice.remoteType] ? t(ICE_TYPE_KEYS[ice.remoteType]!) : ice.remoteType;
+        parts.push(t("connectionIcePath", { type, protocol: (ice.protocol ?? "—").toUpperCase() }));
+      }
+      if (ice.rttMs != null) parts.push(t("connectionIceRtt", { ms: count(ice.rttMs) }));
+      if (ice.connectMs != null) parts.push(t("connectionIceConnect", { ms: count(ice.connectMs) }));
+      lines.push(parts.join(" · "));
+    }
+    return lines;
+  }
+  /** The browser a guest joined with: what it was read as, and the user agent exactly as it was reported. */
+  function connectionClientLines(record: Pick<AdminConnectionRecord, "client" | "userAgent">): string[] {
+    const { client, userAgent } = record;
+    const lines: string[] = [];
+    if (client) {
+      const parts = [
+        [client.browser, client.browserVersion].filter(Boolean).join(" "),
+        [client.os, client.osVersion].filter(Boolean).join(" "),
+        client.platform ? (PLATFORM_KEYS[client.platform] ? t(PLATFORM_KEYS[client.platform]!) : client.platform) : "",
+      ].filter(Boolean);
+      if (parts.length > 0) lines.push(t("connectionClient", { client: parts.join(" · ") }));
+    }
+    if (userAgent) lines.push(t("connectionUserAgent", { agent: userAgent }));
     return lines;
   }
   /** Where a live session comes from: the guest's address, and the relay when it goes through one. */
@@ -152,6 +228,7 @@ export function createAdminFormat(language: { value: Language }, t: Translate) {
     connectionStatusLabel,
     connectionRoute,
     connectionAudioLines,
+    connectionClientLines,
     sessionOrigin,
     sessionStateLabel,
     inviteStatusLabel,

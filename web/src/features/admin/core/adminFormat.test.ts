@@ -37,13 +37,62 @@ describe("createAdminFormat", () => {
 
   it("describes what a session carried, and mentions drops and send errors only when there were some", () => {
     const { format } = setupReal("en");
-    const audio = { talkSeconds: 125, framesSent: 6250, framesReceived: 1800, droppedFrames: 0, sendErrors: 0 };
+    const audio = { talkSeconds: 125, framesSent: 6250, framesReceived: 1800, droppedFrames: 0, sendErrors: 0, path: null };
     expect(format.connectionAudioLines(null)).toEqual([]);
     expect(format.connectionAudioLines(audio)).toEqual(["Talked 2m · 6,250 frames sent · 1,800 received"]);
     expect(format.connectionAudioLines({ ...audio, droppedFrames: 3, sendErrors: 1 })).toEqual([
       "Talked 2m · 6,250 frames sent · 1,800 received",
       "3 frames dropped",
       "1 send errors",
+    ]);
+  });
+
+  it("describes how the audio travelled and what ICE made of it", () => {
+    const { format } = setupReal("en");
+    const ice = { state: "connected", localType: "host", remoteType: "srflx", protocol: "udp", rttMs: 41, connectMs: 380 };
+    const path = {
+      transport: "webrtc" as const,
+      uplinkFrames: 3000,
+      uplinkMaxGapMs: 250,
+      downlinkFrames: 4000,
+      downlinkMaxGapMs: 30,
+      queueUnderruns: 0,
+      lateTicks: 0,
+      decodeErrors: 0,
+      ice,
+    };
+    const audio = { talkSeconds: 60, framesSent: 3000, framesReceived: 4000, droppedFrames: 0, sendErrors: 0, path };
+    expect(format.connectionAudioLines(audio).slice(1)).toEqual([
+      "Audio over WebRTC · from the browser 3,000 packets, longest gap 250 ms · to the browser 4,000 packets, longest gap 30 ms",
+      "WebRTC connection: connected · browser path: behind NAT (STUN), UDP · ICE round trip 41 ms · connected after 380 ms",
+    ]);
+    const stalled = {
+      ...path,
+      transport: "websocket" as const,
+      queueUnderruns: 6,
+      lateTicks: 2,
+      decodeErrors: 1,
+      ice: { state: "failed", localType: null, remoteType: null, protocol: null, rttMs: null, connectMs: null },
+    };
+    expect(format.connectionAudioLines({ ...audio, path: stalled }).slice(1)).toEqual([
+      "Audio over WebSocket · from the browser 3,000 frames, longest gap 250 ms · to the browser 4,000 frames, longest gap 30 ms",
+      "Gateway: 6 queue underruns · 2 late ticks · 1 decode errors",
+      "WebRTC connection: failed",
+    ]);
+  });
+
+  it("describes the browser and shows the user agent as it was reported", () => {
+    const { format, setLanguage } = setupReal("en");
+    const client = { browser: "Firefox", browserVersion: "140.0", os: "Linux", osVersion: null, platform: "desktop", engine: "Gecko" };
+    expect(format.connectionClientLines({ client: null, userAgent: null })).toEqual([]);
+    expect(format.connectionClientLines({ client, userAgent: "Mozilla/5.0 Firefox/140.0" })).toEqual([
+      "Browser: Firefox 140.0 · Linux · Desktop",
+      "User agent: Mozilla/5.0 Firefox/140.0",
+    ]);
+    expect(format.connectionClientLines({ client: null, userAgent: "curl/8.5.0" })).toEqual(["User agent: curl/8.5.0"]);
+    setLanguage("de");
+    expect(format.connectionClientLines({ client: { ...client, platform: "mobile" }, userAgent: null })).toEqual([
+      "Browser: Firefox 140.0 · Linux · Mobilgerät",
     ]);
   });
 

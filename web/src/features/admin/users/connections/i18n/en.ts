@@ -1,0 +1,27 @@
+export const en = {
+  connectionClient: "Browser: {{client}}",
+  connectionUserAgent: "User agent: {{agent}}",
+  connectionPlatformDesktop: "Desktop",
+  connectionPlatformMobile: "Mobile",
+  connectionPlatformTablet: "Tablet",
+  connectionPlatformTv: "TV",
+  connectionPathWebrtc:
+    "Audio over WebRTC · from the browser {{up}} packets, longest gap {{upGap}} ms · to the browser {{down}} packets, longest gap {{downGap}} ms",
+  connectionPathSocket:
+    "Audio over WebSocket · from the browser {{up}} frames, longest gap {{upGap}} ms · to the browser {{down}} frames, longest gap {{downGap}} ms",
+  connectionPathGateway: "Gateway: {{underruns}} queue underruns · {{late}} late ticks · {{errors}} decode errors",
+  connectionIceState: "WebRTC connection: {{state}}",
+  connectionIceNew: "not started",
+  connectionIceConnecting: "never completed",
+  connectionIceConnected: "connected",
+  connectionIceDisconnected: "lost",
+  connectionIceFailed: "failed",
+  connectionIceClosed: "closed",
+  connectionIcePath: "browser path: {{type}}, {{protocol}}",
+  connectionIceHost: "direct",
+  connectionIceSrflx: "behind NAT (STUN)",
+  connectionIcePrflx: "behind NAT",
+  connectionIceRelay: "relayed (TURN)",
+  connectionIceRtt: "ICE round trip {{ms}} ms",
+  connectionIceConnect: "connected after {{ms}} ms",
+};

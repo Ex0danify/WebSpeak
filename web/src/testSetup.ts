@@ -2,7 +2,7 @@ import { registerMessages } from "@/shared/i18n/useI18n";
 import { translations as commonMessages } from "@/shared/i18n/common";
 import { translations as roomMessages } from "@/features/room/i18n";
 import { translations as joinMessages } from "@/features/join/i18n";
-import { adminMessages } from "@/features/admin";
+import { adminConnectionMessages, adminMessages } from "@/features/admin";
 import { demoMessages } from "@/features/demo";
 import { sessionMessages } from "@/features/session";
 import { screenShareMessages } from "@/features/screenShare";
@@ -16,6 +16,7 @@ for (const messages of [
   joinMessages,
   identityMessages,
   adminMessages,
+  adminConnectionMessages,
   demoMessages,
   sessionMessages,
   screenShareMessages,

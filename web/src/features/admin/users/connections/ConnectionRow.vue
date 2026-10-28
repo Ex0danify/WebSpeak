@@ -21,6 +21,7 @@
         >{{ t("failureReason") }}: {{ connectionFailureText(record.reason) }}</small
       >
       <small v-if="record.failureDetail" :class="[line, 'text-fg-muted']">{{ t("failureDetail") }}: {{ record.failureDetail }}</small>
+      <small v-for="client in connectionClientLines(record)" :key="client" :class="[line, 'text-fg-muted']">{{ client }}</small>
       <small v-for="audio in connectionAudioLines(record.audio)" :key="audio" :class="[line, 'text-fg-muted']">{{ audio }}</small>
     </div>
   </AdminListRow>
@@ -36,10 +37,15 @@ import type { AdminConnectionRecord } from "@/features/admin/core/adminTypes";
 defineProps<{ record: AdminConnectionRecord }>();
 
 const { language, t } = useI18n();
-const { formatDate, formatAge, connectionStatusLabel, connectionRoute, connectionFailureText, connectionAudioLines } = createAdminFormat(
-  language,
-  t,
-);
+const {
+  formatDate,
+  formatAge,
+  connectionStatusLabel,
+  connectionRoute,
+  connectionFailureText,
+  connectionAudioLines,
+  connectionClientLines,
+} = createAdminFormat(language, t);
 
 const line = "block text-2xs wrap-anywhere";
 const statusVariant = { active: "success", connecting: "warning", disconnected: "neutral", failed: "danger" } as const;
