@@ -177,7 +177,7 @@ describe("first-run password change", () => {
     const admin = await gateway.adminLogin(BOOTSTRAP.password);
     expect(admin.mustChangePassword).toBe(true);
     expect(await (await admin.get("session")).json()).toMatchObject({ authenticated: true, mustChangePassword: true });
-    for (const path of ["overview", "server", "sessions", "invites", "audit", "logs", "diagnostics", "diagnostics/report", "backup"]) {
+    for (const path of ["overview", "server", "sessions", "invites", "audit", "logs", "diagnostics", "diagnostics/bundle", "backup"]) {
       const response = await admin.get(path);
       expect([response.status, ((await response.json()) as { code: string }).code], path).toEqual([403, "PASSWORD_CHANGE_REQUIRED"]);
     }

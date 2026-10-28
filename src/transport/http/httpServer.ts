@@ -65,6 +65,7 @@ export function createWebServer(options: WebServerOptions): WebServer {
       getSessionSummaries: () => voiceBridge.getSessionSummaries(),
       terminateSession: (id) => voiceBridge.terminateSession(id),
       version: options.version,
+      runtime: { host: options.host, port: options.port, tls: Boolean(options.certDir), logDir: options.logDir },
       startedAt,
     }),
   );

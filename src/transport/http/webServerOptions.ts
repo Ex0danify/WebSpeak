@@ -9,6 +9,8 @@ export interface WebServerOptions {
   version?: string;
   staticDir?: string;
   certDir?: string; // path to cert.pem + key.pem for HTTPS
+  /** Where the gateway log is written, the diagnostic bundle reads its tail from there. */
+  logDir?: string;
   voiceBridgeOptions: VoiceBridgeOptions;
   adminService: AdminService;
   logger: Logger;

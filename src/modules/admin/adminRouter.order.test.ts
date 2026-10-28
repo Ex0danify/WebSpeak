@@ -42,7 +42,7 @@ describe("admin router layer order", () => {
         "GET /audit",
         "GET /backup",
         "GET /diagnostics",
-        "GET /diagnostics/report",
+        "GET /diagnostics/bundle",
         "GET /invites",
         "GET /connections",
         "GET /overview",

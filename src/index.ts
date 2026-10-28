@@ -86,6 +86,7 @@ async function runGateway(env: GatewayEnv): Promise<void> {
     version: APP_VERSION,
     staticDir: STATIC_DIR,
     certDir: hasCert ? CERT_DIR : undefined,
+    logDir,
     voiceBridgeOptions: {
       joinTickets,
       webRtc: () => adminService.getWebRtcAudioOptions(),

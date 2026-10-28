@@ -1,5 +1,6 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { unzipSync, strFromU8 } from "fflate";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { DEFAULT_SERVER_ID, serverInput, settingsInput } from "../../../test/support/adminService.js";
 import type { FakeTSClient } from "../../../test/support/fakeTsClient.js";
@@ -321,7 +322,7 @@ describe("diagnostics", () => {
     expect(body.database).toEqual({ schemaVersion: gateway.database.schemaVersion });
   });
 
-  it("downloads a report that carries no secret", async () => {
+  it("downloads a zip bundle that carries no secret and no address of a guest", async () => {
     const { gateway, admin } = await start();
     await admin.put(`servers/${DEFAULT_SERVER_ID}`, serverInput({ passwordAction: "replace", serverPassword: "s3cret-server-pass" }));
     await admin.put(
@@ -332,16 +333,34 @@ describe("diagnostics", () => {
         ],
       }),
     );
-    const response = await admin.get("diagnostics/report");
-    expect(response.headers.get("content-type")).toBe("application/json; charset=utf-8");
-    expect(response.headers.get("content-disposition")).toBe('attachment; filename="webspeak-diagnostic-report.json"');
-    const text = await response.text();
-    const report = JSON.parse(text);
-    expect(Object.keys(report).sort()).toEqual(["audit", "connections", "database", "gateway", "generatedAt", "servers", "sessions"]);
-    expect(report.audit.map((entry: { event: string }) => entry.event)).toContain("SETTINGS_CHANGED");
-    expect(text).toContain('\n  "gateway"');
+    const socket = await gateway.openVoice(gateway.ticket({ nickname: "Mallory" }));
+    await socket.waitForMessage("connected");
+    const response = await admin.get("diagnostics/bundle");
+    expect(response.headers.get("content-type")).toBe("application/zip");
+    expect(response.headers.get("content-disposition")).toMatch(
+      /^attachment; filename="webspeak-diagnostics-9\.9\.9-\d{4}-\d{2}-\d{2}\.zip"$/,
+    );
+    const files = unzipSync(new Uint8Array(await response.arrayBuffer()));
+    expect(Object.keys(files).sort()).toEqual([
+      "README.txt",
+      "config.json",
+      "environment.json",
+      "events.json",
+      "log-tail.ndjson",
+      "servers.json",
+      "sessions.json",
+      "summary.json",
+    ]);
+    const text = Object.values(files)
+      .map((file) => strFromU8(file))
+      .join("\n");
+    expect(JSON.parse(strFromU8(files["config.json"]!)).relayNodes).toMatchObject([{ enabled: true, port: 39087, hasToken: true }]);
+    expect(JSON.parse(strFromU8(files["sessions.json"]!)).live).toMatchObject([{ nickname: "guest-1", state: "connected" }]);
+    expect(JSON.parse(strFromU8(files["events.json"]!)).map((entry: { event: string }) => entry.event)).toContain("SETTINGS_CHANGED");
     const credential = gateway.database.getAdminCredential()!;
     for (const secret of [
+      "Mallory",
+      "relay.example.org",
       "s3cret-server-pass",
       "s3cret-relay-token",
       TEST_ADMIN_PASSWORD,
