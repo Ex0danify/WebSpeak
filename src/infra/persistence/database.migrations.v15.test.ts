@@ -20,6 +20,7 @@ function createSchema14Database(file: string): void {
   fx.open().close();
   const raw = new DatabaseSync(file);
   raw.exec("ALTER TABLE connection_records DROP COLUMN user_agent");
+  raw.exec("ALTER TABLE settings DROP COLUMN log_retention_days");
   raw.exec("ALTER TABLE settings DROP COLUMN privacy_notice_url");
   raw.exec(`INSERT INTO connection_records (id, nickname, client_ip, target, started_at, status) VALUES ('w-old', 'olga', '10.0.0.1', 'ts:9987', '2026-10-01T10:00:00.000Z', 'disconnected')`);
   raw.exec("PRAGMA user_version = 14");

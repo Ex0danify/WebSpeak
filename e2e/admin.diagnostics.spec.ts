@@ -41,6 +41,17 @@ test.describe("diagnostics", () => {
     expect(await offset()).toBe(before);
     await expect.poll(() => gateway.database.getSettings().retention.eventLog.days).toBe(14);
 
+    const logs = retention.getByRole("group", { name: "Log files" });
+    await expect(logs.getByLabel("Days")).toHaveValue("30");
+    await logs.getByLabel("Days").fill("7");
+    await logs.getByLabel("Days").press("Tab");
+    await expect(logs.getByText("Saved")).toBeVisible();
+    await expect.poll(() => gateway.database.getSettings().retention.logs.days).toBe(7);
+    await logs.getByLabel("Days").fill("400");
+    await logs.getByLabel("Days").press("Tab");
+    await expect(retention.getByText(/1.*365/)).toBeVisible();
+    expect(gateway.database.getSettings().retention.logs.days).toBe(7);
+
     const connections = retention.getByRole("group", { name: "Connection history" });
     await connections.getByLabel("Max entries").fill("999999999999");
     await connections.getByLabel("Max entries").press("Tab");

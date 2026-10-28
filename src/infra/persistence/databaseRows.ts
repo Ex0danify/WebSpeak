@@ -29,6 +29,7 @@ export interface SettingsRow extends Record<string, unknown> {
   connection_retention_days: number;
   connection_max_rows: number;
   privacy_notice_url: string;
+  log_retention_days: number;
   updated_at: string;
 }
 

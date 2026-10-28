@@ -54,9 +54,12 @@ async function runGateway(env: GatewayEnv): Promise<void> {
   // Sessions still open belong to a gateway that is gone, and the logs are trimmed to the retention of the settings.
   database.closeOpenConnections();
   const pruned = database.pruneByRetention();
+  logger.setLogRetentionDays(database.getSettings().retention.logs.days);
   const gatewayEvents = new GatewayEvents(database);
   const masterSecret = loadOrCreateMasterSecret(path.join(dataDir, "master.key"));
-  const adminService = new AdminService(database, masterSecret, logger, undefined, APP_VERSION);
+  const adminService = new AdminService(database, masterSecret, logger, undefined, APP_VERSION, undefined, (retention) =>
+    logger.setLogRetentionDays(retention.logs.days),
+  );
   // The credentials in .env only matter on a fresh database, so they are not even checked once an account exists.
   adminService.pruneManagedInvites();
   const inviteSweep = setInterval(() => adminService.pruneManagedInvites(), INVITE_SWEEP_MS);

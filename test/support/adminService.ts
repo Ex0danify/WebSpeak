@@ -43,9 +43,9 @@ export function useAdminService() {
     probe: vi.fn(),
     ping: vi.fn(),
     /** Opens the database and builds a service on it. `secret` defaults to the fixed test secret. */
-    create(secret: Buffer = MASTER_SECRET): AdminService {
+    create(secret: Buffer = MASTER_SECRET, onRetentionApplied?: ConstructorParameters<typeof AdminService>[6]): AdminService {
       const db = database.open();
-      return new AdminService(db, secret, context.logger, context.probe as never, "9.9.9", context.ping as never);
+      return new AdminService(db, secret, context.logger, context.probe as never, "9.9.9", context.ping as never, onRetentionApplied);
     },
   };
   return context;

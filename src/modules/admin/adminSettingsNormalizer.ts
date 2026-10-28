@@ -43,6 +43,7 @@ export interface AdminSettingsInput {
   eventLogMaxRows?: number;
   connectionRetentionDays?: number;
   connectionMaxRows?: number;
+  logRetentionDays?: number;
   relayNodes?: RelayNodeInput[];
 }
 
@@ -174,6 +175,15 @@ export function normalizeSettings(input: AdminSettingsInput, current: StoredSett
         CONNECTION_ROWS_MAX,
         "INVALID_CONNECTION_ROWS",
         `Connection history size must be between ${CONNECTION_ROWS_MIN} and ${CONNECTION_ROWS_MAX} entries`,
+      ),
+    },
+    logs: {
+      days: boundedInteger(
+        input.logRetentionDays ?? current.retention.logs.days ?? DEFAULT_RETENTION_POLICY.logs.days,
+        RETENTION_DAYS_MIN,
+        RETENTION_DAYS_MAX,
+        "INVALID_LOG_RETENTION",
+        `Log retention must be between ${RETENTION_DAYS_MIN} and ${RETENTION_DAYS_MAX} days`,
       ),
     },
   };

@@ -49,6 +49,7 @@ const FIELD_KEYS: Record<string, MessageKey> = {
   eventLogMaxRows: "eventFieldEventLogRows",
   connectionRetentionDays: "eventFieldConnectionDays",
   connectionMaxRows: "eventFieldConnectionRows",
+  logRetentionDays: "eventFieldLogDays",
   welcomeTexts: "welcomeText",
   relayNodes: "relaySettings",
   name: "serverName",

@@ -12,6 +12,7 @@ export const SETTING_LIMITS = {
   eventLogMaxRows: { min: 100, max: 50000 },
   connectionRetentionDays: { min: 1, max: 365 },
   connectionMaxRows: { min: 100, max: 100000 },
+  logRetentionDays: { min: 1, max: 365 },
   relayNameMax: 80,
   relayTargetMax: 300,
   relayTokenMin: 16,
@@ -58,6 +59,7 @@ export interface SettingsDocument {
   eventLogMaxRows: number;
   connectionRetentionDays: number;
   connectionMaxRows: number;
+  logRetentionDays: number;
   relayNodes: RelayNodeDocument[];
 }
 
@@ -71,6 +73,7 @@ const NUMBER_FIELDS = [
   "eventLogMaxRows",
   "connectionRetentionDays",
   "connectionMaxRows",
+  "logRetentionDays",
 ] as const;
 type NumberField = (typeof NUMBER_FIELDS)[number];
 

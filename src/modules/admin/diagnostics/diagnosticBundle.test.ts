@@ -141,6 +141,14 @@ describe("buildBundleFiles", () => {
     expect(JSON.parse(files["summary.json"]!).connections.byBrowser).toEqual({ Firefox: 1 });
   });
 
+  it("states the retention in force, the log files included", () => {
+    const dir = tempDir();
+    const database = seededDatabase(dir);
+    const files = buildBundleFiles({ database, overview, version: "1.2.3", runtime: { tls: false }, liveSessions: [], createdSessions: 0 });
+    database.close();
+    expect(JSON.parse(files["config.json"]!).retention).toMatchObject({ logs: { days: 30 } });
+  });
+
   it("keeps event names readable and labels the admin account the same in every file", () => {
     const dir = tempDir();
     const database = seededDatabase(dir);
@@ -157,8 +165,14 @@ describe("buildBundleFiles", () => {
   it("states the proxy setting and the browser that asked, and merges a burst of settings changes", () => {
     const dir = tempDir();
     const database = seededDatabase(dir);
-    database.updateSettings({ ...database.getSettings(), webRtcUdpStart: 41000 }, { changes: [{ field: "a", from: 1, to: 2 }], ip: "198.51.100.4" });
-    database.updateSettings({ ...database.getSettings(), webRtcUdpStart: 42000 }, { changes: [{ field: "a", from: 2, to: 3 }], ip: "198.51.100.4" });
+    database.updateSettings(
+      { ...database.getSettings(), webRtcUdpStart: 41000 },
+      { changes: [{ field: "a", from: 1, to: 2 }], ip: "198.51.100.4" },
+    );
+    database.updateSettings(
+      { ...database.getSettings(), webRtcUdpStart: 42000 },
+      { changes: [{ field: "a", from: 2, to: 3 }], ip: "198.51.100.4" },
+    );
     const files = buildBundleFiles({
       database,
       overview,

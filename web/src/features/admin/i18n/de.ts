@@ -304,13 +304,16 @@ export const de: Record<string, string> = {
   eventDuration: "Dauer {{duration}}",
   retentionSettings: "Aufbewahrung der Protokolle",
   retentionSettingsLead:
-    "Wie lange das Gateway das Ereignisprotokoll und den Verbindungsverlauf aufbewahrt und wie viele Einträge höchstens. Ältere Einträge werden automatisch gelöscht.",
+    "Wie lange das Gateway das Ereignisprotokoll, den Verbindungsverlauf und seine Logdateien aufbewahrt und wie viele Einträge höchstens. Ältere Einträge werden automatisch gelöscht. Logdateien sind zusätzlich in der Größe begrenzt, ein stark genutztes Gateway behält also weniger.",
   retentionEventLog: "Ereignisprotokoll",
   retentionConnections: "Verbindungsverlauf",
   retentionDays: "Tage",
   retentionMaxRows: "Max. Einträge",
   adminErr_INVALID_PRIVACY_NOTICE_URL:
     "Der Link zur Datenschutzerklärung ist ungültig. Verwende eine http://- oder https://-Adresse mit höchstens 300 Zeichen.",
+  retentionLogs: "Logdateien",
+  eventFieldLogDays: "Aufbewahrung der Logdateien (Tage)",
+  adminErr_INVALID_LOG_RETENTION: "Die Aufbewahrung der Logdateien ist ungültig. Verwende 1–365 Tage.",
   adminErr_INVALID_EVENT_LOG_RETENTION: "Die Aufbewahrung des Ereignisprotokolls ist ungültig. Verwende 1–365 Tage.",
   adminErr_INVALID_EVENT_LOG_ROWS: "Die Größe des Ereignisprotokolls ist ungültig. Verwende 100–50.000 Einträge.",
   adminErr_INVALID_CONNECTION_RETENTION: "Die Aufbewahrung des Verbindungsverlaufs ist ungültig. Verwende 1–365 Tage.",

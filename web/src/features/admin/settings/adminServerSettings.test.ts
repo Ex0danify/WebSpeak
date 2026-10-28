@@ -84,6 +84,7 @@ describe("autosave", () => {
       eventLogMaxRows: 5000,
       connectionRetentionDays: 30,
       connectionMaxRows: 10000,
+      logRetentionDays: 30,
       relayNodes: [],
     });
     expect(s.st.statuses.web.state).toBe("saved");

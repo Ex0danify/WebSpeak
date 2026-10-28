@@ -14,7 +14,7 @@ describe("retention pruning", () => {
   it("keeps only the newest event log rows and none older than the retention", () => {
     const database = fx.open();
     for (let i = 1; i <= 120; i++) database.addAudit(`EVENT_${i}`);
-    saveRetention(database, { eventLog: { days: 30, maxRows: 100 }, connections: { days: 30, maxRows: 100 } });
+    saveRetention(database, { eventLog: { days: 30, maxRows: 100 }, connections: { days: 30, maxRows: 100 }, logs: { days: 30 } });
     const events = database.listAudit({ limit: 100, offset: 0 });
     // The 120 rows plus the initialization, cut to the newest 100.
     expect(events.total).toBe(100);
@@ -32,7 +32,7 @@ describe("retention pruning", () => {
       database.finishConnection(`w-${i}`, { reason: null, failureDetail: null, durationSeconds: 1, audio: null });
     }
     start("w-open");
-    saveRetention(database, { eventLog: { days: 30, maxRows: 5000 }, connections: { days: 30, maxRows: 100 } });
+    saveRetention(database, { eventLog: { days: 30, maxRows: 5000 }, connections: { days: 30, maxRows: 100 }, logs: { days: 30 } });
     const ids = database.listConnections({ limit: 100, offset: 0 }).records.map((record) => record.id);
     expect(ids).toHaveLength(100);
     expect(ids).toContain("w-open");

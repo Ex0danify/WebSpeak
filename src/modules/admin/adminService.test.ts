@@ -143,6 +143,25 @@ describe("views", () => {
   });
 });
 
+describe("retention", () => {
+  it("tells whoever keeps files of its own the retention now in force, after every save", () => {
+    const applied: number[] = [];
+    const service = ctx.create(undefined, (retention) => applied.push(retention.logs.days));
+    service.updateSettings(settingsInput({ logRetentionDays: 7 }));
+    service.updateSettings(settingsInput());
+    service.updateSettings(settingsInput({ logRetentionDays: 14 }));
+    expect(applied).toEqual([7, 7, 14]);
+    expect(service.getAdminSettings().logRetentionDays).toBe(14);
+  });
+
+  it("refuses a log retention outside 1 to 365 days without telling anyone", () => {
+    const applied: number[] = [];
+    const service = ctx.create(undefined, (retention) => applied.push(retention.logs.days));
+    expect(rejection(() => service.updateSettings(settingsInput({ logRetentionDays: 0 }))).code).toBe("INVALID_LOG_RETENTION");
+    expect(applied).toEqual([]);
+  });
+});
+
 describe("updateSettings validation", () => {
   const cases: Array<[string, Parameters<typeof settingsInput>[0], string]> = [
     ["an empty site name", { siteName: "   " }, "INVALID_SITE_NAME"],

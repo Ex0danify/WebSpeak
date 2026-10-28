@@ -9,6 +9,7 @@ import { pingTeamSpeakHost, type TeamSpeakPingResult } from "../relay/index.js";
 import { type ConfiguredAccelerationRelay } from "../relay/index.js";
 import { type WebRtcAudioOptions } from "../../config/webrtcConfig.js";
 import { type IdentityMintPolicy } from "../../config/identityMintConfig.js";
+import { type RetentionPolicy } from "../../config/retentionConfig.js";
 import { DEFAULT_WELCOME_TEXTS, resolveWelcomeTexts } from "./siteCopy.js";
 import { AdminInputError } from "./adminErrors.js";
 import { diffFields, relayNodesChanged, sortedEntries } from "./auditChanges.js";
@@ -69,6 +70,8 @@ export class AdminService {
     private readonly probe: ProbeFunction = probeTeamSpeak,
     private readonly version = "0.1.0",
     private readonly hostPing: HostPingFunction = (host) => pingTeamSpeakHost(host, { attempts: 4 }),
+    /** Told after a save with the retention now in force, for what lives outside the database (the log files). */
+    private readonly onRetentionApplied?: (retention: RetentionPolicy) => void,
   ) {
     this.invites = new AdminInviteService(database, masterSecret, logger);
     this.servers = new AdminServerService(database, masterSecret, logger);
@@ -148,6 +151,7 @@ export class AdminService {
       eventLogMaxRows: settings.retention.eventLog.maxRows,
       connectionRetentionDays: settings.retention.connections.days,
       connectionMaxRows: settings.retention.connections.maxRows,
+      logRetentionDays: settings.retention.logs.days,
       relayNodes: this.getRelayNodeViews(),
       updatedAt: settings.updatedAt,
     };
@@ -214,6 +218,7 @@ export class AdminService {
         eventLogMaxRows: current.retention.eventLog.maxRows,
         connectionRetentionDays: current.retention.connections.days,
         connectionMaxRows: current.retention.connections.maxRows,
+        logRetentionDays: current.retention.logs.days,
       },
       {
         siteName: settings.siteName,
@@ -229,6 +234,7 @@ export class AdminService {
         eventLogMaxRows: settings.retention?.eventLog.maxRows,
         connectionRetentionDays: settings.retention?.connections.days,
         connectionMaxRows: settings.retention?.connections.maxRows,
+        logRetentionDays: settings.retention?.logs.days,
       },
     );
     if (
@@ -239,8 +245,9 @@ export class AdminService {
     }
     if (relayNodes !== undefined && relayNodesChanged(this.database.listRelayNodes(), relayNodes)) changes.push({ field: "relayNodes" });
     this.database.updateSettings(settings, { changes, ip });
-    // A smaller limit takes effect now and not at the next daily sweep.
+    // A smaller limit takes effect now and not at the next sweep.
     this.database.pruneByRetention();
+    this.onRetentionApplied?.(this.database.getSettings().retention);
     if (relayNodes !== undefined) this.database.replaceRelayNodes(relayNodes);
   }
 

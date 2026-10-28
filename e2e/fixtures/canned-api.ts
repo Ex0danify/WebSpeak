@@ -43,6 +43,7 @@ const server = {
   accessMode: "fixed",
   siteName: "WebSpeak",
   welcomeTexts: { en: "Welcome to WebSpeak", de: "Willkommen bei WebSpeak" },
+  privacyNoticeUrl: "",
   webRtcEnabled: true,
   webRtcUdpStart: 40000,
   webRtcUdpEnd: 40099,
@@ -50,6 +51,7 @@ const server = {
   eventLogMaxRows: 5000,
   connectionRetentionDays: 30,
   connectionMaxRows: 10000,
+  logRetentionDays: 30,
   relayNodes: [
     { id: "fra", name: "Frankfurt relay", enabled: true, target: "relay.example.com:9987", hasToken: true },
     { id: "tyo", name: "Tokyo relay", enabled: false, target: "tokyo.example.com:9987", hasToken: false },

@@ -19,7 +19,7 @@ const stored = (overrides: Partial<PersistedSettings> = {}): PersistedSettings =
   identityMintMaxLevel: 8,
   identityMintConcurrency: 2,
   identityMintQueueDepth: 20,
-  retention: { eventLog: { days: 90, maxRows: 5000 }, connections: { days: 30, maxRows: 10000 } },
+  retention: { eventLog: { days: 90, maxRows: 5000 }, connections: { days: 30, maxRows: 10000 }, logs: { days: 30 } },
   updatedAt: "2026-01-01T00:00:00.000Z",
   ...overrides,
 });
@@ -100,6 +100,9 @@ describe("normalizeSettings", () => {
     ["an event log size above 50000", { eventLogMaxRows: 999_999_999_999 }, "INVALID_EVENT_LOG_ROWS"],
     ["a connection retention above a year", { connectionRetentionDays: 9999 }, "INVALID_CONNECTION_RETENTION"],
     ["a connection history size above 100000", { connectionMaxRows: 100_001 }, "INVALID_CONNECTION_ROWS"],
+    ["a log retention of 0 days", { logRetentionDays: 0 }, "INVALID_LOG_RETENTION"],
+    ["a log retention above a year", { logRetentionDays: 366 }, "INVALID_LOG_RETENTION"],
+    ["a log retention that is no whole number", { logRetentionDays: 2.5 }, "INVALID_LOG_RETENTION"],
     ["a fractional retention", { connectionRetentionDays: 1.5 }, "INVALID_CONNECTION_RETENTION"],
   ];
   it.each(rejects)("rejects %s", (_name, overrides, code) => {
@@ -140,14 +143,20 @@ describe("normalizeSettings", () => {
   });
 
   it("keeps the current retention for omitted fields and takes the bounds as they are", () => {
-    const current = stored({ retention: { eventLog: { days: 10, maxRows: 200 }, connections: { days: 5, maxRows: 300 } } });
+    const current = stored({ retention: { eventLog: { days: 10, maxRows: 200 }, connections: { days: 5, maxRows: 300 }, logs: { days: 7 } } });
     expect(normalizeSettings(settingsInput(), current).retention).toEqual(current.retention);
     expect(
       normalizeSettings(
-        settingsInput({ eventLogRetentionDays: 365, eventLogMaxRows: 50_000, connectionRetentionDays: 1, connectionMaxRows: 100_000 }),
+        settingsInput({
+          eventLogRetentionDays: 365,
+          eventLogMaxRows: 50_000,
+          connectionRetentionDays: 1,
+          connectionMaxRows: 100_000,
+          logRetentionDays: 365,
+        }),
         current,
       ).retention,
-    ).toEqual({ eventLog: { days: 365, maxRows: 50_000 }, connections: { days: 1, maxRows: 100_000 } });
+    ).toEqual({ eventLog: { days: 365, maxRows: 50_000 }, connections: { days: 1, maxRows: 100_000 }, logs: { days: 365 } });
   });
 
   it("locks the UDP range while WebRTC is enabled", () => {

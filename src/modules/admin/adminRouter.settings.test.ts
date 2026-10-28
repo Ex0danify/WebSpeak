@@ -29,6 +29,7 @@ describe("GET /server", () => {
       "identityMintConcurrency",
       "identityMintMaxLevel",
       "identityMintQueueDepth",
+      "logRetentionDays",
       "privacyNoticeUrl",
       "relayNodes",
       "servers",

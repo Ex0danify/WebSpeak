@@ -24,6 +24,7 @@ export class SettingsRepository {
       retention: {
         eventLog: { days: row.event_log_retention_days, maxRows: row.event_log_max_rows },
         connections: { days: row.connection_retention_days, maxRows: row.connection_max_rows },
+        logs: { days: row.log_retention_days },
       },
       updatedAt: row.updated_at,
     };
@@ -37,7 +38,7 @@ export class SettingsRepository {
          site_name = ?, access_mode = ?, webrtc_enabled = ?, webrtc_udp_start = ?,
          webrtc_udp_end = ?, identity_mint_max_level = ?, identity_mint_concurrency = ?,
          identity_mint_queue_depth = ?, event_log_retention_days = ?, event_log_max_rows = ?,
-         connection_retention_days = ?, connection_max_rows = ?, privacy_notice_url = ?, updated_at = ?
+         connection_retention_days = ?, connection_max_rows = ?, privacy_notice_url = ?, log_retention_days = ?, updated_at = ?
        WHERE id = 1`,
       )
       .run(
@@ -54,6 +55,7 @@ export class SettingsRepository {
         retention.connections.days,
         retention.connections.maxRows,
         settings.privacyNoticeUrl ?? "",
+        retention.logs.days,
         now,
       );
     this.writeWelcomeTexts(settings.welcomeTexts ?? {});

@@ -53,6 +53,11 @@ const groups = computed(
           { name: "connectionMaxRows", label: t("retentionMaxRows") },
         ],
       },
+      {
+        id: "logs",
+        title: t("retentionLogs"),
+        fields: [{ name: "logRetentionDays", label: t("retentionDays") }],
+      },
     ] as const,
 );
 </script>

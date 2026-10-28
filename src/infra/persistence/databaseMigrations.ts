@@ -1,6 +1,6 @@
 import type { DatabaseSync } from "node:sqlite";
 
-export const DATABASE_SCHEMA_VERSION = 16;
+export const DATABASE_SCHEMA_VERSION = 17;
 
 /** The oldest schema this build upgrades, 0.7.0 is the first release that writes it. */
 export const MINIMUM_SCHEMA_VERSION = 10;
@@ -47,6 +47,7 @@ const MIGRATIONS: Migration[] = [
             connection_retention_days INTEGER NOT NULL DEFAULT 30 CHECK (connection_retention_days BETWEEN 1 AND 365),
             connection_max_rows INTEGER NOT NULL DEFAULT 10000 CHECK (connection_max_rows BETWEEN 100 AND 100000),
             privacy_notice_url TEXT NOT NULL DEFAULT '',
+            log_retention_days INTEGER NOT NULL DEFAULT 30 CHECK (log_retention_days BETWEEN 1 AND 365),
             updated_at TEXT NOT NULL
           );
           CREATE TABLE welcome_texts (
@@ -277,6 +278,14 @@ const MIGRATIONS: Migration[] = [
     up(database) {
       // Where a guest can read what the operator does with the data. Empty for none.
       database.exec("ALTER TABLE settings ADD COLUMN privacy_notice_url TEXT NOT NULL DEFAULT ''");
+    },
+  },
+  {
+    from: 16,
+    to: 17,
+    up(database) {
+      // How many days the log files keep their lines, they were only ever capped by size.
+      database.exec("ALTER TABLE settings ADD COLUMN log_retention_days INTEGER NOT NULL DEFAULT 30 CHECK (log_retention_days BETWEEN 1 AND 365)");
     },
   },
 ];

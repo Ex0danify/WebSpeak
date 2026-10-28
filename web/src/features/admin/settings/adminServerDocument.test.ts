@@ -37,15 +37,18 @@ describe("buildSettingsDocument", () => {
     expect(document.privacyNoticeUrl).toBe(url);
   });
 
-  it.each(["javascript:alert(1)", "example.org/privacy", "ftp://example.org", "https://user:pw@example.org/", `https://example.org/${"x".repeat(300)}`])(
-    "holds back %j as the privacy notice and keeps the one the gateway has",
-    (url) => {
-      const confirmed = confirmedForm({ privacyNoticeUrl: "https://example.org/old" });
-      const { document, issues } = buildSettingsDocument(confirmedForm({ privacyNoticeUrl: url }), confirmed);
-      expect(issues).toEqual({ privacyNoticeUrl: { code: "privacyUrl" } });
-      expect(document.privacyNoticeUrl).toBe("https://example.org/old");
-    },
-  );
+  it.each([
+    "javascript:alert(1)",
+    "example.org/privacy",
+    "ftp://example.org",
+    "https://user:pw@example.org/",
+    `https://example.org/${"x".repeat(300)}`,
+  ])("holds back %j as the privacy notice and keeps the one the gateway has", (url) => {
+    const confirmed = confirmedForm({ privacyNoticeUrl: "https://example.org/old" });
+    const { document, issues } = buildSettingsDocument(confirmedForm({ privacyNoticeUrl: url }), confirmed);
+    expect(issues).toEqual({ privacyNoticeUrl: { code: "privacyUrl" } });
+    expect(document.privacyNoticeUrl).toBe("https://example.org/old");
+  });
 
   it("takes a port that is not a number, outside the range or backwards for a mistake in the whole range", () => {
     for (const [start, end] of [
@@ -74,14 +77,16 @@ describe("buildSettingsDocument", () => {
       eventLogMaxRows: 99,
       connectionRetentionDays: 7,
       connectionMaxRows: 999_999_999_999,
+      logRetentionDays: 0,
     });
     const { document, issues } = buildSettingsDocument(form, confirmedForm());
-    expect(Object.keys(issues).sort()).toEqual(["connectionMaxRows", "eventLogMaxRows", "eventLogRetentionDays"]);
+    expect(Object.keys(issues).sort()).toEqual(["connectionMaxRows", "eventLogMaxRows", "eventLogRetentionDays", "logRetentionDays"]);
     expect(document).toMatchObject({
       eventLogRetentionDays: 90,
       eventLogMaxRows: 5000,
       connectionRetentionDays: 7,
       connectionMaxRows: 10000,
+      logRetentionDays: 30,
     });
   });
 
@@ -170,7 +175,9 @@ describe("changedFieldKeys", () => {
   it("names the fields and choices that differ", () => {
     const form = confirmedForm({ siteName: "Night Owls", identityMintQueueDepth: 5, accessMode: "open", webRtcEnabled: true });
     expect(changedFieldKeys(documentOf(form), before)).toEqual(["accessMode", "webRtcEnabled", "siteName", "identityMintQueueDepth"]);
-    expect(changedFieldKeys(documentOf(confirmedForm({ privacyNoticeUrl: "https://example.org/p" })), before)).toEqual(["privacyNoticeUrl"]);
+    expect(changedFieldKeys(documentOf(confirmedForm({ privacyNoticeUrl: "https://example.org/p" })), before)).toEqual([
+      "privacyNoticeUrl",
+    ]);
   });
 
   it("names the welcome text only when its words change", () => {

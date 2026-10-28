@@ -108,6 +108,7 @@ export function initialServerForm() {
     eventLogMaxRows: 5000,
     connectionRetentionDays: 30,
     connectionMaxRows: 10000,
+    logRetentionDays: 30,
     relayNodes: [] as RelayNodeForm[],
   };
 }
@@ -144,6 +145,7 @@ export function formFieldsFromSettings(value: Record<string, any>) {
     eventLogMaxRows: Number(value.eventLogMaxRows || 5000),
     connectionRetentionDays: Number(value.connectionRetentionDays || 30),
     connectionMaxRows: Number(value.connectionMaxRows || 10000),
+    logRetentionDays: Number(value.logRetentionDays || 30),
     relayNodes: mapRelayNodes(value.relayNodes),
   };
 }

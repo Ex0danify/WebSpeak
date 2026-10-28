@@ -31,6 +31,7 @@ export function readSettingsInput(body: Record<string, unknown>): AdminSettingsI
     eventLogMaxRows: readOptionalInteger(body, "eventLogMaxRows"),
     connectionRetentionDays: readOptionalInteger(body, "connectionRetentionDays"),
     connectionMaxRows: readOptionalInteger(body, "connectionMaxRows"),
+    logRetentionDays: readOptionalInteger(body, "logRetentionDays"),
     relayNodes,
   };
 }

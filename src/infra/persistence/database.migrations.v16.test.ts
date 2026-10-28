@@ -5,10 +5,11 @@ import { DATABASE_SCHEMA_VERSION } from "./database.js";
 
 const fx = useDatabaseFixture();
 
-/** A schema 15 file: the current layout without the column schema 16 adds. */
+/** A schema 15 file: the current layout without the columns the later schemas add. */
 function createSchema15Database(file: string): void {
   fx.open().close();
   const raw = new DatabaseSync(file);
+  raw.exec("ALTER TABLE settings DROP COLUMN log_retention_days");
   raw.exec("ALTER TABLE settings DROP COLUMN privacy_notice_url");
   raw.exec("UPDATE settings SET site_name = 'Eleven'");
   raw.exec("PRAGMA user_version = 15");
