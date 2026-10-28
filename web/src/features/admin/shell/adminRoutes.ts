@@ -5,6 +5,7 @@ import AdminGatewayPage from "@/features/admin/gateway/AdminGatewayPage.vue";
 import AdminWebPage from "@/features/admin/web/AdminWebPage.vue";
 import AdminUsersPage from "@/features/admin/users/AdminUsersPage.vue";
 import EventLogView from "@/features/admin/events/EventLogView.vue";
+import ConnectionsView from "@/features/admin/users/connections/ConnectionsView.vue";
 import InvitesView from "@/features/admin/users/invites/InvitesView.vue";
 import SessionsView from "@/features/admin/users/sessions/SessionsView.vue";
 import type { MessageKey } from "@/shared/i18n/messageKeys";
@@ -28,6 +29,7 @@ export const adminRoutes: readonly AdminRoute[] = [
   { path: "/admin/diagnostics", titleKey: "diagnostics", icon: "activity", component: AdminDiagnosticsPage },
   { path: "/admin/diagnostics/events", titleKey: "adminEventLog", icon: "activity", component: EventLogView, parent: "/admin/diagnostics" },
   { path: "/admin/users/invites", titleKey: "invites", icon: "users", component: InvitesView, parent: "/admin/users" },
+  { path: "/admin/users/connections", titleKey: "connectionHistory", icon: "users", component: ConnectionsView, parent: "/admin/users" },
   { path: "/admin/users/sessions", titleKey: "sessions", icon: "users", component: SessionsView, parent: "/admin/users" },
 ];
 

@@ -98,6 +98,8 @@ test.describe("connection history", () => {
     await expect(row).toContainText("Duration");
     await expect(row).toContainText("From 127.0.0.1");
 
+    await page.getByRole("link", { name: "View all connection records" }).click();
+    await expect(records(page).filter({ hasText: "history-guest" })).toHaveCount(1);
     await page.getByRole("combobox", { name: "Status" }).click();
     await page.getByRole("option", { name: "Connection failed" }).click();
     await expect(page.getByText("No connections match these filters.")).toBeVisible();

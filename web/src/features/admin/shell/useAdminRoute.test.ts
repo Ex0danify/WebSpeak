@@ -44,6 +44,7 @@ describe("adminRoutes", () => {
     expect(adminRoutes.filter((entry) => entry.parent).map((entry) => [entry.path, entry.parent])).toEqual([
       ["/admin/diagnostics/events", "/admin/diagnostics"],
       ["/admin/users/invites", "/admin/users"],
+      ["/admin/users/connections", "/admin/users"],
       ["/admin/users/sessions", "/admin/users"],
     ]);
   });
