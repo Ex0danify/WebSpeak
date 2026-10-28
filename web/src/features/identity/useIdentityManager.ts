@@ -9,6 +9,7 @@ import {
   type StoredIdentity,
 } from "@/shared/services/localPersistence.js";
 import { IdentityMintError, mintIdentity, validateIdentity } from "@/features/identity/identityMintClient.js";
+import { randomHex } from "@/shared/lib/randomId";
 
 export type MintPhase = "idle" | "queued" | "minting" | "done" | "error";
 
@@ -36,9 +37,7 @@ export interface ExportedIdentity {
 }
 
 function newId(): string {
-  return typeof crypto !== "undefined" && crypto.randomUUID
-    ? crypto.randomUUID()
-    : `id-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  return typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : `id-${Date.now()}-${randomHex(8)}`;
 }
 
 /** Manages the device's saved identities over the persistence layer and the gateway mint/validate
