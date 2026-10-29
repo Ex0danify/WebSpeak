@@ -146,9 +146,13 @@ describe("a join the gateway refuses before TeamSpeak", () => {
   it("allows the same identity on another server, and a different identity on the same one", async () => {
     const gateway = await gateways.start();
     const identity = generateIdentity(8).toString();
-    await joinVoice(gateway, { nickname: "one", identity });
-    await joinVoice(gateway, { nickname: "elsewhere", identity, target: { host: "other.test", port: 9987 } });
-    await joinVoice(gateway, { nickname: "other", identity: generateIdentity(8).toString() });
+    const sessions = [
+      await joinVoice(gateway, { nickname: "one", identity }),
+      await joinVoice(gateway, { nickname: "elsewhere", identity, target: { host: "other.test", port: 9987 } }),
+      await joinVoice(gateway, { nickname: "other", identity: generateIdentity(8).toString() }),
+    ];
+    expect(gateway.ts.created.map((client) => client.options.nickname)).toEqual(["one", "elsewhere", "other"]);
+    expect(sessions.map((session) => session.socket.closeInfo)).toEqual([null, null, null]);
   });
 });
 

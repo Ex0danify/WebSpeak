@@ -1,3 +1,4 @@
+import { randomBytes } from "node:crypto";
 import type { TSDirectorySnapshot } from "../../teamspeak/index.js";
 import type { MessageParams } from "../../../shared/messageCodes.js";
 import type { ServerEvent, VoiceConnection, WebClientEntry } from "../voiceTypes.js";
@@ -108,7 +109,7 @@ export function addServerEvent(
   extra: Partial<Pick<ServerEvent, "nickname" | "channelName">> = {},
 ) {
   const event: ServerEvent = {
-    id: `event-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`,
+    id: `event-${Date.now().toString(36)}-${randomBytes(4).toString("hex")}`,
     kind,
     message,
     ...extra,

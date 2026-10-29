@@ -1,4 +1,5 @@
 import { WebSocket } from "ws";
+import { randomBytes } from "node:crypto";
 import type { IncomingMessage } from "node:http";
 import {
   DirectorySynchronizer,
@@ -93,7 +94,7 @@ export function admitConnection(deps: AdmissionDeps, ws: WebSocket, req: Incomin
     ws.close(4003, "IDENTITY_INVALID");
     return;
   }
-  const entryId = `w-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
+  const entryId = `w-${Date.now().toString(36)}-${randomBytes(4).toString("hex")}`;
   let admitted: VoiceConnection | null = null;
   const session = deps.sessionManager.admit(entryId, async (reason) => {
     // No context yet while the identity lease or client creation is still failing.

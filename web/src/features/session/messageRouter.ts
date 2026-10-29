@@ -1,5 +1,6 @@
 import { useSessionStore } from "@/features/session/sessionStore";
 import { privateConversationKey } from "@/features/session/format";
+import { randomHex } from "@/shared/lib/randomId";
 import {
   MAX_CHAT_MESSAGES,
   MAX_CHAT_TEXT_LENGTH,
@@ -63,7 +64,7 @@ export function createRosterHandlers(deps: { syncKnownMemberVolumes: () => void 
       // the broadcast sentinel. It must not be compared with a channel id.
       const incomingTargetId = rawTargetId && rawTargetId !== "0" ? rawTargetId : undefined;
       pushBounded(chatMessages, MAX_CHAT_MESSAGES, {
-        id: `remote-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+        id: `remote-${Date.now()}-${randomHex()}`,
         scope: incomingScope,
         ...(incomingTargetId ? { targetId: incomingTargetId } : {}),
         ...(incomingScope === "private"
@@ -86,7 +87,7 @@ export function createRosterHandlers(deps: { syncKnownMemberVolumes: () => void 
     },
     pokeReceived: (msg) => {
       pushBounded(pokeNotifications, MAX_POKE_NOTIFICATIONS, {
-        id: `poke-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+        id: `poke-${Date.now()}-${randomHex()}`,
         invokerId: Number(msg.invokerId) || 0,
         invokerUid: typeof msg.invokerUid === "string" ? msg.invokerUid : "",
         invokerName: clampText(String(msg.invokerName || "Unknown"), MAX_NICKNAME_LENGTH),
