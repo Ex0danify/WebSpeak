@@ -10,7 +10,9 @@ updates:
         patterns: ["*"]
 
   # Pinned by digest in the Dockerfile, so Dependabot is the only thing that moves the base image.
+  # Drops Dependabot's own docker label, the labeler adds "area: docker" from the Dockerfile change.
   - package-ecosystem: docker
     directory: /
     schedule:
       interval: weekly
+    labels: ["dependencies"]
