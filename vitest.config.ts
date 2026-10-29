@@ -52,7 +52,7 @@ export default defineConfig({
       provider: "v8",
       include: ["src/**/*.ts", "web/src/**/*.{ts,vue}"],
       exclude: ["**/*.test.ts", "**/*.d.ts"],
-      reporter: ci ? ["text-summary", "json-summary", "html"] : ["text-summary", "html"],
+      reporter: ci ? ["text-summary", "json-summary", "lcov", "html"] : ["text-summary", "html"],
       reportsDirectory: "test-results/coverage",
       // Only the own TeamSpeak client has a gate (PLAN.md D7), the rest of the project is a review target.
       thresholds: { "src/lib/**": { lines: 90, branches: 80 } },
