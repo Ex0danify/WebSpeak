@@ -5,6 +5,12 @@ export interface ApiError extends Error {
   code?: string;
 }
 
+function unreachable(): ApiError {
+  const error = new Error(GATEWAY_UNREACHABLE) as ApiError;
+  error.code = GATEWAY_UNREACHABLE;
+  return error;
+}
+
 export interface AdminApiOptions {
   /** Read at call time: the token changes on login/logout. */
   getCsrfToken: () => string;
@@ -17,12 +23,6 @@ export interface AdminApiOptions {
 export function createAdminApi(options: AdminApiOptions) {
   /** A proxy answers for a gateway that is down, with a status of its own and no code. */
   const GATEWAY_DOWN_STATUSES = new Set([502, 503, 504]);
-
-  function unreachable(): ApiError {
-    const error = new Error(GATEWAY_UNREACHABLE) as ApiError;
-    error.code = GATEWAY_UNREACHABLE;
-    return error;
-  }
 
   async function request(url: string, init?: RequestInit): Promise<Response> {
     try {

@@ -9,6 +9,10 @@ import { useI18n } from "@/shared/i18n/useI18n.js";
 /** The status of the server list on the server page: add, edit, remove and reorder all report there. */
 export const SERVER_LIST_STATUS = "servers";
 
+function notify(message: string) {
+  toast({ title: message, variant: "success" });
+}
+
 /**
  * What the console tells the person after an action. A failure shows in the one banner until the next action clears it, a success in a
  * toast. A part of a page that saves by itself (the server list) has a status of its own instead, the same one the settings cards show.
@@ -29,10 +33,6 @@ export const useAdminFeedbackStore = defineStore("adminFeedback", () => {
       statuses.set(key, status);
     }
     return status;
-  }
-
-  function notify(message: string) {
-    toast({ title: message, variant: "success" });
   }
 
   function showError(message: string) {

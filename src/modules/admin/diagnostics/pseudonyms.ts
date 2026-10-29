@@ -4,12 +4,13 @@ type PseudonymKind = "user" | "nickname" | "host" | "server" | "relay" | "channe
 
 const IPV4 = /\b(?:\d{1,3}\.){3}\d{1,3}\b/g;
 const IPV6 = /(?<![\w:])(?:[0-9a-f]{0,4}:){2,7}[0-9a-f]{0,4}(?![\w:])/gi;
-const EMAIL = /[\w.+-]+@[\w-]+(?:\.[\w-]+)+/g;
+// The lookbehind makes a match start at the beginning of the local part, so a long run without an @ is not rescanned from every position.
+const EMAIL = /(?<![\w.+-])[\w.+-]+@[\w-]+(?:\.[\w-]+)+/g;
 const HOME_PATH = /(\/home\/|\/Users\/|[A-Za-z]:\\Users\\)[^/\\\s"']+/g;
 // A shorter value would hit ordinary words in a message.
 const MIN_SCRUBBED_LENGTH = 3;
 // A name only counts as one when it stands alone, so "admin" leaves ADMIN_LOGIN_FAILED and "administrator" alone.
-const NAME_CHAR = "[\\p{L}\\p{N}_-]";
+const NAME_CHAR = String.raw`[\p{L}\p{N}_-]`;
 const LEGACY_IPV4 = /^\d{1,10}(?:\.\d{1,3}){0,3}$/;
 
 /**
@@ -111,7 +112,7 @@ export class Pseudonyms {
 }
 
 function escapeRegex(text: string): string {
-  return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return text.replace(/[.*+?^${}()|[\]\\]/g, String.raw`\$&`);
 }
 
 /** `127.1` or `2130706433` are addresses to a resolver, `isIP` does not know them. */
@@ -132,15 +133,21 @@ function normalizeIp(value: string): string {
   return mapped ? mapped[1]! : address;
 }
 
+function isPrivateIpv4(first: number, second: number): boolean {
+  if (first === 10) return true;
+  if (first === 172) return second >= 16 && second <= 31;
+  if (first === 192) return second === 168;
+  if (first === 169) return second === 254;
+  if (first === 100) return second >= 64 && second <= 127;
+  return false;
+}
+
 function ipClass(address: string): "loopback" | "private" | "public" | "unknown" {
   const family = isIP(address);
   if (family === 4) {
     const [first = 0, second = 0] = address.split(".").map(Number);
     if (first === 127) return "loopback";
-    if (first === 10 || (first === 172 && second >= 16 && second <= 31) || (first === 192 && second === 168)) return "private";
-    if (first === 169 && second === 254) return "private";
-    if (first === 100 && second >= 64 && second <= 127) return "private";
-    return "public";
+    return isPrivateIpv4(first, second) ? "private" : "public";
   }
   if (family === 6) {
     const lower = address.toLowerCase();

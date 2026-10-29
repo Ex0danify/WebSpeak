@@ -32,7 +32,7 @@ export const useAdminGatewayStore = defineStore("adminGateway", () => {
         retryIn.value = poll!.retryIn.value;
       });
     });
-    void poll!.start();
+    poll!.start();
   }
 
   function stop() {
