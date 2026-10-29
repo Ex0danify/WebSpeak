@@ -1,3 +1,11 @@
+# Production deps get their own install instead of an npm prune after the build. Prune renames
+# folders from earlier layers, which overlayfs without redirect_dir turns into full copies.
+FROM node:26-bookworm-slim@sha256:28147155d47dc31abe0a46e0d12b59b2fb3d0a2dcc5dc65fce76a074180b16fe AS deps
+
+WORKDIR /app
+COPY package.json package-lock.json ./
+RUN npm ci --omit=dev --ignore-scripts --no-audit --no-fund
+
 FROM node:26-bookworm-slim@sha256:28147155d47dc31abe0a46e0d12b59b2fb3d0a2dcc5dc65fce76a074180b16fe AS build
 
 WORKDIR /app
@@ -11,9 +19,7 @@ RUN npm ci --ignore-scripts --no-audit --no-fund
 RUN npm --prefix web ci
 
 COPY . .
-RUN npm run build \
-  && npm prune --omit=dev --no-audit --no-fund \
-  && rm -rf web/node_modules
+RUN npm run build
 
 FROM node:26-bookworm-slim@sha256:28147155d47dc31abe0a46e0d12b59b2fb3d0a2dcc5dc65fce76a074180b16fe AS runtime
 
@@ -28,7 +34,7 @@ ENV NODE_ENV=production
 ENV WEBSPEAK_DATA_DIR=/data
 
 COPY --from=build --chown=node:node /app/package.json /app/package-lock.json ./
-COPY --from=build --chown=node:node /app/node_modules ./node_modules
+COPY --from=deps --chown=node:node /app/node_modules ./node_modules
 COPY --from=build --chown=node:node /app/dist ./dist
 COPY --from=build --chown=node:node /app/web/dist ./web/dist
 
