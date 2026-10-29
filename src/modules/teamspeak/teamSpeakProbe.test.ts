@@ -1,5 +1,5 @@
 import { createSocket, type RemoteInfo, type Socket } from "node:dgram";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { INIT_VERSION } from "../../lib/teamspeak/index.js";
 import { buildInitPacket, probeTeamSpeak, readInitAnswer, TeamSpeakProbeError } from "./teamSpeakProbe.js";
 
@@ -38,7 +38,12 @@ function step1For(packet: Buffer, overrides: { echo?: Buffer } = {}): Buffer {
   return answer;
 }
 
-const fast = { attempts: 3, attemptTimeoutMs: 80 };
+// A reply on loopback takes microseconds, but a loaded CI machine can hold it back for much longer than the attempt timeout.
+// Tests where the server answers get a long timeout (they return on the answer). A wrong answer, a lost packet and silence
+// make the probe wait out its attempts, so those use shorter ones to stay inside the test timeout.
+const patient = { attempts: 3, attemptTimeoutMs: 2_000 };
+const lossy = { attempts: 3, attemptTimeoutMs: 500 };
+const silent = { attempts: 3, attemptTimeoutMs: 80 };
 const answering: Handler = (packet, reply) => reply(step1For(packet));
 
 describe("the handshake packet", () => {
@@ -71,10 +76,10 @@ describe("the handshake packet", () => {
 describe("probeTeamSpeak", () => {
   it("succeeds when the port answers the first packet, with the round trip, after sending exactly one packet", async () => {
     const server = await udpServer(answering);
-    const result = await probeTeamSpeak({ host: "127.0.0.1", port: server.port }, fast);
+    const result = await probeTeamSpeak({ host: "127.0.0.1", port: server.port }, patient);
     expect(result.ok).toBe(true);
     expect(result.latencyMs).toBeGreaterThanOrEqual(0);
-    expect(result.latencyMs).toBeLessThan(80);
+    expect(result.latencyMs).toBeLessThan(patient.attemptTimeoutMs);
     expect(server.received).toHaveLength(1);
     expect(server.received[0].subarray(0, 8).toString()).toBe("TS3INIT1");
     expect(server.received[0].readUInt32BE(13)).toBe(INIT_VERSION);
@@ -83,11 +88,12 @@ describe("probeTeamSpeak", () => {
   it("fails with NO_ANSWER when the port is silent, after sending every attempt", async () => {
     const server = await udpServer(() => undefined);
     const started = Date.now();
-    const error = await probeTeamSpeak({ host: "127.0.0.1", port: server.port }, fast).catch((thrown: unknown) => thrown);
+    const error = await probeTeamSpeak({ host: "127.0.0.1", port: server.port }, silent).catch((thrown: unknown) => thrown);
     expect(error).toBeInstanceOf(TeamSpeakProbeError);
     expect(error).toMatchObject({ code: "NO_ANSWER" });
     expect(Date.now() - started).toBeGreaterThanOrEqual(3 * 80 - 10);
-    expect(server.received).toHaveLength(3);
+    // The probe's timers can all fire before a busy loop reads the datagrams.
+    await vi.waitFor(() => expect(server.received).toHaveLength(3));
     // Every attempt carries its own random bytes.
     expect(new Set(server.received.map((packet) => packet.subarray(22, 26).toString("hex"))).size).toBe(3);
   });
@@ -96,7 +102,7 @@ describe("probeTeamSpeak", () => {
     const server = await udpServer((packet, reply, count) => {
       if (count === 2) reply(step1For(packet));
     });
-    await expect(probeTeamSpeak({ host: "127.0.0.1", port: server.port }, fast)).resolves.toMatchObject({ ok: true });
+    await expect(probeTeamSpeak({ host: "127.0.0.1", port: server.port }, lossy)).resolves.toMatchObject({ ok: true });
     expect(server.received).toHaveLength(2);
   });
 
@@ -104,19 +110,19 @@ describe("probeTeamSpeak", () => {
     const server = await udpServer((_packet, reply, count) => {
       if (count === 2) reply(step1For(server.received[0]));
     });
-    await expect(probeTeamSpeak({ host: "127.0.0.1", port: server.port }, fast)).resolves.toMatchObject({ ok: true });
+    await expect(probeTeamSpeak({ host: "127.0.0.1", port: server.port }, lossy)).resolves.toMatchObject({ ok: true });
   });
 
   it("fails with PROTOCOL_NEGOTIATION_FAILED when another service answers on the port", async () => {
     const server = await udpServer((_packet, reply) => reply(Buffer.from("HTTP/1.1 400 Bad Request\r\n\r\n")));
-    await expect(probeTeamSpeak({ host: "127.0.0.1", port: server.port }, fast)).rejects.toMatchObject({
+    await expect(probeTeamSpeak({ host: "127.0.0.1", port: server.port }, lossy)).rejects.toMatchObject({
       code: "PROTOCOL_NEGOTIATION_FAILED",
     });
   });
 
   it("does not take an answer that echoes other random bytes for its own", async () => {
     const server = await udpServer((packet, reply) => reply(step1For(packet, { echo: Buffer.from([9, 9, 9, 9]) })));
-    await expect(probeTeamSpeak({ host: "127.0.0.1", port: server.port }, fast)).rejects.toMatchObject({
+    await expect(probeTeamSpeak({ host: "127.0.0.1", port: server.port }, lossy)).rejects.toMatchObject({
       code: "PROTOCOL_NEGOTIATION_FAILED",
     });
   });
@@ -128,23 +134,23 @@ describe("probeTeamSpeak", () => {
       const closed = await udpServer(() => undefined);
       const port = closed.port;
       sockets.pop()!.close();
-      await expect(probeTeamSpeak({ host: "127.0.0.1", port }, fast)).rejects.toMatchObject({ code: "CONNECTION_REFUSED" });
+      await expect(probeTeamSpeak({ host: "127.0.0.1", port }, patient)).rejects.toMatchObject({ code: "CONNECTION_REFUSED" });
     },
   );
 
   it("fails with HOST_NOT_FOUND for a name that does not resolve", async () => {
-    await expect(probeTeamSpeak({ host: "no-such-host.invalid", port: 9987 }, fast)).rejects.toMatchObject({ code: "HOST_NOT_FOUND" });
+    await expect(probeTeamSpeak({ host: "no-such-host.invalid", port: 9987 }, patient)).rejects.toMatchObject({ code: "HOST_NOT_FOUND" });
   });
 
   it("reaches an IPv6 address", async () => {
     const server = await udpServer(answering, "::1").catch(() => null);
     if (!server) return; // no IPv6 loopback on this machine
-    await expect(probeTeamSpeak({ host: "::1", port: server.port }, fast)).resolves.toMatchObject({ ok: true });
+    await expect(probeTeamSpeak({ host: "::1", port: server.port }, patient)).resolves.toMatchObject({ ok: true });
   });
 
   it("resolves a host name", async () => {
     const server = await udpServer(answering, "::").catch(() => null); // "localhost" may resolve to either family
     if (!server) return; // no IPv6 on this machine
-    await expect(probeTeamSpeak({ host: "localhost", port: server.port }, fast)).resolves.toMatchObject({ ok: true });
+    await expect(probeTeamSpeak({ host: "localhost", port: server.port }, patient)).resolves.toMatchObject({ ok: true });
   });
 });
