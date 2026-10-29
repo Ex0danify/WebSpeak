@@ -24,7 +24,9 @@ export const useAdminServersStore = defineStore("adminServers", () => {
   let pass = 0;
 
   function statusOf(server: AdminServer): ServerStatus {
-    return probes[server.id] ?? (server.lastTestError ? "unreachable" : server.lastTestAt ? "online" : "probing");
+    if (probes[server.id]) return probes[server.id]!;
+    if (server.lastTestError) return "unreachable";
+    return server.lastTestAt ? "online" : "probing";
   }
 
   async function loadServers() {
@@ -46,7 +48,8 @@ export const useAdminServersStore = defineStore("adminServers", () => {
   /** One server after the other, so a long list does not open a burst of handshakes. */
   async function probeAll() {
     const current = ++pass;
-    for (const { id } of [...servers.value]) {
+    // The ids are taken up front, the list can change while a probe runs.
+    for (const id of servers.value.map((server) => server.id)) {
       if (current !== pass) return;
       await probeServer(id);
     }

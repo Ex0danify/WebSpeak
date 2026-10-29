@@ -103,8 +103,9 @@ export function isPlausibleTarget(value: string): boolean {
 
 function nodeDocument(node: RelayNodeForm): RelayNodeDocument {
   const token = node.token.trim();
-  const tokenAction =
-    node.tokenAction === "replace" && token ? "replace" : node.tokenAction === "remove" && node.hasToken ? "remove" : "keep";
+  let tokenAction: RelayNodeDocument["tokenAction"] = "keep";
+  if (node.tokenAction === "replace" && token) tokenAction = "replace";
+  else if (node.tokenAction === "remove" && node.hasToken) tokenAction = "remove";
   return {
     id: node.id,
     name: node.name.trim(),
@@ -133,6 +134,46 @@ function isUntouched(node: RelayNodeForm): boolean {
   return !node.name.trim() && !node.target.trim() && !node.token && !node.enabled;
 }
 
+/** Whether the port range can be used as it is, flagging each end and their order otherwise. */
+function checkPortRange(form: ServerForm, issues: SettingsIssues): boolean {
+  const port = SETTING_LIMITS.port;
+  const startOk = integerIn(form.webRtcUdpStart, port);
+  const endOk = integerIn(form.webRtcUdpEnd, port);
+  if (!startOk) issues.webRtcUdpStart = { code: "port", ...port };
+  if (!endOk) issues.webRtcUdpEnd = { code: "port", ...port };
+  const orderOk = !startOk || !endOk || form.webRtcUdpStart <= form.webRtcUdpEnd;
+  if (!orderOk) issues.webRtcUdpEnd = { code: "portOrder" };
+  return startOk && endOk && orderOk;
+}
+
+function resolveNumbers(form: ServerForm, confirmed: ServerForm, issues: SettingsIssues): Record<NumberField, number> {
+  const numbers = {} as Record<NumberField, number>;
+  for (const field of NUMBER_FIELDS) {
+    const limit = SETTING_LIMITS[field];
+    const ok = integerIn(form[field], limit);
+    if (!ok) issues[field] = { code: "number", ...limit };
+    numbers[field] = ok ? form[field] : confirmed[field];
+  }
+  return numbers;
+}
+
+function resolveRelayNodes(form: ServerForm, confirmed: ServerForm, issues: SettingsIssues): RelayNodeDocument[] {
+  const previous = new Map(confirmed.relayNodes.map((node) => [node.id, node]));
+  const relayNodes: RelayNodeDocument[] = [];
+  for (const node of form.relayNodes) {
+    const before = previous.get(node.id);
+    if (!before && isUntouched(node)) continue;
+    const found = nodeIssues(node);
+    if (Object.keys(found).length === 0) {
+      relayNodes.push(nodeDocument(node));
+      continue;
+    }
+    for (const [field, issue] of Object.entries(found)) issues[`relay:${node.id}:${field}`] = issue;
+    if (before) relayNodes.push(nodeDocument({ ...before, token: "", tokenAction: "keep" }));
+  }
+  return relayNodes;
+}
+
 /**
  * The settings document to save for a form, plus what had to be held back. A value that is not valid yet (a half-typed number, a relay
  * node without a target) is replaced by the one the gateway last confirmed, and an unconfirmed node is left out, so one unfinished field
@@ -149,36 +190,9 @@ export function buildSettingsDocument(form: ServerForm, confirmed: ServerForm): 
   const privacyUrlOk = isPrivacyUrl(privacyNoticeUrl);
   if (!privacyUrlOk) issues.privacyNoticeUrl = { code: "privacyUrl" };
 
-  const port = SETTING_LIMITS.port;
-  const startOk = integerIn(form.webRtcUdpStart, port);
-  const endOk = integerIn(form.webRtcUdpEnd, port);
-  if (!startOk) issues.webRtcUdpStart = { code: "port", ...port };
-  if (!endOk) issues.webRtcUdpEnd = { code: "port", ...port };
-  const orderOk = !startOk || !endOk || form.webRtcUdpStart <= form.webRtcUdpEnd;
-  if (!orderOk) issues.webRtcUdpEnd = { code: "portOrder" };
-  const rangeOk = startOk && endOk && orderOk;
-
-  const numbers = {} as Record<NumberField, number>;
-  for (const field of NUMBER_FIELDS) {
-    const limit = SETTING_LIMITS[field];
-    const ok = integerIn(form[field], limit);
-    if (!ok) issues[field] = { code: "number", ...limit };
-    numbers[field] = ok ? form[field] : confirmed[field];
-  }
-
-  const previous = new Map(confirmed.relayNodes.map((node) => [node.id, node]));
-  const relayNodes: RelayNodeDocument[] = [];
-  for (const node of form.relayNodes) {
-    const before = previous.get(node.id);
-    if (!before && isUntouched(node)) continue;
-    const found = nodeIssues(node);
-    if (Object.keys(found).length === 0) {
-      relayNodes.push(nodeDocument(node));
-      continue;
-    }
-    for (const [field, issue] of Object.entries(found)) issues[`relay:${node.id}:${field}`] = issue;
-    if (before) relayNodes.push(nodeDocument({ ...before, token: "", tokenAction: "keep" }));
-  }
+  const rangeOk = checkPortRange(form, issues);
+  const numbers = resolveNumbers(form, confirmed, issues);
+  const relayNodes = resolveRelayNodes(form, confirmed, issues);
 
   return {
     document: {
@@ -206,6 +220,19 @@ export function sameDocument(a: SettingsDocument, b: SettingsDocument): boolean 
   return JSON.stringify(withoutEmptyTexts(a)) === JSON.stringify(withoutEmptyTexts(b));
 }
 
+function changedRelayKeys(next: SettingsDocument, previous: SettingsDocument): string[] {
+  const keys: string[] = [];
+  const before = new Map(previous.relayNodes.map((node) => [node.id, node]));
+  for (const node of next.relayNodes) {
+    const old = before.get(node.id);
+    if (node.name !== old?.name) keys.push(`relay:${node.id}:name`);
+    if (node.target !== old?.target) keys.push(`relay:${node.id}:target`);
+    if (old && node.enabled !== old.enabled) keys.push(`relay:${node.id}:enabled`);
+    if (node.tokenAction !== "keep") keys.push(`relay:${node.id}:token`);
+  }
+  return keys;
+}
+
 /** The keys (as in `SettingsIssues`, `welcomeText` for the welcome texts) of the fields a document changes against the one before it. */
 export function changedFieldKeys(next: SettingsDocument, previous: SettingsDocument): string[] {
   const keys: string[] = [];
@@ -216,14 +243,7 @@ export function changedFieldKeys(next: SettingsDocument, previous: SettingsDocum
   if (JSON.stringify(withoutEmptyTexts(next).welcomeTexts) !== JSON.stringify(withoutEmptyTexts(previous).welcomeTexts))
     keys.push("welcomeText");
   for (const field of ["webRtcUdpStart", "webRtcUdpEnd", ...NUMBER_FIELDS] as const) if (next[field] !== previous[field]) keys.push(field);
-  const before = new Map(previous.relayNodes.map((node) => [node.id, node]));
-  for (const node of next.relayNodes) {
-    const old = before.get(node.id);
-    if (!old || node.name !== old.name) keys.push(`relay:${node.id}:name`);
-    if (!old || node.target !== old.target) keys.push(`relay:${node.id}:target`);
-    if (old && node.enabled !== old.enabled) keys.push(`relay:${node.id}:enabled`);
-    if (node.tokenAction !== "keep") keys.push(`relay:${node.id}:token`);
-  }
+  keys.push(...changedRelayKeys(next, previous));
   return keys;
 }
 

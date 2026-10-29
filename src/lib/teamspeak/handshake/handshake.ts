@@ -45,7 +45,8 @@ export interface HandshakeOptions extends ClientInitOptions {
 // `auto` keys off the named `ts6` profile. An explicit `version` carries no such hint, so pick the
 // handshake with `handshake` directly when overriding the version.
 function resolveFlavor(options: HandshakeOptions): HandshakeFlavor {
-  const mode = options.handshake === "auto" ? (options.versionProfile === "ts6" ? "ts6" : "ts3") : (options.handshake ?? "ts3");
+  let mode = options.handshake ?? "ts3";
+  if (mode === "auto") mode = options.versionProfile === "ts6" ? "ts6" : "ts3";
   return mode === "ts6" ? ts6Handshake : ts3Handshake;
 }
 

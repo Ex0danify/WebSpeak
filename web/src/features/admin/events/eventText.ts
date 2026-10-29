@@ -68,9 +68,128 @@ function text(value: unknown): string {
   return typeof value === "string" ? value : "";
 }
 
+type Details = AdminEvent["details"];
+type EventHelpers = Pick<ReturnType<typeof createAdminFormat>, "connectionFailureText" | "formatAge" | "formatDate"> & { t: Translate };
+
+function noChanges(details: Details): boolean {
+  return Array.isArray(details.changes) && details.changes.length === 0;
+}
+
+function sessionParts({ t }: EventHelpers, details: Details): string[] {
+  return [text(details.nickname), text(details.clientIp) && t("eventIp", { ip: text(details.clientIp) }), text(details.target)];
+}
+
+function usesText({ t }: EventHelpers, details: Details): string {
+  const max = Number(details.maxUses);
+  if (!Number.isFinite(max)) return "";
+  return max > 0 ? t("eventMaxUses", { count: max }) : t("eventUnlimitedUses");
+}
+
+function usedText({ t }: EventHelpers, used: number, max: number): string {
+  return max > 0 ? t("eventUsed", { used, max }) : t("eventUsedUnlimited", { used });
+}
+
+function revokedText({ t }: EventHelpers, details: Details): string {
+  const count = Number(details.revokedInvites);
+  return count > 0 ? t("eventInvitesRevoked", { count }) : "";
+}
+
+function adminParts({ t }: EventHelpers, { event, details }: AdminEvent): string[] {
+  switch (event) {
+    case "ADMIN_LOGIN_FAILED":
+      return text(details.username) ? [t("eventUser", { name: text(details.username) })] : [];
+    case "ADMIN_SESSION_TERMINATED":
+      return [text(details.nickname), text(details.target)];
+    case "SETTINGS_CHANGED":
+      return noChanges(details) ? [t("eventNoChanges")] : [];
+    default:
+      return [];
+  }
+}
+
+function serverParts(h: EventHelpers, { event, details }: AdminEvent): string[] {
+  const { t } = h;
+  switch (event) {
+    case "SERVER_ADDED":
+      return [text(details.name), text(details.target)];
+    case "SERVER_UPDATED":
+      return [text(details.name), text(details.target), revokedText(h, details), ...(noChanges(details) ? [t("eventNoChanges")] : [])];
+    case "SERVER_REMOVED":
+      return [text(details.name), revokedText(h, details)];
+    case "SERVER_UNAVAILABLE":
+      return [text(details.name), h.connectionFailureText(text(details.code))];
+    case "SERVER_AVAILABLE":
+      return [text(details.name), ...(typeof details.latencyMs === "number" ? [t("eventLatency", { ms: details.latencyMs })] : [])];
+    case "SERVERS_REORDERED":
+      return typeof details.count === "number" ? [t("eventServerCount", { count: details.count })] : [];
+    default:
+      return [];
+  }
+}
+
+function inviteParts(h: EventHelpers, { event, details }: AdminEvent): string[] {
+  const { t } = h;
+  const channel = text(details.channel) || t("defaultChannel");
+  switch (event) {
+    case "INVITE_CREATED": {
+      const parts = [text(details.serverName), channel, usesText(h, details)];
+      if (text(details.expiresAt)) parts.push(t("eventExpires", { date: h.formatDate(text(details.expiresAt)) }));
+      return parts;
+    }
+    case "INVITE_REVOKED": {
+      const parts = [text(details.serverName)];
+      if (typeof details.channel === "string") parts.push(channel);
+      if (typeof details.useCount === "number") parts.push(usedText(h, details.useCount, Number(details.maxUses)));
+      return parts;
+    }
+    case "INVITE_CONSUMED":
+      return [text(details.serverName), channel];
+    default:
+      return [];
+  }
+}
+
+function sessionEventParts(h: EventHelpers, { event, details }: AdminEvent): string[] {
+  switch (event) {
+    case "SESSION_CONNECTED":
+      return sessionParts(h, details);
+    case "SESSION_ENDED": {
+      const parts = sessionParts(h, details);
+      if (typeof details.durationSeconds === "number") parts.push(h.t("eventDuration", { duration: h.formatAge(details.durationSeconds) }));
+      if (text(details.code)) parts.push(h.connectionFailureText(text(details.code)));
+      return parts;
+    }
+    case "SESSION_CONNECT_FAILED": {
+      const parts = [...sessionParts(h, details), h.connectionFailureText(text(details.code))];
+      if (text(details.detail)) parts.push(text(details.detail));
+      return parts;
+    }
+    default:
+      return [];
+  }
+}
+
+function gatewayParts({ t }: EventHelpers, { event, details }: AdminEvent): string[] {
+  switch (event) {
+    case "GATEWAY_STARTED":
+      return text(details.version) ? [t("eventVersion", { version: text(details.version) })] : [];
+    case "GATEWAY_STOPPED":
+      return text(details.signal) ? [t("eventSignal", { signal: text(details.signal) })] : [];
+    case "GATEWAY_ERROR":
+      return [text(details.message)];
+    case "CAPACITY_REACHED":
+      return typeof details.maxSessions === "number" ? [t("eventSessionLimit", { count: details.maxSessions })] : [];
+    default:
+      return [];
+  }
+}
+
+const PART_GROUPS = [adminParts, serverParts, inviteParts, sessionEventParts, gatewayParts];
+
 /** The headline and the detail of an event of the log. */
 export function createEventText(language: Ref<Language>, t: Translate) {
   const { connectionFailureText, formatAge, formatDate } = createAdminFormat(language, t);
+  const helpers: EventHelpers = { t, connectionFailureText, formatAge, formatDate };
 
   function title(event: string) {
     return TITLE_KEYS[event] ? t(TITLE_KEYS[event]) : event.replaceAll("_", " ");
@@ -82,7 +201,7 @@ export function createEventText(language: Ref<Language>, t: Translate) {
     if (input === "open") return t("openMode");
     if (input === "fixed") return t("fixedMode");
     if (input === null || input === undefined || input === "") return t("eventValueNone");
-    return String(input);
+    return typeof input === "object" ? JSON.stringify(input) : String(input);
   }
 
   function changeLines(details: AdminEvent["details"]): string[] {
@@ -99,94 +218,9 @@ export function createEventText(language: Ref<Language>, t: Translate) {
     });
   }
 
-  function sessionParts(details: AdminEvent["details"]): string[] {
-    return [text(details.nickname), text(details.clientIp) && t("eventIp", { ip: text(details.clientIp) }), text(details.target)];
-  }
-
-  function uses(details: AdminEvent["details"]): string {
-    const max = Number(details.maxUses);
-    if (!Number.isFinite(max)) return "";
-    return max > 0 ? t("eventMaxUses", { count: max }) : t("eventUnlimitedUses");
-  }
-
   function detail(entry: AdminEvent): EventDetail {
     const { details } = entry;
-    const parts: string[] = [];
-    const revoked = Number(details.revokedInvites) > 0 ? t("eventInvitesRevoked", { count: Number(details.revokedInvites) }) : "";
-    switch (entry.event) {
-      case "ADMIN_LOGIN_FAILED":
-        if (text(details.username)) parts.push(t("eventUser", { name: text(details.username) }));
-        break;
-      case "ADMIN_SESSION_TERMINATED":
-        parts.push(text(details.nickname), text(details.target));
-        break;
-      case "SETTINGS_CHANGED":
-        if (Array.isArray(details.changes) && details.changes.length === 0) parts.push(t("eventNoChanges"));
-        break;
-      case "SERVER_ADDED":
-        parts.push(text(details.name), text(details.target));
-        break;
-      case "SERVER_UPDATED":
-        parts.push(text(details.name), text(details.target), revoked);
-        if (Array.isArray(details.changes) && details.changes.length === 0) parts.push(t("eventNoChanges"));
-        break;
-      case "SERVER_REMOVED":
-        parts.push(text(details.name), revoked);
-        break;
-      case "SERVER_UNAVAILABLE":
-        parts.push(text(details.name), connectionFailureText(text(details.code)));
-        break;
-      case "SERVER_AVAILABLE":
-        parts.push(text(details.name));
-        if (typeof details.latencyMs === "number") parts.push(t("eventLatency", { ms: details.latencyMs }));
-        break;
-      case "INVITE_CREATED":
-        parts.push(text(details.serverName), text(details.channel) || t("defaultChannel"), uses(details));
-        if (text(details.expiresAt)) parts.push(t("eventExpires", { date: formatDate(text(details.expiresAt)) }));
-        break;
-      case "INVITE_REVOKED":
-        parts.push(text(details.serverName));
-        if (typeof details.channel === "string") parts.push(details.channel || t("defaultChannel"));
-        if (typeof details.useCount === "number") {
-          parts.push(
-            Number(details.maxUses) > 0
-              ? t("eventUsed", { used: details.useCount, max: Number(details.maxUses) })
-              : t("eventUsedUnlimited", { used: details.useCount }),
-          );
-        }
-        break;
-      case "INVITE_CONSUMED":
-        parts.push(text(details.serverName), text(details.channel) || t("defaultChannel"));
-        break;
-      case "SERVERS_REORDERED":
-        if (typeof details.count === "number") parts.push(t("eventServerCount", { count: details.count }));
-        break;
-      case "SESSION_CONNECTED":
-        parts.push(...sessionParts(details));
-        break;
-      case "SESSION_ENDED":
-        parts.push(...sessionParts(details));
-        if (typeof details.durationSeconds === "number") parts.push(t("eventDuration", { duration: formatAge(details.durationSeconds) }));
-        if (text(details.code)) parts.push(connectionFailureText(text(details.code)));
-        break;
-      case "SESSION_CONNECT_FAILED":
-        parts.push(...sessionParts(details), connectionFailureText(text(details.code)));
-        if (text(details.detail)) parts.push(text(details.detail));
-        break;
-      case "GATEWAY_STARTED":
-        if (text(details.version)) parts.push(t("eventVersion", { version: text(details.version) }));
-        break;
-      case "GATEWAY_STOPPED":
-        if (text(details.signal)) parts.push(t("eventSignal", { signal: text(details.signal) }));
-        break;
-      case "GATEWAY_ERROR":
-        parts.push(text(details.message));
-        break;
-      case "CAPACITY_REACHED":
-        if (typeof details.maxSessions === "number") parts.push(t("eventSessionLimit", { count: details.maxSessions }));
-        break;
-      default:
-    }
+    const parts = PART_GROUPS.flatMap((group) => group(helpers, entry));
     if (text(details.ip)) parts.push(t("eventIp", { ip: text(details.ip) }));
     return { summary: parts.filter(Boolean).join(" · "), changes: changeLines(details) };
   }

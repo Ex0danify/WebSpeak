@@ -167,10 +167,11 @@ export function createAdminFormat(language: { value: Language }, t: Translate) {
     const { client, userAgent } = record;
     const lines: string[] = [];
     if (client) {
+      const platformKey = client.platform ? PLATFORM_KEYS[client.platform] : undefined;
       const parts = [
         [client.browser, client.browserVersion].filter(Boolean).join(" "),
         [client.os, client.osVersion].filter(Boolean).join(" "),
-        client.platform ? (PLATFORM_KEYS[client.platform] ? t(PLATFORM_KEYS[client.platform]!) : client.platform) : "",
+        platformKey ? t(platformKey) : (client.platform ?? ""),
       ].filter(Boolean);
       if (parts.length > 0) lines.push(t("connectionClient", { client: parts.join(" · ") }));
     }
