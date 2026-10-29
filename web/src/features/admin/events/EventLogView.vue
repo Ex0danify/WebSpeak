@@ -75,8 +75,8 @@
     </template>
     <template #row="{ item }"><EventRow :event="item" /></template>
     <template #footer>
-      <label class="flex items-center gap-2 text-2xs text-fg-muted">
-        {{ t("eventPageSize") }}
+      <div class="flex items-center gap-2 text-2xs text-fg-muted">
+        <span aria-hidden="true">{{ t("eventPageSize") }}</span>
         <ListSelect
           class="w-24"
           :model-value="String(list.limit)"
@@ -84,7 +84,7 @@
           :aria-label="t('eventPageSize')"
           @update:model-value="(value) => setPageSize(Number(value))"
         />
-      </label>
+      </div>
     </template>
   </AdminListView>
 </template>
