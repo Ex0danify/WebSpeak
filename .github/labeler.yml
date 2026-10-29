@@ -19,13 +19,19 @@
 
 # Excludes the lib and relay subtrees, so a change confined to them carries only its own label. A PR that
 # touches both the gateway and one of those subtrees is labelled for the subtree, not the gateway.
+# Without the all wrapper the two matchers are OR-ed, and the negations alone match any PR outside src/.
 "area: gateway":
+  - all:
+      - changed-files:
+          - any-glob-to-any-file: ["src/**"]
+          - all-globs-to-all-files:
+              - "!src/lib/**"
+              - "!src/modules/relay/**"
+              - "!src/relay.ts"
+
+"area: docker":
   - changed-files:
-      - any-glob-to-any-file: ["src/**"]
-      - all-globs-to-all-files:
-          - "!src/lib/**"
-          - "!src/modules/relay/**"
-          - "!src/relay.ts"
+      - any-glob-to-any-file: ["Dockerfile", ".dockerignore", "docker-compose.yml"]
 
 "area: ci":
   - changed-files:
