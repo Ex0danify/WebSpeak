@@ -4,6 +4,7 @@ import { MAX_CHAT_MESSAGES, pushBounded } from "@/features/session/sessionLimits
 import { LocalizedError, text, type LocalizedText } from "@/shared/i18n/localizedText";
 import { normalizedClientErrorCode } from "@/features/session/sessionErrors";
 import { privateConversationKey } from "@/features/session/format";
+import { randomHex } from "@/shared/lib/randomId";
 import type { ChatMessage, LatencyProbeResult } from "@/features/session/sessionTypes";
 import type { MessageHandlers } from "@/features/session/messageRouter";
 
@@ -98,7 +99,7 @@ export function useSessionActions(deps: RoomActionsDeps) {
     payload: Record<string, unknown>,
     shown: Omit<ChatMessage, "id" | "timestamp" | "isSelf" | "status">,
   ): void {
-    const id = `self-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+    const id = `self-${Date.now()}-${randomHex()}`;
     pushBounded(chatMessages, MAX_CHAT_MESSAGES, { id, ...shown, timestamp: Date.now(), isSelf: true, status: "pending" });
     const settle = (status: ChatMessage["status"]) => {
       const sent = chatMessages.find((candidate) => candidate.id === id);

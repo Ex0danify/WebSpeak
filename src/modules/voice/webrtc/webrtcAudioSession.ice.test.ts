@@ -19,7 +19,7 @@ afterEach(async () => {
 });
 
 async function connectedPair() {
-  const session = new WebRtcAudioSession({ connectionId: "ice", logger, onVoiceFrame() {}, onVoiceActivity() {} });
+  const session = await WebRtcAudioSession.create({ connectionId: "ice", logger, onVoiceFrame() {}, onVoiceActivity() {} });
   const browser = new RTCPeerConnection({ iceServers: [], codecs: { audio: [useOPUS()] } });
   open.push(session, browser);
   browser.addTransceiver("audio", { direction: "sendrecv" });
@@ -31,8 +31,8 @@ async function connectedPair() {
 }
 
 describe("the ICE result of a WebRTC session", () => {
-  it("has no result before anything happened", () => {
-    const session = new WebRtcAudioSession({ connectionId: "ice", logger, onVoiceFrame() {}, onVoiceActivity() {} });
+  it("has no result before anything happened", async () => {
+    const session = await WebRtcAudioSession.create({ connectionId: "ice", logger, onVoiceFrame() {}, onVoiceActivity() {} });
     open.push(session);
     expect(session.getStats().webrtcIce).toBeNull();
   });
@@ -56,7 +56,7 @@ describe("the ICE result of a WebRTC session", () => {
   });
 
   it("records a session whose browser never completed ICE, without a path, which is what a blocked UDP range looks like", async () => {
-    const session = new WebRtcAudioSession({ connectionId: "ice", logger, onVoiceFrame() {}, onVoiceActivity() {} });
+    const session = await WebRtcAudioSession.create({ connectionId: "ice", logger, onVoiceFrame() {}, onVoiceActivity() {} });
     const browser = new RTCPeerConnection({ iceServers: [], codecs: { audio: [useOPUS()] } });
     open.push(session, browser);
     browser.addTransceiver("audio", { direction: "sendrecv" });

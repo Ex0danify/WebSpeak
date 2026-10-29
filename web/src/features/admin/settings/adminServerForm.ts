@@ -1,4 +1,5 @@
 import { LANGUAGES, type Language } from "@/shared/i18n/languages.js";
+import { randomHex } from "@/shared/lib/randomId";
 
 export type AccessMode = "fixed" | "open";
 export interface HostPing {
@@ -81,7 +82,7 @@ export function mapRelayNodes(value: unknown): RelayNodeForm[] {
 
 export function createRelayNode(): RelayNodeForm {
   return {
-    id: `relay-new-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`,
+    id: `relay-new-${Date.now().toString(36)}-${randomHex()}`,
     name: "",
     enabled: false,
     target: "",

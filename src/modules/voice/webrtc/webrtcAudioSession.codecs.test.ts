@@ -18,8 +18,8 @@ afterEach(async () => {
   await Promise.all(open.splice(0).map((item) => item.close()));
 });
 
-const newSession = () => {
-  const session = new WebRtcAudioSession({ connectionId: "codecs", logger, onVoiceFrame() {}, onVoiceActivity() {} });
+const newSession = async () => {
+  const session = await WebRtcAudioSession.create({ connectionId: "codecs", logger, onVoiceFrame() {}, onVoiceActivity() {} });
   open.push(session);
   return session;
 };
@@ -34,7 +34,7 @@ async function offerWith(codecs: ReturnType<typeof useOPUS>[] | ReturnType<typeo
 
 describe("the WebRTC answer", () => {
   it("negotiates only Opus, on the payload type the browser offered, even when PCMU comes first", async () => {
-    const session = newSession();
+    const session = await newSession();
     const answer = await session.createAnswer(await offerWith([usePCMU(), useOPUS({ payloadType: 109 })]));
     const negotiated = session.peer
       .getTransceivers()
@@ -45,38 +45,37 @@ describe("the WebRTC answer", () => {
   });
 
   it("rejects an offer that has no Opus instead of answering it", async () => {
-    await expect(newSession().createAnswer(await offerWith([usePCMU()]))).rejects.toThrow();
+    await expect((await newSession()).createAnswer(await offerWith([usePCMU()]))).rejects.toThrow();
   });
 
   it("rejects an offer that is not SDP", async () => {
-    await expect(newSession().createAnswer({ type: "offer", sdp: "invalid sdp" })).rejects.toThrow();
+    await expect((await newSession()).createAnswer({ type: "offer", sdp: "invalid sdp" })).rejects.toThrow();
   });
 });
 
 describe("a session whose mixer codec is unavailable", () => {
-  it("closes the peer it already built before it throws", async () => {
-    const closed = new Set<unknown>();
-    const originalClose = RTCPeerConnection.prototype.close;
-    RTCPeerConnection.prototype.close = function (this: RTCPeerConnection) {
-      closed.add(this);
-      return originalClose.call(this);
-    };
+  it("rejects before any peer is created", async () => {
+    const created: unknown[] = [];
+    const originalAddTransceiver = RTCPeerConnection.prototype.addTransceiver;
+    RTCPeerConnection.prototype.addTransceiver = function (this: RTCPeerConnection, ...args: Parameters<typeof originalAddTransceiver>) {
+      created.push(this);
+      return originalAddTransceiver.apply(this, args);
+    } as typeof originalAddTransceiver;
     try {
-      expect(
-        () =>
-          new WebRtcAudioSession({
-            connectionId: "no-codec",
-            logger,
-            onVoiceFrame() {},
-            onVoiceActivity() {},
-            createEncoder: () => {
-              throw new Error("native Opus missing");
-            },
-          }),
-      ).toThrow("WebRTC Opus codec is unavailable");
-      expect(closed.size).toBe(1);
+      await expect(
+        WebRtcAudioSession.create({
+          connectionId: "no-codec",
+          logger,
+          onVoiceFrame() {},
+          onVoiceActivity() {},
+          createEncoder: () => {
+            throw new Error("native Opus missing");
+          },
+        }),
+      ).rejects.toThrow("WebRTC Opus codec is unavailable");
+      expect(created).toHaveLength(0);
     } finally {
-      RTCPeerConnection.prototype.close = originalClose;
+      RTCPeerConnection.prototype.addTransceiver = originalAddTransceiver;
     }
   });
 });
