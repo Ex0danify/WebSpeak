@@ -7,10 +7,11 @@ import { useServerReorder } from "@/features/admin/gateway/useServerReorder";
 
 vi.mock("vue-router", () => ({ useRoute: () => ({ path: "/admin" }), useRouter: () => ({ replace: vi.fn() }) }));
 
-const key = (name: string) => ({ key: name, preventDefault: vi.fn(), stopPropagation: vi.fn() }) as unknown as KeyboardEvent & {
-  preventDefault: ReturnType<typeof vi.fn>;
-  stopPropagation: ReturnType<typeof vi.fn>;
-};
+const key = (name: string) =>
+  ({ key: name, preventDefault: vi.fn(), stopPropagation: vi.fn() }) as unknown as KeyboardEvent & {
+    preventDefault: ReturnType<typeof vi.fn>;
+    stopPropagation: ReturnType<typeof vi.fn>;
+  };
 
 function setup(grabbed: string | null = null) {
   const order = useAdminServerOrderStore();
