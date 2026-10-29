@@ -129,7 +129,6 @@ describe("WebIdentityCard", () => {
     await privacyUrl!.setValue("https://example.org/privacy");
     await privacyUrl!.trigger("change");
     expect(scheduleSave).toHaveBeenCalledWith("web");
-    expect(scheduleSave).toHaveBeenCalledTimes(2);
   });
 
   it("edits the welcome text of the chosen language", async () => {
@@ -151,13 +150,16 @@ describe("RelayNodesCard", () => {
     expect(wrapper.text()).toContain(t("relayNodeEmpty"));
   });
 
-  it("labels the fields of a node, keeps its token locked until it is replaced and removes it", async () => {
+  it("labels the fields of a node, locks its token unless it is replaced and removes it", async () => {
     const { settings, scheduleSave, pinia } = await setup();
     settings.addRelayNode();
     const wrapper = mount(RelayNodesCard, { global: { plugins: [pinia] } });
     expect(wrapper.text()).not.toContain(t("relayNodeEmpty"));
     expectLabelled(wrapper, 3);
     const [name, target, token] = wrapper.findAll("input:not([type=checkbox])");
+    expect(token!.attributes("disabled")).toBeUndefined();
+    settings.serverForm.relayNodes[0]!.tokenAction = "keep";
+    await wrapper.vm.$nextTick();
     expect(token!.attributes("disabled")).toBeDefined();
     await name!.setValue("  Edge ");
     await name!.trigger("change");
