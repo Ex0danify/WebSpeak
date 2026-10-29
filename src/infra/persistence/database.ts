@@ -3,17 +3,31 @@ import { randomBytes } from "node:crypto";
 import { dirname } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import type { AdminCredential } from "../security/adminPassword.js";
-import { DATABASE_SCHEMA_VERSION, runMigrations } from "./databaseMigrations.js";
+import { DATABASE_SCHEMA_VERSION, MINIMUM_SCHEMA_VERSION, runMigrations } from "./databaseMigrations.js";
 import type { ManagedInviteRecord, PersistedRelayNode, PersistedServer, PersistedSettings, SettingsUpdate } from "./databaseTypes.js";
 import { AdminCredentialRepository } from "./adminCredentialRepository.js";
-import { AuditRepository } from "./auditRepository.js";
-import { ManagedInviteRepository } from "./managedInviteRepository.js";
+import { AuditRepository, type AuditEntry, type AuditQuery } from "./auditRepository.js";
+import { ManagedInviteRepository, type ManagedInviteListOptions, type ManagedInviteStatus } from "./managedInviteRepository.js";
+import {
+  ConnectionRepository,
+  type ConnectionFinish,
+  type ConnectionQuery,
+  type ConnectionRecord,
+  type ConnectionStart,
+} from "./connectionRepository.js";
 import { MetaRepository } from "./metaRepository.js";
 import { RelayNodeRepository } from "./relayNodeRepository.js";
 import { ServerRepository } from "./serverRepository.js";
 import { SettingsRepository } from "./settingsRepository.js";
 
 export { DATABASE_SCHEMA_VERSION };
+export type {
+  ConnectionAudioPath,
+  ConnectionAudioSummary,
+  ConnectionIceSummary,
+  ConnectionRecord,
+  ConnectionStatus,
+} from "./connectionRepository.js";
 export type {
   AccessMode,
   ManagedInviteRecord,
@@ -33,14 +47,20 @@ export class WebSpeakDatabase {
   private readonly relayNodes: RelayNodeRepository;
   private readonly managedInvites: ManagedInviteRepository;
   private readonly audit: AuditRepository;
+  private readonly connections: ConnectionRepository;
   private readonly meta: MetaRepository;
 
-  constructor(private readonly path: string) {
+  /** `synchronous: "off"` skips the fsync on every commit. For tests on slow disks only, a crash can corrupt the file. */
+  constructor(
+    private readonly path: string,
+    options: { synchronous?: "off" } = {},
+  ) {
     mkdirSync(dirname(path), { recursive: true });
     const existed = existsSync(path);
     this.database = new DatabaseSync(path);
     try {
       this.database.exec("PRAGMA foreign_keys = ON; PRAGMA journal_mode = WAL;");
+      if (options.synchronous === "off") this.database.exec("PRAGMA synchronous = OFF;");
       const context = { database: this.database, transaction: (action: () => void) => this.transaction(action) };
       this.adminCredentials = new AdminCredentialRepository(context);
       this.settings = new SettingsRepository(context);
@@ -48,6 +68,7 @@ export class WebSpeakDatabase {
       this.relayNodes = new RelayNodeRepository(context);
       this.managedInvites = new ManagedInviteRepository(context);
       this.audit = new AuditRepository(context);
+      this.connections = new ConnectionRepository(context);
       this.meta = new MetaRepository(context);
       this.migrate(existed);
     } catch (error) {
@@ -116,11 +137,11 @@ export class WebSpeakDatabase {
     this.relayNodes.replace(nodes);
   }
 
-  updateSettings(settings: SettingsUpdate, auditEvent = "SETTINGS_CHANGED"): void {
+  updateSettings(settings: SettingsUpdate, auditDetails: Record<string, unknown> = {}): void {
     const now = new Date().toISOString();
     this.transaction(() => {
       this.settings.write(settings, now);
-      this.audit.insert(auditEvent, { accessMode: settings.accessMode }, now);
+      this.audit.insert("SETTINGS_CHANGED", { accessMode: settings.accessMode, ...auditDetails }, now);
     });
   }
 
@@ -132,16 +153,27 @@ export class WebSpeakDatabase {
     return this.servers.get(id);
   }
 
-  addServer(server: Pick<PersistedServer, "id" | "name" | "host" | "port" | "passwordEncrypted">): void {
+  addServer(
+    server: Pick<PersistedServer, "id" | "name" | "host" | "port" | "passwordEncrypted">,
+    auditDetails: Record<string, unknown> = {},
+  ): void {
     const now = new Date().toISOString();
     this.transaction(() => {
       this.servers.insert(server, now);
-      this.audit.insert("SERVER_ADDED", { id: server.id, name: server.name, target: `${server.host}:${server.port}` }, now);
+      this.audit.insert(
+        "SERVER_ADDED",
+        { id: server.id, name: server.name, target: `${server.host}:${server.port}`, ...auditDetails },
+        now,
+      );
     });
   }
 
   /** An edit of the address or password revokes the invites made for the server, they carry a copy of both. */
-  updateServer(server: Pick<PersistedServer, "id" | "name" | "host" | "port" | "passwordEncrypted">, connectionChanged: boolean): void {
+  updateServer(
+    server: Pick<PersistedServer, "id" | "name" | "host" | "port" | "passwordEncrypted">,
+    connectionChanged: boolean,
+    auditDetails: Record<string, unknown> = {},
+  ): void {
     const now = new Date().toISOString();
     let revoked = 0;
     this.transaction(() => {
@@ -149,42 +181,68 @@ export class WebSpeakDatabase {
       if (connectionChanged) revoked = this.managedInvites.revokeForServer(server.id);
       this.audit.insert(
         "SERVER_UPDATED",
-        { id: server.id, name: server.name, target: `${server.host}:${server.port}`, revokedInvites: revoked },
+        { id: server.id, name: server.name, target: `${server.host}:${server.port}`, revokedInvites: revoked, ...auditDetails },
         now,
       );
     });
   }
 
-  reorderServers(ids: string[]): void {
+  reorderServers(ids: string[], auditDetails: Record<string, unknown> = {}): void {
     const now = new Date().toISOString();
     this.transaction(() => {
       this.servers.reorder(ids);
-      this.audit.insert("SERVERS_REORDERED", { count: ids.length }, now);
+      this.audit.insert("SERVERS_REORDERED", { count: ids.length, ...auditDetails }, now);
     });
   }
 
-  removeServer(id: string): boolean {
+  removeServer(id: string, auditDetails: Record<string, unknown> = {}): boolean {
     const now = new Date().toISOString();
     let removed = false;
+    const name = this.servers.get(id)?.name;
     this.transaction(() => {
       removed = this.servers.delete(id);
       if (!removed) return;
       const revoked = this.managedInvites.revokeForServer(id);
-      this.audit.insert("SERVER_REMOVED", { id, revokedInvites: revoked }, now);
+      this.audit.insert("SERVER_REMOVED", { id, name, revokedInvites: revoked, ...auditDetails }, now);
     });
     return removed;
   }
 
-  recordConnectionTest(id: string, result: { latencyMs: number | null; error: string | null }): void {
-    this.servers.recordTest(id, result);
+  /** Keeps the result on the server. Only a change of availability is written to the event log, not every test. */
+  recordConnectionTest(
+    id: string,
+    result: { latencyMs: number | null; error: string | null },
+    details: Record<string, unknown> = {},
+  ): void {
+    const server = this.servers.get(id);
+    if (!server) return;
+    const wasUnavailable = server.lastTestAt !== null && server.lastTestError !== null;
+    this.transaction(() => {
+      this.servers.recordTest(id, result);
+      const base = { id, name: server.name, ...details };
+      if (result.error && !wasUnavailable) {
+        this.audit.insert("SERVER_UNAVAILABLE", { ...base, code: result.error }, new Date().toISOString());
+      } else if (!result.error && wasUnavailable) {
+        this.audit.insert("SERVER_AVAILABLE", { ...base, latencyMs: result.latencyMs }, new Date().toISOString());
+      }
+    });
   }
 
   createManagedInvite(record: Omit<ManagedInviteRecord, "createdAt" | "revokedAt" | "useCount">): ManagedInviteRecord {
     return this.managedInvites.create(record);
   }
 
-  listManagedInvites(): ManagedInviteRecord[] {
-    return this.managedInvites.list();
+  listManagedInvites(options?: ManagedInviteListOptions): ManagedInviteRecord[] {
+    return this.managedInvites.list(options);
+  }
+
+  countManagedInvites(status?: ManagedInviteStatus): number {
+    return this.managedInvites.count(status);
+  }
+
+  /** Removes invites that stopped working more than `olderThanMs` ago. */
+  pruneManagedInvites(olderThanMs: number): number {
+    return this.managedInvites.prune(Date.now() - olderThanMs);
   }
 
   revokeManagedInvite(id: string): boolean {
@@ -230,19 +288,57 @@ export class WebSpeakDatabase {
     this.audit.insert(event, details, new Date().toISOString());
   }
 
-  /** The audit log only grows, so startup trims it to the newest rows. */
-  pruneAudit(keep = 5000): number {
-    return this.audit.prune(keep);
+  /** The event log and the connection records only grow, so they are trimmed to the retention of the settings. */
+  pruneByRetention(now = Date.now()): { events: number; connections: number } {
+    const { eventLog, connections } = this.settings.get().retention;
+    const cutoff = (days: number) => new Date(now - days * 86_400_000).toISOString();
+    return {
+      events: this.audit.prune(eventLog.maxRows, cutoff(eventLog.days)),
+      connections: this.connections.prune(connections.maxRows, cutoff(connections.days)),
+    };
   }
 
-  recentAudit(limit = 8): Array<{ event: string; createdAt: string }> {
-    return this.audit.recent(limit);
+  beginConnection(start: ConnectionStart): void {
+    this.connections.begin(start, new Date().toISOString());
+  }
+
+  markConnectionConnected(id: string): void {
+    this.connections.markConnected(id, new Date().toISOString());
+  }
+
+  finishConnection(id: string, result: ConnectionFinish): ConnectionRecord | null {
+    return this.connections.finish(id, result, new Date().toISOString());
+  }
+
+  getConnection(id: string): ConnectionRecord | null {
+    return this.connections.get(id);
+  }
+
+  listConnections(query: ConnectionQuery): { records: ConnectionRecord[]; total: number } {
+    return this.connections.list(query);
+  }
+
+  recentConnections(limit: number): ConnectionRecord[] {
+    return this.connections.recent(limit);
+  }
+
+  closeOpenConnections(): number {
+    return this.connections.closeOpen(new Date().toISOString());
+  }
+
+  listAudit(query: AuditQuery): { events: AuditEntry[]; total: number } {
+    return this.audit.list(query);
   }
 
   private migrate(existed: boolean): void {
     const version = this.schemaVersion;
     if (version > DATABASE_SCHEMA_VERSION) {
       throw new Error(`Database schema ${version} is newer than this WebSpeak build`);
+    }
+    if (version > 0 && version < MINIMUM_SCHEMA_VERSION) {
+      throw new Error(
+        `Database schema ${version} is older than the oldest this WebSpeak build upgrades (${MINIMUM_SCHEMA_VERSION}). Start it once with WebSpeak 0.7.0 to upgrade it first.`,
+      );
     }
     if (existed && version > 0) {
       this.writeSchemaBackup(`${this.path}.schema-${version}.bak`);

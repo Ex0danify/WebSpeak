@@ -5,13 +5,47 @@ import type { AdminCredential } from "../security/adminPassword.js";
 
 const fx = useDatabaseFixture();
 
-describe("audit pruning", () => {
-  it("keeps only the newest rows", () => {
+describe("retention pruning", () => {
+  const saveRetention = (database: ReturnType<typeof fx.open>, retention: NonNullable<ReturnType<typeof settings>["retention"]>) => {
+    database.initializeAdmin(credential, settings({ retention }));
+    database.pruneByRetention();
+  };
+
+  it("keeps only the newest event log rows and none older than the retention", () => {
     const database = fx.open();
-    for (let i = 1; i <= 7; i++) database.addAudit(`EVENT_${i}`);
-    expect(database.pruneAudit(3)).toBe(4);
-    expect(database.recentAudit(50).map((entry) => entry.event)).toEqual(["EVENT_7", "EVENT_6", "EVENT_5"]);
-    expect(database.pruneAudit(3)).toBe(0);
+    for (let i = 1; i <= 120; i++) database.addAudit(`EVENT_${i}`);
+    saveRetention(database, { eventLog: { days: 30, maxRows: 100 }, connections: { days: 30, maxRows: 100 }, logs: { days: 30 } });
+    const events = database.listAudit({ limit: 100, offset: 0 });
+    // The 120 rows plus the initialization, cut to the newest 100.
+    expect(events.total).toBe(100);
+    expect(events.events[0]?.event).toBe("ADMIN_INITIALIZED");
+    expect(database.pruneByRetention()).toEqual({ events: 0, connections: 0 });
+    expect(database.pruneByRetention(Date.now() + 31 * 86_400_000).events).toBe(100);
+  });
+
+  it("prunes connection records by size and age but never an open session", () => {
+    const database = fx.open();
+    const start = (id: string) =>
+      database.beginConnection({
+        id,
+        nickname: id,
+        clientIp: "10.0.0.1",
+        target: "ts:9987",
+        relayName: null,
+        relayTarget: null,
+        userAgent: null,
+      });
+    for (let i = 1; i <= 102; i++) {
+      start(`w-${i}`);
+      database.finishConnection(`w-${i}`, { reason: null, failureDetail: null, durationSeconds: 1, audio: null });
+    }
+    start("w-open");
+    saveRetention(database, { eventLog: { days: 30, maxRows: 5000 }, connections: { days: 30, maxRows: 100 }, logs: { days: 30 } });
+    const ids = database.listConnections({ limit: 100, offset: 0 }).records.map((record) => record.id);
+    expect(ids).toHaveLength(100);
+    expect(ids).toContain("w-open");
+    expect(database.pruneByRetention(Date.now() + 31 * 86_400_000).connections).toBe(99);
+    expect(database.listConnections({ limit: 100, offset: 0 }).records.map((record) => record.id)).toEqual(["w-open"]);
   });
 });
 
@@ -22,7 +56,7 @@ describe("admin credential", () => {
     expect(database.hasAdmin()).toBe(true);
     expect(database.getAdminCredential()).toEqual(credential);
     expect(database.getSettings()).toMatchObject({ siteName: "Test site" });
-    expect(database.recentAudit()[0]?.event).toBe("ADMIN_INITIALIZED");
+    expect(database.listAudit({ limit: 8, offset: 0 }).events[0]?.event).toBe("ADMIN_INITIALIZED");
   });
 
   it("rejects a second initialization and leaves the first one untouched", () => {
@@ -33,7 +67,7 @@ describe("admin credential", () => {
     );
     expect(database.getAdminCredential()?.username).toBe("root");
     expect(database.getSettings().siteName).toBe("Test site");
-    expect(database.recentAudit(50).filter((entry) => entry.event === "ADMIN_INITIALIZED")).toHaveLength(1);
+    expect(database.listAudit({ limit: 50, offset: 0 }).events.filter((entry) => entry.event === "ADMIN_INITIALIZED")).toHaveLength(1);
   });
 
   it("replaces the credential", () => {
@@ -70,12 +104,6 @@ describe("settings", () => {
       webRtcEnabled: true,
       webRtcUdpStart: 41000,
       webRtcUdpEnd: 41010,
-      relayConfigured: true,
-      relayEnabled: true,
-      relayName: "relay",
-      relayHost: "relay.example.org",
-      relayPort: 40000,
-      relayTokenEncrypted: "enc:token",
     });
   });
 
@@ -93,17 +121,17 @@ describe("settings", () => {
     expect(database.getSettings().welcomeTexts).toEqual({ en: "hi" });
   });
 
-  it("audits every save with the access mode, under the given event name", () => {
+  it("audits every save with the access mode", () => {
     const database = fx.open();
     database.updateSettings(settings());
-    database.updateSettings(settings({ accessMode: "fixed" }), "LEGACY_CONFIG_IMPORTED");
+    database.updateSettings(settings({ accessMode: "fixed" }));
     const raw = new DatabaseSync(fx.path);
     try {
       const rows = raw.prepare("SELECT event, details_json FROM audit_events ORDER BY id").all() as Array<{
         event: string;
         details_json: string;
       }>;
-      expect(rows.map((row) => row.event)).toEqual(["SETTINGS_CHANGED", "LEGACY_CONFIG_IMPORTED"]);
+      expect(rows.map((row) => row.event)).toEqual(["SETTINGS_CHANGED", "SETTINGS_CHANGED"]);
       expect(JSON.parse(rows[1]!.details_json)).toEqual({ accessMode: "fixed" });
     } finally {
       raw.close();
@@ -115,7 +143,7 @@ describe("settings", () => {
     database.updateSettings(settings());
     expect(() => database.updateSettings(settings({ siteName: "Changed", webRtcUdpStart: 70000 }))).toThrow();
     expect(database.getSettings()).toMatchObject({ siteName: "Test site", webRtcUdpStart: 41000 });
-    expect(database.recentAudit(50).filter((entry) => entry.event === "SETTINGS_CHANGED")).toHaveLength(1);
+    expect(database.listAudit({ limit: 50, offset: 0 }).events.filter((entry) => entry.event === "SETTINGS_CHANGED")).toHaveLength(1);
     // The failed transaction released its lock: the next write works.
     database.updateSettings(settings({ siteName: "Again" }));
     expect(database.getSettings().siteName).toBe("Again");
@@ -153,7 +181,7 @@ describe("servers", () => {
     database.updateServer(server("one", { name: "Renamed" }), false);
     expect(database.removeServer("one")).toBe(true);
     expect(database.removeServer("one")).toBe(false);
-    const events = database.recentAudit(10).map((entry) => entry.event);
+    const events = database.listAudit({ limit: 10, offset: 0 }).events.map((entry) => entry.event);
     expect(events).toEqual(expect.arrayContaining(["SERVER_ADDED", "SERVER_UPDATED", "SERVER_REMOVED"]));
     expect(events.filter((event) => event === "SERVER_REMOVED")).toHaveLength(1);
   });

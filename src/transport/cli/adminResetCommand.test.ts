@@ -11,7 +11,7 @@ let dir = "";
 
 beforeEach(async () => {
   dir = mkdtempSync(join(tmpdir(), "webspeak-reset-"));
-  const database = new WebSpeakDatabase(join(dir, "webspeak.db"));
+  const database = new WebSpeakDatabase(join(dir, "webspeak.db"), { synchronous: "off" });
   database.initializeAdmin(await hashAdminPassword("the password nobody remembers", { username: "ops" }), {
     siteName: "",
     welcomeTexts: {},
@@ -19,12 +19,6 @@ beforeEach(async () => {
     webRtcEnabled: false,
     webRtcUdpStart: 40000,
     webRtcUdpEnd: 40099,
-    relayConfigured: false,
-    relayEnabled: false,
-    relayName: "",
-    relayHost: "",
-    relayPort: 39087,
-    relayTokenEncrypted: null,
   });
   database.close();
 });

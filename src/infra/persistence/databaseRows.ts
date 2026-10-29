@@ -2,7 +2,7 @@ import type { ManagedInviteRecord } from "./databaseTypes.js";
 
 export interface ManagedInviteRow extends Record<string, unknown> {
   id: string;
-  server_id: string | null;
+  server_id: string;
   token_hash: string;
   target_host: string;
   target_port: number;
@@ -19,18 +19,17 @@ export interface SettingsRow extends Record<string, unknown> {
   site_name: string;
   access_mode: string;
   webrtc_enabled: number;
-  webrtc_public_host: string;
   webrtc_udp_start: number;
   webrtc_udp_end: number;
   identity_mint_max_level: number;
   identity_mint_concurrency: number;
   identity_mint_queue_depth: number;
-  relay_configured: number;
-  relay_enabled: number;
-  relay_name: string;
-  relay_host: string;
-  relay_port: number;
-  relay_token_encrypted: string | null;
+  event_log_retention_days: number;
+  event_log_max_rows: number;
+  connection_retention_days: number;
+  connection_max_rows: number;
+  privacy_notice_url: string;
+  log_retention_days: number;
   updated_at: string;
 }
 

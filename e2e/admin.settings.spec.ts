@@ -1,17 +1,25 @@
 import type { Locator, Page } from "@playwright/test";
 import { expect, test } from "./fixtures";
-import { openServerPage, reloadServerPage } from "./helpers/admin";
+import { openGatewayPage, openWebPage, reloadGatewayPage, reloadWebPage } from "./helpers/admin";
 import type { Gateway } from "../test/support/gateway";
 
-// The admin console's Server page: what the administrator edits, what a save keeps, and what the
+// The admin console's Gateway and Web pages: what the administrator edits, what a save keeps, and what the
 // guests then see. Each test has a gateway of its own (`ownGateway`), the console is asked for English.
 
-/** Clicks Save changes and waits for the gateway's answer. */
-async function save(page: Page): Promise<number> {
+/** Makes a change and returns the gateway's answer to the save it sets off: there is no Save button, the console saves by itself. */
+async function saves(page: Page, change: () => Promise<unknown>): Promise<number> {
   const answer = page.waitForResponse((response) => response.url().endsWith("/api/admin/server") && response.request().method() === "PUT");
-  await page.getByRole("button", { name: "Save changes" }).click();
+  await change();
   return (await answer).status();
 }
+
+/** Types into a text or number field and leaves it, which is what saves it. */
+async function typeInto(field: Locator, value: string): Promise<void> {
+  await field.fill(value);
+  await field.blur();
+}
+
+const saved = (page: Page): Locator => page.getByRole("status").filter({ hasText: "Saved" });
 
 const siteName = (page: Page): Locator => page.getByLabel("Site display name");
 /** What the guests' page is told about the site. */
@@ -20,89 +28,149 @@ const publicConfig = async (gateway: Gateway): Promise<Record<string, unknown>> 
 test.describe("save", () => {
   test("keeps what was edited across a reload, and saving the old value restores it", async ({ page, ownGateway }) => {
     const gateway = await ownGateway();
-    await openServerPage(page, gateway);
+    await openWebPage(page, gateway);
     const original = await siteName(page).inputValue();
 
-    await siteName(page).fill("Night Owls");
-    expect(await save(page)).toBe(200);
-    await reloadServerPage(page, gateway);
+    expect(await saves(page, () => typeInto(siteName(page), "Night Owls"))).toBe(200);
+    await reloadWebPage(page, gateway);
     await expect(siteName(page)).toHaveValue("Night Owls");
 
-    await siteName(page).fill(original);
-    expect(await save(page)).toBe(200);
-    await reloadServerPage(page, gateway);
+    expect(await saves(page, () => typeInto(siteName(page), original))).toBe(200);
+    await reloadWebPage(page, gateway);
     await expect(siteName(page)).toHaveValue(original);
   });
 
   test("the site name reaches the guests' page", async ({ page, ownGateway }) => {
     const gateway = await ownGateway();
-    await openServerPage(page, gateway);
-    await siteName(page).fill("Night Owls Voice");
-    expect(await save(page)).toBe(200);
+    await openWebPage(page, gateway);
+    expect(await saves(page, () => typeInto(siteName(page), "Night Owls Voice"))).toBe(200);
     expect(JSON.stringify(await publicConfig(gateway))).toContain("Night Owls Voice");
+  });
+
+  test("the privacy notice link is kept, reaches the guests' footer, and a script address is refused", async ({ page, ownGateway }) => {
+    const gateway = await ownGateway();
+    await openWebPage(page, gateway);
+    const link = page.getByLabel("Privacy notice link");
+    expect(await saves(page, () => typeInto(link, "https://example.org/privacy"))).toBe(200);
+    await reloadWebPage(page, gateway);
+    await expect(link).toHaveValue("https://example.org/privacy");
+
+    const guest = await page.context().newPage();
+    await guest.goto(`${gateway.url}/`);
+    const notice = guest.getByRole("contentinfo").getByRole("link", { name: /Privacy information/ });
+    await expect(notice).toHaveAttribute("href", "https://example.org/privacy");
+    await expect(notice).toHaveAttribute("target", "_blank");
+    await expect(notice).toHaveAttribute("rel", /noopener/);
+    // The longer footer row wraps instead of pushing the page sideways.
+    expect(await guest.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+    await guest.close();
+
+    // Held back before it is sent, the console says why and keeps the saved address.
+    await link.fill("javascript:alert(1)");
+    await link.blur();
+    await expect(page.getByText("Enter a web address starting with http:// or https://.")).toBeVisible();
+    expect(await publicConfig(gateway)).toMatchObject({ privacyNoticeUrl: "https://example.org/privacy" });
+
+    expect(await saves(page, () => typeInto(link, ""))).toBe(200);
+    expect(await publicConfig(gateway)).toMatchObject({ privacyNoticeUrl: "" });
   });
 
   test("the guest access mode is a choice of two, and the choice is kept", async ({ page, ownGateway }) => {
     const gateway = await ownGateway();
-    await openServerPage(page, gateway);
+    await openGatewayPage(page, gateway);
     const fixed = page.getByRole("radio", { name: /Only the configured servers/ });
     const open = page.getByRole("radio", { name: /Also allow other TeamSpeak servers/ });
     await expect(fixed).toBeChecked();
-    await open.click();
+    expect(await saves(page, () => open.click())).toBe(200);
     await expect(open).toBeChecked();
     await expect(fixed).not.toBeChecked();
-    expect(await save(page)).toBe(200);
-    await reloadServerPage(page, gateway);
+    await reloadGatewayPage(page, gateway);
     await expect(page.getByRole("radio", { name: /Also allow other TeamSpeak servers/ })).toBeChecked();
   });
 
-  test("a refused setting is shown as an alert, and nothing is kept", async ({ page, ownGateway }) => {
+  test("a value that is not valid yet is not sent, says why and keeps what was typed", async ({ page, ownGateway }) => {
     const gateway = await ownGateway();
-    await openServerPage(page, gateway);
-    await siteName(page).fill("");
-    expect(await save(page)).toBe(400);
-    await expect(page.getByRole("alert")).toBeVisible();
-    await reloadServerPage(page, gateway);
-    await expect(siteName(page)).not.toHaveValue("");
+    await openWebPage(page, gateway);
+    const original = await siteName(page).inputValue();
+    let sent = 0;
+    page.on("request", (request) => void (request.method() === "PUT" && request.url().endsWith("/api/admin/server") && sent++));
+
+    await typeInto(siteName(page), "");
+    await expect(page.getByText("Not saved: enter 1 to 80 characters.")).toBeVisible();
+    await expect(siteName(page)).toHaveAttribute("aria-invalid", "true");
+    await expect(siteName(page)).toHaveValue("");
+    expect(sent).toBe(0);
+
+    // Another field still saves, and the one that is not valid yet stays as it was.
+    expect(await saves(page, () => typeInto(page.getByLabel(/^Welcome message · /), "Kept anyway"))).toBe(200);
+    await expect(siteName(page)).toHaveValue("");
+    await reloadWebPage(page, gateway);
+    await expect(siteName(page)).toHaveValue(original);
+
+    await typeInto(siteName(page), "Fixed up");
+    await expect(page.getByText("Not saved: enter 1 to 80 characters.")).toHaveCount(0);
   });
 
-  // Every successful action of the console says so in a toast.
-  test("a successful save says so in a toast, and a refused one shows the alert and no toast", async ({ page, ownGateway }) => {
+  test("a setting the gateway refuses shows an alert in its section, and a good save takes it away", async ({ page, ownGateway }) => {
     const gateway = await ownGateway();
-    await openServerPage(page, gateway);
-    const saved = page.locator("li").filter({ hasText: "Settings saved." });
-    await expect(saved).toHaveCount(0);
-    await siteName(page).fill("Loud Save");
-    expect(await save(page)).toBe(200);
-    await expect(saved).toBeVisible();
-    await expect(page.getByRole("alert")).toHaveCount(0);
+    await openGatewayPage(page, gateway);
+    const fixed = page.getByRole("radio", { name: /Only the configured servers/ });
+    const open = page.getByRole("radio", { name: /Also allow other TeamSpeak servers/ });
+    expect(await saves(page, () => open.click())).toBe(200);
+    await page.getByRole("button", { name: "Remove WebSpeak" }).click();
+    await page.getByRole("dialog", { name: "Remove server" }).getByRole("button", { name: "Remove", exact: true }).click();
+    await expect(page.locator(".server-row")).toHaveCount(0);
 
-    await saved.getByRole("button", { name: "Close" }).click();
-    await expect(saved).toHaveCount(0);
-    await siteName(page).fill("");
-    expect(await save(page)).toBe(400);
-    await expect(page.getByRole("alert")).toBeVisible();
-    await expect(saved).toHaveCount(0);
+    expect(await saves(page, () => fixed.click())).toBe(400);
+    await expect(page.getByRole("alert")).toContainText("Keep at least one server while access is limited to the server list.");
+    await expect(fixed).toBeChecked();
+    await expect(saved(page).getByText("Saved")).toHaveCount(0);
+
+    // Back to what the gateway keeps: nothing is left to refuse, so nothing is sent and the alert goes.
+    await open.click();
+    await expect(page.getByRole("alert")).toHaveCount(0);
+  });
+
+  test("a save says Saved next to the section title, with no toast and no button, and it fades", async ({ page, ownGateway }) => {
+    const gateway = await ownGateway();
+    await openWebPage(page, gateway);
+    await expect(page.getByRole("button", { name: "Save changes" })).toHaveCount(0);
+    const identity = page.getByRole("article").filter({ has: page.getByRole("heading", { name: "Site identity" }) });
+    const sectionStatus = identity.getByRole("status");
+    const fieldSaid = identity.locator("label").filter({ hasText: "Site display name" }).getByText("Saved");
+    await expect(identity.getByRole("status")).toBeAttached();
+    await expect(identity.getByText("Saved")).toHaveCount(0);
+
+    expect(await saves(page, () => typeInto(siteName(page), "Quiet Save"))).toBe(200);
+    // The section's status is for a screen reader, the field's mark is what is seen.
+    await expect(sectionStatus).toHaveText("Saved");
+    // The field that was saved is marked next to its label, where the person is looking, and no other field is.
+    await expect(fieldSaid).toBeVisible();
+    await expect(identity.getByText("Saved")).toHaveCount(2);
+    await expect(page.locator("li").filter({ hasText: "Settings saved." })).toHaveCount(0);
+    await expect(identity.getByText("Saved")).toHaveCount(0, { timeout: 8000 });
   });
 });
 
 test.describe("welcome message", () => {
   test("has one text per language, each kept, and the guests get the one for their language", async ({ page, ownGateway }) => {
     const gateway = await ownGateway();
-    await openServerPage(page, gateway);
-    const language = page.getByLabel("Welcome message language");
-    await language.selectOption("de");
+    await openWebPage(page, gateway);
+    const pickLanguage = async (name: string) => {
+      await page.getByRole("combobox", { name: "Welcome message language" }).click();
+      await page.getByRole("option", { name, exact: true }).click();
+    };
+    await pickLanguage("Deutsch");
     await expect(page.getByLabel("Welcome message · Deutsch")).toBeVisible();
-    await page.getByLabel("Welcome message · Deutsch").fill("Willkommen bei den Nachteulen");
-    await language.selectOption("en");
+    expect(await saves(page, () => typeInto(page.getByLabel("Welcome message · Deutsch"), "Willkommen bei den Nachteulen"))).toBe(200);
+    await pickLanguage("English");
     await expect(page.getByLabel("Welcome message · English")).toHaveValue("");
-    await page.getByLabel("Welcome message · English").fill("Welcome, night owls");
-    expect(await save(page)).toBe(200);
+    expect(await saves(page, () => typeInto(page.getByLabel("Welcome message · English"), "Welcome, night owls"))).toBe(200);
 
-    await reloadServerPage(page, gateway);
-    await page.getByLabel("Welcome message language").selectOption("de");
+    await reloadWebPage(page, gateway);
+    await pickLanguage("Deutsch");
     await expect(page.getByLabel("Welcome message · Deutsch")).toHaveValue("Willkommen bei den Nachteulen");
-    await page.getByLabel("Welcome message language").selectOption("en");
+    await pickLanguage("English");
     await expect(page.getByLabel("Welcome message · English")).toHaveValue("Welcome, night owls");
 
     // A guest's page shows the text of its own language.
@@ -113,42 +181,92 @@ test.describe("welcome message", () => {
 });
 
 test.describe("WebRTC", () => {
-  test("switching it on names the ports to open, and the port range is locked while it is on", async ({ page, ownGateway }) => {
+  test("switching it on shows the ports to open, and the port range is locked while it is on", async ({ page, ownGateway }) => {
     const gateway = await ownGateway();
-    await openServerPage(page, gateway);
-    const webrtc = page.getByRole("checkbox", { name: /Enable WebRTC/ });
+    await openGatewayPage(page, gateway);
+    const webrtc = page.getByRole("switch", { name: /Enable WebRTC/ });
     const start = page.getByLabel("Start port");
     await expect(webrtc).not.toBeChecked();
+    await expect(page.getByText("Locked while WebRTC is on")).toBeHidden();
+    await expect(page.getByText("Open these ports before guests connect")).toBeHidden();
     await expect(start).toBeEnabled();
 
-    await webrtc.check();
-    const notice = page.getByRole("dialog", { name: "Allow WebRTC ports first" });
-    await expect(notice).toBeVisible();
-    await expect(notice).toContainText("Ports must be opened: 40000–40099 (UDP)");
-    await notice.getByRole("button", { name: "Got it" }).click();
-    await expect(notice).toBeHidden();
+    const range = page.getByRole("group", { name: "WebRTC UDP port range" });
+    const lead = page.getByText("Use realtime audio when supported");
+    const sizes = async () => [await range.boundingBox(), await lead.boundingBox()].map((box) => [box?.width, box?.height]);
+    const before = await sizes();
+    expect(await saves(page, () => webrtc.click())).toBe(200);
+    await expect(page.getByText("Saved").first()).toBeVisible();
+    expect(await sizes()).toEqual(before);
+    const ports = page.getByText("Open these ports before guests connect");
+    await expect(ports).toBeVisible();
+    await expect(page.getByText("40000–40099 · UDP")).toBeVisible();
     await expect(webrtc).toBeChecked();
     await expect(start).toBeDisabled();
+    await expect(page.getByRole("group", { name: "WebRTC UDP port range" })).toHaveAccessibleDescription(/Locked while WebRTC is on/);
 
-    expect(await save(page)).toBe(200);
-    await reloadServerPage(page, gateway);
-    await expect(page.getByRole("checkbox", { name: /Enable WebRTC/ })).toBeChecked();
+    await reloadGatewayPage(page, gateway);
+    await expect(page.getByRole("switch", { name: /Enable WebRTC/ })).toBeChecked();
     await expect(page.getByLabel("Start port")).toBeDisabled();
   });
 
-  test("with it off the range can be changed and kept, and an impossible range is refused", async ({ page, ownGateway }) => {
+  test("with it off the range can be changed and kept, and an impossible range is held back", async ({ page, ownGateway }) => {
     const gateway = await ownGateway();
-    await openServerPage(page, gateway);
-    await page.getByLabel("Start port").fill("41000");
-    await page.getByLabel("End port").fill("41010");
-    expect(await save(page)).toBe(200);
-    await reloadServerPage(page, gateway);
+    await openGatewayPage(page, gateway);
+    expect(await saves(page, () => typeInto(page.getByLabel("End port"), "41010"))).toBe(200);
+    expect(await saves(page, () => typeInto(page.getByLabel("Start port"), "41000"))).toBe(200);
+    await reloadGatewayPage(page, gateway);
     await expect(page.getByLabel("Start port")).toHaveValue("41000");
     await expect(page.getByLabel("End port")).toHaveValue("41010");
 
-    await page.getByLabel("Start port").fill("42000");
-    await page.getByLabel("End port").fill("41500");
-    expect(await save(page)).toBe(400);
-    await expect(page.getByRole("alert")).toContainText("The WebRTC UDP port range is invalid");
+    // A start above the end is held back until the end follows.
+    await typeInto(page.getByLabel("Start port"), "42000");
+    await expect(page.getByText("Not saved: the end port must not be below the start port.")).toBeVisible();
+    expect(await saves(page, () => typeInto(page.getByLabel("End port"), "42500"))).toBe(200);
+    await expect(page.getByText("Not saved: the end port must not be below the start port.")).toHaveCount(0);
+    await typeInto(page.getByLabel("Start port"), "43000");
+    await expect(page.getByText("Not saved: the end port must not be below the start port.")).toBeVisible();
+    await reloadGatewayPage(page, gateway);
+    await expect(page.getByLabel("Start port")).toHaveValue("42000");
+    await expect(page.getByLabel("End port")).toHaveValue("42500");
+  });
+});
+
+test.describe("relay nodes", () => {
+  test("a node is saved once it is complete, and enabling it waits for a token", async ({ page, ownGateway }) => {
+    const gateway = await ownGateway();
+    await openGatewayPage(page, gateway);
+    const incomplete = page.getByText("Not saved: enter a host and port, like relay.example.com:9987.");
+    const tokenNeeded = page.getByText("Not saved: an enabled relay needs a token.");
+
+    await page.getByRole("button", { name: "Add relay node" }).click();
+    await typeInto(page.getByLabel("Relay display name"), "Frankfurt");
+    await expect(incomplete).toBeVisible();
+    expect(await saves(page, () => typeInto(page.getByLabel("Relay server address"), "relay.example.test:39087"))).toBe(200);
+    await expect(incomplete).toHaveCount(0);
+    await reloadGatewayPage(page, gateway);
+    await expect(page.getByLabel("Relay display name")).toHaveValue("Frankfurt");
+    await expect(page.getByLabel("Relay server address")).toHaveValue("relay.example.test:39087");
+
+    const enabled = page.getByRole("checkbox", { name: "Frankfurt" });
+    await enabled.check();
+    await expect(tokenNeeded).toBeVisible();
+    await page.getByRole("radio", { name: "Change" }).click();
+    expect(await saves(page, () => typeInto(page.getByPlaceholder("Enter the relay service token"), "a-token-of-16-chars"))).toBe(200);
+    await expect(tokenNeeded).toHaveCount(0);
+    await reloadGatewayPage(page, gateway);
+    await expect(page.getByRole("checkbox", { name: "Frankfurt" })).toBeChecked();
+    await expect(page.getByPlaceholder("Token configured (leave blank to keep it)")).toBeVisible();
+  });
+
+  test("removing a node saves at once", async ({ page, ownGateway }) => {
+    const gateway = await ownGateway();
+    await openGatewayPage(page, gateway);
+    await page.getByRole("button", { name: "Add relay node" }).click();
+    await typeInto(page.getByLabel("Relay display name"), "Tokyo");
+    expect(await saves(page, () => typeInto(page.getByLabel("Relay server address"), "tokyo.example.test"))).toBe(200);
+    expect(await saves(page, () => page.getByRole("button", { name: "Remove", exact: true }).click())).toBe(200);
+    await reloadGatewayPage(page, gateway);
+    await expect(page.getByText("No relay nodes are configured.")).toBeVisible();
   });
 });

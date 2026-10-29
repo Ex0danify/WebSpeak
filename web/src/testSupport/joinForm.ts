@@ -25,6 +25,7 @@ export type Exposed = {
   serverPort: string;
   serverPassword: string;
   serverId: string;
+  privacyNoticeUrl: string;
   servers: Array<{ id: string; name: string }>;
   accessMode: "fixed" | "open";
   rememberIdentity: boolean;

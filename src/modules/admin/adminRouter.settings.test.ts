@@ -14,24 +14,24 @@ async function start(options?: Parameters<typeof gateways.start>[0]): Promise<{ 
   return { gateway, admin: await gateway.adminLogin() };
 }
 
-const audit = (gateway: Gateway) => gateway.database.recentAudit(50).map((row) => row.event);
+const audit = (gateway: Gateway) => gateway.database.listAudit({ limit: 50, offset: 0 }).events.map((row) => row.event);
 
 describe("GET /server", () => {
   it("shows the defaults, with no password or token in it", async () => {
-    const { gateway, admin } = await start();
+    const { admin } = await start();
     const settings = await json(await admin.get("server"));
     expect(Object.keys(settings).sort()).toEqual([
       "accessMode",
-      "hasRelayToken",
+      "connectionMaxRows",
+      "connectionRetentionDays",
+      "eventLogMaxRows",
+      "eventLogRetentionDays",
       "identityMintConcurrency",
       "identityMintMaxLevel",
       "identityMintQueueDepth",
-      "internalPort",
-      "relayConfigured",
-      "relayEnabled",
-      "relayName",
+      "logRetentionDays",
+      "privacyNoticeUrl",
       "relayNodes",
-      "relayTarget",
       "servers",
       "siteName",
       "updatedAt",
@@ -43,11 +43,9 @@ describe("GET /server", () => {
     ]);
     expect(settings).toMatchObject({
       servers: [{ id: DEFAULT_SERVER_ID, hasPassword: false }],
-      hasRelayToken: false,
+      relayNodes: [],
       webRtcEnabled: false,
       siteName: "WebSpeak",
-      // The port the harness gateway really listens on, not a fixed one.
-      internalPort: Number(new URL(gateway.url).port),
     });
   });
 });
@@ -71,6 +69,31 @@ describe("PUT /server", () => {
     });
     expect(await json(await admin.get("server"))).toEqual(saved.settings);
     expect(audit(gateway)[0]).toBe("SETTINGS_CHANGED");
+  });
+
+  it("writes down what changed, with old and new values, and only that a long text or a relay did", async () => {
+    const { gateway, admin } = await start();
+    await admin.put("server", settingsInput({ siteName: "Renamed", accessMode: "open", welcomeTexts: { en: "hello" } }));
+    const details = () => gateway.database.listAudit({ limit: 1, offset: 0 }).events[0]?.details;
+    expect(details()).toMatchObject({
+      changes: expect.arrayContaining([{ field: "siteName", from: "WebSpeak", to: "Renamed" }, { field: "welcomeTexts" }]),
+      ip: expect.stringMatching(/\S/),
+    });
+    await admin.put("server", settingsInput({ siteName: "Renamed", accessMode: "open", welcomeTexts: { en: "hello" } }));
+    expect(details()).toMatchObject({ changes: [] });
+  });
+
+  it("saves the privacy notice address, reports it to guests, audits the change and refuses a bad one", async () => {
+    const { gateway, admin } = await start();
+    const saved = await admin.put("server", settingsInput({ privacyNoticeUrl: "https://example.org/privacy" }));
+    expect((await json(saved)).settings.privacyNoticeUrl).toBe("https://example.org/privacy");
+    expect(await (await gateway.request("/api/public-config")).json()).toMatchObject({ privacyNoticeUrl: "https://example.org/privacy" });
+    expect(gateway.database.listAudit({ limit: 1, offset: 0 }).events[0]?.details).toMatchObject({
+      changes: expect.arrayContaining([{ field: "privacyNoticeUrl", from: "", to: "https://example.org/privacy" }]),
+    });
+    const refused = await admin.put("server", settingsInput({ privacyNoticeUrl: "javascript:alert(1)" }));
+    expect([refused.status, (await json(refused)).code]).toEqual([400, "INVALID_PRIVACY_NOTICE_URL"]);
+    expect((await json(await admin.get("server"))).privacyNoticeUrl).toBe("https://example.org/privacy");
   });
 
   it("round-trips: the values the console reads can be written back unchanged, and the password survives", async () => {
@@ -97,12 +120,9 @@ describe("PUT /server", () => {
     const saved = await admin.put(
       "server",
       settingsInput({
-        relaySettingsAction: "replace",
-        relayEnabled: true,
-        relayName: "Relay",
-        relayTarget: "relay.example.org:39087",
-        relayTokenAction: "replace",
-        relayToken: "s3cret-relay-token",
+        relayNodes: [
+          { name: "Relay", target: "relay.example.org:39087", enabled: true, tokenAction: "replace", token: "s3cret-relay-token" },
+        ],
       }),
     );
     const texts = [await saved.text(), await (await admin.get("server")).text()];
@@ -110,8 +130,7 @@ describe("PUT /server", () => {
       expect(text).not.toContain("s3cret");
       expect(JSON.parse(text).settings ?? JSON.parse(text)).toMatchObject({
         servers: [{ hasPassword: true }],
-        hasRelayToken: true,
-        relayEnabled: true,
+        relayNodes: [{ enabled: true, hasToken: true }],
       });
     }
   });
@@ -132,22 +151,20 @@ describe("PUT /server", () => {
       [
         "enabled relay without a name",
         {
-          relaySettingsAction: "replace",
-          relayEnabled: true,
-          relayTarget: "relay.example.org:39087",
-          relayTokenAction: "replace",
-          relayToken: "t",
+          relayNodes: [
+            { name: "", target: "relay.example.org:39087", enabled: true, tokenAction: "replace", token: "relay-token-1234567" },
+          ],
         },
         "INVALID_RELAY_NAME",
       ],
       [
         "enabled relay without a target",
-        { relaySettingsAction: "replace", relayEnabled: true, relayName: "R", relayTokenAction: "replace", relayToken: "t" },
+        { relayNodes: [{ name: "R", target: "", enabled: true, tokenAction: "replace", token: "relay-token-1234567" }] },
         "INVALID_RELAY_TARGET",
       ],
       [
         "enabled relay without a token",
-        { relaySettingsAction: "replace", relayEnabled: true, relayName: "R", relayTarget: "relay.example.org:39087" },
+        { relayNodes: [{ name: "R", target: "relay.example.org:39087", enabled: true }] },
         "INVALID_RELAY_TOKEN",
       ],
     ];
@@ -255,12 +272,12 @@ describe("POST /server/test", () => {
     const { gateway, admin } = await start();
     await post(admin);
     expect((await json(await admin.get("overview"))).servers[0]).toMatchObject({ status: "unknown", lastTestAt: null });
-    expect(audit(gateway)).not.toContain("CONNECTION_TEST_SUCCEEDED");
+    expect(audit(gateway)).not.toContain("SERVER_UNAVAILABLE");
   });
 });
 
 describe("GET /overview", () => {
-  it("describes the gateway, the servers, the sessions and the recent audit events", async () => {
+  it("describes the gateway, the servers, the sessions and the active invites", async () => {
     const { admin } = await start();
     const overview = await json(await admin.get("overview"));
     expect(overview).toMatchObject({
@@ -271,7 +288,7 @@ describe("GET /overview", () => {
       sessions: { active: 0, peak: 0, limit: 100 },
     });
     expect(overview.gateway.uptimeSeconds).toBeGreaterThanOrEqual(0);
-    expect(overview.recentEvents.map((event: { event: string }) => event.event)).toEqual(expect.arrayContaining(["ADMIN_LOGIN_SUCCEEDED"]));
+    expect(overview).not.toHaveProperty("recentEvents");
   });
 
   it("counts a live session as active, and remembers the peak after it ends", async () => {

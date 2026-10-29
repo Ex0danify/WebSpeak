@@ -52,7 +52,6 @@ describe("splitTeamSpeakTarget", () => {
   it("takes a bracketed IPv6 address without its brackets, with or without a port", () => {
     expect(splitTeamSpeakTarget("[2001:db8::1]:9988")).toEqual({ address: "2001:db8::1", port: "9988" });
     expect(splitTeamSpeakTarget("[2001:db8::1]")).toEqual({ address: "2001:db8::1", port: "9987" });
-    expect(splitTeamSpeakTarget("[2001:db8::1]#9988")).toEqual({ address: "2001:db8::1", port: "9988" });
   });
 
   // Not the gateway's job to be strict: the form splits whatever was typed, and the
@@ -64,7 +63,7 @@ describe("splitTeamSpeakTarget", () => {
     ["a text after the colon is not a port", "example.com:abc", { address: "example.com:abc", port: "9987" }],
     ["an unclosed bracket stays whole", "[::1", { address: "[::1", port: "9987" }],
     ["a bad port after brackets falls back", "[::1]:abc", { address: "::1", port: "9987" }],
-    ["the last # wins", "a#1#2", { address: "a#1", port: "2" }],
+    ["the old # separator is not a port separator", "example.com#9988", { address: "example.com#9988", port: "9987" }],
   ])("%s", (_name, input, expected) => {
     expect(splitTeamSpeakTarget(input)).toEqual(expected);
   });

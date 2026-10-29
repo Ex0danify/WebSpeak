@@ -138,7 +138,7 @@ describe("audit log", () => {
     const database = fx.open();
     database.addAudit("FIRST");
     database.addAudit("SECOND", { id: 7 });
-    const entries = database.recentAudit();
+    const entries = database.listAudit({ limit: 8, offset: 0 }).events;
     expect(entries.map((entry) => entry.event)).toEqual(["SECOND", "FIRST"]);
     expect(Date.parse(entries[0]!.createdAt)).not.toBeNaN();
   });
@@ -159,12 +159,12 @@ describe("audit log", () => {
   it("clamps the limit to 1..50 and floors fractions", () => {
     const database = fx.open();
     for (let index = 0; index < 60; index += 1) database.addAudit(`E${index}`);
-    expect(database.recentAudit()).toHaveLength(8);
-    expect(database.recentAudit(0)).toHaveLength(1);
-    expect(database.recentAudit(-10)).toHaveLength(1);
-    expect(database.recentAudit(3.9)).toHaveLength(3);
-    expect(database.recentAudit(1000)).toHaveLength(50);
-    expect(database.recentAudit(1)[0]?.event).toBe("E59");
+    expect(database.listAudit({ limit: 8, offset: 0 }).events).toHaveLength(8);
+    expect(database.listAudit({ limit: 0, offset: 0 }).events).toHaveLength(1);
+    expect(database.listAudit({ limit: -10, offset: 0 }).events).toHaveLength(1);
+    expect(database.listAudit({ limit: 3.9, offset: 0 }).events).toHaveLength(3);
+    expect(database.listAudit({ limit: 1000, offset: 0 }).events).toHaveLength(60);
+    expect(database.listAudit({ limit: 1, offset: 0 }).events[0]?.event).toBe("E59");
   });
 });
 
@@ -190,7 +190,7 @@ describe("backup export", () => {
     expect(restored.listManagedInvites()).toEqual(database.listManagedInvites());
     expect(restored.listRelayNodes()).toEqual(database.listRelayNodes());
     expect(restored.getVisitorCount()).toBe(9);
-    expect(restored.recentAudit(50)).toEqual(database.recentAudit(50));
+    expect(restored.listAudit({ limit: 50, offset: 0 }).events).toEqual(database.listAudit({ limit: 50, offset: 0 }).events);
   });
 
   it("leaves no temporary export file next to the database", () => {

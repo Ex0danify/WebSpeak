@@ -31,6 +31,7 @@ describe("/api/public-config", () => {
       "accelerationRelays",
       "accessMode",
       "initialized",
+      "privacyNoticeUrl",
       "servers",
       "siteName",
       "version",
@@ -42,6 +43,7 @@ describe("/api/public-config", () => {
       version: "9.9.9",
       initialized: true,
       siteName: "WebSpeak",
+      privacyNoticeUrl: "",
       accelerationAvailable: false,
       accelerationRelays: [],
     });
@@ -73,6 +75,23 @@ describe("/api/public-config", () => {
     expect(JSON.stringify(config)).not.toContain("voice.example.org");
   });
 
+  it("is read-only: nothing a guest sends changes the site name or the welcome texts", async () => {
+    const gateway = await gateways.start();
+    const before = await (await gateway.request("/api/public-config")).json();
+    const body = JSON.stringify(settingsInput({ siteName: "Hijacked", welcomeTexts: { en: "Hijacked" } }));
+    const headers = { "content-type": "application/json" };
+    for (const method of ["POST", "PUT", "PATCH", "DELETE"]) {
+      const response = await gateway.request("/api/public-config", { method, body, headers });
+      expect(response.status, method).toBeGreaterThanOrEqual(400);
+    }
+    expect((await gateway.request("/api/admin/server", { method: "PUT", body, headers })).status).toBe(401);
+    const after = await (await gateway.request("/api/public-config")).json();
+    expect(after).toMatchObject({
+      siteName: (before as { siteName: string }).siteName,
+      welcomeTexts: (before as { welcomeTexts: object }).welcomeTexts,
+    });
+  });
+
   it("never contains the server password or a relay token after they are saved", async () => {
     const gateway = await gateways.start();
     const admin = await gateway.adminLogin();
@@ -80,12 +99,9 @@ describe("/api/public-config", () => {
     const saved = await admin.put(
       "server",
       settingsInput({
-        relaySettingsAction: "replace",
-        relayEnabled: true,
-        relayName: "Relay one",
-        relayTarget: "relay.example.org:39087",
-        relayTokenAction: "replace",
-        relayToken: "s3cret-relay-token",
+        relayNodes: [
+          { name: "Relay one", target: "relay.example.org:39087", enabled: true, tokenAction: "replace", token: "s3cret-relay-token" },
+        ],
       }),
     );
     expect(saved.status).toBe(200);

@@ -115,7 +115,9 @@ body:
     attributes:
       label: Logs and screenshots
       description: |
-        Relevant browser console output, gateway logs, screenshots, or recordings.
+        If you run the gateway, attach the diagnostic bundle (Admin, Diagnostics, Download diagnostic bundle). Addresses, names, and
+        secrets are replaced or left out, but have a look before you post it. Never attach the database backup.
+        Also welcome: relevant browser console output, screenshots, or recordings.
         Remove passwords, tokens, session cookies, and other secrets first. Do not paste your full .env.
       render: text
 

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { createTransportPair, datagramId, datagramType, TEST_FAKE_MAC, texts } from "../../../../test/support/tsTransportPair.js";
 import { TeamSpeakTransportError } from "../errors/teamSpeakErrors.js";
-import { DUMMY_PACKET_KEY, LegacyPacketKeys } from "../crypto/packetKeys.js";
+import { DUMMY_PACKET_KEY, Ts3PacketKeys } from "../crypto/packetKeys.js";
 import { encodePacket } from "./packetCodec.js";
 import { PacketHandler, systemClock } from "./packetHandler.js";
 import { PacketFlag, PacketType } from "./packetTypes.js";
@@ -108,7 +108,7 @@ describe("PacketHandler keep-alive", () => {
 describe("PacketHandler keys", () => {
   it("accepts an ack sealed with the old key after the switch, like TS3's ack of clientek", () => {
     const { clock, client, server } = createTransportPair({ sessionKeys: false });
-    const keys = new LegacyPacketKeys(Buffer.alloc(30, 3));
+    const keys = new Ts3PacketKeys(Buffer.alloc(30, 3));
     client.handler.sendCommand(Buffer.from("clientek ek=x"));
     client.handler.switchKeys({ keys, fakeMac: TEST_FAKE_MAC });
     clock.runUntil(() => server.commands.length === 1);

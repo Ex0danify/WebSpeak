@@ -1,5 +1,6 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { unzipSync, strFromU8 } from "fflate";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { DEFAULT_SERVER_ID, serverInput, settingsInput } from "../../../test/support/adminService.js";
 import type { FakeTSClient } from "../../../test/support/fakeTsClient.js";
@@ -22,7 +23,7 @@ async function start(options?: Parameters<typeof gateways.start>[0]): Promise<{ 
   return { gateway, admin: await gateway.adminLogin() };
 }
 
-const audit = (gateway: Gateway) => gateway.database.recentAudit(50).map((row) => row.event);
+const audit = (gateway: Gateway) => gateway.database.listAudit({ limit: 50, offset: 0 }).events.map((row) => row.event);
 
 describe("sessions", () => {
   it("lists nothing when nobody is connected", async () => {
@@ -42,6 +43,9 @@ describe("sessions", () => {
     expect(alice).toMatchObject({
       id: expect.stringMatching(/^w-/),
       target: "ts.test:9987",
+      clientIp: expect.any(String),
+      relayName: null,
+      relayTarget: null,
       state: "connected",
       tsClientId: (gateway.ts.created[0] as FakeTSClient).getClientId(),
       channelId: "1",
@@ -49,6 +53,7 @@ describe("sessions", () => {
       ageSeconds: expect.any(Number),
     });
     expect(bob).toMatchObject({ channelId: "3", memberCount: 2 });
+    expect(alice.clientIp).toMatch(/127\.0\.0\.1|::1/);
     expect(Date.parse(alice.createdAt)).not.toBeNaN();
     expect(alice.audio).toMatchObject({
       ingressFrames: 0,
@@ -171,6 +176,10 @@ describe("invites", () => {
       ).status,
     ).toBe(201);
     expect((await admin.post(`invites/${revoked.invite.id}/revoke`)).status).toBe(200);
+    expect(gateway.database.listAudit({ limit: 1, offset: 0 }).events[0]).toMatchObject({
+      event: "INVITE_REVOKED",
+      details: { id: revoked.invite.id, serverName: "WebSpeak", useCount: 0, ip: expect.stringMatching(/\S/) },
+    });
     expect(await statuses()).toEqual({
       [single.invite.id]: "exhausted/1",
       [timed.invite.id]: "active/0",
@@ -204,28 +213,71 @@ describe("invites", () => {
 });
 
 describe("audit", () => {
-  it("lists the newest events first with their times", async () => {
+  it("lists the newest events first with their kind, details and times", async () => {
     const { gateway, admin } = await start();
     gateway.database.addAudit("FIRST");
-    gateway.database.addAudit("SECOND");
-    const { events } = await json(await admin.get("audit"));
-    expect(events.slice(0, 2).map((event: { event: string }) => event.event)).toEqual(["SECOND", "FIRST"]);
+    gateway.database.addAudit("ADMIN_LOGIN_FAILED", { reason: "x" });
+    const { events, total } = await json(await admin.get("audit"));
+    expect(total).toBeGreaterThanOrEqual(2);
+    expect(events.slice(0, 2)).toMatchObject([
+      { event: "ADMIN_LOGIN_FAILED", category: "auth", severity: "warning", details: { reason: "x" } },
+      { event: "FIRST", category: "system", severity: "info", details: {} },
+    ]);
     expect(Date.parse(events[0].createdAt)).not.toBeNaN();
   });
 
-  it("takes a limit from 1 up, ignores one that is not a number, and never returns more than 50", async () => {
+  it("pages with a limit from 1 to 100 and an offset, and says how many events there are", async () => {
     const { gateway, admin } = await start();
     for (let i = 0; i < 60; i++) gateway.database.addAudit(`EVENT_${i}`);
-    const count = async (limit?: string) =>
-      (await json(await admin.get(limit === undefined ? "audit" : `audit?limit=${limit}`))).events.length;
-    expect(await count()).toBe(50);
-    expect(await count("3")).toBe(3);
-    expect(await count("2.9")).toBe(2);
-    expect(await count("0")).toBe(1);
-    expect(await count("-5")).toBe(1);
-    expect(await count("abc")).toBe(50);
-    // The route accepts up to 200, but the database returns at most 50.
-    expect(await count("200")).toBe(50);
+    const page = async (query: string) => json(await admin.get(`audit${query}`));
+    expect((await page("")).events).toHaveLength(25);
+    const all = await page("?limit=100");
+    expect(all.events).toHaveLength(all.total);
+    expect(all.total).toBeGreaterThan(60);
+    expect((await page("?limit=3&offset=1")).events.map((event: { event: string }) => event.event)).toEqual([
+      "EVENT_58",
+      "EVENT_57",
+      "EVENT_56",
+    ]);
+    expect((await page("?limit=3&offset=1")).total).toBe(all.total);
+    expect((await page("?offset=1000")).events).toEqual([]);
+  });
+
+  it("filters by category, severity, time and text", async () => {
+    const { gateway, admin } = await start();
+    gateway.database.addAudit("ADMIN_LOGIN_FAILED");
+    gateway.database.addAudit("SERVER_UNAVAILABLE", { name: "Main" });
+    gateway.database.addAudit("INVITE_CREATED", { channel: "Lobby" });
+    const names = async (query: string) =>
+      (await json(await admin.get(`audit?${query}`))).events.map((event: { event: string }) => event.event);
+    expect(await names("categories=availability,invites")).toEqual(["INVITE_CREATED", "SERVER_UNAVAILABLE"]);
+    expect(await names("categories=")).toEqual([]);
+    expect(await names("severities=error")).toEqual(["SERVER_UNAVAILABLE"]);
+    expect(await names("severities=warning,error")).toEqual(["SERVER_UNAVAILABLE", "ADMIN_LOGIN_FAILED"]);
+    expect(await names("severities=")).toEqual([]);
+    expect(await names("q=lobby")).toEqual(["INVITE_CREATED"]);
+    expect(await names(`since=${encodeURIComponent(new Date(Date.now() + HOUR_MS).toISOString())}`)).toEqual([]);
+  });
+
+  it("refuses a query it cannot read", async () => {
+    const { admin } = await start();
+    const queries = [
+      "limit=0",
+      "limit=101",
+      "limit=2.5",
+      "limit=abc",
+      "limit=",
+      "offset=-1",
+      "categories=auth,nope",
+      "severities=loud",
+      "since=yesterday",
+      `q=${"x".repeat(101)}`,
+      "limit=1&limit=2",
+    ];
+    for (const query of queries) {
+      const response = await admin.get(`audit?${query}`);
+      expect([response.status, (await json(response)).code], query).toEqual([400, "INVALID_AUDIT_QUERY"]);
+    }
   });
 });
 
@@ -258,45 +310,57 @@ describe("backup", () => {
 });
 
 describe("diagnostics", () => {
-  it("summarizes the gateway, the sessions, TeamSpeak, the database and the log", async () => {
+  it("summarizes the gateway, the sessions, TeamSpeak and the database", async () => {
     const { gateway, admin } = await start();
     const socket = await gateway.openVoice();
     await socket.waitForMessage("connected");
     const body = await json(await admin.get("diagnostics"));
-    expect(Object.keys(body).sort()).toEqual(["database", "gateway", "generatedAt", "logs", "servers", "sessions"]);
+    expect(Object.keys(body).sort()).toEqual(["database", "gateway", "generatedAt", "servers", "sessions"]);
     expect(body.gateway).toMatchObject({ version: "9.9.9", node: process.version, platform: process.platform, arch: process.arch });
     expect(body.sessions).toEqual({ active: 1, peak: 1, created: 1, limit: 100 });
     expect(body.servers).toMatchObject([{ status: "unknown" }]);
     expect(body.database).toEqual({ schemaVersion: gateway.database.schemaVersion });
-    expect(body.logs).toEqual({ available: false });
-    writeFileSync(gateway.logFile, "");
-    expect((await json(await admin.get("diagnostics"))).logs).toEqual({ available: true });
   });
 
-  it("downloads a report that carries no secret", async () => {
+  it("downloads a zip bundle that carries no secret and no address of a guest", async () => {
     const { gateway, admin } = await start();
     await admin.put(`servers/${DEFAULT_SERVER_ID}`, serverInput({ passwordAction: "replace", serverPassword: "s3cret-server-pass" }));
     await admin.put(
       "server",
       settingsInput({
-        relaySettingsAction: "replace",
-        relayEnabled: true,
-        relayName: "Relay",
-        relayTarget: "relay.example.org:39087",
-        relayTokenAction: "replace",
-        relayToken: "s3cret-relay-token",
+        relayNodes: [
+          { name: "Relay", target: "relay.example.org:39087", enabled: true, tokenAction: "replace", token: "s3cret-relay-token" },
+        ],
       }),
     );
-    const response = await admin.get("diagnostics/report");
-    expect(response.headers.get("content-type")).toBe("application/json; charset=utf-8");
-    expect(response.headers.get("content-disposition")).toBe('attachment; filename="webspeak-diagnostic-report.json"');
-    const text = await response.text();
-    const report = JSON.parse(text);
-    expect(Object.keys(report).sort()).toEqual(["audit", "database", "gateway", "generatedAt", "servers", "sessions"]);
-    expect(report.audit.map((entry: { event: string }) => entry.event)).toContain("SETTINGS_CHANGED");
-    expect(text).toContain('\n  "gateway"');
+    const socket = await gateway.openVoice(gateway.ticket({ nickname: "Mallory" }));
+    await socket.waitForMessage("connected");
+    const response = await admin.get("diagnostics/bundle");
+    expect(response.headers.get("content-type")).toBe("application/zip");
+    expect(response.headers.get("content-disposition")).toMatch(
+      /^attachment; filename="webspeak-diagnostics-9\.9\.9-\d{4}-\d{2}-\d{2}\.zip"$/,
+    );
+    const files = unzipSync(new Uint8Array(await response.arrayBuffer()));
+    expect(Object.keys(files).sort()).toEqual([
+      "README.txt",
+      "config.json",
+      "environment.json",
+      "events.json",
+      "log-tail.ndjson",
+      "servers.json",
+      "sessions.json",
+      "summary.json",
+    ]);
+    const text = Object.values(files)
+      .map((file) => strFromU8(file))
+      .join("\n");
+    expect(JSON.parse(strFromU8(files["config.json"]!)).relayNodes).toMatchObject([{ enabled: true, port: 39087, hasToken: true }]);
+    expect(JSON.parse(strFromU8(files["sessions.json"]!)).live).toMatchObject([{ nickname: "guest-1", state: "connected" }]);
+    expect(JSON.parse(strFromU8(files["events.json"]!)).map((entry: { event: string }) => entry.event)).toContain("SETTINGS_CHANGED");
     const credential = gateway.database.getAdminCredential()!;
     for (const secret of [
+      "Mallory",
+      "relay.example.org",
       "s3cret-server-pass",
       "s3cret-relay-token",
       TEST_ADMIN_PASSWORD,
@@ -306,6 +370,28 @@ describe("diagnostics", () => {
       admin.cookie.split("=")[1]!,
     ]) {
       expect(text.includes(secret), secret.slice(0, 12)).toBe(false);
+    }
+  });
+});
+
+describe("invite paging", () => {
+  it("returns a page with the total, filtered by status, and refuses a bad query", async () => {
+    const { admin } = await start();
+    const ids: string[] = [];
+    for (let index = 0; index < 3; index += 1) {
+      const created = await json(await admin.post("invites", { serverId: DEFAULT_SERVER_ID, channel: "", expiresInHours: 1, maxUses: 0 }));
+      ids.push(created.invite.id);
+    }
+    await admin.post(`invites/${ids[0]}/revoke`);
+    const page = await json(await admin.get("invites?limit=2&offset=0"));
+    expect(page.invites).toHaveLength(2);
+    expect(page.total).toBe(3);
+    const revoked = await json(await admin.get("invites?status=revoked"));
+    expect(revoked).toMatchObject({ total: 1, invites: [{ id: ids[0], status: "revoked" }] });
+    for (const query of ["limit=0", "limit=101", "limit=x", "offset=-1", "offset=1.5", "status=nope"]) {
+      const response = await admin.get(`invites?${query}`);
+      expect([query, response.status]).toEqual([query, 400]);
+      expect(await json(response)).toMatchObject({ code: "INVALID_INVITE_QUERY" });
     }
   });
 });

@@ -6,7 +6,7 @@ import { TeamSpeakError, TeamSpeakTransportError } from "../errors/teamSpeakErro
 import { avatarDownloadPath } from "../fileTransfer/avatarFiles.js";
 import { readDownload, type TcpConnect } from "../fileTransfer/fileDownload.js";
 import { type DownloadRequest, FileTransferTickets, ftInitDownload } from "../fileTransfer/fileTransferTickets.js";
-import { connectLegacy, type LegacyConnection, type LegacyHandshakeOptions } from "../handshake/legacyHandshake.js";
+import { runHandshake, type HandshakeConnection, type HandshakeOptions } from "../handshake/handshake.js";
 import { type SessionView, SessionState } from "../session/sessionState.js";
 import { type PacketHandler, systemClock, type VoicePacket, type VoiceType } from "../transport/packetHandler.js";
 import { PacketFlag, PacketType } from "../transport/packetTypes.js";
@@ -23,7 +23,7 @@ import {
   type WhisperTargets,
 } from "./clientVoice.js";
 
-export interface TeamSpeakConnectionOptions extends Omit<LegacyHandshakeOptions, "signal" | "timeoutMs"> {
+export interface TeamSpeakConnectionOptions extends Omit<HandshakeOptions, "signal" | "timeoutMs"> {
   /** Already resolved and checked by the caller. */
   address: UdpAddress;
   /** Handshake and welcome together. Default 20 s. */
@@ -210,7 +210,7 @@ export class TeamSpeakConnection extends EventEmitter<ConnectionEventMap> {
         channel.close();
         throw abortReason(abort.signal);
       }
-      await connectLegacy(
+      await runHandshake(
         channel,
         { ...this.#options, timeoutMs, signal: abort.signal },
         {
@@ -260,7 +260,7 @@ export class TeamSpeakConnection extends EventEmitter<ConnectionEventMap> {
     });
   }
 
-  #onEstablished(connection: LegacyConnection): void {
+  #onEstablished(connection: HandshakeConnection): void {
     this.#handler = connection.handler;
     this.#session.start(connection.initServer, connection.clientId);
   }

@@ -12,11 +12,7 @@ const overview = {
     { id: "server-lan", name: "LAN party", target: "192.168.1.20:9987", status: "unreachable", lastTestAt: at(12), latencyMs: null },
   ],
   sessions: { active: 3, peak: 7, limit: 100 },
-  recentEvents: [
-    { event: "session.created", createdAt: at(4) },
-    { event: "invite.created", createdAt: at(38) },
-    { event: "server.updated", createdAt: at(190) },
-  ],
+  invites: { active: 1 },
 };
 
 const servers = {
@@ -47,19 +43,19 @@ const server = {
   accessMode: "fixed",
   siteName: "WebSpeak",
   welcomeTexts: { en: "Welcome to WebSpeak", de: "Willkommen bei WebSpeak" },
+  privacyNoticeUrl: "",
   webRtcEnabled: true,
   webRtcUdpStart: 40000,
   webRtcUdpEnd: 40099,
-  relayConfigured: true,
-  relayEnabled: true,
-  relayName: "Frankfurt relay",
-  relayTarget: "relay.example.com:9987",
-  hasRelayToken: true,
+  eventLogRetentionDays: 90,
+  eventLogMaxRows: 5000,
+  connectionRetentionDays: 30,
+  connectionMaxRows: 10000,
+  logRetentionDays: 30,
   relayNodes: [
     { id: "fra", name: "Frankfurt relay", enabled: true, target: "relay.example.com:9987", hasToken: true },
     { id: "tyo", name: "Tokyo relay", enabled: false, target: "tokyo.example.com:9987", hasToken: false },
   ],
-  internalPort: 3040,
 };
 
 const sessions = {
@@ -68,6 +64,9 @@ const sessions = {
       id: "s1",
       nickname: "Alex Rivera",
       target: "ts.example.com:9987",
+      clientIp: "203.0.113.24",
+      relayName: "Frankfurt relay",
+      relayTarget: "relay.example.com:9987",
       state: "connected",
       createdAt: at(12),
       ageSeconds: 734,
@@ -79,6 +78,9 @@ const sessions = {
       id: "s2",
       nickname: "Mira Tanaka",
       target: "ts.example.com:9987",
+      clientIp: "198.51.100.12",
+      relayName: null,
+      relayTarget: null,
       state: "connected",
       createdAt: at(47),
       ageSeconds: 2820,
@@ -125,6 +127,7 @@ const invites = {
       status: "revoked",
     },
   ],
+  total: 3,
 };
 
 const diagnostics = {
@@ -133,14 +136,8 @@ const diagnostics = {
   sessions: { created: 128 },
 };
 
-const logs = {
-  available: true,
-  entries: [
-    { timestamp: at(3), level: "info", message: "Browser session connected", context: { nickname: "Alex Rivera" } },
-    { timestamp: at(9), level: "warn", message: "Reconnect attempt failed", context: { attempt: 2 } },
-    { timestamp: at(21), level: "error", message: "TeamSpeak handshake timed out", context: { target: "ts.example.com:9987" } },
-  ],
-  sessions: [
+const connections = {
+  records: [
     {
       id: "c1",
       nickname: "Alex Rivera",
@@ -155,6 +152,26 @@ const logs = {
       status: "active",
       reason: null,
       failureDetail: null,
+      audio: {
+        talkSeconds: 212,
+        framesSent: 10600,
+        framesReceived: 36700,
+        droppedFrames: 0,
+        sendErrors: 0,
+        path: {
+          transport: "webrtc",
+          uplinkFrames: 10600,
+          uplinkMaxGapMs: 120,
+          downlinkFrames: 36700,
+          downlinkMaxGapMs: 40,
+          queueUnderruns: 0,
+          lateTicks: 0,
+          decodeErrors: 0,
+          ice: { state: "connected", localType: "host", remoteType: "srflx", protocol: "udp", rttMs: 38, connectMs: 410 },
+        },
+      },
+      userAgent: "Mozilla/5.0 (X11; Linux x86_64; rv:140.0) Gecko/20100101 Firefox/140.0",
+      client: { browser: "Firefox", browserVersion: "140.0", os: "Linux", osVersion: null, platform: "desktop", engine: "Gecko" },
     },
     {
       id: "c2",
@@ -168,8 +185,11 @@ const logs = {
       disconnectedAt: at(70),
       durationSeconds: 1500,
       status: "disconnected",
-      reason: "client-left",
+      reason: null,
       failureDetail: null,
+      audio: { talkSeconds: 640, framesSent: 32000, framesReceived: 90100, droppedFrames: 14, sendErrors: 1, path: null },
+      userAgent: null,
+      client: null,
     },
     {
       id: "c3",
@@ -183,18 +203,51 @@ const logs = {
       disconnectedAt: at(140),
       durationSeconds: null,
       status: "failed",
-      reason: "handshake-timeout",
+      reason: "TIMEOUT",
       failureDetail: "TeamSpeak did not answer within 10 s",
+      audio: null,
+      userAgent: null,
+      client: null,
     },
   ],
+  total: 3,
 };
 
 const audit = {
   events: [
-    { event: "admin.login", createdAt: at(2) },
-    { event: "invite.created", createdAt: at(38) },
-    { event: "server.updated", createdAt: at(190) },
+    {
+      id: 5,
+      event: "ADMIN_LOGIN_FAILED",
+      category: "auth",
+      severity: "warning",
+      details: { username: "root", ip: "203.0.113.7" },
+      createdAt: at(2),
+    },
+    {
+      id: 4,
+      event: "INVITE_CREATED",
+      category: "invites",
+      severity: "info",
+      details: { serverName: "Main server", channel: "Lobby", maxUses: 5, expiresAt: at(-1440), ip: "198.51.100.4" },
+      createdAt: at(38),
+    },
+    {
+      id: 3,
+      event: "SERVER_UPDATED",
+      category: "config",
+      severity: "info",
+      details: {
+        name: "Main server",
+        target: "ts.example.com:9987",
+        changes: [{ field: "name", from: "Main", to: "Main server" }, { field: "password" }],
+        ip: "198.51.100.4",
+      },
+      createdAt: at(190),
+    },
+    { id: 2, event: "ADMIN_LOGIN_SUCCEEDED", category: "auth", severity: "info", details: {}, createdAt: at(200) },
+    { id: 1, event: "ADMIN_INITIALIZED", category: "system", severity: "info", details: {}, createdAt: at(1440) },
   ],
+  total: 5,
 };
 
 export const publicConfig = {
@@ -224,9 +277,14 @@ export interface Screen {
 }
 
 export const adminScreens: Screen[] = [
-  { id: "admin-overview", path: "/admin", langs: ["en", "de"], admin: true },
-  { id: "admin-server", path: "/admin/server", langs: ["en"], admin: true },
-  { id: "admin-operations", path: "/admin/operations", langs: ["en"], admin: true },
+  { id: "admin-dashboard", path: "/admin", langs: ["en", "de"], admin: true },
+  { id: "admin-gateway", path: "/admin/gateway", langs: ["en", "de"], admin: true },
+  { id: "admin-web", path: "/admin/web", langs: ["en", "de"], admin: true },
+  { id: "admin-users", path: "/admin/users", langs: ["en", "de"], admin: true },
+  { id: "admin-users-invites", path: "/admin/users/invites", langs: ["en", "de"], admin: true },
+  { id: "admin-users-sessions", path: "/admin/users/sessions", langs: ["en", "de"], admin: true },
+  { id: "admin-diagnostics", path: "/admin/diagnostics", langs: ["en", "de"], admin: true },
+  { id: "admin-diagnostics-events", path: "/admin/diagnostics/events", langs: ["en", "de"], admin: true },
 ];
 
 // Returns [status, body] for an authenticated admin request, or null when not mocked.
@@ -241,7 +299,7 @@ export function adminApi(pathname: string): [number, unknown] | null {
   if (pathname === "/api/admin/sessions") return [200, sessions];
   if (pathname === "/api/admin/invites") return [200, invites];
   if (pathname === "/api/admin/diagnostics") return [200, diagnostics];
-  if (pathname === "/api/admin/logs") return [200, logs];
+  if (pathname === "/api/admin/connections") return [200, connections];
   if (pathname === "/api/admin/audit") return [200, audit];
   return null;
 }

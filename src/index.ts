@@ -1,5 +1,5 @@
 import path from "node:path";
-import { existsSync, readFileSync, unlinkSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { EnvError, type GatewayEnv, loadEnvFile, readDataDir, readGatewayEnv, readMode, readRelayEnv } from "./config/env.js";
 import { ADMIN_RESET_COMMAND, runAdminResetCommand } from "./transport/cli/adminResetCommand.js";
@@ -13,6 +13,8 @@ const CERT_DIR = path.join(ROOT_DIR, "certs");
 const STATIC_DIR = path.join(ROOT_DIR, "web", "dist");
 const APP_VERSION = readPackageVersion();
 const SHUTDOWN_TIMEOUT_MS = 10_000;
+const INVITE_SWEEP_MS = 24 * 60 * 60 * 1000;
+const RETENTION_SWEEP_MS = 6 * 60 * 60 * 1000;
 
 async function main() {
   // A .env next to package.json, see .env.example. Variables from the real environment win over it.
@@ -37,7 +39,7 @@ async function runGateway(env: GatewayEnv): Promise<void> {
     { createWebServer },
     { WebSpeakDatabase },
     { loadOrCreateMasterSecret },
-    { AdminService, parseAdminBootstrap },
+    { AdminService, GatewayEvents, SessionHistoryRecorder, parseAdminBootstrap },
     { JoinTicketStore },
   ] = await Promise.all([
     import("./shared/logger.js"),
@@ -49,24 +51,34 @@ async function runGateway(env: GatewayEnv): Promise<void> {
   ]);
   const logger = createLogger(logDir);
   const database = new WebSpeakDatabase(path.join(dataDir, "webspeak.db"));
-  const pruned = database.pruneAudit();
+  // Sessions still open belong to a gateway that is gone, and the logs are trimmed to the retention of the settings.
+  database.closeOpenConnections();
+  const pruned = database.pruneByRetention();
+  logger.setLogRetentionDays(database.getSettings().retention.logs.days);
+  const gatewayEvents = new GatewayEvents(database);
   const masterSecret = loadOrCreateMasterSecret(path.join(dataDir, "master.key"));
-  const adminService = new AdminService(database, masterSecret, logger, env.port, undefined, APP_VERSION);
+  const adminService = new AdminService(database, masterSecret, logger, undefined, APP_VERSION, undefined, (retention) =>
+    logger.setLogRetentionDays(retention.logs.days),
+  );
   // The credentials in .env only matter on a fresh database, so they are not even checked once an account exists.
+  adminService.pruneManagedInvites();
+  const inviteSweep = setInterval(() => adminService.pruneManagedInvites(), INVITE_SWEEP_MS);
+  inviteSweep.unref();
   await adminService.initialize(
     adminService.isInitialized() ? undefined : parseAdminBootstrap({ username: env.adminUsername, password: env.adminPassword }),
   );
-  removeObsoleteBootstrapFile(dataDir);
   const joinTickets = new JoinTicketStore();
 
   logger.info({ dataDir }, "Starting WebSpeak server");
-  if (existsSync(path.join(ROOT_DIR, "config.json"))) {
-    logger.warn("config.json is no longer read. Set the TeamSpeak target in /admin and deployment settings in .env (see .env.example).");
-  }
-  if (pruned > 0) logger.info({ pruned }, "Trimmed the audit log");
+  if (pruned.events > 0 || pruned.connections > 0) logger.info(pruned, "Trimmed the event log and the connection history");
+  gatewayEvents.started(APP_VERSION);
+  const retentionSweep = setInterval(() => database.pruneByRetention(), RETENTION_SWEEP_MS);
+  retentionSweep.unref();
   // One stray rejection must not take every live session down. A thrown exception still crashes on purpose.
   process.on("unhandledRejection", (reason) => {
-    logger.error({ err: reason instanceof Error ? reason.message : String(reason) }, "Unhandled promise rejection");
+    const message = reason instanceof Error ? reason.message : String(reason);
+    logger.error({ err: message }, "Unhandled promise rejection");
+    gatewayEvents.error("process", message);
   });
 
   const hasCert = existsSync(path.join(CERT_DIR, "cert.pem"));
@@ -75,9 +87,9 @@ async function runGateway(env: GatewayEnv): Promise<void> {
     host: env.host,
     port: env.port,
     version: APP_VERSION,
-    logFile: path.join(logDir, "webspeak.log"),
     staticDir: STATIC_DIR,
     certDir: hasCert ? CERT_DIR : undefined,
+    logDir,
     voiceBridgeOptions: {
       joinTickets,
       webRtc: () => adminService.getWebRtcAudioOptions(),
@@ -87,8 +99,10 @@ async function runGateway(env: GatewayEnv): Promise<void> {
       acceleration: () => adminService.getAccelerationRelayOptions(),
       accelerationName: () => adminService.getAccelerationRelayName(),
       clientVersion: env.tsClientVersion,
+      sessionRecorder: new SessionHistoryRecorder(database, gatewayEvents, logger),
     },
     adminService,
+    gatewayEvents,
     logger,
     nextVisitorNumber: () => database.nextVisitorNumber(),
     visitorCount: () => database.getVisitorCount(),
@@ -112,6 +126,7 @@ async function runGateway(env: GatewayEnv): Promise<void> {
     } finally {
       clearTimeout(timer);
     }
+    gatewayEvents.stopped(signal);
     database.close();
     process.exit(exitCode);
   };
@@ -137,14 +152,6 @@ function readPackageVersion(): string {
     return typeof packageJson.version === "string" && packageJson.version ? packageJson.version : "0.1.0";
   } catch {
     return "0.1.0";
-  }
-}
-
-function removeObsoleteBootstrapFile(dataDir: string): void {
-  try {
-    unlinkSync(path.join(dataDir, "bootstrap"));
-  } catch (error: unknown) {
-    if (!(error instanceof Error && "code" in error && error.code === "ENOENT")) throw error;
   }
 }
 

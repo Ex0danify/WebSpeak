@@ -30,7 +30,7 @@ async function login(gateway: Gateway, body: unknown) {
   return { response, body: (await response.json()) as Record<string, unknown> };
 }
 
-const audit = (gateway: Gateway) => gateway.database.recentAudit(50).map((row) => row.event);
+const audit = (gateway: Gateway) => gateway.database.listAudit({ limit: 50, offset: 0 }).events.map((row) => row.event);
 
 describe("status and session", () => {
   it("reports whether the gateway is set up, without a session, and never caches", async () => {
@@ -90,6 +90,14 @@ describe("login", () => {
       expect(response.headers.get("set-cookie")).toBeNull();
     }
     expect(audit(gateway).slice(0, 3)).toEqual(["ADMIN_LOGIN_FAILED", "ADMIN_LOGIN_FAILED", "ADMIN_LOGIN_FAILED"]);
+  });
+
+  it("notes the user name that was tried and the address it came from, but never the password", async () => {
+    const gateway = await gateways.start();
+    await login(gateway, { username: "root", password: "hunter2-secret" });
+    const [failed] = gateway.database.listAudit({ limit: 1, offset: 0 }).events;
+    expect(failed?.details).toEqual({ username: "root", ip: expect.stringMatching(/\S/) });
+    expect(JSON.stringify(failed)).not.toContain("hunter2");
   });
 
   it("refuses a malformed body with 400 INVALID_REQUEST, a non-JSON one with 415, another origin with 403, and an unset-up gateway with 409", async () => {
@@ -169,7 +177,7 @@ describe("first-run password change", () => {
     const admin = await gateway.adminLogin(BOOTSTRAP.password);
     expect(admin.mustChangePassword).toBe(true);
     expect(await (await admin.get("session")).json()).toMatchObject({ authenticated: true, mustChangePassword: true });
-    for (const path of ["overview", "server", "sessions", "invites", "audit", "logs", "diagnostics", "diagnostics/report", "backup"]) {
+    for (const path of ["overview", "server", "sessions", "invites", "audit", "logs", "diagnostics", "diagnostics/bundle", "backup"]) {
       const response = await admin.get(path);
       expect([response.status, ((await response.json()) as { code: string }).code], path).toEqual([403, "PASSWORD_CHANGE_REQUIRED"]);
     }

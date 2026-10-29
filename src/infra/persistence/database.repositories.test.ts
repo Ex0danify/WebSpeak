@@ -50,7 +50,6 @@ describe("SettingsRepository", () => {
       siteName: "Repo",
       accessMode: "open",
       webRtcEnabled: false,
-      relayEnabled: true,
       updatedAt: "2026-01-01T00:00:00.000Z",
     });
   });
@@ -126,12 +125,61 @@ describe("ManagedInviteRepository", () => {
 });
 
 describe("AuditRepository", () => {
-  it("returns the newest entries first and clamps the limit", () => {
+  const at = (day: number) => `2026-01-${String(day).padStart(2, "0")}T00:00:00.000Z`;
+
+  it("returns the newest entries first and clamps the page", () => {
     const repo = new AuditRepository(context);
-    for (let i = 0; i < 60; i += 1) repo.insert(`E${i}`, { i }, "2026-01-01T00:00:00.000Z");
-    expect(repo.recent(2).map((entry) => entry.event)).toEqual(["E59", "E58"]);
-    expect(repo.recent(1000)).toHaveLength(50);
-    expect(repo.recent(0)).toHaveLength(1);
+    for (let i = 0; i < 120; i += 1) repo.insert(`E${i}`, { i }, at(1));
+    expect(repo.list({ limit: 2, offset: 0 }).events.map((entry) => entry.event)).toEqual(["E119", "E118"]);
+    expect(repo.list({ limit: 2, offset: 2 }).events.map((entry) => entry.event)).toEqual(["E117", "E116"]);
+    expect(repo.list({ limit: 1000, offset: 0 })).toMatchObject({ total: 120 });
+    expect(repo.list({ limit: 1000, offset: 0 }).events).toHaveLength(100);
+    expect(repo.list({ limit: 0, offset: -5 }).events).toHaveLength(1);
+  });
+
+  it("files a row by its event and keeps the details", () => {
+    const repo = new AuditRepository(context);
+    repo.insert("ADMIN_LOGIN_FAILED", { reason: "x" }, at(1));
+    repo.insert("SERVER_UNAVAILABLE", {}, at(2));
+    repo.insert("UNKNOWN_EVENT", {}, at(3));
+    expect(repo.list({ limit: 10, offset: 0 }).events).toMatchObject([
+      { event: "UNKNOWN_EVENT", category: "system", severity: "info" },
+      { event: "SERVER_UNAVAILABLE", category: "availability", severity: "error" },
+      { event: "ADMIN_LOGIN_FAILED", category: "auth", severity: "warning", details: { reason: "x" } },
+    ]);
+  });
+
+  it("filters by category, severity, time and text, and counts what matches", () => {
+    const repo = new AuditRepository(context);
+    repo.insert("ADMIN_LOGIN_FAILED", {}, at(1));
+    repo.insert("ADMIN_LOGIN_SUCCEEDED", {}, at(2));
+    repo.insert("SERVER_ADDED", { name: "Main_100%" }, at(3));
+    repo.insert("SERVER_UNAVAILABLE", { name: "Main" }, at(4));
+    const names = (query: Partial<Parameters<AuditRepository["list"]>[0]>) =>
+      repo.list({ limit: 10, offset: 0, ...query }).events.map((entry) => entry.event);
+    expect(names({ categories: ["auth"] })).toEqual(["ADMIN_LOGIN_SUCCEEDED", "ADMIN_LOGIN_FAILED"]);
+    expect(names({ categories: ["auth", "availability"] })).toHaveLength(3);
+    expect(names({ categories: [] })).toEqual([]);
+    expect(names({ severities: ["warning", "error"] })).toEqual(["SERVER_UNAVAILABLE", "ADMIN_LOGIN_FAILED"]);
+    expect(names({ severities: ["error"] })).toEqual(["SERVER_UNAVAILABLE"]);
+    expect(names({ severities: ["warning"] })).toEqual(["ADMIN_LOGIN_FAILED"]);
+    expect(names({ severities: [] })).toEqual([]);
+    expect(names({ since: at(3) })).toEqual(["SERVER_UNAVAILABLE", "SERVER_ADDED"]);
+    expect(names({ search: "login failed" })).toEqual(["ADMIN_LOGIN_FAILED"]);
+    expect(names({ search: "MAIN" })).toEqual(["SERVER_UNAVAILABLE", "SERVER_ADDED"]);
+    expect(names({ search: "100%" })).toEqual(["SERVER_ADDED"]);
+    expect(names({ search: "n_1" })).toEqual(["SERVER_ADDED"]);
+    expect(names({ search: "%" })).toEqual(["SERVER_ADDED"]);
+    expect(repo.list({ limit: 1, offset: 0, categories: ["auth"] })).toMatchObject({ total: 2 });
+  });
+
+  it("reads details that are not an object as empty", () => {
+    const repo = new AuditRepository(context);
+    repo.insert("E", {}, at(1));
+    (context.database as unknown as { exec(sql: string): void }).exec("UPDATE audit_events SET details_json = '[1]'");
+    expect(repo.list({ limit: 1, offset: 0 }).events[0]?.details).toEqual({});
+    (context.database as unknown as { exec(sql: string): void }).exec("UPDATE audit_events SET details_json = 'nope'");
+    expect(repo.list({ limit: 1, offset: 0 }).events[0]?.details).toEqual({});
   });
 });
 

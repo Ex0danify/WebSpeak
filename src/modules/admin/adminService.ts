@@ -1,3 +1,4 @@
+import { MAX_ACTIVE_SESSIONS } from "../../shared/constants.js";
 import type { Logger } from "../../shared/logger.js";
 import { formatTeamSpeakTarget, parseTeamSpeakTarget, type TeamSpeakTarget } from "../../shared/teamSpeakTarget.js";
 import { type AccessMode, WebSpeakDatabase } from "../../infra/persistence/database.js";
@@ -8,21 +9,17 @@ import { pingTeamSpeakHost, type TeamSpeakPingResult } from "../relay/index.js";
 import { type ConfiguredAccelerationRelay } from "../relay/index.js";
 import { type WebRtcAudioOptions } from "../../config/webrtcConfig.js";
 import { type IdentityMintPolicy } from "../../config/identityMintConfig.js";
+import { type RetentionPolicy } from "../../config/retentionConfig.js";
 import { DEFAULT_WELCOME_TEXTS, resolveWelcomeTexts } from "./siteCopy.js";
 import { AdminInputError } from "./adminErrors.js";
+import { diffFields, relayNodesChanged, sortedEntries } from "./auditChanges.js";
 import { AdminServerService, type ResolvedServer, type ServerInput, type ServerView } from "./adminServerService.js";
-import { AdminInviteService, type ManagedInviteInput, type ManagedInviteView } from "./adminInviteService.js";
+import { AdminInviteService, type ManagedInviteInput, type ManagedInviteQuery, type ManagedInviteView } from "./adminInviteService.js";
 import { AdminBootstrapError, type AdminBootstrap } from "./adminBootstrap.js";
-import {
-  legacyRelayNodesFromSettings,
-  normalizeRelayNodes,
-  normalizeSettings,
-  toSettingsUpdate,
-  type AdminSettingsInput,
-} from "./adminSettingsNormalizer.js";
+import { normalizeRelayNodes, normalizeSettings, toSettingsUpdate, type AdminSettingsInput } from "./adminSettingsNormalizer.js";
 
 export { AdminInputError };
-export type { ManagedInviteInput, ManagedInviteView } from "./adminInviteService.js";
+export type { ManagedInviteInput, ManagedInviteQuery, ManagedInviteView } from "./adminInviteService.js";
 export type { ResolvedServer, ServerInput, ServerView } from "./adminServerService.js";
 export type { AdminSettingsInput, RelayNodeInput } from "./adminSettingsNormalizer.js";
 
@@ -46,6 +43,22 @@ export interface ConnectionTestResult {
   };
 }
 
+/** The dashboard snapshot: gateway status, the servers with their last test, session counts and the active invites. */
+export interface AdminOverview {
+  gateway: { status: "running"; version: string; uptimeSeconds: number };
+  servers: Array<{
+    id: string;
+    name: string;
+    target: string;
+    status: "unreachable" | "reachable" | "unknown";
+    lastTestAt: string | null;
+    latencyMs: number | null;
+    lastError: string | null;
+  }>;
+  sessions: { active: number; peak: number; limit: number };
+  invites: { active: number };
+}
+
 export class AdminService {
   private readonly invites: AdminInviteService;
   private readonly servers: AdminServerService;
@@ -54,11 +67,11 @@ export class AdminService {
     readonly database: WebSpeakDatabase,
     private readonly masterSecret: Buffer,
     private readonly logger: Logger,
-    /** The port the gateway listens on, shown in the console. */
-    private readonly port: number,
     private readonly probe: ProbeFunction = probeTeamSpeak,
     private readonly version = "0.1.0",
     private readonly hostPing: HostPingFunction = (host) => pingTeamSpeakHost(host, { attempts: 4 }),
+    /** Told after a save with the retention now in force, for what lives outside the database (the log files). */
+    private readonly onRetentionApplied?: (retention: RetentionPolicy) => void,
   ) {
     this.invites = new AdminInviteService(database, masterSecret, logger);
     this.servers = new AdminServerService(database, masterSecret, logger);
@@ -93,14 +106,14 @@ export class AdminService {
     return this.database.getAdminCredential()?.mustChangePassword === true;
   }
 
-  async changePassword(password: string): Promise<void> {
+  async changePassword(password: string, ip?: string): Promise<void> {
     const credential = this.database.getAdminCredential();
     if (!credential) throw new AdminInputError("NOT_INITIALIZED", "The administrator account is not initialized");
     const passwordError = validateAdminPassword(password);
     if (passwordError) throw new AdminInputError("INVALID_ADMIN_PASSWORD", passwordError);
     const replacement = await hashAdminPassword(password, { username: credential.username, mustChangePassword: false });
     this.database.updateAdminCredential(replacement);
-    this.database.addAudit("ADMIN_PASSWORD_CHANGED");
+    this.database.addAudit("ADMIN_PASSWORD_CHANGED", { ip });
   }
 
   getPublicConfig(): Record<string, unknown> {
@@ -112,6 +125,7 @@ export class AdminService {
       siteName: settings.siteName,
       // Complete map with the default filled in for every language without a stored text.
       welcomeTexts,
+      privacyNoticeUrl: settings.privacyNoticeUrl,
       accessMode: settings.accessMode,
       // Names only, the addresses of the configured servers stay with the administrator.
       servers: this.servers.list().map(({ id, name }) => ({ id, name })),
@@ -125,6 +139,7 @@ export class AdminService {
       accessMode: settings.accessMode,
       siteName: settings.siteName,
       welcomeTexts: settings.welcomeTexts,
+      privacyNoticeUrl: settings.privacyNoticeUrl,
       welcomeDefaults: DEFAULT_WELCOME_TEXTS,
       webRtcEnabled: settings.webRtcEnabled,
       webRtcUdpStart: settings.webRtcUdpStart,
@@ -132,13 +147,12 @@ export class AdminService {
       identityMintMaxLevel: settings.identityMintMaxLevel,
       identityMintConcurrency: settings.identityMintConcurrency,
       identityMintQueueDepth: settings.identityMintQueueDepth,
-      relayConfigured: settings.relayConfigured,
-      relayEnabled: settings.relayEnabled,
-      relayName: settings.relayName,
-      relayTarget: settings.relayHost ? formatRelayTarget(settings.relayHost, settings.relayPort) : "",
-      hasRelayToken: Boolean(settings.relayTokenEncrypted),
+      eventLogRetentionDays: settings.retention.eventLog.days,
+      eventLogMaxRows: settings.retention.eventLog.maxRows,
+      connectionRetentionDays: settings.retention.connections.days,
+      connectionMaxRows: settings.retention.connections.maxRows,
+      logRetentionDays: settings.retention.logs.days,
       relayNodes: this.getRelayNodeViews(),
-      internalPort: this.port,
       updatedAt: settings.updatedAt,
     };
   }
@@ -181,20 +195,60 @@ export class AdminService {
     return this.getAccelerationRelayOptions()[0]?.name;
   }
 
-  updateSettings(input: AdminSettingsInput): void {
+  updateSettings(input: AdminSettingsInput, ip?: string): void {
     const current = this.database.getSettings();
     const relayNodes =
       input.relayNodes === undefined ? undefined : normalizeRelayNodes(input.relayNodes, this.database.listRelayNodes(), this.masterSecret);
-    const settings = normalizeSettings(input, current, this.masterSecret, relayNodes);
+    const settings = normalizeSettings(input, current);
     if (settings.accessMode === "fixed" && this.servers.list().length === 0) {
       throw new AdminInputError("SERVERS_REQUIRED", "Add a server before limiting access to the server list");
     }
-    this.database.updateSettings(settings);
-    if (relayNodes !== undefined) {
-      this.database.replaceRelayNodes(relayNodes);
-    } else if (input.relaySettingsAction && input.relaySettingsAction !== "keep") {
-      this.database.replaceRelayNodes(legacyRelayNodesFromSettings(settings, this.database.listRelayNodes()));
+    const changes = diffFields(
+      {
+        siteName: current.siteName,
+        privacyNoticeUrl: current.privacyNoticeUrl,
+        accessMode: current.accessMode,
+        webRtcEnabled: current.webRtcEnabled,
+        webRtcUdpStart: current.webRtcUdpStart,
+        webRtcUdpEnd: current.webRtcUdpEnd,
+        identityMintMaxLevel: current.identityMintMaxLevel,
+        identityMintConcurrency: current.identityMintConcurrency,
+        identityMintQueueDepth: current.identityMintQueueDepth,
+        eventLogRetentionDays: current.retention.eventLog.days,
+        eventLogMaxRows: current.retention.eventLog.maxRows,
+        connectionRetentionDays: current.retention.connections.days,
+        connectionMaxRows: current.retention.connections.maxRows,
+        logRetentionDays: current.retention.logs.days,
+      },
+      {
+        siteName: settings.siteName,
+        privacyNoticeUrl: settings.privacyNoticeUrl,
+        accessMode: settings.accessMode,
+        webRtcEnabled: settings.webRtcEnabled,
+        webRtcUdpStart: settings.webRtcUdpStart,
+        webRtcUdpEnd: settings.webRtcUdpEnd,
+        identityMintMaxLevel: settings.identityMintMaxLevel,
+        identityMintConcurrency: settings.identityMintConcurrency,
+        identityMintQueueDepth: settings.identityMintQueueDepth,
+        eventLogRetentionDays: settings.retention?.eventLog.days,
+        eventLogMaxRows: settings.retention?.eventLog.maxRows,
+        connectionRetentionDays: settings.retention?.connections.days,
+        connectionMaxRows: settings.retention?.connections.maxRows,
+        logRetentionDays: settings.retention?.logs.days,
+      },
+    );
+    if (
+      settings.welcomeTexts !== undefined &&
+      JSON.stringify(sortedEntries(settings.welcomeTexts)) !== JSON.stringify(sortedEntries(current.welcomeTexts))
+    ) {
+      changes.push({ field: "welcomeTexts" });
     }
+    if (relayNodes !== undefined && relayNodesChanged(this.database.listRelayNodes(), relayNodes)) changes.push({ field: "relayNodes" });
+    this.database.updateSettings(settings, { changes, ip });
+    // A smaller limit takes effect now and not at the next sweep.
+    this.database.pruneByRetention();
+    this.onRetentionApplied?.(this.database.getSettings().retention);
+    if (relayNodes !== undefined) this.database.replaceRelayNodes(relayNodes);
   }
 
   getAccessMode(): AccessMode {
@@ -205,20 +259,20 @@ export class AdminService {
     return this.servers.list();
   }
 
-  createServer(input: ServerInput): ServerView {
-    return this.servers.create(input);
+  createServer(input: ServerInput, ip?: string): ServerView {
+    return this.servers.create(input, ip);
   }
 
-  updateServer(id: string, input: ServerInput): ServerView {
-    return this.servers.update(id, input);
+  updateServer(id: string, input: ServerInput, ip?: string): ServerView {
+    return this.servers.update(id, input, ip);
   }
 
-  reorderServers(ids: unknown): void {
-    this.servers.reorder(ids);
+  reorderServers(ids: unknown, ip?: string): void {
+    this.servers.reorder(ids, ip);
   }
 
-  removeServer(id: string): void {
-    this.servers.remove(id, this.getAccessMode());
+  removeServer(id: string, ip?: string): void {
+    this.servers.remove(id, this.getAccessMode(), ip);
   }
 
   /** The configured server a visitor picked, null when it is gone. */
@@ -281,17 +335,10 @@ export class AdminService {
     code: string | null,
     details: Record<string, unknown>,
   ): void {
-    if (!serverId) return;
-    this.database.recordConnectionTest(serverId, { latencyMs, error: code });
-    this.database.addAudit(code ? "CONNECTION_TEST_FAILED" : "CONNECTION_TEST_SUCCEEDED", {
-      serverId,
-      ...(latencyMs === null ? {} : { latencyMs }),
-      ...(code ? { code } : {}),
-      ...details,
-    });
+    if (serverId) this.database.recordConnectionTest(serverId, { latencyMs, error: code }, details);
   }
 
-  getOverview(activeSessions: number, peakSessions: number, startedAt: number): Record<string, unknown> {
+  getOverview(activeSessions: number, peakSessions: number, startedAt: number): AdminOverview {
     return {
       gateway: {
         status: "running",
@@ -307,25 +354,29 @@ export class AdminService {
         latencyMs: server.lastTestLatencyMs,
         lastError: server.lastTestError,
       })),
-      sessions: { active: activeSessions, peak: peakSessions, limit: 100 },
-      recentEvents: this.database.recentAudit(),
+      sessions: { active: activeSessions, peak: peakSessions, limit: MAX_ACTIVE_SESSIONS },
+      invites: { active: this.invites.activeCount() },
     };
   }
 
-  createManagedInvite(input: ManagedInviteInput): { invite: ManagedInviteView; token: string } {
-    return this.invites.create(input);
+  createManagedInvite(input: ManagedInviteInput, ip?: string): { invite: ManagedInviteView; token: string } {
+    return this.invites.create(input, ip);
   }
 
-  listManagedInvites(): ManagedInviteView[] {
-    return this.invites.list();
+  listManagedInvites(query: ManagedInviteQuery): { invites: ManagedInviteView[]; total: number } {
+    return this.invites.list(query);
   }
 
-  revokeManagedInvite(id: string): boolean {
-    return this.invites.revoke(id);
+  pruneManagedInvites(): number {
+    return this.invites.prune();
   }
 
-  consumeManagedInvite(token: string): { target: TeamSpeakTarget; serverPassword: string; channel: string } | null {
-    return this.invites.consume(token);
+  revokeManagedInvite(id: string, ip?: string): boolean {
+    return this.invites.revoke(id, ip);
+  }
+
+  consumeManagedInvite(token: string, ip?: string): { target: TeamSpeakTarget; serverPassword: string; channel: string } | null {
+    return this.invites.consume(token, ip);
   }
 
   private getRelayNodeViews(): Array<{ id: string; name: string; enabled: boolean; target: string; hasToken: boolean }> {
@@ -333,12 +384,8 @@ export class AdminService {
       id: node.id,
       name: node.name,
       enabled: node.enabled,
-      target: formatRelayTarget(node.host, node.port),
+      target: formatTeamSpeakTarget(node),
       hasToken: Boolean(node.tokenEncrypted),
     }));
   }
-}
-
-function formatRelayTarget(host: string, port: number): string {
-  return `${host.includes(":") ? `[${host}]` : host}#${port}`;
 }

@@ -7,12 +7,17 @@ import type { MessageParams } from "../../shared/messageCodes.js";
 import type { AccelerationRelayOptions } from "../relay/index.js";
 import type { ManagedSession } from "./session/voiceSessionManager.js";
 import type { WebRtcAudioSession } from "./webrtc/webrtcAudioSession.js";
+import type { WebRtcIceInfo } from "./iceInfo.js";
 import type { OpusCodec } from "./voiceOpus.js";
 
 export interface AdminSessionSummary {
   id: string;
   nickname: string;
   target: string;
+  clientIp: string;
+  /** The acceleration relay the session goes through, null for a direct one. */
+  relayName: string | null;
+  relayTarget: string | null;
   state: string;
   createdAt: string;
   ageSeconds: number;
@@ -66,6 +71,7 @@ export interface AudioFlowStats {
   webrtcDownlinkDecodedFrames: number;
   webrtcDownlinkDecodeErrors: number;
   webrtcDownlinkShortFrames: number;
+  webrtcIce: WebRtcIceInfo | null;
 }
 
 export interface ChannelMember {
@@ -120,6 +126,7 @@ export interface WebClientEntry {
   webrtc: WebRtcAudioSession | null;
   lastLatencyProbeAt: number;
   connectionFailureCode?: string;
+  connectionFailureDetail?: string;
   screenPeerId: string;
 }
 

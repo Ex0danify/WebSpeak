@@ -44,6 +44,8 @@ export const en = {
   savedFavoriteToast: "Saved to favorites",
   removedFavoriteToast: "Removed from favorites",
   clearLocalData: "Clear local data",
+  privacyNotice: "Privacy information",
+  privacyNoticeNewTab: "Privacy information (opens in a new tab)",
   clearLocalDataConfirm: "Clear this device's identity, favorites, recent servers, and audio preferences?",
   clearLocalDataTitle: "Clear local data",
   clearLocalDataSubmit: "Clear data",

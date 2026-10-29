@@ -65,7 +65,7 @@ export function createWebServer(options: WebServerOptions): WebServer {
       getSessionSummaries: () => voiceBridge.getSessionSummaries(),
       terminateSession: (id) => voiceBridge.terminateSession(id),
       version: options.version,
-      logFile: options.logFile,
+      runtime: { host: options.host, port: options.port, tls: Boolean(options.certDir), logDir: options.logDir },
       startedAt,
     }),
   );
@@ -99,7 +99,9 @@ export function createWebServer(options: WebServerOptions): WebServer {
     ) {
       response.status(400).json({ ok: false, code: "INVALID_JSON" });
     } else {
-      logger.error({ err: error instanceof Error ? error.message : String(error) }, "Unhandled request error");
+      const message = error instanceof Error ? error.message : String(error);
+      logger.error({ err: message }, "Unhandled request error");
+      options.gatewayEvents?.error("request", message);
       response.status(500).json({ ok: false, code: "INTERNAL_ERROR" });
     }
   }) as express.ErrorRequestHandler);

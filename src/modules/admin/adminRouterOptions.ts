@@ -2,6 +2,7 @@ import type { Logger } from "../../shared/logger.js";
 import type { AdminService } from "./adminService.js";
 import type { AdminSessionStore } from "./adminSession.js";
 import type { AdminSessionSummary } from "../voice/index.js";
+import type { BundleRuntime } from "./diagnostics/diagnosticBundle.js";
 
 export interface AdminRouterOptions {
   service: AdminService;
@@ -13,6 +14,6 @@ export interface AdminRouterOptions {
   getSessionSummaries?: () => AdminSessionSummary[];
   terminateSession?: (id: string) => Promise<boolean>;
   version?: string;
-  logFile?: string;
+  runtime?: BundleRuntime;
   startedAt: number;
 }

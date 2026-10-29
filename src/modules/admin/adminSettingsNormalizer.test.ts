@@ -4,13 +4,14 @@ import type { PersistedRelayNode, PersistedSettings } from "../../infra/persiste
 import { decryptSecret, encryptSecret } from "../../infra/security/secretCrypto.js";
 import { DEFAULT_ACCELERATION_RELAY_PORT } from "../relay/index.js";
 import { AdminInputError } from "./adminErrors.js";
-import { legacyRelayNodesFromSettings, normalizeRelayNodes, normalizeSettings, toSettingsUpdate } from "./adminSettingsNormalizer.js";
+import { normalizeRelayNodes, normalizeSettings, toSettingsUpdate } from "./adminSettingsNormalizer.js";
 
 const TOKEN = "relay-token-1234567";
 
 const stored = (overrides: Partial<PersistedSettings> = {}): PersistedSettings => ({
   siteName: "Old",
   welcomeTexts: { en: "en", de: "de" },
+  privacyNoticeUrl: "",
   accessMode: "fixed",
   webRtcEnabled: false,
   webRtcUdpStart: 40000,
@@ -18,12 +19,7 @@ const stored = (overrides: Partial<PersistedSettings> = {}): PersistedSettings =
   identityMintMaxLevel: 8,
   identityMintConcurrency: 2,
   identityMintQueueDepth: 20,
-  relayConfigured: false,
-  relayEnabled: false,
-  relayName: "",
-  relayHost: "",
-  relayPort: 0,
-  relayTokenEncrypted: null,
+  retention: { eventLog: { days: 90, maxRows: 5000 }, connections: { days: 30, maxRows: 10000 }, logs: { days: 30 } },
   updatedAt: "2026-01-01T00:00:00.000Z",
   ...overrides,
 });
@@ -52,7 +48,7 @@ function codeOf(action: () => unknown): string {
 
 describe("normalizeSettings", () => {
   it("trims text and keeps current values for omitted fields", () => {
-    const result = normalizeSettings(settingsInput({ siteName: "  Site  ", welcomeTexts: { en: " hi " } }), stored(), MASTER_SECRET);
+    const result = normalizeSettings(settingsInput({ siteName: "  Site  ", welcomeTexts: { en: " hi " } }), stored());
     expect(result).toMatchObject({
       siteName: "Site",
       welcomeTexts: { en: "hi", de: "de" },
@@ -60,6 +56,26 @@ describe("normalizeSettings", () => {
       webRtcUdpStart: 40000,
       webRtcUdpEnd: 40100,
     });
+  });
+
+  it("keeps the privacy notice address when it is left out, trims it, and clears it with an empty one", () => {
+    const current = stored({ privacyNoticeUrl: "https://example.org/privacy" });
+    expect(normalizeSettings(settingsInput(), current).privacyNoticeUrl).toBe("https://example.org/privacy");
+    expect(normalizeSettings(settingsInput({ privacyNoticeUrl: "  http://example.org/p?x=1#top  " }), current).privacyNoticeUrl).toBe(
+      "http://example.org/p?x=1#top",
+    );
+    expect(normalizeSettings(settingsInput({ privacyNoticeUrl: " " }), current).privacyNoticeUrl).toBe("");
+  });
+
+  it.each([
+    ["a script address", "javascript:alert(1)"],
+    ["a data address", "data:text/html,hi"],
+    ["a file address", "file:///etc/passwd"],
+    ["something that is no address", "privacy page"],
+    ["an address with a login in it", "https://user:secret@example.org/privacy"],
+    ["an address over 300 characters", `https://example.org/${"x".repeat(300)}`],
+  ])("refuses %s as the privacy notice", (_name, url) => {
+    expect(codeOf(() => normalizeSettings(settingsInput({ privacyNoticeUrl: url }), stored()))).toBe("INVALID_PRIVACY_NOTICE_URL");
   });
 
   const rejects: Array<[string, Parameters<typeof settingsInput>[0], string]> = [
@@ -78,9 +94,19 @@ describe("normalizeSettings", () => {
     ["a mint concurrency below 1", { identityMintConcurrency: 0 }, "INVALID_IDENTITY_MINT_CONCURRENCY"],
     ["a mint concurrency above 8", { identityMintConcurrency: 9 }, "INVALID_IDENTITY_MINT_CONCURRENCY"],
     ["a mint queue depth above 100", { identityMintQueueDepth: 101 }, "INVALID_IDENTITY_MINT_QUEUE_DEPTH"],
+    ["an event log retention of 0 days", { eventLogRetentionDays: 0 }, "INVALID_EVENT_LOG_RETENTION"],
+    ["an event log retention above a year", { eventLogRetentionDays: 366 }, "INVALID_EVENT_LOG_RETENTION"],
+    ["an event log size below 100", { eventLogMaxRows: 99 }, "INVALID_EVENT_LOG_ROWS"],
+    ["an event log size above 50000", { eventLogMaxRows: 999_999_999_999 }, "INVALID_EVENT_LOG_ROWS"],
+    ["a connection retention above a year", { connectionRetentionDays: 9999 }, "INVALID_CONNECTION_RETENTION"],
+    ["a connection history size above 100000", { connectionMaxRows: 100_001 }, "INVALID_CONNECTION_ROWS"],
+    ["a log retention of 0 days", { logRetentionDays: 0 }, "INVALID_LOG_RETENTION"],
+    ["a log retention above a year", { logRetentionDays: 366 }, "INVALID_LOG_RETENTION"],
+    ["a log retention that is no whole number", { logRetentionDays: 2.5 }, "INVALID_LOG_RETENTION"],
+    ["a fractional retention", { connectionRetentionDays: 1.5 }, "INVALID_CONNECTION_RETENTION"],
   ];
   it.each(rejects)("rejects %s", (_name, overrides, code) => {
-    expect(codeOf(() => normalizeSettings(settingsInput(overrides), stored(), MASTER_SECRET))).toBe(code);
+    expect(codeOf(() => normalizeSettings(settingsInput(overrides), stored()))).toBe(code);
   });
 
   it("rejects a welcome-text map that grows past 16 languages over repeated requests", () => {
@@ -91,7 +117,7 @@ describe("normalizeSettings", () => {
         Array.from({ length: 8 }, (_, index) => [`x${String.fromCharCode(97 + request)}${String.fromCharCode(97 + index)}`, "text"]),
       );
       try {
-        current = stored({ welcomeTexts: normalizeSettings(settingsInput({ welcomeTexts }), current, MASTER_SECRET).welcomeTexts });
+        current = stored({ welcomeTexts: normalizeSettings(settingsInput({ welcomeTexts }), current).welcomeTexts });
       } catch (error) {
         code = (error as AdminInputError).code;
       }
@@ -100,104 +126,47 @@ describe("normalizeSettings", () => {
   });
 
   it("keeps a language's welcome text when the form omits it and clears it when the form sends an empty one", () => {
-    const kept = normalizeSettings(settingsInput({ welcomeTexts: { fr: "salut" } }), stored(), MASTER_SECRET);
+    const kept = normalizeSettings(settingsInput({ welcomeTexts: { fr: "salut" } }), stored());
     expect(kept.welcomeTexts).toEqual({ en: "en", de: "de", fr: "salut" });
-    expect(normalizeSettings(settingsInput({ welcomeTexts: { de: "  " } }), stored(), MASTER_SECRET).welcomeTexts).toEqual({ en: "en" });
-    expect(normalizeSettings(settingsInput(), stored(), MASTER_SECRET).welcomeTexts).toEqual({ en: "en", de: "de" });
+    expect(normalizeSettings(settingsInput({ welcomeTexts: { de: "  " } }), stored()).welcomeTexts).toEqual({ en: "en" });
+    expect(normalizeSettings(settingsInput(), stored()).welcomeTexts).toEqual({ en: "en", de: "de" });
   });
 
   it("keeps current mint limits for omitted fields and accepts a zero queue depth", () => {
     const current = stored({ identityMintMaxLevel: 12, identityMintConcurrency: 4, identityMintQueueDepth: 50 });
-    expect(normalizeSettings(settingsInput(), current, MASTER_SECRET)).toMatchObject({
+    expect(normalizeSettings(settingsInput(), current)).toMatchObject({
       identityMintMaxLevel: 12,
       identityMintConcurrency: 4,
       identityMintQueueDepth: 50,
     });
-    expect(normalizeSettings(settingsInput({ identityMintQueueDepth: 0 }), current, MASTER_SECRET).identityMintQueueDepth).toBe(0);
+    expect(normalizeSettings(settingsInput({ identityMintQueueDepth: 0 }), current).identityMintQueueDepth).toBe(0);
+  });
+
+  it("keeps the current retention for omitted fields and takes the bounds as they are", () => {
+    const current = stored({
+      retention: { eventLog: { days: 10, maxRows: 200 }, connections: { days: 5, maxRows: 300 }, logs: { days: 7 } },
+    });
+    expect(normalizeSettings(settingsInput(), current).retention).toEqual(current.retention);
+    expect(
+      normalizeSettings(
+        settingsInput({
+          eventLogRetentionDays: 365,
+          eventLogMaxRows: 50_000,
+          connectionRetentionDays: 1,
+          connectionMaxRows: 100_000,
+          logRetentionDays: 365,
+        }),
+        current,
+      ).retention,
+    ).toEqual({ eventLog: { days: 365, maxRows: 50_000 }, connections: { days: 1, maxRows: 100_000 }, logs: { days: 365 } });
   });
 
   it("locks the UDP range while WebRTC is enabled", () => {
     const current = stored({ webRtcEnabled: true });
-    expect(codeOf(() => normalizeSettings(settingsInput({ webRtcUdpStart: 41000, webRtcUdpEnd: 41100 }), current, MASTER_SECRET))).toBe(
+    expect(codeOf(() => normalizeSettings(settingsInput({ webRtcUdpStart: 41000, webRtcUdpEnd: 41100 }), current))).toBe(
       "WEBRTC_PORT_LOCKED",
     );
-    expect(normalizeSettings(settingsInput({ webRtcEnabled: true }), current, MASTER_SECRET).webRtcUdpStart).toBe(40000);
-  });
-
-  it("replaces the legacy relay fields and validates them", () => {
-    const result = normalizeSettings(
-      settingsInput({
-        relaySettingsAction: "replace",
-        relayEnabled: true,
-        relayName: " R ",
-        relayTarget: "relay.example.org",
-        relayToken: TOKEN,
-      }),
-      stored(),
-      MASTER_SECRET,
-    );
-    expect(result).toMatchObject({
-      relayConfigured: true,
-      relayEnabled: true,
-      relayName: "R",
-      relayHost: "relay.example.org",
-      relayPort: DEFAULT_ACCELERATION_RELAY_PORT,
-    });
-    const enabled = {
-      relaySettingsAction: "replace",
-      relayEnabled: true,
-      relayName: "R",
-      relayTarget: "relay.example.org",
-      relayToken: TOKEN,
-    } as const;
-    expect(codeOf(() => normalizeSettings(settingsInput({ ...enabled, relayName: "" }), stored(), MASTER_SECRET))).toBe(
-      "INVALID_RELAY_NAME",
-    );
-    expect(codeOf(() => normalizeSettings(settingsInput({ ...enabled, relayTarget: "" }), stored(), MASTER_SECRET))).toBe(
-      "INVALID_RELAY_TARGET",
-    );
-    expect(codeOf(() => normalizeSettings(settingsInput({ ...enabled, relayTarget: "bad target:::" }), stored(), MASTER_SECRET))).toBe(
-      "INVALID_RELAY_TARGET",
-    );
-    expect(codeOf(() => normalizeSettings(settingsInput({ ...enabled, relayToken: undefined }), stored(), MASTER_SECRET))).toBe(
-      "INVALID_RELAY_TOKEN",
-    );
-  });
-
-  it("clears the legacy relay fields on remove", () => {
-    const current = stored({
-      relayConfigured: true,
-      relayEnabled: true,
-      relayName: "R",
-      relayHost: "h",
-      relayPort: 1,
-      relayTokenEncrypted: "t",
-    });
-    expect(normalizeSettings(settingsInput({ relaySettingsAction: "remove" }), current, MASTER_SECRET)).toMatchObject({
-      relayConfigured: true,
-      relayEnabled: false,
-      relayName: "",
-      relayHost: "",
-      relayPort: DEFAULT_ACCELERATION_RELAY_PORT,
-      relayTokenEncrypted: null,
-    });
-  });
-
-  it("derives the relay fields from the first enabled node when nodes are given", () => {
-    const nodes = [node({ id: "relay-x", enabled: false }), node({ id: "relay-y", name: "Y", host: "y.example.org" })];
-    expect(normalizeSettings(settingsInput(), stored(), MASTER_SECRET, nodes)).toMatchObject({
-      relayConfigured: true,
-      relayEnabled: true,
-      relayName: "Y",
-      relayHost: "y.example.org",
-    });
-    expect(normalizeSettings(settingsInput(), stored({ relayName: "old" }), MASTER_SECRET, [])).toMatchObject({
-      relayConfigured: false,
-      relayEnabled: false,
-      relayName: "",
-      relayHost: "",
-      relayTokenEncrypted: null,
-    });
+    expect(normalizeSettings(settingsInput({ webRtcEnabled: true }), current).webRtcUdpStart).toBe(40000);
   });
 });
 
@@ -248,38 +217,6 @@ describe("normalizeRelayNodes", () => {
     expect(
       codeOf(() => normalizeRelayNodes([input({ id: "relay-a", token: undefined })], [node({ tokenEncrypted: "garbage" })], MASTER_SECRET)),
     ).toBe("INVALID_RELAY_TOKEN");
-  });
-});
-
-describe("legacyRelayNodesFromSettings", () => {
-  const update = toSettingsUpdate(
-    stored({
-      relayConfigured: true,
-      relayEnabled: true,
-      relayName: "R",
-      relayHost: "relay.example.org",
-      relayPort: 9100,
-      relayTokenEncrypted: "tok",
-    }),
-  );
-
-  it("returns no nodes when the relay is unconfigured, hostless or tokenless", () => {
-    expect(legacyRelayNodesFromSettings({ ...update, relayConfigured: false }, [])).toEqual([]);
-    expect(legacyRelayNodesFromSettings({ ...update, relayHost: "" }, [])).toEqual([]);
-    expect(legacyRelayNodesFromSettings({ ...update, relayTokenEncrypted: null }, [])).toEqual([]);
-  });
-
-  it("builds a default node, or reuses the id and createdAt of the first existing node", () => {
-    expect(legacyRelayNodesFromSettings(update, [])[0]).toMatchObject({
-      id: "relay-default",
-      name: "R",
-      enabled: true,
-      host: "relay.example.org",
-      port: 9100,
-      tokenEncrypted: "tok",
-    });
-    expect(legacyRelayNodesFromSettings(update, [node()])[0]).toMatchObject({ id: "relay-a", createdAt: node().createdAt });
-    expect(legacyRelayNodesFromSettings({ ...update, relayName: "" }, [])[0]!.name).toBe("Relay acceleration");
   });
 });
 

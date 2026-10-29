@@ -1,4 +1,5 @@
 import type { Response, Router } from "express";
+import { resolveClientIp } from "../../../shared/http/clientIp.js";
 import { requireCsrf, requireSameOrigin, sendAdminError } from "../adminMiddleware.js";
 import { asRecord, readServerInput, readSettingsInput, readString } from "../adminRequestParsing.js";
 import type { AdminRouterOptions } from "../adminRouterOptions.js";
@@ -13,7 +14,7 @@ export function registerServerRoutes(router: Router, options: AdminRouterOptions
 
   router.put("/server", requireSameOrigin, requireCsrf(options.sessions), (request, response) => {
     try {
-      options.service.updateSettings(readSettingsInput(asRecord(request.body)));
+      options.service.updateSettings(readSettingsInput(asRecord(request.body)), resolveClientIp(request));
       response.json({ ok: true, settings: options.service.getAdminSettings() });
     } catch (error: unknown) {
       sendAdminError(response, error);
@@ -32,7 +33,7 @@ export function registerServerRoutes(router: Router, options: AdminRouterOptions
 
   router.post("/servers", requireSameOrigin, requireCsrf(options.sessions), (request, response) => {
     try {
-      const server = options.service.createServer(readServerInput(asRecord(request.body)));
+      const server = options.service.createServer(readServerInput(asRecord(request.body)), resolveClientIp(request));
       response.status(201).json({ ok: true, server, servers: options.service.listServers() });
     } catch (error: unknown) {
       sendAdminError(response, error);
@@ -42,7 +43,7 @@ export function registerServerRoutes(router: Router, options: AdminRouterOptions
   // Before `/servers/:id`, which would take "order" for an id.
   router.put("/servers/order", requireSameOrigin, requireCsrf(options.sessions), (request, response) => {
     try {
-      options.service.reorderServers(asRecord(request.body).ids);
+      options.service.reorderServers(asRecord(request.body).ids, resolveClientIp(request));
       response.json({ ok: true, servers: options.service.listServers() });
     } catch (error: unknown) {
       sendAdminError(response, error);
@@ -51,7 +52,11 @@ export function registerServerRoutes(router: Router, options: AdminRouterOptions
 
   router.put("/servers/:id", requireSameOrigin, requireCsrf(options.sessions), (request, response) => {
     try {
-      const server = options.service.updateServer(readServerId(request.params.id), readServerInput(asRecord(request.body)));
+      const server = options.service.updateServer(
+        readServerId(request.params.id),
+        readServerInput(asRecord(request.body)),
+        resolveClientIp(request),
+      );
       response.json({ ok: true, server, servers: options.service.listServers() });
     } catch (error: unknown) {
       sendAdminError(response, error);
@@ -60,7 +65,7 @@ export function registerServerRoutes(router: Router, options: AdminRouterOptions
 
   router.delete("/servers/:id", requireSameOrigin, requireCsrf(options.sessions), (request, response) => {
     try {
-      options.service.removeServer(readServerId(request.params.id));
+      options.service.removeServer(readServerId(request.params.id), resolveClientIp(request));
       response.json({ ok: true, servers: options.service.listServers() });
     } catch (error: unknown) {
       sendAdminError(response, error);

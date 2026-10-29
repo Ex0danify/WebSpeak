@@ -2,6 +2,32 @@ import { mapManagedInviteRow, type ManagedInviteRow } from "./databaseRows.js";
 import type { ManagedInviteRecord } from "./databaseTypes.js";
 import type { PersistenceContext } from "./persistenceContext.js";
 
+export type ManagedInviteStatus = "active" | "expired" | "exhausted" | "revoked";
+
+export interface ManagedInviteListOptions {
+  limit?: number;
+  offset?: number;
+  status?: ManagedInviteStatus;
+  now?: number;
+}
+
+// The same precedence as the status the console shows: revoked, then expired, then used up.
+function statusFilter(status: ManagedInviteStatus | undefined, now: number): { clause: string; params: string[] } {
+  const nowIso = new Date(now).toISOString();
+  switch (status) {
+    case "revoked":
+      return { clause: "WHERE revoked_at IS NOT NULL", params: [] };
+    case "expired":
+      return { clause: "WHERE revoked_at IS NULL AND expires_at <= ?", params: [nowIso] };
+    case "exhausted":
+      return { clause: "WHERE revoked_at IS NULL AND expires_at > ? AND max_uses > 0 AND use_count >= max_uses", params: [nowIso] };
+    case "active":
+      return { clause: "WHERE revoked_at IS NULL AND expires_at > ? AND (max_uses = 0 OR use_count < max_uses)", params: [nowIso] };
+    default:
+      return { clause: "", params: [] };
+  }
+}
+
 export class ManagedInviteRepository {
   constructor(private readonly context: PersistenceContext) {}
 
@@ -31,9 +57,30 @@ export class ManagedInviteRepository {
     return { ...record, useCount: 0, createdAt: now, revokedAt: null };
   }
 
-  list(): ManagedInviteRecord[] {
-    const rows = this.context.database.prepare("SELECT * FROM managed_invites ORDER BY created_at DESC").all() as ManagedInviteRow[];
+  /** Newest first. Without a `limit` it returns everything that matches. */
+  list(options: ManagedInviteListOptions = {}): ManagedInviteRecord[] {
+    const { clause, params } = statusFilter(options.status, options.now ?? Date.now());
+    const rows = this.context.database
+      .prepare(`SELECT * FROM managed_invites ${clause} ORDER BY created_at DESC, id DESC LIMIT ? OFFSET ?`)
+      .all(...params, options.limit ?? -1, options.offset ?? 0) as ManagedInviteRow[];
     return rows.map(mapManagedInviteRow);
+  }
+
+  count(status?: ManagedInviteStatus, now = Date.now()): number {
+    const { clause, params } = statusFilter(status, now);
+    const row = this.context.database.prepare(`SELECT COUNT(*) AS total FROM managed_invites ${clause}`).get(...params) as {
+      total: number | bigint;
+    };
+    return Number(row.total);
+  }
+
+  /** Deletes the invites that were revoked or ran out of time before `cutoff` (epoch ms) and returns how many went. */
+  prune(cutoff: number): number {
+    const iso = new Date(cutoff).toISOString();
+    const result = this.context.database
+      .prepare("DELETE FROM managed_invites WHERE (revoked_at IS NOT NULL AND revoked_at < ?) OR (revoked_at IS NULL AND expires_at < ?)")
+      .run(iso, iso);
+    return Number(result.changes);
   }
 
   revoke(id: string): boolean {

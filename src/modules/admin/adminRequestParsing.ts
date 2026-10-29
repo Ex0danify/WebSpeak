@@ -1,6 +1,6 @@
 import { AdminInputError, type AdminSettingsInput, type RelayNodeInput } from "./adminService.js";
 import type { ServerInput } from "./adminServerService.js";
-import { WELCOME_LANGUAGE_MAX } from "./adminSettingsNormalizer.js";
+import { PRIVACY_NOTICE_URL_MAX, WELCOME_LANGUAGE_MAX } from "./adminSettingsNormalizer.js";
 
 export function readSettingsInput(body: Record<string, unknown>): AdminSettingsInput {
   const relayNodes = Array.isArray(body.relayNodes)
@@ -20,18 +20,18 @@ export function readSettingsInput(body: Record<string, unknown>): AdminSettingsI
     accessMode: body.accessMode === "open" ? "open" : body.accessMode === "fixed" ? "fixed" : (body.accessMode as never),
     siteName: readString(body, "siteName", 80),
     welcomeTexts: readWelcomeTexts(body.welcomeTexts),
+    privacyNoticeUrl: typeof body.privacyNoticeUrl === "string" ? body.privacyNoticeUrl.slice(0, PRIVACY_NOTICE_URL_MAX + 1) : undefined,
     webRtcEnabled: body.webRtcEnabled === true,
     webRtcUdpStart: readOptionalInteger(body, "webRtcUdpStart"),
     webRtcUdpEnd: readOptionalInteger(body, "webRtcUdpEnd"),
     identityMintMaxLevel: readOptionalInteger(body, "identityMintMaxLevel"),
     identityMintConcurrency: readOptionalInteger(body, "identityMintConcurrency"),
     identityMintQueueDepth: readOptionalInteger(body, "identityMintQueueDepth"),
-    relaySettingsAction: readRelaySettingsAction(body.relaySettingsAction),
-    relayEnabled: body.relayEnabled === true,
-    relayName: typeof body.relayName === "string" ? body.relayName.slice(0, 80) : undefined,
-    relayTarget: typeof body.relayTarget === "string" ? body.relayTarget.slice(0, 300) : undefined,
-    relayToken: typeof body.relayToken === "string" ? body.relayToken.slice(0, 512) : undefined,
-    relayTokenAction: readPasswordAction(body.relayTokenAction),
+    eventLogRetentionDays: readOptionalInteger(body, "eventLogRetentionDays"),
+    eventLogMaxRows: readOptionalInteger(body, "eventLogMaxRows"),
+    connectionRetentionDays: readOptionalInteger(body, "connectionRetentionDays"),
+    connectionMaxRows: readOptionalInteger(body, "connectionMaxRows"),
+    logRetentionDays: readOptionalInteger(body, "logRetentionDays"),
     relayNodes,
   };
 }
@@ -43,10 +43,6 @@ export function readServerInput(body: Record<string, unknown>): ServerInput {
     serverPassword: typeof body.serverPassword === "string" ? body.serverPassword.slice(0, 512) : undefined,
     passwordAction: readPasswordAction(body.passwordAction),
   };
-}
-
-function readRelaySettingsAction(value: unknown): "keep" | "replace" | "remove" {
-  return value === "replace" || value === "remove" ? value : "keep";
 }
 
 function readPasswordAction(value: unknown): "keep" | "replace" | "remove" {
@@ -89,9 +85,4 @@ export function readOptionalString(body: Record<string, unknown>, key: string, m
 
 export function readOptionalNumber(body: Record<string, unknown>, key: string, fallback: number): number {
   return body[key] === undefined ? fallback : typeof body[key] === "number" ? body[key] : Number.NaN;
-}
-
-export function readLimit(value: unknown, fallback: number): number {
-  const limit = typeof value === "string" ? Number(value) : fallback;
-  return Number.isFinite(limit) ? Math.max(1, Math.min(200, Math.floor(limit))) : fallback;
 }

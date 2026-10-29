@@ -8,7 +8,6 @@ export const de: Record<string, string> = {
   optional: "Optional",
   poke: "Anstupsen",
   pokedYou: "hat dich angestupst",
-  saveChanges: "Änderungen speichern",
   send: "Senden",
   serverAddress: "TeamSpeak-Serveradresse",
   serverPassword: "Serverpasswort",
@@ -22,6 +21,15 @@ export const de: Record<string, string> = {
   voiceActivity: "SPRACHAKTIVITÄT",
   you: "Du",
   server: "Server",
+  filterAll: "Alle",
+  listPage: "Seite {{page}} von {{count}}",
+  listShowing: "{{shown}} von {{total}} angezeigt",
+  pageNext: "Weiter",
+  pagePrevious: "Zurück",
+  pageFirst: "Erste Seite",
+  pageLast: "Letzte Seite",
+  pageNumber: "Seite {{page}}",
+  pagerLabel: "Seiten",
 };
 
 /** What the app needs to know about this language besides its words (read by languages.ts). */

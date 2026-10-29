@@ -5,7 +5,6 @@
 export const ACCEPTED_TARGETS: ReadonlyArray<readonly [input: string, expected: { host: string; port: number }]> = [
   ["example.com", { host: "example.com", port: 9987 }],
   ["example.com:9988", { host: "example.com", port: 9988 }],
-  ["example.com#9988", { host: "example.com", port: 9988 }],
   ["  example.com:9988  ", { host: "example.com", port: 9988 }],
   ["EXAMPLE.Com", { host: "example.com", port: 9987 }],
   ["ts-1.my_host.example", { host: "ts-1.my_host.example", port: 9987 }],
@@ -16,7 +15,6 @@ export const ACCEPTED_TARGETS: ReadonlyArray<readonly [input: string, expected: 
   ["[::1]", { host: "::1", port: 9987 }],
   ["[::1]:9988", { host: "::1", port: 9988 }],
   ["[2001:DB8::1]:9988", { host: "2001:db8::1", port: 9988 }],
-  ["[2001:db8::1]#9988", { host: "2001:db8::1", port: 9988 }],
   ["[::ffff:a00:1]:9987", { host: "::ffff:a00:1", port: 9987 }],
 ];
 

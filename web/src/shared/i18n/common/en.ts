@@ -8,7 +8,6 @@ export const en = {
   optional: "Optional",
   poke: "Poke",
   pokedYou: "poked you",
-  saveChanges: "Save changes",
   send: "Send",
   serverAddress: "TeamSpeak server address",
   serverPassword: "Server password",
@@ -22,6 +21,15 @@ export const en = {
   voiceActivity: "VOICE ACTIVITY",
   you: "You",
   server: "Server",
+  filterAll: "All",
+  listPage: "Page {{page}} of {{count}}",
+  listShowing: "Showing {{shown}} of {{total}}",
+  pageNext: "Next",
+  pagePrevious: "Previous",
+  pageFirst: "First page",
+  pageLast: "Last page",
+  pageNumber: "Page {{page}}",
+  pagerLabel: "Pages",
 } satisfies Record<string, string>;
 
 /** What the app needs to know about this language besides its words (read by languages.ts). */

@@ -1,6 +1,6 @@
 import type { IncomingMessage } from "node:http";
 import { describe, expect, it } from "vitest";
-import { resolveWebRtcPublicHost } from "./voiceRequestInfo.js";
+import { readUserAgent, resolveWebRtcPublicHost } from "./voiceRequestInfo.js";
 
 function request(headers: IncomingMessage["headers"], remoteAddress?: string): IncomingMessage {
   return { headers, socket: { remoteAddress } } as unknown as IncomingMessage;
@@ -22,5 +22,19 @@ describe("resolveWebRtcPublicHost", () => {
     ["nothing usable", {}, undefined],
   ] as const)("%s", (_name, headers, expected) => {
     expect(resolveWebRtcPublicHost(request({ ...headers }))).toBe(expected);
+  });
+});
+
+describe("readUserAgent", () => {
+  it("returns the header as the browser sent it", () => {
+    const agent = "Mozilla/5.0 (X11; Linux x86_64; rv:140.0) Gecko/20100101 Firefox/140.0";
+    expect(readUserAgent(request({ "user-agent": agent }))).toBe(agent);
+  });
+
+  it("drops control characters, cuts a long value and has nothing for an empty one", () => {
+    expect(readUserAgent(request({ "user-agent": "Evil\r\nSet-Cookie: x\u0000" }))).toBe("Evil  Set-Cookie: x");
+    expect(readUserAgent(request({ "user-agent": "x".repeat(2000) }))).toHaveLength(512);
+    expect(readUserAgent(request({ "user-agent": "  " }))).toBeUndefined();
+    expect(readUserAgent(request({}))).toBeUndefined();
   });
 });

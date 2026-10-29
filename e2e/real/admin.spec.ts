@@ -12,12 +12,12 @@ test.beforeEach(async ({ page }) => {
   await page.addInitScript(() => localStorage.setItem("webspeak:language", "en"));
 });
 
-async function openAdmin(page: Page, gateway: Gateway, path: "/server" | "/operations"): Promise<void> {
+async function openAdmin(page: Page, gateway: Gateway, path: "/gateway" | "/users"): Promise<void> {
   await page.goto(`${gateway.url}/admin/login`);
   await page.getByLabel("Admin username").fill("admin");
   await page.getByLabel("Admin password").fill(TEST_ADMIN_PASSWORD);
   await page.getByRole("button", { name: "Sign in" }).click();
-  await expect(page.getByRole("heading", { name: "Overview", level: 1 })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Dashboard", level: 1 })).toBeVisible();
   await page.goto(`${gateway.url}/admin${path}`);
   await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
 }
@@ -37,7 +37,7 @@ test.describe("test connection", () => {
   // password.
   test("reports the real server's answer to the handshake, and the ping of its host", async ({ page, ownGateway, server }) => {
     const gateway = await ownGateway();
-    await openAdmin(page, gateway, "/server");
+    await openAdmin(page, gateway, "/gateway");
     await openRealServerDialog(page);
     await expect(page.getByLabel("TeamSpeak server address")).toHaveValue(server.host);
     await expect(page.getByLabel("Voice port")).toHaveValue(String(server.voicePort));
@@ -57,7 +57,7 @@ test.describe("test connection", () => {
   // port doesn't).
   test("fails for a voice port that nothing listens on, although the host answers ping", async ({ page, ownGateway }) => {
     const gateway = await ownGateway();
-    await openAdmin(page, gateway, "/server");
+    await openAdmin(page, gateway, "/gateway");
     await openRealServerDialog(page);
     await page.getByLabel("Voice port").fill("1");
     const answer = page.waitForResponse((response) => response.url().endsWith("/api/admin/server/test"));
@@ -75,7 +75,7 @@ test.describe("test connection", () => {
 
   test("reports a host that does not answer as a failure", async ({ page, ownGateway }) => {
     const gateway = await ownGateway();
-    await openAdmin(page, gateway, "/server");
+    await openAdmin(page, gateway, "/gateway");
     await openRealServerDialog(page);
     // 192.0.2.0/24 is reserved for documentation (TEST-NET-1): nothing answers there, neither ping
     // nor the handshake (which is silent, or refused by a router that has no route).
@@ -100,25 +100,24 @@ test("guest access set in the console reaches the guests, and a guest still join
 }) => {
   const gateway = await ownGateway();
   expect(await publicConfig(gateway)).toMatchObject({ accessMode: "fixed", servers: [{ name: "Real server" }] });
-  await openAdmin(page, gateway, "/server");
-  const save = async () => {
+  await openAdmin(page, gateway, "/gateway");
+  // The console saves a choice by itself.
+  const choose = async (name: RegExp) => {
     const answer = page.waitForResponse(
       (response) => response.url().endsWith("/api/admin/server") && response.request().method() === "PUT",
     );
-    await page.getByRole("button", { name: "Save changes" }).click();
+    await page.getByRole("radio", { name }).click();
     expect((await answer).status()).toBe(200);
   };
 
-  await page.getByRole("radio", { name: /Also allow other TeamSpeak servers/ }).click();
-  await save();
+  await choose(/Also allow other TeamSpeak servers/);
   expect(await publicConfig(gateway)).toMatchObject({ accessMode: "open" });
   const guest = await person(GUEST, "admin-open", { gateway });
   await guest.page.goto("/");
   await pickServer(guest.page, "Other server…");
   await expect(guest.page.getByLabel("TeamSpeak server address")).toBeVisible();
 
-  await page.getByRole("radio", { name: /Only the configured servers/ }).click();
-  await save();
+  await choose(/Only the configured servers/);
   expect(await publicConfig(gateway)).toMatchObject({ accessMode: "fixed" });
   await guest.join();
   expect(await channelIdOf(query, guest.nickname)).toBeDefined();
@@ -134,7 +133,7 @@ test("Terminate in the console removes a real client from the server", async ({ 
     { message: "the server to list the guest" },
   );
 
-  await openAdmin(page, gateway, "/operations");
+  await openAdmin(page, gateway, "/users");
   page.on("dialog", (dialog) => dialog.accept());
   await page
     .locator("table")

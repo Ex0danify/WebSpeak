@@ -8,6 +8,5 @@
     "declaration": false,
     "sourceMap": false
   },
-  "include": ["**/*.ts"],
-  "exclude": ["legacy"]
+  "include": ["**/*.ts"]
 }

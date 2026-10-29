@@ -1,4 +1,5 @@
 import { DEFAULT_WEBRTC_UDP_PORT_RANGE } from "../../config/webrtcConfig.js";
+import { DEFAULT_RETENTION_POLICY } from "../../config/retentionConfig.js";
 import { DEFAULT_IDENTITY_MINT_POLICY } from "../../config/identityMintConfig.js";
 import type { SettingsRow, WelcomeTextRow } from "./databaseRows.js";
 import type { PersistedSettings, SettingsUpdate } from "./databaseTypes.js";
@@ -12,6 +13,7 @@ export class SettingsRepository {
     return {
       siteName: row.site_name,
       welcomeTexts: this.readWelcomeTexts(),
+      privacyNoticeUrl: row.privacy_notice_url,
       accessMode: row.access_mode === "open" ? "open" : "fixed",
       webRtcEnabled: row.webrtc_enabled === 1,
       webRtcUdpStart: row.webrtc_udp_start,
@@ -19,24 +21,24 @@ export class SettingsRepository {
       identityMintMaxLevel: row.identity_mint_max_level,
       identityMintConcurrency: row.identity_mint_concurrency,
       identityMintQueueDepth: row.identity_mint_queue_depth,
-      relayConfigured: row.relay_configured === 1,
-      relayEnabled: row.relay_enabled === 1,
-      relayName: row.relay_name,
-      relayHost: row.relay_host,
-      relayPort: row.relay_port,
-      relayTokenEncrypted: row.relay_token_encrypted,
+      retention: {
+        eventLog: { days: row.event_log_retention_days, maxRows: row.event_log_max_rows },
+        connections: { days: row.connection_retention_days, maxRows: row.connection_max_rows },
+        logs: { days: row.log_retention_days },
+      },
       updatedAt: row.updated_at,
     };
   }
 
   write(settings: SettingsUpdate, now: string): void {
+    const retention = settings.retention ?? DEFAULT_RETENTION_POLICY;
     this.context.database
       .prepare(
         `UPDATE settings SET
          site_name = ?, access_mode = ?, webrtc_enabled = ?, webrtc_udp_start = ?,
          webrtc_udp_end = ?, identity_mint_max_level = ?, identity_mint_concurrency = ?,
-         identity_mint_queue_depth = ?, relay_configured = ?, relay_enabled = ?, relay_name = ?,
-         relay_host = ?, relay_port = ?, relay_token_encrypted = ?, updated_at = ?
+         identity_mint_queue_depth = ?, event_log_retention_days = ?, event_log_max_rows = ?,
+         connection_retention_days = ?, connection_max_rows = ?, privacy_notice_url = ?, log_retention_days = ?, updated_at = ?
        WHERE id = 1`,
       )
       .run(
@@ -48,12 +50,12 @@ export class SettingsRepository {
         settings.identityMintMaxLevel ?? DEFAULT_IDENTITY_MINT_POLICY.maxLevel,
         settings.identityMintConcurrency ?? DEFAULT_IDENTITY_MINT_POLICY.concurrency,
         settings.identityMintQueueDepth ?? DEFAULT_IDENTITY_MINT_POLICY.queueDepth,
-        settings.relayConfigured ? 1 : 0,
-        settings.relayEnabled ? 1 : 0,
-        settings.relayName,
-        settings.relayHost,
-        settings.relayPort,
-        settings.relayTokenEncrypted,
+        retention.eventLog.days,
+        retention.eventLog.maxRows,
+        retention.connections.days,
+        retention.connections.maxRows,
+        settings.privacyNoticeUrl ?? "",
+        retention.logs.days,
         now,
       );
     this.writeWelcomeTexts(settings.welcomeTexts ?? {});

@@ -12,20 +12,10 @@ export class InvalidTeamSpeakTargetError extends Error {
   }
 }
 
-/** Parse a user-facing TeamSpeak target such as example.com:9988 or example.com#9988. */
+/** Parse a user-facing TeamSpeak target such as example.com:9988 or [2001:db8::1]:9988. */
 export function parseTeamSpeakTarget(value: string, fallbackPort = DEFAULT_TEAM_SPEAK_PORT): TeamSpeakTarget {
   const input = value.trim();
   if (!input) throw new InvalidTeamSpeakTargetError("TeamSpeak server address is required");
-
-  const hash = input.indexOf("#");
-  if (hash >= 0) {
-    if (input.indexOf("#", hash + 1) >= 0) {
-      throw new InvalidTeamSpeakTargetError("TeamSpeak target has too many port separators");
-    }
-    const hashHost = input.slice(0, hash);
-    const host = hashHost.startsWith("[") && hashHost.endsWith("]") ? hashHost.slice(1, -1) : hashHost;
-    return createTarget(host, input.slice(hash + 1));
-  }
 
   if (input.startsWith("[")) {
     const closingBracket = input.indexOf("]");
@@ -44,27 +34,6 @@ export function parseTeamSpeakTarget(value: string, fallbackPort = DEFAULT_TEAM_
     throw new InvalidTeamSpeakTargetError("IPv6 addresses must use bracket notation");
   }
   return createTarget(input.slice(0, colon), input.slice(colon + 1));
-}
-
-/** Parse the legacy split host/port fields while accepting a bracketed IPv6 host. */
-export function parseTeamSpeakTargetParts(
-  hostValue: string,
-  portValue?: string | number,
-  fallbackPort = DEFAULT_TEAM_SPEAK_PORT,
-): TeamSpeakTarget {
-  const host = hostValue.trim();
-  if (!host) throw new InvalidTeamSpeakTargetError("TeamSpeak server address is required");
-
-  if (portValue !== undefined && String(portValue).trim() !== "") {
-    const hostOnly = host.startsWith("[") && host.endsWith("]") ? host.slice(1, -1) : host;
-    if (hostOnly.includes(":")) return createTarget(hostOnly, portValue);
-    if (host.includes(":")) {
-      throw new InvalidTeamSpeakTargetError("Use one TeamSpeak address field when specifying a port");
-    }
-    return createTarget(hostOnly, portValue);
-  }
-
-  return parseTeamSpeakTarget(host, fallbackPort);
 }
 
 export function formatTeamSpeakTarget(target: TeamSpeakTarget): string {

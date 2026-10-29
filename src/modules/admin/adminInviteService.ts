@@ -3,7 +3,19 @@ import type { Logger } from "../../shared/logger.js";
 import { formatTeamSpeakTarget, type TeamSpeakTarget } from "../../shared/teamSpeakTarget.js";
 import { type ManagedInviteRecord, WebSpeakDatabase } from "../../infra/persistence/database.js";
 import { decryptSecret } from "../../infra/security/secretCrypto.js";
+import type { ManagedInviteStatus } from "../../infra/persistence/managedInviteRepository.js";
 import { AdminInputError } from "./adminErrors.js";
+
+export const INVITE_STATUSES: readonly ManagedInviteStatus[] = ["active", "expired", "exhausted", "revoked"];
+/** Invites that stopped working are kept this long for the audit of who was let in, then deleted. */
+export const INVITE_RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
+export const INVITE_PAGE_MAX = 100;
+
+export interface ManagedInviteQuery {
+  limit: number;
+  offset: number;
+  status?: ManagedInviteStatus;
+}
 
 export interface ManagedInviteInput {
   serverId: string;
@@ -14,7 +26,7 @@ export interface ManagedInviteInput {
 
 export interface ManagedInviteView {
   id: string;
-  serverId: string | null;
+  serverId: string;
   target: string;
   channel: string;
   expiresAt: string;
@@ -22,7 +34,7 @@ export interface ManagedInviteView {
   useCount: number;
   createdAt: string;
   revokedAt: string | null;
-  status: "active" | "expired" | "exhausted" | "revoked";
+  status: ManagedInviteStatus;
 }
 
 export class AdminInviteService {
@@ -32,7 +44,7 @@ export class AdminInviteService {
     private readonly logger: Logger,
   ) {}
 
-  create(input: ManagedInviteInput): { invite: ManagedInviteView; token: string } {
+  create(input: ManagedInviteInput, ip?: string): { invite: ManagedInviteView; token: string } {
     const channel = input.channel.trim();
     if (channel.length > 100) throw new AdminInputError("INVALID_INVITE_CHANNEL", "Invite channel cannot exceed 100 characters");
     if (!Number.isFinite(input.expiresInHours) || input.expiresInHours < 1 || input.expiresInHours > 720) {
@@ -55,22 +67,52 @@ export class AdminInviteService {
       expiresAt: new Date(Date.now() + input.expiresInHours * 60 * 60 * 1000).toISOString(),
       maxUses: input.maxUses,
     });
-    this.database.addAudit("INVITE_CREATED", { id: record.id, serverId: server.id, channel, maxUses: input.maxUses });
+    this.database.addAudit("INVITE_CREATED", {
+      id: record.id,
+      serverId: server.id,
+      serverName: server.name,
+      channel,
+      maxUses: input.maxUses,
+      expiresAt: record.expiresAt,
+      ip,
+    });
     return { invite: toInviteView(record), token };
   }
 
-  list(): ManagedInviteView[] {
-    return this.database.listManagedInvites().map(toInviteView);
+  /** One page, newest first, with the number of invites that match the filter. */
+  list(query: ManagedInviteQuery): { invites: ManagedInviteView[]; total: number } {
+    return {
+      invites: this.database.listManagedInvites(query).map(toInviteView),
+      total: this.database.countManagedInvites(query.status),
+    };
   }
 
-  revoke(id: string): boolean {
+  activeCount(): number {
+    return this.database.countManagedInvites("active");
+  }
+
+  prune(): number {
+    return this.database.pruneManagedInvites(INVITE_RETENTION_MS);
+  }
+
+  revoke(id: string, ip?: string): boolean {
     if (!/^invite-[a-z0-9-]+$/i.test(id) || id.length > 100) throw new AdminInputError("INVALID_INVITE_ID", "Invite id is invalid");
+    const invite = this.database.listManagedInvites().find((candidate) => candidate.id === id);
     const revoked = this.database.revokeManagedInvite(id);
-    if (revoked) this.database.addAudit("INVITE_REVOKED", { id });
+    if (revoked) {
+      this.database.addAudit("INVITE_REVOKED", {
+        id,
+        serverName: invite && this.database.getServer(invite.serverId)?.name,
+        channel: invite?.channel,
+        useCount: invite?.useCount,
+        maxUses: invite?.maxUses,
+        ip,
+      });
+    }
     return revoked;
   }
 
-  consume(token: string): { target: TeamSpeakTarget; serverPassword: string; channel: string } | null {
+  consume(token: string, ip?: string): { target: TeamSpeakTarget; serverPassword: string; channel: string } | null {
     if (!/^[A-Za-z0-9_-]{32,128}$/.test(token)) return null;
     const record = this.database.consumeManagedInvite(hashInviteToken(token));
     if (!record) return null;
@@ -83,7 +125,12 @@ export class AdminInviteService {
         "Managed invite password could not be decrypted",
       );
     }
-    this.database.addAudit("INVITE_CONSUMED", { id: record.id });
+    this.database.addAudit("INVITE_CONSUMED", {
+      id: record.id,
+      channel: record.channel,
+      serverName: this.database.getServer(record.serverId)?.name,
+      ip,
+    });
     return { target: { host: record.targetHost, port: record.targetPort }, serverPassword, channel: record.channel };
   }
 }

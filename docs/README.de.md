@@ -142,7 +142,7 @@ Den UDP-Listening-Port des Relay-Hosts freigeben, standardmäßig `39087`.
 #### Im Gateway aktivieren
 
 1. **Administration → Server → Relay-Server** öffnen und einen oder mehrere Knoten hinzufügen.
-2. Für jeden Knoten einen Anzeigenamen, einen Endpunkt wie `relay.example.com#39087` und das passende Token eintragen und speichern.
+2. Für jeden Knoten einen Anzeigenamen, einen Endpunkt wie `relay.example.com:39087` und das passende Token eintragen und speichern.
 3. Besucher können auf der Willkommensseite Direktzugriff oder einen konfigurierten Relay-Knoten auswählen.
 
 Relay deaktivieren und speichern, um die Option von der Willkommensseite zu entfernen.
@@ -227,12 +227,12 @@ npm start
 
 1. `http://<dein-host>:3040/admin` öffnen.
 2. Mit `WEBSPEAK_ADMIN_USERNAME` und dem `WEBSPEAK_ADMIN_PASSWORD` aus der `.env` anmelden und ein neues Passwort mit mindestens 12 Zeichen setzen. Der Wert aus der `.env` legt das Konto nur auf einer neuen Datenbank an; spätere Änderungen wirken nicht, und nach der Anmeldung kann er entfernt werden.
-3. Unter **Server** die TeamSpeak-Server anlegen, zum Beispiel `voice.example.com#9987`, und die Zugriffsmethode wählen. Besucher wählen einen Server nach Namen und sehen nie seine Adresse, ein Server im LAN oder unter einer Loopback-Adresse ist für sie also erreichbar, ohne das Gateway für diese Netze zu öffnen. Offener Zugriff erlaubt zusätzlich die Eingabe einer öffentlichen Adresse.
+3. Unter **Server** die TeamSpeak-Server anlegen, zum Beispiel `voice.example.com:9987`, und die Zugriffsmethode wählen. Besucher wählen einen Server nach Namen und sehen nie seine Adresse, ein Server im LAN oder unter einer Loopback-Adresse ist für sie also erreichbar, ohne das Gateway für diese Netze zu öffnen. Offener Zugriff erlaubt zusätzlich die Eingabe einer öffentlichen Adresse.
 4. Für öffentliche Nutzung HTTPS einrichten; bei aktiviertem WebRTC den im Adminbereich angezeigten UDP-Bereich freigeben.
 
 ### Konfiguration: `.env` und Adminbereich
 
-Die `.env` (kopiert aus [`.env.example`](../.env.example), das auch alle Standardwerte enthält) enthält die Einstellungen, die der Prozess vor dem ersten Request braucht: das Start-Adminkonto, `WEBSPEAK_HOST`, `WEBSPEAK_PORT`, `WEBSPEAK_DATA_DIR`, `WEBSPEAK_TRUST_PROXY`, `WEBSPEAK_SCREEN_SHARE_ICE_SERVERS` und die Relay-Variablen. WebSpeak hat keine eingebauten Standardwerte: Ist eine Variable gar nicht gesetzt, startet es nicht (ein leerer Wert ist erlaubt, wo `.env.example` ihn leer lässt). Eine in der Umgebung gesetzte Variable hat Vorrang vor der `.env`. Alles, was Administratoren verwalten (TeamSpeak-Ziel und -Passwort, Zugriffsmethode, WebRTC, Relays, Seitentexte), liegt im Adminbereich. Die alte `config.json` wird nicht mehr gelesen.
+Die `.env` (kopiert aus [`.env.example`](../.env.example), das auch alle Standardwerte enthält) enthält die Einstellungen, die der Prozess vor dem ersten Request braucht: das Start-Adminkonto, `WEBSPEAK_HOST`, `WEBSPEAK_PORT`, `WEBSPEAK_DATA_DIR`, `WEBSPEAK_TRUST_PROXY`, `WEBSPEAK_SCREEN_SHARE_ICE_SERVERS` und die Relay-Variablen. WebSpeak hat keine eingebauten Standardwerte: Ist eine Variable gar nicht gesetzt, startet es nicht (ein leerer Wert ist erlaubt, wo `.env.example` ihn leer lässt). Eine in der Umgebung gesetzte Variable hat Vorrang vor der `.env`. Alles, was Administratoren verwalten (TeamSpeak-Ziel und -Passwort, Zugriffsmethode, WebRTC, Relays, Seitentexte), liegt im Adminbereich.
 
 ### Administratorpasswort vergessen
 
@@ -243,6 +243,27 @@ docker compose exec webspeak node dist/index.js reset-admin-password   # Docker
 npm run admin:reset-password                                            # Release-Paket oder Quellcode
 ```
 
+## 🔒 Gespeicherte Daten und Datenschutz
+
+WebSpeak wird selbst betrieben. Wer ein Gateway betreibt, entscheidet daher, was es speichert, und muss die Gäste darüber informieren. Dieser Abschnitt listet auf, was das Gateway speichert, damit du diese Information schreiben kannst. Er ist keine Rechtsberatung. Unter **Administration → Web → Website-Informationen** kannst du einen **Link zur Datenschutzerklärung** eintragen, Gäste sehen ihn dann in der Fußzeile der Startseite.
+
+| Wo | Was | Wozu | Aufbewahrung |
+|---|---|---|---|
+| Verbindungsprotokoll (Datenbank) | Nickname, IP-Adresse des Gastes, Zielserver und Relay, Beginn, Ende und Dauer, wie die Sitzung endete, eine Zusammenfassung des Audiowegs (Paketzahlen, größte Lücken, ICE-Verbindungsart und Laufzeit) und der User-Agent des Browsers | Zeigen, wer verbunden war, und klären, warum eine Verbindung scheiterte oder schlecht klang | Standardmäßig 30 Tage und 10.000 Einträge |
+| Ereignisprotokoll (Datenbank) | Beginn und Ende von Sitzungen mit Nickname, IP-Adresse und Server. Admin-Anmeldungen mit IP-Adresse, bei einem Fehlschlag auch mit dem versuchten Benutzernamen. Änderungen an Einstellungen, Servern und Einladungen mit der IP-Adresse des Admins | Nachvollziehbarkeit und Sicherheit | Standardmäßig 90 Tage und 5.000 Ereignisse |
+| Logdatei `data/logs/webspeak.log` | Betriebsmeldungen mit Nickname, IP-Adresse, Server, TeamSpeak-Client-IDs und Fehlerdetails | Fehlersuche | Standardmäßig 30 Tage, und höchstens 10 MB pro Datei mit der aktuellen und den drei davor. Dieselben Zeilen gehen an die Standardausgabe, dort gelten die Regeln deiner Container-Laufzeit |
+| Cookie `webspeak_visitor_number` | Eine Nummer für die Zeile „Besucher Nr. N“ auf der Startseite | Kosmetisch | Ein Jahr |
+| Browser des Gastes | Nickname, Sprache, Design, Audiogeräte und Bildschirmfreigabe-Einstellungen, die gemerkte TeamSpeak-Identität, Favoriten und zuletzt genutzte Server | Komfort. Sie bleiben auf dem Gerät des Gastes, **Lokale Daten löschen** auf der Startseite entfernt sie | Bis zum Löschen |
+
+Die Aufbewahrung von Verbindungsprotokoll, Ereignisprotokoll und Logdateien stellst du unter **Administration → Diagnose → Aufbewahrung der Protokolle** ein, ein kleineres Limit gilt sofort. Audio wird live weitergereicht und nie aufgezeichnet, Chatnachrichten werden weitergegeben und nicht gespeichert. Die gemerkte Identität dient dem Verbinden und wird vom Gateway nicht gespeichert. Der TeamSpeak-Server sieht den Nickname und die Identität des Gastes sowie die Adresse des Gateways, nicht die IP-Adresse des Gastes.
+
+Zwei Dateien verlassen das Gateway auf Anfrage, beide unter **Administration → Diagnose**:
+
+- Das **Diagnosepaket** ist für einen öffentlichen Fehlerbericht gedacht. Adressen, Nicknames, Benutzernamen, TeamSpeak-Client-IDs und Hostnamen sind durch Bezeichner ersetzt, Sitzungen nennen den Browser (zum Beispiel „Firefox 140“) und nicht den rohen User-Agent. Die Bezeichner sind Pseudonyme, keine Anonymisierung, sieh es also durch, bevor du es veröffentlichst.
+- Die **Datenbanksicherung** enthält alles Obige und die Kontodaten. Halte sie privat und hänge sie nie an ein Issue.
+
+Das Cookie wird für die Sprachverbindung nicht gebraucht. Ein solches Cookie kann etwa nach den ePrivacy-Regeln der EU die Einwilligung des Besuchers erfordern, kläre mit deiner Rechtsberatung, ob das für dich gilt.
+
 ## ⚠️ Voraussetzungen und Hinweise
 
 | Bereich | Hinweis |
@@ -250,9 +271,9 @@ npm run admin:reset-password                                            # Releas
 | Browser | Aktuelles Chrome, Edge oder ein moderner WebRTC-fähiger Browser wird empfohlen. Mikrofon- und Fenster-Audio benötigen normalerweise HTTPS. |
 | TeamSpeak-Netzwerk | Der WebSpeak-Host muss den Zielserver erreichen können; der Standard-Sprachport ist `9987`. |
 | Webnetzwerk | Der Dienst verwendet standardmäßig `3040/TCP` (`WEBSPEAK_PORT`); öffentlich sollte ein HTTPS-Reverse-Proxy für Seite und WebSocket verwendet werden. |
-| IPv6 | Literale Ziele als `[2001:db8::1]#9987` eintragen. Host/Container benötigen geroutetes IPv6, aktiviertes IPv6 in Betriebssystem und Node.js sowie passende Firewall-Regeln. |
+| IPv6 | Literale Ziele als `[2001:db8::1]:9987` eintragen. Host/Container benötigen geroutetes IPv6, aktiviertes IPv6 in Betriebssystem und Node.js sowie passende Firewall-Regeln. |
 | WebRTC | Standardbereich `40000–40099/UDP`; den gesamten Bereich freigeben und WebRTC vor einer Änderung deaktivieren. |
 | Gespeicherte Identität | Eine Browseridentität kann nur eine aktive gespeicherte Verbindung halten. Für parallele Verbindungen deaktivieren oder ein anderes Browserprofil verwenden. |
 | Begleitton | Nur auf dem Desktop verfügbar und WebRTC erforderlich. Bei Fenster- oder Tab-Freigabe auch Audio freigeben. |
-| Daten | Docker, Release-Pakete und Quellcode verwenden alle `data/`. Vor Updates sichern. |
+| Daten | Docker, Release-Pakete und Quellcode verwenden alle `data/`. Vor Updates sichern. Eine Datenbank aus einer Version vor 0.7.0 muss einmal mit 0.7.0 gestartet werden, bevor neuere Versionen sie öffnen. |
 | Sitzungslimit | Eine Instanz akzeptiert bis zu 100 aktive Browser-Sitzungen. |

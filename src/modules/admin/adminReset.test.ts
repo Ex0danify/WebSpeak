@@ -20,7 +20,7 @@ describe("resetAdminAccount", () => {
     expect(await service.verifyPassword("admin", "the password nobody remembers")).toBe(false);
     expect(await service.verifyPassword("admin", "a fresh recovery password")).toBe(true);
     expect(service.isPasswordChangeRequired()).toBe(true);
-    expect(service.database.recentAudit()[0]?.event).toBe("ADMIN_PASSWORD_RESET");
+    expect(service.database.listAudit({ limit: 8, offset: 0 }).events[0]?.event).toBe("ADMIN_PASSWORD_RESET");
   });
 
   it("can change the username too, and keeps it otherwise", async () => {

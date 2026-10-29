@@ -32,7 +32,8 @@ web/src/
     voice/                    # engine/ (microphone, playback, output, WebRTC transport), audio preferences, stores/
     screenShare/              # capture, peers, stats, viewer UI, stores/
     session/                  # BASE: socket, message router, session actions, ICE servers, sessionStore
-    join/  admin/  demo/      # screens
+    join/  demo/              # screens
+    admin/                    # the console, laid out like room: core/ ui/ shell/ and one folder per page (dashboard/ gateway/ web/ users/ diagnostics/), plus settings/ for what the gateway and web pages share
   shared/
     ui/<name>/                # design-system components: .vue files, a cva file, index.ts
     components/ composables/ lib/ services/
@@ -50,9 +51,10 @@ views  ->  features/room  ->  features/{voice, screenShare, join, admin, demo}  
 - `shared/` imports nothing from features or views.
 - A feature imports lower features' barrels and `shared/`. Features on the same layer never import each other (`voice` and `screenShare`, `admin` and `join`). `join` and `room` never import each other either: what they share comes down through `features/session` or `shared/`, or is wired in `views/`.
 - Inside `features/room/` the sub-features are one layer, have no barrels and never import each other. Only `shell/` and the room root compose them.
+- Inside `features/admin/` the pages (`dashboard/`, `gateway/`, `web/`, `users/`, `diagnostics/`) are one layer. `settings/` holds the settings store, document and field components that `gateway/` and `web/` both use. Each holds its page, cards and store, imports `core/` (session and feedback stores, api, formatting, `adminSiblings.ts`) and `ui/` (layout-agnostic building blocks), and never imports another page. `shell/` composes them: the route table, the console frame, the sign-in screens and `adminStores.ts`, which wires the stores to each other.
 - `features/room/useRoomSession.ts` is the only place that imports several features together. It resets the stores, wires the late-bound callbacks of session, voice and screen share, and returns six groups (`session`, `roster`, `chat`, `audio`, `screenShare`, `actions`). Composables take only the group they need. `useRoomContext.ts` provides and injects it.
 - Cross-feature imports go through the barrel (`@/features/session`); inside one feature use relative paths.
-- Stores hold only reactive state the UI reads: `sessionStore` in `session/`, `voiceAudioStore` in `voice/stores/`, `screenShareStore` in `screenShare/stores/`, `joinFormStore` in `join/stores/`, `adminStores` in `admin/`. Admin stores never import each other.
+- Stores hold only reactive state the UI reads: `sessionStore` in `session/`, `voiceAudioStore` in `voice/stores/`, `screenShareStore` in `screenShare/stores/`, `joinFormStore` in `join/stores/`, `adminStores` in `admin/`. Admin stores never import each other, they reach each other through `adminSiblings.ts`. The session and feedback stores are the base every other admin store imports.
 
 ### Naming
 

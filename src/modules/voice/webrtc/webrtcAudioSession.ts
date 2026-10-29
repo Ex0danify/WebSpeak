@@ -5,6 +5,8 @@ import type { TSVoiceData } from "../../teamspeak/index.js";
 import { createOpusCodec, type OpusCodec } from "../voiceOpus.js";
 import { AUDIO_CLOCK_INTERVAL_MS, AUDIO_FRAME_SAMPLES, AUDIO_SAMPLE_RATE, MAX_MIXER_PACER_LAG_MS, WebRtcMixer } from "./webrtcMixer.js";
 import { WEBRTC_UDP_PORT_RANGE } from "../../../config/webrtcConfig.js";
+import type { WebRtcIceInfo } from "../iceInfo.js";
+import { readIceInfo } from "./webrtcIceInfo.js";
 
 const DEFAULT_WEBRTC_OPUS_PAYLOAD_TYPE = 111;
 const SPEAKER_ACTIVITY_INTERVAL_MS = 100;
@@ -49,6 +51,7 @@ export interface WebRtcAudioStats {
   webrtcDownlinkDecodedFrames: number;
   webrtcDownlinkDecodeErrors: number;
   webrtcDownlinkShortFrames: number;
+  webrtcIce: WebRtcIceInfo | null;
 }
 
 /**
@@ -71,6 +74,9 @@ export class WebRtcAudioSession {
   private readonly ssrc = randomInt(1, 0x1_0000_0000) >>> 0;
   private outgoingPayloadType = DEFAULT_WEBRTC_OPUS_PAYLOAD_TYPE;
   private closed = false;
+  private readonly createdAt = performance.now();
+  private connectMs: number | null = null;
+  private ice: WebRtcIceInfo | null = null;
   private nextAudioDeadline = 0;
   private lastIngressRtpAt: number | null = null;
   private lastEgressRtpAt: number | null = null;
@@ -95,6 +101,7 @@ export class WebRtcAudioSession {
     webrtcDownlinkDecodedFrames: 0,
     webrtcDownlinkDecodeErrors: 0,
     webrtcDownlinkShortFrames: 0,
+    webrtcIce: null,
   };
 
   /** Async setup lives here, a constructor can't be awaited and would hide a failed track attach. */
@@ -143,6 +150,10 @@ export class WebRtcAudioSession {
     this.activityTimer.unref?.();
     this.peer.onconnectionstatechange = () => {
       this.logger.info({ state: this.peer.connectionState }, "WebRTC connection state changed");
+      // Our own close ends in a "closed" state that would hide how the session really ended.
+      if (this.closed) return;
+      if (this.peer.connectionState === "connected") this.connectMs ??= Math.round(performance.now() - this.createdAt);
+      this.captureIce();
     };
   }
 
@@ -179,7 +190,11 @@ export class WebRtcAudioSession {
   }
 
   getStats(): WebRtcAudioStats {
-    return { ...this.stats, webrtcQueueCurrentFrames: this.mixer.getQueueFrameCount() };
+    return { ...this.stats, webrtcQueueCurrentFrames: this.mixer.getQueueFrameCount(), webrtcIce: this.ice };
+  }
+
+  private captureIce(): void {
+    this.ice = readIceInfo(this.peer, this.ice, this.connectMs);
   }
 
   async createAnswer(offer: WebRtcSessionDescription): Promise<WebRtcSessionDescription> {
@@ -204,6 +219,8 @@ export class WebRtcAudioSession {
 
   async close(): Promise<void> {
     if (this.closed) return;
+    // The pair is gone once the peer is closed, so the last look at it is taken now.
+    this.captureIce();
     this.closed = true;
     if (this.audioTimer) clearTimeout(this.audioTimer);
     this.audioTimer = null;

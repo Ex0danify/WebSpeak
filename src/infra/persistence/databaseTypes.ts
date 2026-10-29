@@ -1,3 +1,5 @@
+import type { RetentionPolicy } from "../../config/retentionConfig.js";
+
 /** "fixed" offers the configured server list only, "open" also takes an address typed by the visitor. */
 export type AccessMode = "fixed" | "open";
 
@@ -5,6 +7,8 @@ export interface PersistedSettings {
   siteName: string;
   /** Non-empty welcome texts by language code. */
   welcomeTexts: Record<string, string>;
+  /** An http(s) address, empty when the operator named none. */
+  privacyNoticeUrl: string;
   accessMode: AccessMode;
   webRtcEnabled: boolean;
   webRtcUdpStart: number;
@@ -12,12 +16,7 @@ export interface PersistedSettings {
   identityMintMaxLevel: number;
   identityMintConcurrency: number;
   identityMintQueueDepth: number;
-  relayConfigured: boolean;
-  relayEnabled: boolean;
-  relayName: string;
-  relayHost: string;
-  relayPort: number;
-  relayTokenEncrypted: string | null;
+  retention: RetentionPolicy;
   updatedAt: string;
 }
 
@@ -25,6 +24,7 @@ export interface SettingsUpdate {
   siteName: string;
   /** Replaces the stored welcome texts, empty values are not stored. */
   welcomeTexts?: Record<string, string>;
+  privacyNoticeUrl?: string;
   accessMode: AccessMode;
   webRtcEnabled: boolean;
   webRtcUdpStart?: number;
@@ -32,12 +32,7 @@ export interface SettingsUpdate {
   identityMintMaxLevel?: number;
   identityMintConcurrency?: number;
   identityMintQueueDepth?: number;
-  relayConfigured: boolean;
-  relayEnabled: boolean;
-  relayName: string;
-  relayHost: string;
-  relayPort: number;
-  relayTokenEncrypted: string | null;
+  retention?: RetentionPolicy;
 }
 
 export interface PersistedServer {
@@ -67,7 +62,7 @@ export interface PersistedRelayNode {
 export interface ManagedInviteRecord {
   id: string;
   /** The server the invite was made for, revoking follows its removal or change. */
-  serverId: string | null;
+  serverId: string;
   tokenHash: string;
   targetHost: string;
   targetPort: number;

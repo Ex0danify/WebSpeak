@@ -41,7 +41,7 @@ export function hasFixture(name: string): boolean {
 export const FIXTURES = {
   ts3Packets: "ts3LegacyPackets.json",
   ts6Packets: "ts6AlphaPackets.json",
-  alphaSchedule: "ts6AlphaKeySchedule.json",
+  ts6Schedule: "ts6AlphaKeySchedule.json",
   handshakeVectors: "handshakeVectors.json",
   ts3Session: "ts3ServerSession.json",
   ts6Session: "ts6ServerSession.json",

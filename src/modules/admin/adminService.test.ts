@@ -53,11 +53,7 @@ describe("initialize", () => {
     const service = ctx.create();
     await service.initialize(BOOTSTRAP);
     expect(service.database.listServers()).toMatchObject([{ id: DEFAULT_SERVER_ID, host: "127.0.0.1", port: 9987 }]);
-    expect(service.database.recentAudit(50).map((entry) => entry.event)).toContain("ADMIN_INITIALIZED");
-  });
-
-  it("shows the port the gateway listens on", () => {
-    expect(ctx.create().getAdminSettings()).toMatchObject({ internalPort: 3040 });
+    expect(service.database.listAudit({ limit: 50, offset: 0 }).events.map((entry) => entry.event)).toContain("ADMIN_INITIALIZED");
   });
 });
 
@@ -77,7 +73,7 @@ describe("admin password", () => {
     expect(await service.verifyPassword("admin", BOOTSTRAP.password)).toBe(false);
     expect(await service.verifyPassword("admin", "a-new-strong-password")).toBe(true);
     expect(service.isPasswordChangeRequired()).toBe(false);
-    expect(service.database.recentAudit()[0]?.event).toBe("ADMIN_PASSWORD_CHANGED");
+    expect(service.database.listAudit({ limit: 8, offset: 0 }).events[0]?.event).toBe("ADMIN_PASSWORD_CHANGED");
   });
 
   it("refuses a short password and keeps the current one", async () => {
@@ -135,7 +131,7 @@ describe("views", () => {
       servers: [{ id: DEFAULT_SERVER_ID, hasPassword: true, target: "ts.example.org:9988" }],
       welcomeDefaults: DEFAULT_WELCOME_TEXTS,
     });
-    expect((view.relayNodes as unknown[])[0]).toMatchObject({ name: "R", target: "relay.example.org#39087", hasToken: true });
+    expect((view.relayNodes as unknown[])[0]).toMatchObject({ name: "R", target: "relay.example.org:39087", hasToken: true });
     const text = JSON.stringify(view);
     for (const secret of ["very-secret-password", "relay-token-1234567", "v1:"]) expect(text).not.toContain(secret);
   });
@@ -143,7 +139,26 @@ describe("views", () => {
   it("writes an IPv6 relay target with brackets", () => {
     const service = ctx.create();
     service.updateSettings(settingsInput({ relayNodes: [{ name: "R", target: "[2001:db8::1]:40000", enabled: false }] }));
-    expect((service.getAdminSettings().relayNodes as Array<{ target: string }>)[0]?.target).toBe("[2001:db8::1]#40000");
+    expect((service.getAdminSettings().relayNodes as Array<{ target: string }>)[0]?.target).toBe("[2001:db8::1]:40000");
+  });
+});
+
+describe("retention", () => {
+  it("tells whoever keeps files of its own the retention now in force, after every save", () => {
+    const applied: number[] = [];
+    const service = ctx.create(undefined, (retention) => applied.push(retention.logs.days));
+    service.updateSettings(settingsInput({ logRetentionDays: 7 }));
+    service.updateSettings(settingsInput());
+    service.updateSettings(settingsInput({ logRetentionDays: 14 }));
+    expect(applied).toEqual([7, 7, 14]);
+    expect(service.getAdminSettings().logRetentionDays).toBe(14);
+  });
+
+  it("refuses a log retention outside 1 to 365 days without telling anyone", () => {
+    const applied: number[] = [];
+    const service = ctx.create(undefined, (retention) => applied.push(retention.logs.days));
+    expect(rejection(() => service.updateSettings(settingsInput({ logRetentionDays: 0 }))).code).toBe("INVALID_LOG_RETENTION");
+    expect(applied).toEqual([]);
   });
 });
 

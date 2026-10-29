@@ -2,7 +2,7 @@ import express from "express";
 import type { JoinRateLimiter, ServerPasswordBackoff } from "../../../modules/join/index.js";
 import { identityFromString } from "../../../modules/teamspeak/index.js";
 import { isRecord } from "../../../shared/typeGuards.js";
-import { clientRateLimitKey } from "../../../shared/http/clientIp.js";
+import { clientRateLimitKey, resolveClientIp } from "../../../shared/http/clientIp.js";
 import { isSameOrigin } from "../../../shared/http/sameOrigin.js";
 import { teamSpeakTargetKey } from "../../../shared/teamSpeakTarget.js";
 import type { WebServerOptions } from "../webServerOptions.js";
@@ -62,7 +62,7 @@ export function registerJoinRoutes(
       return;
     }
 
-    const managedInvite = inviteToken ? options.adminService.consumeManagedInvite(inviteToken) : null;
+    const managedInvite = inviteToken ? options.adminService.consumeManagedInvite(inviteToken, resolveClientIp(request)) : null;
     if (inviteToken && !managedInvite) {
       response.status(400).json({ ok: false, code: "INVITE_INVALID" });
       return;

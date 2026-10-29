@@ -1,6 +1,7 @@
 import { mkdirSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
+import { DatabaseSync } from "node:sqlite";
 import { afterEach, beforeEach, vi } from "vitest";
 import type { AdminCredential } from "../../src/infra/security/adminPassword.js";
 import { type ManagedInviteRecord, type SettingsUpdate, WebSpeakDatabase } from "../../src/infra/persistence/database.js";
@@ -24,7 +25,7 @@ export function useDatabaseFixture(): DatabaseFixture {
       return join(root, "nested", "webspeak.db");
     },
     open(file = fixture.path) {
-      const database = new WebSpeakDatabase(file);
+      const database = new WebSpeakDatabase(file, { synchronous: "off" });
       opened.push(database);
       return database;
     },
@@ -51,6 +52,14 @@ export function mkdirSyncFor(file: string): void {
   mkdirSync(dirname(file), { recursive: true });
 }
 
+/** A plain connection for building old-schema files. Without fsync, since every statement is its own commit and Windows CI disks are slow. */
+export function openSeedDatabase(file: string): DatabaseSync {
+  mkdirSyncFor(file);
+  const raw = new DatabaseSync(file);
+  raw.exec("PRAGMA synchronous = OFF;");
+  return raw;
+}
+
 export const credential: AdminCredential = {
   version: 1,
   username: "root",
@@ -68,12 +77,6 @@ export function settings(overrides: Partial<SettingsUpdate> = {}): SettingsUpdat
     webRtcEnabled: true,
     webRtcUdpStart: 41000,
     webRtcUdpEnd: 41010,
-    relayConfigured: true,
-    relayEnabled: true,
-    relayName: "relay",
-    relayHost: "relay.example.org",
-    relayPort: 40000,
-    relayTokenEncrypted: "enc:token",
     ...overrides,
   };
 }
@@ -81,7 +84,7 @@ export function settings(overrides: Partial<SettingsUpdate> = {}): SettingsUpdat
 export function invite(id: string, overrides: Partial<Omit<ManagedInviteRecord, "createdAt" | "revokedAt" | "useCount">> = {}) {
   return {
     id,
-    serverId: null,
+    serverId: "server-default",
     tokenHash: `hash-${id}`,
     targetHost: "ts.example.org",
     targetPort: 9987,

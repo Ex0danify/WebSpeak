@@ -4,6 +4,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, type Mock, vi } from "vitest";
 import { AdminService } from "../../src/modules/admin/adminService.js";
+import { GatewayEvents } from "../../src/modules/admin/adminGatewayEvents.js";
+import { SessionHistoryRecorder } from "../../src/modules/admin/adminSessionRecorder.js";
 import { WebSpeakDatabase } from "../../src/infra/persistence/database.js";
 import { JoinTicketStore, type JoinTicketPayload } from "../../src/modules/join/joinTicket.js";
 import { createWebServer, type WebServer } from "../../src/transport/http/httpServer.js";
@@ -41,7 +43,7 @@ export interface GatewayOptions {
   staticDir?: string;
 }
 
-type ProbeFn = ConstructorParameters<typeof AdminService>[4] & {};
+type ProbeFn = ConstructorParameters<typeof AdminService>[3] & {};
 
 export interface AdminApi {
   readonly csrfToken: string;
@@ -62,8 +64,6 @@ export interface Gateway {
   readonly database: WebSpeakDatabase;
   readonly joinTickets: JoinTicketStore;
   readonly logger: StubLogger;
-  /** Where the admin console looks for the gateway log. The file does not exist until a test writes it. */
-  readonly logFile: string;
   /** The stubs behind the admin connection test: the handshake probe and the host ping. */
   readonly probe: Mock<ProbeFn>;
   readonly ping: Mock<(host: string) => Promise<TeamSpeakPingResult>>;
@@ -73,7 +73,7 @@ export interface Gateway {
   /** Puts a join ticket straight into the store, bypassing `/api/join-ticket` and its rate limit. */
   ticket(payload?: Partial<JoinTicketPayload>): string;
   /** Opens `/ws/voice` with a ticket (a fresh one for `nickname` by default). Closed with the gateway. */
-  openVoice(ticket?: string): Promise<WsClient>;
+  openVoice(ticket?: string, headers?: Record<string, string>): Promise<WsClient>;
   adminLogin(password?: string): Promise<AdminApi>;
   /** The gateway's own `stop()`, for tests of shutdown. `close()` still cleans up afterwards. */
   stop(): Promise<void>;
@@ -89,7 +89,7 @@ export async function startGateway(options: GatewayOptions = {}): Promise<Gatewa
   const dataDir = mkdtempSync(join(tmpdir(), "webspeak-gateway-"));
   const logger = stubLogger();
   const ts = options.ts ?? new FakeTeamSpeakServer();
-  const database = new WebSpeakDatabase(join(dataDir, "webspeak.db"));
+  const database = new WebSpeakDatabase(join(dataDir, "webspeak.db"), { synchronous: "off" });
   const probe = vi.fn(options.probe ?? (async () => ({ ok: true as const, latencyMs: 12 })));
   const ping = vi.fn(
     options.ping ??
@@ -99,17 +99,16 @@ export async function startGateway(options: GatewayOptions = {}): Promise<Gatewa
   const port = await freePort();
   const adminProbe = options.realTeamSpeak && !options.probe ? probeTeamSpeak : probe;
   const adminPing = options.realTeamSpeak && !options.ping ? undefined : ping;
-  const adminService = new AdminService(database, MASTER_SECRET, logger, port, adminProbe as unknown as ProbeFn, "9.9.9", adminPing);
+  const adminService = new AdminService(database, MASTER_SECRET, logger, adminProbe as unknown as ProbeFn, "9.9.9", adminPing);
   if (options.initialize !== false) {
     await adminService.initialize(BOOTSTRAP);
     if (!options.forcePasswordChange) await adminService.changePassword(TEST_ADMIN_PASSWORD);
   }
   const joinTickets = new JoinTicketStore();
-  const logFile = join(dataDir, "webspeak.log");
+  const gatewayEvents = new GatewayEvents(database);
   const webServer: WebServer = createWebServer({
     port,
     version: "9.9.9",
-    logFile,
     staticDir: options.staticDir,
     // The same wiring as src/index.ts; `options.voiceBridgeOptions` can override any of it.
     voiceBridgeOptions: {
@@ -117,11 +116,13 @@ export async function startGateway(options: GatewayOptions = {}): Promise<Gatewa
       screenShareIceServers: () => [],
       acceleration: () => adminService.getAccelerationRelayOptions(),
       accelerationName: () => adminService.getAccelerationRelayName(),
+      sessionRecorder: new SessionHistoryRecorder(database, gatewayEvents, logger),
       ...options.voiceBridgeOptions,
       joinTickets,
       createClient: options.realTeamSpeak ? undefined : ts.createClient,
     },
     adminService,
+    gatewayEvents,
     logger,
     nextVisitorNumber: () => database.nextVisitorNumber(),
     visitorCount: () => database.getVisitorCount(),
@@ -142,13 +143,12 @@ export async function startGateway(options: GatewayOptions = {}): Promise<Gatewa
     logger,
     probe,
     ping,
-    logFile,
     dataDir,
     request,
     ticket: (payload = {}) =>
       joinTickets.create({ target: { host: "ts.test", port: 9987 }, serverPassword: "", nickname: "tester", ...payload }),
-    async openVoice(ticket = gateway.ticket()) {
-      const socket = await WsClient.open(`${gateway.wsUrl}?ticket=${encodeURIComponent(ticket)}`);
+    async openVoice(ticket = gateway.ticket(), headers) {
+      const socket = await WsClient.open(`${gateway.wsUrl}?ticket=${encodeURIComponent(ticket)}`, headers);
       sockets.add(socket);
       return socket;
     },

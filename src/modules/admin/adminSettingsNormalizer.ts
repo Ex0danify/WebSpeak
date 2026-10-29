@@ -13,9 +13,16 @@ import {
   IDENTITY_MINT_QUEUE_DEPTH_MAX,
   IDENTITY_MINT_QUEUE_DEPTH_MIN,
 } from "../../config/identityMintConfig.js";
+import {
+  CONNECTION_ROWS_MAX,
+  CONNECTION_ROWS_MIN,
+  DEFAULT_RETENTION_POLICY,
+  EVENT_LOG_ROWS_MAX,
+  EVENT_LOG_ROWS_MIN,
+  RETENTION_DAYS_MAX,
+  RETENTION_DAYS_MIN,
+} from "../../config/retentionConfig.js";
 import { AdminInputError } from "./adminErrors.js";
-
-const DEFAULT_RELAY_NAME = "Relay acceleration";
 
 type StoredSettings = ReturnType<WebSpeakDatabase["getSettings"]>;
 
@@ -24,18 +31,19 @@ export interface AdminSettingsInput {
   siteName: string;
   /** Texts to store by language code, a language left out keeps its text and an empty one clears it. */
   welcomeTexts?: Record<string, string>;
+  /** An http(s) address, empty clears it, left out keeps it. */
+  privacyNoticeUrl?: string;
   webRtcEnabled: boolean;
   webRtcUdpStart?: number;
   webRtcUdpEnd?: number;
   identityMintMaxLevel?: number;
   identityMintConcurrency?: number;
   identityMintQueueDepth?: number;
-  relaySettingsAction?: "keep" | "replace" | "remove";
-  relayEnabled?: boolean;
-  relayName?: string;
-  relayTarget?: string;
-  relayToken?: string;
-  relayTokenAction?: "keep" | "replace" | "remove";
+  eventLogRetentionDays?: number;
+  eventLogMaxRows?: number;
+  connectionRetentionDays?: number;
+  connectionMaxRows?: number;
+  logRetentionDays?: number;
   relayNodes?: RelayNodeInput[];
 }
 
@@ -69,14 +77,27 @@ function mergeWelcomeTexts(current: Record<string, string>, input: Record<string
   return merged;
 }
 
-export function normalizeSettings(
-  input: AdminSettingsInput,
-  current: StoredSettings,
-  masterSecret: Buffer,
-  relayNodes?: PersistedRelayNode[],
-): SettingsUpdate {
+export const PRIVACY_NOTICE_URL_MAX = 300;
+
+function normalizePrivacyNoticeUrl(value: string): string {
+  const trimmed = value.trim();
+  if (!trimmed) return "";
+  const invalid = () => new AdminInputError("INVALID_PRIVACY_NOTICE_URL", "The privacy notice must be an http or https address");
+  if (trimmed.length > PRIVACY_NOTICE_URL_MAX) throw invalid();
+  try {
+    const url = new URL(trimmed);
+    // A link in front of every guest, so no scheme that runs script and no login in the address.
+    if ((url.protocol !== "http:" && url.protocol !== "https:") || url.username || url.password) throw invalid();
+  } catch (error: unknown) {
+    throw error instanceof AdminInputError ? error : invalid();
+  }
+  return trimmed;
+}
+
+export function normalizeSettings(input: AdminSettingsInput, current: StoredSettings): SettingsUpdate {
   const siteName = input.siteName.trim();
   const welcomeTexts = mergeWelcomeTexts(current.welcomeTexts, input.welcomeTexts);
+  const privacyNoticeUrl = normalizePrivacyNoticeUrl(input.privacyNoticeUrl ?? current.privacyNoticeUrl);
   if (!siteName || siteName.length > 80) throw new AdminInputError("INVALID_SITE_NAME", "Site name must contain 1 to 80 characters");
   if (Object.values(welcomeTexts).some((text) => text.length > 500)) {
     throw new AdminInputError("INVALID_WELCOME_TEXT", "Welcome text cannot exceed 500 characters");
@@ -123,60 +144,54 @@ export function normalizeSettings(
     "INVALID_IDENTITY_MINT_QUEUE_DEPTH",
     `Identity mint queue depth must be between ${IDENTITY_MINT_QUEUE_DEPTH_MIN} and ${IDENTITY_MINT_QUEUE_DEPTH_MAX}`,
   );
+  const retention = {
+    eventLog: {
+      days: boundedInteger(
+        input.eventLogRetentionDays ?? current.retention.eventLog.days ?? DEFAULT_RETENTION_POLICY.eventLog.days,
+        RETENTION_DAYS_MIN,
+        RETENTION_DAYS_MAX,
+        "INVALID_EVENT_LOG_RETENTION",
+        `Event log retention must be between ${RETENTION_DAYS_MIN} and ${RETENTION_DAYS_MAX} days`,
+      ),
+      maxRows: boundedInteger(
+        input.eventLogMaxRows ?? current.retention.eventLog.maxRows ?? DEFAULT_RETENTION_POLICY.eventLog.maxRows,
+        EVENT_LOG_ROWS_MIN,
+        EVENT_LOG_ROWS_MAX,
+        "INVALID_EVENT_LOG_ROWS",
+        `Event log size must be between ${EVENT_LOG_ROWS_MIN} and ${EVENT_LOG_ROWS_MAX} entries`,
+      ),
+    },
+    connections: {
+      days: boundedInteger(
+        input.connectionRetentionDays ?? current.retention.connections.days ?? DEFAULT_RETENTION_POLICY.connections.days,
+        RETENTION_DAYS_MIN,
+        RETENTION_DAYS_MAX,
+        "INVALID_CONNECTION_RETENTION",
+        `Connection history retention must be between ${RETENTION_DAYS_MIN} and ${RETENTION_DAYS_MAX} days`,
+      ),
+      maxRows: boundedInteger(
+        input.connectionMaxRows ?? current.retention.connections.maxRows ?? DEFAULT_RETENTION_POLICY.connections.maxRows,
+        CONNECTION_ROWS_MIN,
+        CONNECTION_ROWS_MAX,
+        "INVALID_CONNECTION_ROWS",
+        `Connection history size must be between ${CONNECTION_ROWS_MIN} and ${CONNECTION_ROWS_MAX} entries`,
+      ),
+    },
+    logs: {
+      days: boundedInteger(
+        input.logRetentionDays ?? current.retention.logs.days ?? DEFAULT_RETENTION_POLICY.logs.days,
+        RETENTION_DAYS_MIN,
+        RETENTION_DAYS_MAX,
+        "INVALID_LOG_RETENTION",
+        `Log retention must be between ${RETENTION_DAYS_MIN} and ${RETENTION_DAYS_MAX} days`,
+      ),
+    },
+  };
 
-  let relayConfigured = current.relayConfigured;
-  let relayEnabled = current.relayEnabled;
-  let relayName = current.relayName;
-  let relayHost = current.relayHost;
-  let relayPort = current.relayPort || DEFAULT_ACCELERATION_RELAY_PORT;
-  let relayTokenEncrypted = current.relayTokenEncrypted;
-  const relaySettingsAction = input.relaySettingsAction ?? "keep";
-  if (relaySettingsAction === "remove") {
-    relayConfigured = true;
-    relayEnabled = false;
-    relayName = "";
-    relayHost = "";
-    relayPort = DEFAULT_ACCELERATION_RELAY_PORT;
-    relayTokenEncrypted = null;
-  } else if (relaySettingsAction === "replace") {
-    const relayTarget = (input.relayTarget ?? "").trim();
-    relayEnabled = input.relayEnabled === true;
-    relayName = (input.relayName ?? "").trim();
-    if (relayName.length > 80) throw new AdminInputError("INVALID_RELAY_NAME", "Relay name must contain 80 characters or fewer");
-    if (relayEnabled && !relayName) throw new AdminInputError("INVALID_RELAY_NAME", "Relay name is required when the relay is enabled");
-    if (relayEnabled && !relayTarget)
-      throw new AdminInputError("INVALID_RELAY_TARGET", "Relay target is required when the relay is enabled");
-    if (relayTarget) {
-      try {
-        const relay = parseTeamSpeakTarget(relayTarget, DEFAULT_ACCELERATION_RELAY_PORT);
-        relayHost = relay.host;
-        relayPort = relay.port;
-      } catch {
-        throw new AdminInputError("INVALID_RELAY_TARGET", "Relay target is invalid");
-      }
-    } else {
-      relayHost = "";
-      relayPort = DEFAULT_ACCELERATION_RELAY_PORT;
-    }
-    const relayTokenAction = input.relayTokenAction ?? (input.relayToken === undefined ? "keep" : "replace");
-    if (relayTokenAction === "remove") relayTokenEncrypted = null;
-    if (relayTokenAction === "replace") relayTokenEncrypted = input.relayToken ? encryptSecret(input.relayToken, masterSecret) : null;
-    if (relayEnabled && !relayTokenEncrypted)
-      throw new AdminInputError("INVALID_RELAY_TOKEN", "Relay token is required when the relay is enabled");
-    relayConfigured = true;
-  }
-  if (relayNodes) {
-    const primary = relayNodes.find((node) => node.enabled) ?? relayNodes[0];
-    relayConfigured = relayNodes.length > 0;
-    relayEnabled = primary?.enabled === true;
-    relayName = primary?.name ?? "";
-    relayHost = primary?.host ?? "";
-    relayPort = primary?.port ?? DEFAULT_ACCELERATION_RELAY_PORT;
-    relayTokenEncrypted = primary?.tokenEncrypted ?? null;
-  }
   return {
     siteName,
     welcomeTexts,
+    privacyNoticeUrl,
     accessMode: input.accessMode,
     webRtcEnabled: input.webRtcEnabled,
     webRtcUdpStart,
@@ -184,12 +199,7 @@ export function normalizeSettings(
     identityMintMaxLevel,
     identityMintConcurrency,
     identityMintQueueDepth,
-    relayConfigured,
-    relayEnabled,
-    relayName,
-    relayHost,
-    relayPort,
-    relayTokenEncrypted,
+    retention,
   };
 }
 
@@ -246,28 +256,11 @@ function canDecryptToken(encrypted: string, masterSecret: Buffer): boolean {
   }
 }
 
-export function legacyRelayNodesFromSettings(settings: SettingsUpdate, existing: PersistedRelayNode[]): PersistedRelayNode[] {
-  if (!settings.relayConfigured || !settings.relayHost || !settings.relayTokenEncrypted) return [];
-  const previous = existing[0];
-  const now = new Date().toISOString();
-  return [
-    {
-      id: previous?.id ?? "relay-default",
-      name: settings.relayName || DEFAULT_RELAY_NAME,
-      enabled: settings.relayEnabled,
-      host: settings.relayHost,
-      port: settings.relayPort || DEFAULT_ACCELERATION_RELAY_PORT,
-      tokenEncrypted: settings.relayTokenEncrypted,
-      createdAt: previous?.createdAt ?? now,
-      updatedAt: now,
-    },
-  ];
-}
-
 export function toSettingsUpdate(settings: StoredSettings): SettingsUpdate {
   return {
     siteName: settings.siteName,
     welcomeTexts: settings.welcomeTexts,
+    privacyNoticeUrl: settings.privacyNoticeUrl,
     accessMode: settings.accessMode,
     webRtcEnabled: settings.webRtcEnabled,
     webRtcUdpStart: settings.webRtcUdpStart,
@@ -275,11 +268,6 @@ export function toSettingsUpdate(settings: StoredSettings): SettingsUpdate {
     identityMintMaxLevel: settings.identityMintMaxLevel,
     identityMintConcurrency: settings.identityMintConcurrency,
     identityMintQueueDepth: settings.identityMintQueueDepth,
-    relayConfigured: settings.relayConfigured,
-    relayEnabled: settings.relayEnabled,
-    relayName: settings.relayName,
-    relayHost: settings.relayHost,
-    relayPort: settings.relayPort,
-    relayTokenEncrypted: settings.relayTokenEncrypted,
+    retention: settings.retention,
   };
 }

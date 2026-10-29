@@ -3,13 +3,15 @@ import type { IdentityLeaseStore } from "../../teamspeak/index.js";
 import type { Logger as LoggerType } from "../../../shared/logger.js";
 import { formatTeamSpeakTarget } from "../../../shared/teamSpeakTarget.js";
 import type { SessionManager, SessionTeardownReason } from "./voiceSessionManager.js";
+import type { SessionRecorder } from "./voiceSessionRecorder.js";
 import type { AdminSessionSummary, WebClientEntry } from "../voiceTypes.js";
-import { snapshotAudioStats } from "../audio/audioStats.js";
+import { snapshotAudioStats, summarizeAudioStats } from "../audio/audioStats.js";
 
 export interface SessionCleanupDeps {
   entries: Map<string, WebClientEntry>;
   identityLeases: IdentityLeaseStore;
   logger: LoggerType;
+  sessionRecorder?: SessionRecorder;
   removeScreenSharePeer(entryId: string): void;
   forgetScreenStreams(): void;
 }
@@ -36,6 +38,9 @@ export function getSessionSummaries(entries: Map<string, WebClientEntry>): Admin
         id: entry.id,
         nickname: entry.nickname,
         target: formatTeamSpeakTarget(entry.target),
+        clientIp: entry.clientIp,
+        relayName: entry.accelerationRelay?.name ?? null,
+        relayTarget: entry.accelerationRelay?.target ?? null,
         state: entry.session.state,
         createdAt: new Date(entry.session.createdAt).toISOString(),
         ageSeconds: Math.max(0, Math.floor((now - entry.session.createdAt) / 1000)),
@@ -118,4 +123,11 @@ export async function cleanupEntry(entry: WebClientEntry, reason: SessionTeardow
     },
     "Client session torn down",
   );
+  deps.sessionRecorder?.ended(entry.id, {
+    reason,
+    ...(entry.connectionFailureCode ? { failureCode: entry.connectionFailureCode } : {}),
+    ...(entry.connectionFailureDetail ? { failureDetail: entry.connectionFailureDetail } : {}),
+    durationSeconds: Math.max(0, Math.floor((Date.now() - entry.session.createdAt) / 1000)),
+    audio: summarizeAudioStats(entry.audio),
+  });
 }

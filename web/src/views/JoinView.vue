@@ -53,7 +53,12 @@
       />
     </main>
 
-    <JoinFooter class="animate-join-fade-up-late" :app-version="appVersion" @clear-local-data="clearBrowserData" />
+    <JoinFooter
+      class="animate-join-fade-up-late"
+      :app-version="appVersion"
+      :privacy-notice-url="privacyNoticeUrl"
+      @clear-local-data="clearBrowserData"
+    />
   </section>
 
   <!-- TeamSpeak server password modal -->
@@ -102,6 +107,7 @@ const {
   recentServers,
   initialized,
   siteName,
+  privacyNoticeUrl,
   localizedWelcomeText,
   appVersion,
   visitorNumber,

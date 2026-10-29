@@ -9,6 +9,7 @@ export * from "@/shared/ui/dialog";
 export * from "@/shared/ui/field";
 export * from "@/shared/ui/icon";
 export * from "@/shared/ui/input";
+export * from "@/shared/ui/list";
 export * from "@/shared/ui/menu";
 export * from "@/shared/ui/meter";
 export * from "@/shared/ui/popover";

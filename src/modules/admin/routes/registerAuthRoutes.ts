@@ -1,5 +1,5 @@
 import type { Router } from "express";
-import { clientRateLimitKey, isHttpsRequest } from "../../../shared/http/clientIp.js";
+import { clientRateLimitKey, isHttpsRequest, resolveClientIp } from "../../../shared/http/clientIp.js";
 import type { Logger } from "../../../shared/logger.js";
 import { requireCsrf, requireSameOrigin, sendAdminError } from "../adminMiddleware.js";
 import { asRecord, readOptionalString, readString } from "../adminRequestParsing.js";
@@ -41,13 +41,13 @@ export function registerAuthRoutes(router: Router, options: AdminRouterOptions, 
     const delayMs = limiter.recordFailure(peer);
     if (!(await options.service.verifyPassword(username, password))) {
       await waitFor(delayMs);
-      options.service.database.addAudit("ADMIN_LOGIN_FAILED");
+      options.service.database.addAudit("ADMIN_LOGIN_FAILED", { username, ip: resolveClientIp(request) });
       logger.warn("Administrator login failed");
       response.status(401).json({ ok: false, code: "INVALID_PASSWORD" });
       return;
     }
     limiter.recordSuccess(peer);
-    options.service.database.addAudit("ADMIN_LOGIN_SUCCEEDED");
+    options.service.database.addAudit("ADMIN_LOGIN_SUCCEEDED", { ip: resolveClientIp(request) });
     const session = options.sessions.create(response, isHttpsRequest(request));
     response.json({
       ok: true,
@@ -60,7 +60,7 @@ export function registerAuthRoutes(router: Router, options: AdminRouterOptions, 
   router.post("/change-password", requireSameOrigin, requireCsrf(options.sessions), async (request, response) => {
     try {
       const body = asRecord(request.body);
-      await options.service.changePassword(readString(body, "newPassword", 1024));
+      await options.service.changePassword(readString(body, "newPassword", 1024), resolveClientIp(request));
       options.sessions.retainOnly(request);
       response.json({ ok: true, mustChangePassword: false });
     } catch (error: unknown) {
@@ -70,7 +70,7 @@ export function registerAuthRoutes(router: Router, options: AdminRouterOptions, 
 
   router.post("/logout", requireSameOrigin, requireCsrf(options.sessions), (request, response) => {
     options.sessions.destroy(request, response, isHttpsRequest(request));
-    options.service.database.addAudit("ADMIN_LOGOUT");
+    options.service.database.addAudit("ADMIN_LOGOUT", { ip: resolveClientIp(request) });
     response.json({ ok: true });
   });
 }
