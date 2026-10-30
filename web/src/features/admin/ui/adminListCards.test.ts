@@ -96,7 +96,10 @@ describe("InvitesCard", () => {
     const wrapper = mount(InvitesCard, { attachTo: document.body, global: { plugins: [pinia, plugins[1]!] } });
     expect(showPreview).toHaveBeenCalledOnce();
     expect(wrapper.text()).toContain(t("inviteListEmpty"));
-    await wrapper.findAll("button").find((entry) => entry.text().includes(t("createInvite")))!.trigger("click");
+    await wrapper
+      .findAll("button")
+      .find((entry) => entry.text().includes(t("createInvite")))!
+      .trigger("click");
     expect(openCreateInvite).toHaveBeenCalledOnce();
   });
 
@@ -175,7 +178,10 @@ describe("ConnectionsCard", () => {
 });
 
 describe("AdminDiagnosticsPage", () => {
-  const stubs = { EventLogCard: { template: "<section data-test='events' />" }, RetentionCard: { template: "<section data-test='retention' />" } };
+  const stubs = {
+    EventLogCard: { template: "<section data-test='events' />" },
+    RetentionCard: { template: "<section data-test='retention' />" },
+  };
 
   it("loads the facts when it is entered and shows the version in the notice", async () => {
     const { pinia, plugins } = await setup();
@@ -198,7 +204,10 @@ describe("AdminDiagnosticsPage", () => {
     Object.assign(useAdminDiagnosticsStore(), { loadDiagnostics });
     const wrapper = mount(AdminDiagnosticsPage, { global: { plugins: [pinia, plugins[1]!], stubs } });
     loadDiagnostics.mockClear();
-    await wrapper.findAll("button").find((entry) => entry.attributes("aria-label")?.length || entry.text())!.trigger("click");
+    await wrapper
+      .findAll("button")
+      .find((entry) => entry.attributes("aria-label")?.length || entry.text())!
+      .trigger("click");
     expect(loadDiagnostics).toHaveBeenCalled();
   });
 });

@@ -231,7 +231,14 @@ describe("createAdminFormat for connections", () => {
       decodeErrors: 0,
     };
     const lines = (ice: Record<string, unknown>) =>
-      connectionAudioLines(audio({ path: { ...base, ice: { state: "connected", localType: null, remoteType: null, protocol: null, rttMs: null, connectMs: null, ...ice } } }));
+      connectionAudioLines(
+        audio({
+          path: {
+            ...base,
+            ice: { state: "connected", localType: null, remoteType: null, protocol: null, rttMs: null, connectMs: null, ...ice },
+          },
+        }),
+      );
     const bare = lines({});
     expect(bare).toHaveLength(3);
     const full = lines({ state: "weird", remoteType: "srflx", protocol: "udp", rttMs: 24, connectMs: 310 });

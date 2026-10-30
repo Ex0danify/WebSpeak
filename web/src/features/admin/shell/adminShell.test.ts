@@ -120,7 +120,10 @@ describe("DiagnosticsCard", () => {
     const bundle = wrapper.find('a[href="/api/admin/diagnostics/bundle"]');
     expect(bundle.attributes("aria-describedby")).toBe("bundle-hint");
     expect(wrapper.find("#bundle-hint").text()).toBe(t("bundleHint"));
-    await wrapper.findAll("button").find((entry) => entry.text() === t("exportBackup"))!.trigger("click");
+    await wrapper
+      .findAll("button")
+      .find((entry) => entry.text() === t("exportBackup"))!
+      .trigger("click");
     expect(downloadBackup).toHaveBeenCalledOnce();
     expect(wrapper.find("#backup-hint").text()).toBe(t("backupHint"));
   });
