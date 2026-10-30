@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { mount, RouterLinkStub } from "@vue/test-utils";
 import { registerAdminStores } from "@/features/admin/shell/adminStores";
 import { createAdminFormat } from "@/features/admin/core/adminFormat";
+import { createSaveStatus } from "@/features/admin/core/saveStatus";
 import type { AdminConnectionAudio, AdminConnectionRecord } from "@/features/admin/core/adminTypes";
 import { useAdminOverviewStore } from "@/features/admin/dashboard/adminOverview";
 import Metrics from "@/features/admin/dashboard/Metrics.vue";
@@ -20,8 +21,11 @@ beforeEach(() => {
 });
 
 describe("SaveStatus", () => {
-  const mountStatus = (state: "idle" | "saving" | "saved", quiet = false) =>
-    mount(SaveStatus, { props: { status: { state, error: "" }, quiet }, global: { stubs: { transition: false } } });
+  const mountStatus = (state: "idle" | "saving" | "saved", quiet = false) => {
+    const status = createSaveStatus();
+    if (state !== "idle") status[state]();
+    return mount(SaveStatus, { props: { status, quiet }, global: { stubs: { transition: false } } });
+  };
 
   it("keeps an empty live region while nothing happens", () => {
     const wrapper = mountStatus("idle");
