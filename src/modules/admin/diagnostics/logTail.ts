@@ -16,7 +16,8 @@ export function readLogTail(logDir: string | undefined, pseudonyms: Pseudonyms, 
     .filter((file) => existsSync(file));
   const chunks: string[] = [];
   let remaining = maxBytes;
-  for (const file of files.reverse()) {
+  files.reverse();
+  for (const file of files) {
     if (remaining <= 0) break;
     const { text, complete } = readEnd(file, remaining);
     chunks.unshift(text);

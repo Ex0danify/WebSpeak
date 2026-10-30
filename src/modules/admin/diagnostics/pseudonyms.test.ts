@@ -69,6 +69,63 @@ describe("Pseudonyms", () => {
   });
 });
 
+describe("Pseudonyms address classes", () => {
+  it("tells loopback, private and public addresses apart", () => {
+    const pseudonyms = new Pseudonyms();
+    expect(pseudonyms.ip("127.0.0.1")).toMatch(/\/loopback$/);
+    for (const address of ["10.1.2.3", "172.16.0.1", "172.31.255.1", "192.168.1.1", "169.254.1.1", "100.64.0.1", "100.127.0.1"]) {
+      expect(pseudonyms.ip(address), address).toMatch(/\/private$/);
+    }
+    for (const address of ["8.8.8.8", "172.32.0.1", "172.15.0.1", "192.169.0.1", "100.63.0.1", "100.128.0.1", "169.253.0.1"]) {
+      expect(pseudonyms.ip(address), address).toMatch(/\/public$/);
+    }
+    expect(pseudonyms.ip("::1")).toMatch(/\/loopback$/);
+    expect(pseudonyms.ip("fd12::1")).toMatch(/\/private$/);
+    expect(pseudonyms.ip("fe80::1")).toMatch(/\/private$/);
+    expect(pseudonyms.ip("2001:db8::1")).toMatch(/\/public$/);
+    expect(pseudonyms.ip("not an address")).toMatch(/\/unknown$/);
+  });
+
+  it("treats a host that is no address as a name", () => {
+    const pseudonyms = new Pseudonyms();
+    expect(pseudonyms.host("localhost")).toBe("localhost");
+    expect(pseudonyms.host("intranet")).toBe("host-1");
+    expect(pseudonyms.host("TS.Example.com")).toBe("host-2.com");
+    expect(pseudonyms.host("ts.example.com")).toBe("host-2.com");
+    expect(pseudonyms.host("[::1]")).toMatch(/\/loopback$/);
+    // too large for an address, so it stays a name
+    expect(pseudonyms.host("300.1")).toBe("host-3.1");
+    expect(pseudonyms.host("1.2.3.999")).toMatch(/^host-\d+\.999$/);
+    expect(pseudonyms.host("4294967296")).toMatch(/^host-\d+$/);
+  });
+
+  it("falls back to the host for a target without a port", () => {
+    const pseudonyms = new Pseudonyms();
+    expect(pseudonyms.target("ts.example.com")).toBe("host-1.com");
+    expect(pseudonyms.target("[2001:db8::1]:9987")).toMatch(/^ip-1\/public:9987$/);
+    // six digits are no port, so the whole value is taken for a host
+    expect(pseudonyms.target("ts.example.com:999999")).toBe("host-2.com:999999");
+  });
+
+  it("numbers every kind of label on its own", () => {
+    const pseudonyms = new Pseudonyms();
+    expect([pseudonyms.server("a"), pseudonyms.server("b"), pseudonyms.server("a")]).toEqual(["server-1", "server-2", "server-1"]);
+    expect([pseudonyms.relay("a"), pseudonyms.channel("a"), pseudonyms.user("a"), pseudonyms.nickname("a")]).toEqual([
+      "relay-1",
+      "channel-1",
+      "user-1",
+      "guest-1",
+    ]);
+  });
+
+  it("does not hunt for names too short to be told from other words", () => {
+    const pseudonyms = new Pseudonyms();
+    pseudonyms.nickname("al");
+    expect(pseudonyms.scrub("al went to the hall")).toBe("al went to the hall");
+    expect(pseudonyms.scrubPatterns("al at 10.0.0.1")).toMatch(/^al at ip-1\/private$/);
+  });
+});
+
 describe("redact", () => {
   it("uses the key first and the content second", () => {
     const p = new Pseudonyms();

@@ -122,6 +122,7 @@ onMounted(() => void probeAll());
 const dotClass = (status: ServerStatus) => ({ online: "bg-success", probing: "bg-warning", unreachable: "bg-danger" })[status];
 function statusLabel(server: AdminServer): string {
   const status = statusOf(server);
-  return status === "online" ? t("serverOnline") : status === "probing" ? t("serverProbing") : t("serverUnreachable");
+  if (status === "online") return t("serverOnline");
+  return status === "probing" ? t("serverProbing") : t("serverUnreachable");
 }
 </script>

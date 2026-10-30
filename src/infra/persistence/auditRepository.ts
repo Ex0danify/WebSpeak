@@ -83,8 +83,8 @@ function buildFilter(query: AuditQuery): { where: string; params: string[] } {
   const term = query.search?.trim().toLowerCase();
   if (term) {
     // Spaces match the underscores of an event name, so "login failed" finds ADMIN_LOGIN_FAILED.
-    const escape = (text: string) => text.replace(/[\\%_]/g, "\\$&");
-    clauses.push("(lower(event) LIKE ? ESCAPE '\\' OR lower(details_json) LIKE ? ESCAPE '\\')");
+    const escape = (text: string) => text.replace(/[\\%_]/g, String.raw`\$&`);
+    clauses.push(String.raw`(lower(event) LIKE ? ESCAPE '\' OR lower(details_json) LIKE ? ESCAPE '\')`);
     params.push(`%${escape(term.replaceAll(" ", "_"))}%`, `%${escape(term)}%`);
   }
   return { where: clauses.length ? ` WHERE ${clauses.join(" AND ")}` : "", params };

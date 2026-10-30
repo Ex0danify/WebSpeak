@@ -16,23 +16,23 @@ export const useAdminGatewayStore = defineStore("adminGateway", () => {
   let scope: EffectScope | undefined;
   let poll: ReturnType<typeof useGatewayStatus> | undefined;
 
-  async function onRecover() {
+  function onRecover() {
     recoveries.value += 1;
     const siblings = adminSiblings();
-    await Promise.all([siblings.loadOverview(), siblings.loadServerSettings(), siblings.loadServers()]).catch(() => {});
+    Promise.all([siblings.loadOverview(), siblings.loadServerSettings(), siblings.loadServers()]).catch(() => {});
   }
 
   function start() {
     if (scope) return;
     scope = effectScope(true);
     scope.run(() => {
-      poll = useGatewayStatus({ onRecover: () => void onRecover() });
+      poll = useGatewayStatus({ onRecover });
       watchEffect(() => {
         status.value = poll!.status.value;
         retryIn.value = poll!.retryIn.value;
       });
     });
-    void poll!.start();
+    poll!.start();
   }
 
   function stop() {

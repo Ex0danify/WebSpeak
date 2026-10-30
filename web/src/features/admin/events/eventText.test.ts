@@ -153,4 +153,45 @@ describe("createEventText", () => {
     expect(detail(entry("ADMIN_LOGOUT")).summary).toBe("");
     expect(detail(entry("SOME_NEW_EVENT", { x: 1 })).summary).toBe("");
   });
+
+  it("leaves out what an event did not record", () => {
+    const { detail } = setup();
+    expect(detail(entry("SERVER_UPDATED", { name: "Main", target: "ts:1", changes: [] })).summary).toBe(
+      "Main · ts:1 · Saved without changes",
+    );
+    expect(detail(entry("SERVER_AVAILABLE", { name: "Main" })).summary).toBe("Main");
+    expect(detail(entry("SERVERS_REORDERED", {})).summary).toBe("");
+    expect(detail(entry("INVITE_REVOKED", { serverName: "Main", useCount: 3 })).summary).toBe("Main · 3 uses");
+    expect(detail(entry("INVITE_REVOKED", { serverName: "Main", useCount: 3, maxUses: 0 })).summary).toBe("Main · 3 uses");
+    expect(detail(entry("INVITE_CREATED", { serverName: "Main", channel: "Lobby", maxUses: "many" })).summary).toBe("Main · Lobby");
+    expect(detail(entry("SESSION_ENDED", { nickname: "alice" })).summary).toBe("alice");
+    expect(detail(entry("GATEWAY_STARTED")).summary).toBe("");
+    expect(detail(entry("GATEWAY_STOPPED")).summary).toBe("");
+    expect(detail(entry("CAPACITY_REACHED")).summary).toBe("");
+    expect(detail(entry("ADMIN_LOGIN_FAILED", {})).summary).toBe("");
+  });
+
+  it("writes any kind of value into a change line and skips what is not a change", () => {
+    const { detail } = setup();
+    const { changes } = detail(
+      entry("SETTINGS_CHANGED", {
+        changes: [
+          { field: "siteName", from: null, to: "Clan" },
+          { field: "siteName", from: "Clan", to: undefined },
+          { field: "siteName", from: "Clan", to: "" },
+          { field: "relayNodes", from: [], to: { a: 1 } },
+          { field: "eventLogMaxRows", from: 10, to: 20 },
+          { to: 1 },
+          "text",
+          null,
+        ],
+      }),
+    );
+    expect(changes).toHaveLength(5);
+    expect(changes[0]).toContain("none");
+    expect(changes[1]).toContain("none");
+    expect(changes[3]).toContain('[] → {"a":1}');
+    expect(changes[4]).toContain("10 → 20");
+    expect(detail(entry("SETTINGS_CHANGED", { changes: "oops" })).changes).toEqual([]);
+  });
 });

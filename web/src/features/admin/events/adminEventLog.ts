@@ -22,9 +22,9 @@ function storedPageSize(): number {
 
 export const EVENT_CATEGORIES: readonly AdminEventCategory[] = ["auth", "config", "invites", "availability", "sessions", "system"];
 /** Availability changes and every session are in the log but not in the way, the filter brings them in. */
-const QUIET_CATEGORIES: readonly AdminEventCategory[] = ["availability", "sessions"];
+const QUIET_CATEGORIES = new Set<AdminEventCategory>(["availability", "sessions"]);
 export const DEFAULT_EVENT_CATEGORIES: readonly AdminEventCategory[] = EVENT_CATEGORIES.filter(
-  (category) => !QUIET_CATEGORIES.includes(category),
+  (category) => !QUIET_CATEGORIES.has(category),
 );
 
 export const EVENT_SEVERITIES: readonly AdminEventSeverity[] = ["info", "warning", "error"];
@@ -115,7 +115,7 @@ export const useAdminEventLogStore = defineStore("adminEventLog", () => {
 
   /** Keeps the first entry on the screen on the page it lands on with the new size. */
   function setPageSize(size: number) {
-    if (!EVENT_PAGE_SIZES.some((allowed) => allowed === size) || size === list.limit) return;
+    if (!(EVENT_PAGE_SIZES as readonly number[]).includes(size) || size === list.limit) return;
     const first = (list.page - 1) * list.limit;
     Object.assign(list, { limit: size, page: Math.floor(first / size) + 1 });
     try {

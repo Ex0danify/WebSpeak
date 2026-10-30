@@ -75,8 +75,9 @@ describe("useAdminGatewayStore", () => {
     await vi.advanceTimersByTimeAsync(0);
     store.reset();
     expect(store.status).toBe("checking");
-    const calls = (fetch as ReturnType<typeof vi.fn>).mock.calls.length;
+    const fetchCalls = () => (fetch as ReturnType<typeof vi.fn>).mock.calls;
+    const calls = fetchCalls().length;
     await vi.advanceTimersByTimeAsync(60_000);
-    expect((fetch as ReturnType<typeof vi.fn>).mock.calls.length).toBe(calls);
+    expect(fetchCalls()).toHaveLength(calls);
   });
 });

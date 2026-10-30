@@ -187,8 +187,8 @@ function buildFilter(query: ConnectionQuery): { where: string; params: string[] 
   }
   const term = query.search?.trim().toLowerCase();
   if (term) {
-    const pattern = `%${term.replace(/[\\%_]/g, "\\$&")}%`;
-    clauses.push("(lower(nickname) LIKE ? ESCAPE '\\' OR lower(client_ip) LIKE ? ESCAPE '\\' OR lower(target) LIKE ? ESCAPE '\\')");
+    const pattern = `%${term.replace(/[\\%_]/g, String.raw`\$&`)}%`;
+    clauses.push(String.raw`(lower(nickname) LIKE ? ESCAPE '\' OR lower(client_ip) LIKE ? ESCAPE '\' OR lower(target) LIKE ? ESCAPE '\')`);
     params.push(pattern, pattern, pattern);
   }
   return { where: clauses.length ? ` WHERE ${clauses.join(" AND ")}` : "", params };

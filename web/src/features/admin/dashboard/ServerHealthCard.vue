@@ -35,7 +35,12 @@ const { language, t } = useI18n();
 const { overview } = useAdminOverviewStore();
 const { formatDate } = createAdminFormat(language, t);
 
-const statusText = (status: string) =>
-  status === "reachable" ? t("reachable") : status === "unreachable" ? t("unreachable") : t("notTested");
-const statusDot = (status: string) => (status === "reachable" ? "bg-success" : status === "unreachable" ? "bg-danger" : "bg-line-strong");
+const statusText = (status: string) => {
+  if (status === "reachable") return t("reachable");
+  return status === "unreachable" ? t("unreachable") : t("notTested");
+};
+const statusDot = (status: string) => {
+  if (status === "reachable") return "bg-success";
+  return status === "unreachable" ? "bg-danger" : "bg-line-strong";
+};
 </script>

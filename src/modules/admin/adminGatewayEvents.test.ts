@@ -37,7 +37,7 @@ describe("gateway events", () => {
   it("cuts a long error message", () => {
     const { events, database } = setup();
     events.error("process", "x".repeat(1000));
-    expect((database.listAudit({ limit: 1, offset: 0 }).events[0]?.details.message as string).length).toBe(300);
+    expect(database.listAudit({ limit: 1, offset: 0 }).events[0]?.details.message as string).toHaveLength(300);
   });
 
   it("writes a full gateway at most once a minute", () => {
