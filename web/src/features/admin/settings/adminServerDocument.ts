@@ -267,9 +267,14 @@ export function applySavedSettings(form: ServerForm, sent: SettingsDocument, sav
   }
   for (const field of NUMBER_FIELDS) if (form[field] === sent[field]) form[field] = saved[field];
 
+  form.relayNodes = mergeSavedNodes(form.relayNodes, sent, saved);
+}
+
+/** A node still as it was sent takes the saved one, an edited node is kept. */
+function mergeSavedNodes(nodes: RelayNodeForm[], sent: SettingsDocument, saved: ServerForm): RelayNodeForm[] {
   const sentNodes = new Map(sent.relayNodes.map((node) => [node.id, JSON.stringify(node)]));
   const savedNodes = new Map(saved.relayNodes.map((node) => [node.id, node]));
-  form.relayNodes = form.relayNodes.map((node) => {
+  return nodes.map((node) => {
     const savedNode = savedNodes.get(node.id);
     return savedNode && sentNodes.get(node.id) === JSON.stringify(nodeDocument(node)) ? savedNode : node;
   });

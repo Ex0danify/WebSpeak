@@ -186,6 +186,37 @@ function gatewayParts({ t }: EventHelpers, { event, details }: AdminEvent): stri
 
 const PART_GROUPS = [adminParts, serverParts, inviteParts, sessionEventParts, gatewayParts];
 
+const NAMED_VALUES = new Map<unknown, MessageKey>([
+  [true, "eventValueOn"],
+  [false, "eventValueOff"],
+  ["open", "openMode"],
+  ["fixed", "fixedMode"],
+  [null, "eventValueNone"],
+  [undefined, "eventValueNone"],
+  ["", "eventValueNone"],
+]);
+
+function valueText(t: Translate, input: unknown): string {
+  const named = NAMED_VALUES.get(input);
+  if (named) return t(named);
+  return typeof input === "object" ? JSON.stringify(input) : String(input);
+}
+
+function changeLine(t: Translate, change: unknown): string[] {
+  if (typeof change !== "object" || change === null) return [];
+  const { field, from, to } = change as Record<string, unknown>;
+  const key = typeof field === "string" ? FIELD_KEYS[field] : undefined;
+  if (!key) return [];
+  const label = t(key);
+  return "to" in change
+    ? [t("eventChange", { field: label, from: valueText(t, from), to: valueText(t, to) })]
+    : [t("eventChanged", { field: label })];
+}
+
+function changeLines(t: Translate, details: Details): string[] {
+  return Array.isArray(details.changes) ? details.changes.flatMap((change: unknown) => changeLine(t, change)) : [];
+}
+
 /** The headline and the detail of an event of the log. */
 export function createEventText(language: Ref<Language>, t: Translate) {
   const { connectionFailureText, formatAge, formatDate } = createAdminFormat(language, t);
@@ -195,34 +226,11 @@ export function createEventText(language: Ref<Language>, t: Translate) {
     return TITLE_KEYS[event] ? t(TITLE_KEYS[event]) : event.replaceAll("_", " ");
   }
 
-  function value(input: unknown): string {
-    if (input === true) return t("eventValueOn");
-    if (input === false) return t("eventValueOff");
-    if (input === "open") return t("openMode");
-    if (input === "fixed") return t("fixedMode");
-    if (input === null || input === undefined || input === "") return t("eventValueNone");
-    return typeof input === "object" ? JSON.stringify(input) : String(input);
-  }
-
-  function changeLines(details: AdminEvent["details"]): string[] {
-    if (!Array.isArray(details.changes)) return [];
-    return details.changes.flatMap((change: unknown) => {
-      if (typeof change !== "object" || change === null) return [];
-      const { field, from, to } = change as Record<string, unknown>;
-      const key = typeof field === "string" ? FIELD_KEYS[field] : undefined;
-      if (!key) return [];
-      const label = t(key);
-      return "to" in change
-        ? [t("eventChange", { field: label, from: value(from), to: value(to) })]
-        : [t("eventChanged", { field: label })];
-    });
-  }
-
   function detail(entry: AdminEvent): EventDetail {
     const { details } = entry;
     const parts = PART_GROUPS.flatMap((group) => group(helpers, entry));
     if (text(details.ip)) parts.push(t("eventIp", { ip: text(details.ip) }));
-    return { summary: parts.filter(Boolean).join(" · "), changes: changeLines(details) };
+    return { summary: parts.filter(Boolean).join(" · "), changes: changeLines(t, details) };
   }
 
   return { title, detail };
