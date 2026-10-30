@@ -187,7 +187,8 @@ function buildFilter(query: ConnectionQuery): { where: string; params: string[] 
   }
   const term = query.search?.trim().toLowerCase();
   if (term) {
-    const pattern = `%${term.replace(/[\\%_]/g, String.raw`\$&`)}%`;
+    const escaped = term.replace(/[\\%_]/g, String.raw`\$&`);
+    const pattern = `%${escaped}%`;
     clauses.push(String.raw`(lower(nickname) LIKE ? ESCAPE '\' OR lower(client_ip) LIKE ? ESCAPE '\' OR lower(target) LIKE ? ESCAPE '\')`);
     params.push(pattern, pattern, pattern);
   }

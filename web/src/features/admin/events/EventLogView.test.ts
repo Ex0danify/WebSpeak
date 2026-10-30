@@ -117,7 +117,7 @@ describe("EventLogView", () => {
     await trigger!.trigger("click");
     await vi.advanceTimersByTimeAsync(50);
     const boxes = document.body.querySelectorAll<HTMLElement>("[role=checkbox]");
-    expect(boxes.length).toBe(3);
+    expect(boxes).toHaveLength(3);
     boxes[0]!.click();
     await vi.advanceTimersByTimeAsync(50);
     expect(actions.filter).toHaveBeenCalledWith({ severities: expect.any(Array) });

@@ -11,6 +11,14 @@ function unreachable(): ApiError {
   return error;
 }
 
+async function request(url: string, init?: RequestInit): Promise<Response> {
+  try {
+    return await fetch(url, init);
+  } catch {
+    throw unreachable();
+  }
+}
+
 export interface AdminApiOptions {
   /** Read at call time: the token changes on login/logout. */
   getCsrfToken: () => string;
@@ -23,14 +31,6 @@ export interface AdminApiOptions {
 export function createAdminApi(options: AdminApiOptions) {
   /** A proxy answers for a gateway that is down, with a status of its own and no code. */
   const GATEWAY_DOWN_STATUSES = new Set([502, 503, 504]);
-
-  async function request(url: string, init?: RequestInit): Promise<Response> {
-    try {
-      return await fetch(url, init);
-    } catch {
-      throw unreachable();
-    }
-  }
 
   async function parseResponse(response: Response) {
     const value = await response.json().catch(() => ({}));

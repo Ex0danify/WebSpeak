@@ -199,7 +199,7 @@ const NAMED_VALUES = new Map<unknown, MessageKey>([
 function valueText(t: Translate, input: unknown): string {
   const named = NAMED_VALUES.get(input);
   if (named) return t(named);
-  return typeof input === "object" ? JSON.stringify(input) : String(input);
+  return typeof input === "string" ? input : JSON.stringify(input);
 }
 
 function changeLine(t: Translate, change: unknown): string[] {
