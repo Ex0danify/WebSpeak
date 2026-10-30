@@ -156,7 +156,9 @@ describe("createEventText", () => {
 
   it("leaves out what an event did not record", () => {
     const { detail } = setup();
-    expect(detail(entry("SERVER_UPDATED", { name: "Main", target: "ts:1", changes: [] })).summary).toBe("Main · ts:1 · Saved without changes");
+    expect(detail(entry("SERVER_UPDATED", { name: "Main", target: "ts:1", changes: [] })).summary).toBe(
+      "Main · ts:1 · Saved without changes",
+    );
     expect(detail(entry("SERVER_AVAILABLE", { name: "Main" })).summary).toBe("Main");
     expect(detail(entry("SERVERS_REORDERED", {})).summary).toBe("");
     expect(detail(entry("INVITE_REVOKED", { serverName: "Main", useCount: 3 })).summary).toBe("Main · 3 uses");
@@ -188,7 +190,7 @@ describe("createEventText", () => {
     expect(changes).toHaveLength(5);
     expect(changes[0]).toContain("none");
     expect(changes[1]).toContain("none");
-    expect(changes[3]).toContain("[] → {\"a\":1}");
+    expect(changes[3]).toContain('[] → {"a":1}');
     expect(changes[4]).toContain("10 → 20");
     expect(detail(entry("SETTINGS_CHANGED", { changes: "oops" })).changes).toEqual([]);
   });
