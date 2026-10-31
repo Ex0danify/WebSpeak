@@ -13,13 +13,19 @@ import { FakeWebSocket } from "@/testSupport/fakeWebsocket";
 const showToast = vi.fn();
 const playedCues: string[] = [];
 
-vi.mock("@/features/voice/engine/notificationSounds", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@/features/voice/engine/notificationSounds")>();
+vi.mock("@/features/voice", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/features/voice")>();
   return {
     ...actual,
-    playNotificationSound: (...args: Parameters<typeof actual.playNotificationSound>) => {
-      playedCues.push(args[1]);
-      actual.playNotificationSound(...args);
+    useAudioOutput: (...args: Parameters<typeof actual.useAudioOutput>) => {
+      const output = actual.useAudioOutput(...args);
+      return {
+        ...output,
+        playNotification: (kind: Parameters<typeof output.playNotification>[0]) => {
+          playedCues.push(kind);
+          output.playNotification(kind);
+        },
+      };
     },
   };
 });
