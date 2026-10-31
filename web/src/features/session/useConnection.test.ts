@@ -3,6 +3,7 @@
 import { createPinia, setActivePinia } from "pinia";
 import { ref } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { LocalizedError, text } from "@/shared/i18n/localizedText";
 import { useSessionStore } from "@/features/session/sessionStore";
 import { FakeWebSocket } from "@/testSupport/fakeWebsocket";
 import { useConnection } from "@/features/session/useConnection";
@@ -32,15 +33,14 @@ function setup() {
     }),
     stopWebRtcTransport: spy("stopWebRtcTransport"),
     resetDownlink: spy("resetDownlink"),
-    sendCmd: vi.fn(),
     applyWhisperState: vi.fn(),
     syncKnownMemberVolumes: vi.fn(),
     ensureMicrophone: vi.fn(async () => {}),
     setMicrophoneError: vi.fn(() => ({ key: "micFailedGeneric" as const })),
     startWebRtcTransport: vi.fn(async () => {}),
     sendScreenShareMessage: vi.fn(),
-    isMicrophoneMuted: vi.fn(() => false),
-    isOutputMuted: vi.fn(() => false),
+    syncMuteState: vi.fn(async () => {}),
+    reportMuteSyncFailure: vi.fn(),
     clearMemberVolumes: vi.fn(() => {
       for (const key of Object.keys(volumes)) delete volumes[Number(key)];
     }),
@@ -214,6 +214,64 @@ describe("connect", () => {
     expect(deps.handleMessage).toHaveBeenCalledTimes(1);
     expect(deps.handleMessage).toHaveBeenCalledWith({ type: "connected" });
     expect(deps.handleAudioFrame).toHaveBeenCalledWith(new Uint8Array(4));
+  });
+});
+
+describe("mute sync", () => {
+  const refused = () => new LocalizedError(text("err_OPERATION_FAILED"), "OPERATION_FAILED");
+  const closed = () => new LocalizedError(text("voiceConnectionClosed"), "VOICE_CONNECTION_CLOSED");
+  const connectedMessage = {
+    type: "connected" as const,
+    tsClientId: 1,
+    members: [],
+    serverEventLog: [],
+    whisperTargetIds: [],
+    whisperActive: false,
+    webrtcAvailable: false,
+    screenShareIceServers: [],
+    accelerated: false,
+  };
+
+  it("reports a refusal and leaves the connection up", async () => {
+    const { connection, deps, session } = setup();
+    deps.syncMuteState.mockRejectedValueOnce(refused());
+    await connectAndOpen(connection);
+    connection.handlers.connected!(connectedMessage);
+    await vi.waitFor(() => expect(deps.reportMuteSyncFailure).toHaveBeenCalledTimes(1));
+    expect(session.state.connected).toBe(true);
+  });
+
+  it("reports a refusal after a reconnect as well", async () => {
+    const { connection, deps, session } = setup();
+    await connectAndOpen(connection);
+    session.state.reconnecting = true;
+    deps.syncMuteState.mockRejectedValueOnce(refused());
+    connection.handlers.connected!(connectedMessage);
+    await vi.waitFor(() => expect(deps.reportMuteSyncFailure).toHaveBeenCalledTimes(1));
+  });
+
+  it("stays silent when the socket closes during the sync", async () => {
+    const { connection, deps } = setup();
+    let reject!: (error: Error) => void;
+    deps.syncMuteState.mockReturnValueOnce(new Promise<void>((_, rej) => (reject = rej)));
+    const socket = await connectAndOpen(connection);
+    connection.handlers.connected!(connectedMessage);
+    socket.onclose?.({ code: 1006, reason: "" });
+    reject(closed());
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(deps.reportMuteSyncFailure).not.toHaveBeenCalled();
+  });
+
+  it("stays silent about a late refusal once the connection is gone", async () => {
+    const { connection, deps, session } = setup();
+    let reject!: (error: Error) => void;
+    deps.syncMuteState.mockReturnValueOnce(new Promise<void>((_, rej) => (reject = rej)));
+    await connectAndOpen(connection);
+    connection.handlers.connected!(connectedMessage);
+    session.state.connected = false;
+    reject(refused());
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(deps.reportMuteSyncFailure).not.toHaveBeenCalled();
   });
 });
 

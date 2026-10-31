@@ -27,15 +27,15 @@ export interface ConnectionDeps {
   stopScreenShareTransport: (clearStreams: boolean) => void;
   stopWebRtcTransport: () => void;
   resetDownlink: () => void;
-  sendCmd: (type: string, payload?: Record<string, unknown>) => void;
   applyWhisperState: (targetIds: unknown, active: unknown) => void;
   syncKnownMemberVolumes: () => void;
   ensureMicrophone: () => Promise<void>;
   setMicrophoneError: (error: unknown) => LocalizedText;
   startWebRtcTransport: (sequence: number, socket: WebSocket) => Promise<void>;
   sendScreenShareMessage: (payload: Record<string, unknown>) => void;
-  isMicrophoneMuted: () => boolean;
-  isOutputMuted: () => boolean;
+  /** Sends the local mute and deafen state and rejects when the gateway refuses or does not answer. */
+  syncMuteState: () => Promise<void>;
+  reportMuteSyncFailure: (error: unknown) => void;
   clearMemberVolumes: () => void;
 }
 
@@ -259,6 +259,19 @@ export function useConnection(deps: ConnectionDeps) {
     state.errorCode = "";
   }
 
+  /** A refusal only reports, the local mute stays so a failed sync never opens the microphone. */
+  async function syncMuteState(sequence: number): Promise<void> {
+    try {
+      await deps.syncMuteState();
+    } catch (error: unknown) {
+      // A close or a newer connection voids the sync on purpose, the next connect sends the state again.
+      const closed =
+        error instanceof LocalizedError && (error.code === "VOICE_CONNECTION_CLOSED" || error.code === "VOICE_CONNECTION_NOT_READY");
+      if (closed || sequence !== connectionSequence || !state.connected) return;
+      deps.reportMuteSyncFailure(error);
+    }
+  }
+
   const handlers: MessageHandlers = {
     connected: (msg) => {
       const wasReconnecting = state.reconnecting;
@@ -273,9 +286,7 @@ export function useConnection(deps: ConnectionDeps) {
       state.tsClientId = Number(msg.tsClientId) || 0;
       // The mute preference is local to the browser, TeamSpeak shows the gateway's client_input_muted flag to others.
       // Send it as soon as the session is ready so a muted reconnect shows for native users before WebRTC negotiates.
-      deps.sendCmd("setMicrophoneMuted", { muted: deps.isMicrophoneMuted() });
-      // A new gateway session starts undeafened, so only a deafened client has anything to send.
-      if (deps.isOutputMuted()) deps.sendCmd("setOutputMuted", { muted: true });
+      void syncMuteState(connectionSequence);
       setScreenShareIceServers(msg.screenShareIceServers);
       deps.applyWhisperState(msg.whisperTargetIds, msg.whisperActive);
       if (Array.isArray(msg.members)) {

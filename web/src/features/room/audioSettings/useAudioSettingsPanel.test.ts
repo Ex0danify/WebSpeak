@@ -287,12 +287,18 @@ describe("toggleMicrophone", () => {
 
 describe("toggleMicrophone when the gateway refuses the mute", () => {
   it("keeps the local state and toasts the reason", async () => {
-    const setMicrophoneMuted = vi.fn(async () => {
+    const microphoneMuted = ref(false);
+    const setMicrophoneMuted = vi.fn(async (muted: boolean) => {
+      microphoneMuted.value = muted;
       throw new LocalizedError(text("err_OPERATION_FAILED"), "OPERATION_FAILED");
     });
-    const { vm } = await mountUseAudioSettingsPanel({ microphoneMuted: ref(false), setMicrophoneMuted });
+    const { vm } = await mountUseAudioSettingsPanel({ microphoneMuted, setMicrophoneMuted });
     await vm.toggleMicrophone();
-    expect(useToast().toasts.value.at(-1)).toMatchObject({ variant: "danger" });
+    expect(useToast().toasts.value.at(-1)).toMatchObject({
+      variant: "danger",
+      title: "Mute status could not be synced",
+      description: "Others may still see you as unmuted. Your microphone stays off.",
+    });
   });
 });
 
@@ -307,7 +313,7 @@ describe("toggleAccompaniment when the gateway refuses", () => {
       startAccompaniment,
     });
     await vm.toggleAccompaniment();
-    expect(useToast().toasts.value.at(-1)).toMatchObject({ variant: "danger", title: expect.not.stringMatching(/permission/i) });
+    expect(useToast().toasts.value.at(-1)).toMatchObject({ variant: "danger", title: "Accompaniment sharing failed" });
   });
 });
 
