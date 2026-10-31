@@ -256,3 +256,26 @@ describe("server and messages", () => {
     expect(feed(cmd("toString", { x: 1 }))).toMatchObject([{ type: "notification" }]);
   });
 });
+
+describe("canTalk", () => {
+  it("follows the needed talk power of our channel, our talk power and a granted talker flag", () => {
+    const { session, feed } = welcomed();
+    expect(session.self.canTalk).toBe(true);
+    feed(cmd("notifychanneledited", { cid: 1, reasonid: 10, channel_needed_talk_power: 50 }));
+    expect(session.self.canTalk).toBe(false);
+    feed(cmd("notifyclientupdated", { clid: 5, client_is_talker: 1 }));
+    expect(session.self.canTalk).toBe(true);
+    feed(cmd("notifyclientupdated", { clid: 5, client_is_talker: 0 }));
+    expect(session.self.canTalk).toBe(false);
+    feed(cmd("notifyclientupdated", { clid: 5, client_talk_power: 50 }));
+    expect(session.self.canTalk).toBe(true);
+  });
+
+  it("is judged by the channel we are in", () => {
+    const { session, feed } = welcomed();
+    feed(cmd("notifychanneledited", { cid: 2, reasonid: 10, channel_needed_talk_power: 100 }));
+    expect(session.self.canTalk).toBe(true);
+    feed(cmd("notifyclientmoved", { ctid: 2, reasonid: 0, clid: 5 }));
+    expect(session.self.canTalk).toBe(false);
+  });
+});
