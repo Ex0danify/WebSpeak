@@ -22,7 +22,6 @@ export interface MicrophoneDeps {
   getAudioCtx(): SinkAudioContext;
   syncAudioContextNotice(): void;
   releaseAudioCtx(): void;
-  markSpeaking(clientId: number): void;
   clearSpeaking(clientId: number): void;
   /** Resolves once the gateway completed the command, rejects when it refuses or stays silent. */
   sendCommand(type: string, payload: Record<string, unknown>): Promise<void>;
@@ -171,7 +170,6 @@ export function useMicrophone(deps: MicrophoneDeps) {
         const socket = ws.value;
         if (!socket || socket.readyState !== WebSocket.OPEN || socket.bufferedAmount > MAX_AUDIO_BUFFERED_BYTES) return;
         socket.send(frame);
-        if (state.tsClientId) deps.markSpeaking(state.tsClientId);
       },
     });
 

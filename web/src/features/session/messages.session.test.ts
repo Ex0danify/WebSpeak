@@ -146,6 +146,17 @@ describe("whisperTargets", () => {
   });
 });
 
+describe("talkState", () => {
+  it("follows the connected message and later changes", async () => {
+    const socket = await connected({ canSpeak: false });
+    expect(harness.voice.roster.canSpeak.value).toBe(false);
+    await push(socket, { type: "talkState", canSpeak: true });
+    expect(harness.voice.roster.canSpeak.value).toBe(true);
+    await push(socket, { type: "talkState", canSpeak: false });
+    expect(harness.voice.roster.canSpeak.value).toBe(false);
+  });
+});
+
 describe("voiceActivity", () => {
   it("marks positive integer ids as speaking and lets them expire", async () => {
     vi.useFakeTimers();

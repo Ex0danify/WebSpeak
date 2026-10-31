@@ -148,14 +148,13 @@ describe("microphone test", () => {
   });
 
   it("holds the uplink back while the test runs", async () => {
-    const { session, deps, mic } = setup();
+    const { session, mic } = setup();
     const socket = { readyState: WebSocket.OPEN, bufferedAmount: 0, send: vi.fn() } as unknown as WebSocket;
     session.ws = socket;
     await mic.startMicrophoneTest();
     const worklet = FakeAudioWorkletNode.instances.at(-1)!;
     worklet.port.onmessage?.({ data: { samples: new Float32Array(960).fill(0.5), rms: 0.5 } });
     expect(socket.send).not.toHaveBeenCalled();
-    expect(deps.markSpeaking).not.toHaveBeenCalled();
     mic.stopMicrophoneTest();
   });
 });

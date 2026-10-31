@@ -25,8 +25,6 @@ export interface WebRtcTransportDeps {
   syncWebRtcPlayback(): Promise<void>;
   setAudioNotice(code: string, params?: TextParams): void;
   clearAudioNotice(code?: string): void;
-  markSpeaking(clientId: number): void;
-  clearSpeaking(clientId: number): void;
   sendCmd(type: string, payload?: Record<string, unknown>): void;
   sendCommand(type: string, payload: Record<string, unknown>): Promise<void>;
   connectionSequence(): number;
@@ -44,7 +42,7 @@ export function useWebRtcTransport(deps: WebRtcTransportDeps) {
   const { ws } = storeToRefs(session);
   const { state } = session;
   const audio = useVoiceAudioStore();
-  const { microphoneMuted, inputVolume, voxThreshold, selectedOutputDeviceId, accompanimentActive } = storeToRefs(audio);
+  const { microphoneMuted, inputVolume, selectedOutputDeviceId, accompanimentActive } = storeToRefs(audio);
   const { volumes, mutedMembers } = audio;
   const { webrtcActive, micLevel } = deps;
 
@@ -156,7 +154,7 @@ export function useWebRtcTransport(deps: WebRtcTransportDeps) {
       }
       void deps.syncWebRtcPlayback();
     };
-    startWebRtcMicMonitor(deps.getAudioCtx(), micStream, microphoneTrack);
+    startWebRtcMicMonitor(deps.getAudioCtx(), micStream);
     peer.onconnectionstatechange = () => {
       if (peer.connectionState === "connected") deps.clearAudioNotice("VOICE_CONNECTING");
       if (peer.connectionState === "failed") void fallbackFromWebRtc(sequence, socket, "WEBRTC_CONNECTION_FAILED");
@@ -263,7 +261,7 @@ export function useWebRtcTransport(deps: WebRtcTransportDeps) {
     if (peer) void peer.close();
   }
 
-  function startWebRtcMicMonitor(ctx: AudioContext, stream: MediaStream, track: MediaStreamTrack): void {
+  function startWebRtcMicMonitor(ctx: AudioContext, stream: MediaStream): void {
     stopWebRtcMicMonitor(false);
     try {
       const source = ctx.createMediaStreamSource(stream);
@@ -285,8 +283,6 @@ export function useWebRtcTransport(deps: WebRtcTransportDeps) {
         for (const sample of samples) sum += sample * sample;
         const rms = Math.sqrt(sum / samples.length);
         micLevel.value = Math.min(1, rms * 6);
-        if (!microphoneMuted.value && track.enabled && rms >= voxThreshold.value) deps.markSpeaking(state.tsClientId);
-        else if (state.tsClientId) deps.clearSpeaking(state.tsClientId);
       }, 50);
     } catch {
       stopWebRtcMicMonitor(false);

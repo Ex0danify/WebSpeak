@@ -17,7 +17,7 @@ export interface RoomActionsDeps {
 
 export function useSessionActions(deps: RoomActionsDeps) {
   const session = useSessionStore();
-  const { ws, whisperActive } = storeToRefs(session);
+  const { ws, whisperActive, canSpeak } = storeToRefs(session);
   const { state, chatMessages, whisperTargetIds, members } = session;
   // A message of your own is flagged isSelf and rendered as "You"; the name only feeds avatars.
   const selfName = () => members.find((member) => member.isSelf)?.nickname ?? "";
@@ -230,6 +230,9 @@ export function useSessionActions(deps: RoomActionsDeps) {
     },
     whisperTargets: (msg) => {
       applyWhisperState(msg.targetIds, msg.active);
+    },
+    talkState: (msg) => {
+      canSpeak.value = msg.canSpeak !== false;
     },
     commandCompleted: (msg) => {
       const requestId = typeof msg.requestId === "string" ? msg.requestId : "";
