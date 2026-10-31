@@ -1,4 +1,5 @@
 import type { VoiceConnection } from "../voiceTypes.js";
+import { reportSelfActivity } from "../selfActivity.js";
 import { sendProtocolError } from "../session/voiceFailures.js";
 
 const AUDIO_FRAME_BYTES = 1_920;
@@ -93,6 +94,7 @@ function forwardVoice(ctx: VoiceConnection, encoded: Buffer): void {
     ctx.entry.audio.tsSendFirstAt ??= sentAt;
     ctx.entry.audio.tsSendLastAt = sentAt;
     ctx.entry.audio.tsSendFrames++;
+    reportSelfActivity(ctx);
   } catch {
     // A frame arriving during shutdown is safe to discard.
     ctx.entry.audio.tsSendErrors++;

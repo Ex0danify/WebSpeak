@@ -303,6 +303,11 @@ export class TSClient extends EventEmitter {
     return this.backend?.channelId() ?? 0n;
   }
 
+  /** False in a moderated channel without talk power. The server drops our voice there without an answer. */
+  canSpeak(): boolean {
+    return this.backend?.canTalk() ?? true;
+  }
+
   isConnected(): boolean {
     return this.connected;
   }

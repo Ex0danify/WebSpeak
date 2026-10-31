@@ -1,6 +1,7 @@
 import { WebSocket } from "ws";
 import type { WebRtcAudioOptions } from "../../../config/webrtcConfig.js";
 import type { VoiceConnection } from "../voiceTypes.js";
+import { reportSelfActivity } from "../selfActivity.js";
 import { resolveWebRtcPublicAddresses } from "./webrtcPublicAddresses.js";
 import { WebRtcAudioSession, type WebRtcSessionDescription } from "./webrtcAudioSession.js";
 
@@ -71,6 +72,7 @@ export async function handleWebRtcOffer(
         entry.audio.tsSendFirstAt ??= sentAt;
         entry.audio.tsSendLastAt = sentAt;
         entry.audio.tsSendFrames++;
+        reportSelfActivity(ctx);
       } catch {
         entry.audio.tsSendErrors++;
         // A packet during session replacement is dropped, the WebRTC peer can still be closed on its own.

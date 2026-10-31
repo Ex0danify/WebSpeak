@@ -26,6 +26,7 @@ export class FakeBackend extends EventEmitter<TeamSpeakBackendEvents> implements
   protocol = null;
   id = 56;
   channel = 1n;
+  talkAllowed = true;
   connects = 0;
   disconnects = 0;
   /** Replace to hold or fail connect(). */
@@ -53,6 +54,10 @@ export class FakeBackend extends EventEmitter<TeamSpeakBackendEvents> implements
 
   channelId(): bigint {
     return this.channel;
+  }
+
+  canTalk(): boolean {
+    return this.talkAllowed;
   }
 
   command(request: CommandRequest | string): Promise<Record<string, string>[]> {

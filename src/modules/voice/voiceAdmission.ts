@@ -208,6 +208,8 @@ export function admitConnection(deps: AdmissionDeps, ws: WebSocket, req: Incomin
     invalidFrameWarnedAt: 0,
     whisperTargetIds: new Set(),
     whisperActive: false,
+    canSpeak: true,
+    selfActivityAt: 0,
     isAlive: true,
     reconnectTimer: null,
     audio: createAudioFlowStats(),

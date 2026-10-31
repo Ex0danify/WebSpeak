@@ -98,6 +98,10 @@ export class NativeBackend extends EventEmitter<TeamSpeakBackendEvents> implemen
     return this.connection?.session.self.channelId ?? 0n;
   }
 
+  canTalk(): boolean {
+    return this.connection?.session.self.canTalk ?? true;
+  }
+
   async command(request: CommandRequest | string, timeoutMs = 10_000, priority?: CommandPriority): Promise<Record<string, string>[]> {
     const rows = await this.live().command(request, { timeoutMs, priority });
     return rows.map((row) => ({ ...row }));
