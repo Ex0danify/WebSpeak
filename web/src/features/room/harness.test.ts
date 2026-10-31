@@ -24,7 +24,7 @@ describe("fake gateway harness", () => {
     expect(voice.session.state.connecting).toBe(false);
     expect(voice.session.state.tsClientId).toBe(7);
     expect(voice.roster.members).toMatchObject([{ id: 7, nickname: "Tester", isSelf: true }]);
-    expect(socket.sentOfType("setMicrophoneMuted")).toEqual([{ type: "setMicrophoneMuted", payload: { muted: false } }]);
+    expect(socket.sentOfType("setMicrophoneMuted")).toMatchObject([{ type: "setMicrophoneMuted", payload: { muted: false } }]);
     expect(socket.sentOfType("screenShareList")).toHaveLength(1);
   });
 });

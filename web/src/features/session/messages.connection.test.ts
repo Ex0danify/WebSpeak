@@ -2,6 +2,7 @@
 // Each test pins what the composable does, so a change in the router keeps every assertion true.
 import { flushPromises } from "@vue/test-utils";
 import { afterEach, describe, expect, it } from "vitest";
+import { useToast } from "@/shared/composables/useToast";
 import { createVoiceHarness, type VoiceHarness } from "@/testSupport/harness";
 import type { FakeWebSocket } from "@/testSupport/fakeWebsocket";
 
@@ -17,7 +18,10 @@ async function push(socket: FakeWebSocket, message: Record<string, unknown>): Pr
   await flushPromises();
 }
 
-afterEach(() => harness?.dispose());
+afterEach(() => {
+  harness?.dispose();
+  useToast().dismiss();
+});
 
 describe("connected", () => {
   it("marks the session live and records the own client id and roster", async () => {
@@ -98,7 +102,25 @@ describe("connected", () => {
     harness.voice.audio.outputMuted.value = true;
     const socket = await harness.joinAndConnect();
     expect(socket.sentJson.map((frame) => frame.type)).toEqual(["setMicrophoneMuted", "setOutputMuted", "screenShareList"]);
-    expect(socket.sentOfType("setOutputMuted")).toEqual([{ type: "setOutputMuted", payload: { muted: true } }]);
+    expect(socket.sentOfType("setOutputMuted")).toMatchObject([{ type: "setOutputMuted", payload: { muted: true } }]);
+  });
+
+  it("toasts a refused connect-time mute and keeps the local mute", async () => {
+    harness = await createVoiceHarness();
+    harness.voice.audio.microphoneMuted.value = true;
+    const socket = await harness.joinAndConnect();
+    const [{ requestId }] = socket.sentOfType("setMicrophoneMuted");
+    await push(socket, { type: "error", requestId, error: { code: "OPERATION_FAILED", message: "refused" } });
+    expect(useToast().toasts.value).toMatchObject([{ variant: "danger" }]);
+    expect(harness.voice.audio.microphoneMuted.value).toBe(true);
+  });
+
+  it("does not toast when the socket closes during the connect-time mute sync", async () => {
+    harness = await createVoiceHarness();
+    const socket = await harness.joinAndConnect();
+    socket.onclose?.({ code: 1006, reason: "" });
+    await flushPromises();
+    expect(useToast().toasts.value).toEqual([]);
   });
 
   it("without WebRTC it tries the microphone and records the failure as an audio diagnostic, not a connection error", async () => {

@@ -1,5 +1,7 @@
 import { ref } from "vue";
 import { storeToRefs } from "pinia";
+import { toast } from "@/shared/composables/useToast.js";
+import { errorText, resolveText, text } from "@/shared/i18n/localizedText.js";
 import { useSessionActions } from "@/features/session";
 import { createMessageRouter, createRosterHandlers } from "@/features/session";
 import { useConnection } from "@/features/session";
@@ -246,15 +248,22 @@ export function useRoomSession() {
     stopScreenShareTransport,
     stopWebRtcTransport,
     resetDownlink,
-    sendCmd,
     applyWhisperState,
     syncKnownMemberVolumes,
     ensureMicrophone,
     setMicrophoneError,
     startWebRtcTransport,
     sendScreenShareMessage,
-    isMicrophoneMuted: () => microphoneMuted.value,
-    isOutputMuted: () => outputMuted.value,
+    // A new gateway session starts undeafened, so only a deafened client has anything beyond the microphone to send.
+    syncMuteState: async () => {
+      await Promise.all([
+        sendCommandAndWait("setMicrophoneMuted", { muted: microphoneMuted.value }),
+        outputMuted.value ? sendCommandAndWait("setOutputMuted", { muted: true }) : undefined,
+      ]);
+    },
+    reportMuteSyncFailure: (error) => {
+      toast({ title: resolveText(errorText(error, text("err_OPERATION_FAILED"))), variant: "danger", duration: 2800 });
+    },
     clearMemberVolumes: () => {
       for (const key of Object.keys(volumes)) delete volumes[Number(key)];
     },
