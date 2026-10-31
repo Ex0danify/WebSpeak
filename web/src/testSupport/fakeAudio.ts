@@ -36,6 +36,16 @@ export class FakeGainNode extends FakeAudioNode {
   readonly gain = new FakeAudioParam();
 }
 
+export class FakeBiquadFilterNode extends FakeAudioNode {
+  type = "lowpass";
+  readonly frequency = new FakeAudioParam();
+}
+
+export class FakeConvolverNode extends FakeAudioNode {
+  buffer: unknown = null;
+  normalize = true;
+}
+
 export class FakeAnalyserNode extends FakeAudioNode {
   fftSize = 2048;
   getFloatTimeDomainData(target: Float32Array): void {
@@ -143,6 +153,12 @@ export class FakeAudioContext {
     const node = new FakeOscillatorNode();
     this.oscillators.push(node);
     return node;
+  }
+  createConvolver(): FakeConvolverNode {
+    return new FakeConvolverNode();
+  }
+  createBiquadFilter(): FakeBiquadFilterNode {
+    return new FakeBiquadFilterNode();
   }
   createAnalyser(): FakeAnalyserNode {
     return new FakeAnalyserNode();
