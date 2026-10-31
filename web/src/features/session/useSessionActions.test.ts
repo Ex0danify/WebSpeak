@@ -116,8 +116,8 @@ describe("channel and roster commands", () => {
     actions.switchChannel("6", "pw");
     expect(session.state).toMatchObject({ error: "", errorCode: "", channelSwitchedChannelId: "" });
     expect(socket.sentJson).toEqual([
-      { type: "switchChannel", payload: { channelId: "5" } },
-      { type: "switchChannel", payload: { channelId: "6", password: "pw" } },
+      { type: "switchChannel", payload: { channelId: "5" }, requestId: expect.any(String) },
+      { type: "switchChannel", payload: { channelId: "6", password: "pw" }, requestId: expect.any(String) },
     ]);
   });
 

@@ -97,6 +97,7 @@ import {
   useAudioSettingsPanel,
   useChannelTree,
   useChat,
+  useGatewayErrorToasts,
   useMemberMenu,
   useNetworkPerformance,
   useRoomContext,
@@ -224,4 +225,5 @@ const whisper = useWhisper({ roster: session.roster, actions: session.actions })
 const { toggleWhisperTarget } = whisper;
 
 const performance = useNetworkPerformance({ session: session.session });
+useGatewayErrorToasts(voiceState);
 </script>

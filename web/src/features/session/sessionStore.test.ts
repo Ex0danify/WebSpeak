@@ -21,6 +21,7 @@ describe("useSessionStore", () => {
       tsClientId: 0,
       error: "",
       errorCode: "",
+      unattributedError: null,
       microphoneError: "",
       microphoneErrorCode: "",
       audioNotice: "",

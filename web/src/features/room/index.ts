@@ -5,6 +5,7 @@ export { default as NetworkPerformancePanel } from "@/features/room/network/Netw
 export { useNetworkPerformance } from "@/features/room/network/useNetworkPerformance";
 export { default as RoomWorkspace } from "@/features/room/shell/RoomWorkspace.vue";
 export { useRoomShell } from "@/features/room/shell/useRoomShell";
+export { useGatewayErrorToasts } from "@/features/room/shell/useGatewayErrorToasts";
 export { useRoomSounds } from "@/features/room/shell/useRoomSounds";
 export { default as WorkspaceHeader } from "@/features/room/shell/WorkspaceHeader.vue";
 export { default as ReconnectBanner } from "@/features/room/shell/ReconnectBanner.vue";

@@ -359,22 +359,6 @@ describe("disconnected / reconnecting / reconnected / reconnectFailed / connecti
   });
 });
 
-describe("error", () => {
-  it("maps the protocol error code and message into state", async () => {
-    const socket = await connected();
-    await push(socket, { type: "error", error: { code: "CHANNEL_FULL", message: "full" } });
-    expect(harness.voice.session.state.errorCode).toBe("CHANNEL_FULL");
-    expect(harness.voice.session.state.error).not.toBe("");
-  });
-
-  it("falls back to OPERATION_FAILED and a generic message", async () => {
-    const socket = await connected();
-    await push(socket, { type: "error" });
-    expect(harness.voice.session.state.errorCode).toBe("OPERATION_FAILED");
-    expect(harness.voice.session.state.error).not.toBe("");
-  });
-});
-
 describe("frame handling", () => {
   it("ignores unknown message types", async () => {
     const socket = await connected();

@@ -10,6 +10,8 @@ export interface VoiceState {
   /** Rendered at the edge with `resolveText`, so a language switch re-renders it. */
   error: MaybeLocalizedText;
   errorCode: string;
+  /** A gateway error that answers no request. Replaced on every one so a watcher sees repeats of the same code too. */
+  unattributedError: { code: string; text: MaybeLocalizedText } | null;
   /**
    * Non-fatal audio diagnostics. Unlike error/errorCode they never take over the connect form, they explain a degraded
    * microphone or playback path while the voice room stays joined and usable.

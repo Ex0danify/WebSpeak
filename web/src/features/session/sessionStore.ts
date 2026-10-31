@@ -21,6 +21,7 @@ function initialState(): VoiceState {
     tsClientId: 0,
     error: "",
     errorCode: "",
+    unattributedError: null,
     microphoneError: "",
     microphoneErrorCode: "",
     audioNotice: "",
