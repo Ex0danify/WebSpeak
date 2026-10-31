@@ -1,14 +1,11 @@
 import { ref } from "vue";
 import { useI18n } from "@/shared/i18n/useI18n.js";
-import { errorText, resolveText, text } from "@/shared/i18n/localizedText.js";
+import { toastActionFailure } from "@/features/room/actionFailure";
 import { useDialog } from "@/shared/composables/useDialog.js";
 
 /** The away toggle: flips the state, asks for a message through the shared prompt and reports both to the server, rolling
- *  back to the previous state if the server refuses. `notify` surfaces that refusal. */
-export function useAway(
-  setAway: (away: boolean, message: string) => Promise<void>,
-  notify: (message: string, variant?: "success" | "danger") => void,
-) {
+ *  back to the previous state if the server refuses. */
+export function useAway(setAway: (away: boolean, message: string) => Promise<void>) {
   const { t } = useI18n();
   const { prompt } = useDialog();
   const away = ref(false);
@@ -38,7 +35,7 @@ export function useAway(
       // The server kept the old state, so the button goes back to it.
       away.value = previous.away;
       awayMessage.value = previous.message;
-      notify(resolveText(errorText(error, text("err_OPERATION_FAILED"))), "danger");
+      toastActionFailure(t("failAway"), error);
     }
   }
 

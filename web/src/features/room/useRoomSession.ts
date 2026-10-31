@@ -1,7 +1,6 @@
 import { ref } from "vue";
 import { storeToRefs } from "pinia";
-import { toast } from "@/shared/composables/useToast.js";
-import { errorText, resolveText, text } from "@/shared/i18n/localizedText.js";
+import { toastMuteSyncFailure } from "@/features/room/actionFailure";
 import { useSessionActions } from "@/features/session";
 import { createMessageRouter, createRosterHandlers } from "@/features/session";
 import { useConnection } from "@/features/session";
@@ -262,7 +261,7 @@ export function useRoomSession() {
       ]);
     },
     reportMuteSyncFailure: (error) => {
-      toast({ title: resolveText(errorText(error, text("err_OPERATION_FAILED"))), variant: "danger", duration: 2800 });
+      toastMuteSyncFailure(error, microphoneMuted.value);
     },
     clearMemberVolumes: () => {
       for (const key of Object.keys(volumes)) delete volumes[Number(key)];

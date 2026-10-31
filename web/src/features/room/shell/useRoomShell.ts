@@ -2,7 +2,7 @@ import { onMounted, onUnmounted, ref, type Ref } from "vue";
 import { showToast } from "@/shared/composables/useToast";
 import { useDialog } from "@/shared/composables/useDialog";
 import { useI18n } from "@/shared/i18n/useI18n";
-import { errorText, resolveText, text } from "@/shared/i18n/localizedText";
+import { toastActionFailure } from "@/features/room/actionFailure";
 import type { ChannelMember, PokeNotification } from "@/features/session";
 
 export interface UseRoomShellOptions {
@@ -66,7 +66,7 @@ export function useRoomShell({
       await sendPoke(member.id, message);
       showToast(t("pokeSent"));
     } catch (error: unknown) {
-      showToast(resolveText(errorText(error, text("err_OPERATION_FAILED"))), "danger");
+      toastActionFailure(t("failPoke"), error);
     }
   }
 

@@ -1,6 +1,7 @@
 import { computed, onScopeDispose, reactive, ref, watch, type Ref } from "vue";
 import { useI18n } from "@/shared/i18n/useI18n.js";
-import { errorText, resolveText, text } from "@/shared/i18n/localizedText.js";
+import { resolveText } from "@/shared/i18n/localizedText.js";
+import { toastActionFailure, toastActionFailureReason } from "@/features/room/actionFailure";
 import { toast as raiseToast } from "@/shared/composables/useToast.js";
 import { useAway } from "@/features/room/members/useAway.js";
 import { channelNameText, type ChannelMember } from "@/features/session";
@@ -38,7 +39,7 @@ export function useChannelTree(options: UseChannelTreeOptions) {
   }
 
   const memberQuery = ref("");
-  const { away, toggleAway } = useAway(setAway, notify);
+  const { away, toggleAway } = useAway(setAway);
   const channelPasswordDialog = reactive({ open: false, channelId: "", password: "", error: "", submitting: false });
   const draggedMember = ref<ChannelMember | null>(null);
   const dragOverChannelId = ref("");
@@ -158,7 +159,7 @@ export function useChannelTree(options: UseChannelTreeOptions) {
         clearTimeout(commitTimer);
         requested = null;
         // The refusal (no permission, channel full, ...) is otherwise only kept in the session state, which nothing shows here.
-        notify(resolveText(voiceState.error), "danger");
+        toastActionFailureReason(t("failChannelSwitch"), code === "OPERATION_FAILED" ? "" : resolveText(voiceState.error));
         clearError();
         return;
       }
@@ -241,7 +242,7 @@ export function useChannelTree(options: UseChannelTreeOptions) {
       await moveClient(member.id, targetChannelId);
       notify(t("moveMemberSuccess"));
     } catch (error: unknown) {
-      notify(resolveText(errorText(error, text("err_OPERATION_FAILED"))), "danger");
+      toastActionFailure(t("failMoveMember"), error);
     }
   }
 

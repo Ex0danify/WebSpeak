@@ -111,7 +111,9 @@ describe("connected", () => {
     const socket = await harness.joinAndConnect();
     const [{ requestId }] = socket.sentOfType("setMicrophoneMuted");
     await push(socket, { type: "error", requestId, error: { code: "OPERATION_FAILED", message: "refused" } });
-    expect(useToast().toasts.value).toMatchObject([{ variant: "danger" }]);
+    expect(useToast().toasts.value).toMatchObject([
+      { variant: "danger", title: "Mute status could not be synced", description: expect.stringContaining("microphone stays off") },
+    ]);
     expect(harness.voice.audio.microphoneMuted.value).toBe(true);
   });
 

@@ -1,6 +1,6 @@
 import { computed, ref } from "vue";
 import { useI18n } from "@/shared/i18n/useI18n.js";
-import { errorText, resolveText, text } from "@/shared/i18n/localizedText.js";
+import { toastActionFailure } from "@/features/room/actionFailure";
 import { toast as raiseToast } from "@/shared/composables/useToast.js";
 import type { ChannelMember } from "@/features/session";
 import type { RoomSession } from "@/features/room/roomTypes";
@@ -29,7 +29,7 @@ export function useWhisper(options: UseWhisperOptions) {
   );
 
   function showFailure(error: unknown): void {
-    showToast(resolveText(errorText(error, text("err_OPERATION_FAILED"))), "danger");
+    toastActionFailure(t("failWhisper"), error);
   }
 
   async function toggleWhisperTarget(member: ChannelMember): Promise<void> {

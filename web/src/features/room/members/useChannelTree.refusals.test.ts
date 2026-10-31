@@ -43,7 +43,11 @@ describe("a refused channel switch", () => {
     voiceState.error = "You do not have permission to perform this action";
     voiceState.errorCode = "PERMISSION_DENIED";
     await flushPromises();
-    expect(useToast().toasts.value.at(-1)).toMatchObject({ variant: "danger", title: "You do not have permission to perform this action" });
+    expect(useToast().toasts.value.at(-1)).toMatchObject({
+      variant: "danger",
+      title: "Switching the channel failed",
+      description: "You do not have permission to perform this action",
+    });
     expect(options.clearError).toHaveBeenCalled();
   });
 
