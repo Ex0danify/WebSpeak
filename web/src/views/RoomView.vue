@@ -173,6 +173,7 @@ const tree = useChannelTree({
   session: session.session,
   roster: session.roster,
   actions: session.actions,
+  audio: session.audio,
   channel,
   selectedChannelId,
   chatTab,

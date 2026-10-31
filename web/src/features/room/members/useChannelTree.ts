@@ -15,6 +15,7 @@ export interface UseChannelTreeOptions {
   session: Pick<RoomSession["session"], "state" | "clearError">;
   roster: Pick<RoomSession["roster"], "channels" | "members">;
   actions: Pick<RoomSession["actions"], "switchChannel" | "moveClient" | "setAway">;
+  audio: Pick<RoomSession["audio"], "playNotification">;
   /** Owned by useJoinForm, the target channel name typed on the join screen. It is the fallback
    *  before the member list confirms which channel you actually landed in. */
   channel: Ref<string>;
@@ -39,7 +40,7 @@ export function useChannelTree(options: UseChannelTreeOptions) {
   }
 
   const memberQuery = ref("");
-  const { away, toggleAway } = useAway(setAway);
+  const { away, toggleAway } = useAway(setAway, options.audio.playNotification);
   const channelPasswordDialog = reactive({ open: false, channelId: "", password: "", error: "", submitting: false });
   const draggedMember = ref<ChannelMember | null>(null);
   const dragOverChannelId = ref("");

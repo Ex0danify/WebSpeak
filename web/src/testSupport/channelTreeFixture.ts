@@ -81,6 +81,7 @@ export async function mountUseChannelTree(overrides: Record<string, unknown> = {
     moveClient: vi.fn(async () => undefined),
     clearError: vi.fn(),
     setAway: vi.fn(),
+    playNotification: vi.fn(),
     ...overrides,
   };
   const wrapper = mount(
@@ -91,6 +92,7 @@ export async function mountUseChannelTree(overrides: Record<string, unknown> = {
           session: { state: options.voiceState, clearError: options.clearError },
           roster: options,
           actions: options,
+          audio: options,
         }),
       template: "<div/>",
     }),
