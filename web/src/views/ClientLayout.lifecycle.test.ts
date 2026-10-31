@@ -2,7 +2,6 @@ import { flushPromises, type VueWrapper } from "@vue/test-utils";
 import { IDBFactory } from "fake-indexeddb";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type * as Persistence from "@/shared/services/localPersistence";
-import { FakeAudioContext } from "@/testSupport/browserStubs";
 import { installBrowserStubs, type BrowserStubs } from "@/testSupport/browserStubs";
 import { mountClient } from "@/testSupport/mountClient";
 import { FakeWebSocket } from "@/testSupport/fakeWebsocket";
@@ -12,6 +11,24 @@ import { FakeWebSocket } from "@/testSupport/fakeWebsocket";
 // A behavior that looks wrong is recorded as it is, with a comment, not fixed here.
 
 const showToast = vi.fn();
+const playedCues: string[] = [];
+
+vi.mock("@/features/voice", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/features/voice")>();
+  return {
+    ...actual,
+    useAudioOutput: (...args: Parameters<typeof actual.useAudioOutput>) => {
+      const output = actual.useAudioOutput(...args);
+      return {
+        ...output,
+        playNotification: (kind: Parameters<typeof output.playNotification>[0]) => {
+          playedCues.push(kind);
+          output.playNotification(kind);
+        },
+      };
+    },
+  };
+});
 
 vi.mock("@/shared/composables/useToast", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/shared/composables/useToast")>();
@@ -31,8 +48,6 @@ type View = {
   connect: (host: string, channel: string, nickname: string) => void;
 };
 
-const TONES: Record<number, string> = { 660: "connected", 440: "disconnected", 740: "poke", 600: "private", 300: "reconnectFailed" };
-
 let RoomWorkspace: typeof import("@/features/room").RoomWorkspace;
 let store: typeof Persistence;
 let wrapper: VueWrapper | undefined;
@@ -46,6 +61,7 @@ beforeAll(async () => {
 }, 30_000);
 
 beforeEach(async () => {
+  playedCues.length = 0;
   localStorage.clear();
   await store.clearLocalData();
   showToast.mockClear();
@@ -88,11 +104,9 @@ async function connected(view: View): Promise<FakeWebSocket> {
   return socket;
 }
 
-/** The tones played so far, by name, in order. */
+/** The cues played so far, by name, in order. The harness has no WebRTC, so a voice-failed banner sounds an error cue in every test. */
 function tones(): string[] {
-  return FakeAudioContext.instances
-    .flatMap((context) => context.oscillators)
-    .map((oscillator) => TONES[oscillator.frequencies[0] ?? 0] ?? `unknown:${oscillator.frequencies[0]}`);
+  return playedCues.filter((cue) => cue !== "error");
 }
 
 describe("connection sounds", () => {

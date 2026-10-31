@@ -2,6 +2,7 @@ export { useAudioOutput, type AudioOutputDeps } from "@/features/voice/engine/us
 export { usePlayback, type PlaybackDeps } from "@/features/voice/engine/usePlayback";
 export { useMicrophone, type MicrophoneDeps } from "@/features/voice/engine/useMicrophone";
 export { useWebRtcTransport, type WebRtcTransportDeps } from "@/features/voice/engine/useWebRtcTransport";
+export type { NotificationSound } from "@/features/voice/engine/notificationSounds";
 export { useAudioPreferences, type AudioPreferencesDeps } from "@/features/voice/useAudioPreferences";
 export { useVoiceAudioStore, type AccompanimentErrorCode } from "@/features/voice/stores/voiceAudioStore";
 export { normalizeMicrophoneFailure, microphoneErrorText } from "@/features/voice/voiceErrors";

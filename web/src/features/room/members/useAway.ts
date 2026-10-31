@@ -2,10 +2,11 @@ import { ref } from "vue";
 import { useI18n } from "@/shared/i18n/useI18n.js";
 import { notifyEvent } from "@/features/room/shell/roomNotify";
 import { useDialog } from "@/shared/composables/useDialog.js";
+import type { NotificationSound } from "@/features/voice";
 
 /** The away toggle: flips the state, asks for a message through the shared prompt and reports both to the server, rolling
- *  back to the previous state if the server refuses. */
-export function useAway(setAway: (away: boolean, message: string) => Promise<void>) {
+ *  back to the previous state if the server refuses. The cue plays once the server has accepted. */
+export function useAway(setAway: (away: boolean, message: string) => Promise<void>, playNotification: (kind: NotificationSound) => void) {
   const { t } = useI18n();
   const { prompt } = useDialog();
   const away = ref(false);
@@ -31,6 +32,7 @@ export function useAway(setAway: (away: boolean, message: string) => Promise<voi
     awayMessage.value = message;
     try {
       await setAway(next, message);
+      playNotification(next ? "away" : "returned");
     } catch (error: unknown) {
       // The server kept the old state, so the button goes back to it.
       away.value = previous.away;

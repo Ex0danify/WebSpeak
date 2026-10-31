@@ -94,9 +94,10 @@ describe("toggleAway and the gateway", () => {
     const setAway = vi.fn(async () => {
       throw new LocalizedError(text("err_PERMISSION_DENIED"), "PERMISSION_DENIED");
     });
-    const { vm } = await mountUseChannelTree({ setAway });
+    const { vm, options } = await mountUseChannelTree({ setAway });
     await vm.toggleAway();
     expect(vm.away).toBe(false);
+    expect(options.playNotification).not.toHaveBeenCalled();
     expect(useToast().toasts.value.at(-1)).toMatchObject({ variant: "danger" });
   });
 });

@@ -7,6 +7,7 @@ import { LocalizedError, text, type TextParams } from "@/shared/i18n/localizedTe
 import { audioNoticeText } from "@/features/voice/voiceErrors";
 import type { SinkAudioContext, SinkAudioElement } from "@/features/voice/voiceTypes";
 import type { MessageHandlers } from "@/features/session";
+import { playNotificationSound, type NotificationSound } from "@/features/voice/engine/notificationSounds";
 
 /** Late-bound pieces owned by other modules: the assembler passes them in, this module never imports them. */
 export interface AudioOutputDeps {
@@ -16,6 +17,8 @@ export interface AudioOutputDeps {
 }
 
 const AUDIO_NOTICE_GROUP = "audio";
+/** Peak level of a cue at full notification and output volume. */
+const NOTIFICATION_PEAK = 0.4;
 
 /** The output side of the audio graph, covering the shared AudioContext, speaker sink, output volume, the audio notices,
  *  notification sounds and the native WebRTC playback element. The context and the element are non-reactive closure state,
@@ -182,30 +185,22 @@ export function useAudioOutput(deps: AudioOutputDeps) {
     webrtcOutputElement = null;
   }
 
-  function playNotification(kind: "connected" | "disconnected" | "poke" | "private" | "reconnectFailed"): void {
+  function playNotification(kind: NotificationSound): void {
     if (notificationVolume.value <= 0 || outputMuted.value || effectiveOutputVolume() <= 0 || typeof window === "undefined") return;
     try {
       const ctx = getAudioCtx();
-      if (ctx.state === "suspended") return;
-      const frequencies: Record<typeof kind, number[]> = {
-        connected: [660, 880],
-        disconnected: [440, 330],
-        poke: [740, 980],
-        private: [600, 760],
-        reconnectFailed: [300, 220],
-      };
-      const oscillator = ctx.createOscillator();
-      const gain = ctx.createGain();
-      const now = ctx.currentTime;
-      oscillator.frequency.setValueAtTime(frequencies[kind][0], now);
-      oscillator.frequency.setValueAtTime(frequencies[kind][1], now + 0.08);
-      gain.gain.setValueAtTime(0.0001, now);
-      gain.gain.exponentialRampToValueAtTime(Math.max(0.0001, notificationVolume.value * effectiveOutputVolume() * 0.12), now + 0.01);
-      gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.18);
-      oscillator.connect(gain);
-      gain.connect(ctx.destination);
-      oscillator.start(now);
-      oscillator.stop(now + 0.2);
+      const volume = notificationVolume.value * effectiveOutputVolume() * NOTIFICATION_PEAK;
+      if (ctx.state !== "suspended") {
+        playNotificationSound(ctx, kind, volume);
+        return;
+      }
+      // The browser may still allow a resume after an earlier gesture, otherwise the cue is skipped rather than played late.
+      void ctx
+        .resume()
+        .then(() => {
+          if (ctx.state === "running") playNotificationSound(ctx, kind, volume);
+        })
+        .catch(() => undefined);
     } catch {
       // Notification sounds are best effort and must never affect the session.
     }

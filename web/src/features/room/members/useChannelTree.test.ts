@@ -143,6 +143,7 @@ describe("toggleAway", () => {
     await vm.toggleAway();
     expect(vm.away).toBe(true);
     expect(options.setAway).toHaveBeenCalledWith(true, "back in 5");
+    expect(options.playNotification).toHaveBeenCalledWith("away");
   });
 
   it("clears the message and reports available without prompting again", async () => {
@@ -154,6 +155,7 @@ describe("toggleAway", () => {
     expect(vm.away).toBe(false);
     expect(dialog.prompt).not.toHaveBeenCalled();
     expect(options.setAway).toHaveBeenLastCalledWith(false, "");
+    expect(options.playNotification).toHaveBeenLastCalledWith("returned");
   });
 
   it("stays available when the prompt is dismissed", async () => {
@@ -162,6 +164,7 @@ describe("toggleAway", () => {
     await vm.toggleAway();
     expect(vm.away).toBe(false);
     expect(options.setAway).not.toHaveBeenCalled();
+    expect(options.playNotification).not.toHaveBeenCalled();
   });
 });
 

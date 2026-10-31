@@ -263,41 +263,85 @@ describe("WebRTC playback element", () => {
 });
 
 describe("playNotification", () => {
-  it("plays a two-tone beep scaled by notification and output volume", () => {
+  it("plays the cue as FM bells scaled by notification and output volume", () => {
     const { audio, output } = setup();
     audio.notificationVolume = 0.5;
     audio.outputVolume = 0.5;
-    const ctx = output.getAudioCtx() as unknown as FakeAudioContext & Record<string, unknown>;
-    const oscillator = { frequency: { setValueAtTime: vi.fn() }, connect: vi.fn(), start: vi.fn(), stop: vi.fn() };
-    const param = { setValueAtTime: vi.fn(), exponentialRampToValueAtTime: vi.fn() };
-    ctx.createOscillator = (() => oscillator) as unknown as FakeAudioContext["createOscillator"];
-    (ctx as Record<string, unknown>).createGain = () => ({ gain: param, connect: vi.fn() });
+    const ctx = output.getAudioCtx() as unknown as FakeAudioContext;
     output.playNotification("poke");
-    expect(oscillator.frequency.setValueAtTime.mock.calls.map((call) => call[0])).toEqual([740, 980]);
-    expect(oscillator.start).toHaveBeenCalled();
-    expect(oscillator.stop).toHaveBeenCalled();
+    // Two notes, each a carrier and a modulator at the same pitch.
+    expect(ctx.oscillators.map((oscillator) => oscillator.frequencies[0])).toEqual([493.88, 493.88, 493.88, 493.88]);
+    expect(ctx.oscillators.every((oscillator) => oscillator.started)).toBe(true);
+    // The notes only reach the speakers through the filter and the room.
+    expect(ctx.gains.some((gain) => gain.connections.includes(ctx.destination))).toBe(true);
+    expect(ctx.oscillators.every((oscillator) => !oscillator.connections.includes(ctx.destination))).toBe(true);
   });
 
-  it("is silent when muted, at zero notification volume, or while the context is suspended", () => {
+  it("gives every cue its own pitches", () => {
     const { audio, output } = setup();
-    const ctx = output.getAudioCtx() as unknown as FakeAudioContext & Record<string, unknown>;
-    const createOscillator = vi.fn();
-    ctx.createOscillator = createOscillator;
+    audio.notificationVolume = 0.5;
+    const ctx = output.getAudioCtx() as unknown as FakeAudioContext;
+    const sequences = new Set<string>();
+    for (const kind of [
+      "connected",
+      "disconnected",
+      "reconnectFailed",
+      "error",
+      "poke",
+      "private",
+      "userJoined",
+      "userLeft",
+      "channelSwitched",
+      "away",
+      "returned",
+    ] as const) {
+      ctx.oscillators.length = 0;
+      output.playNotification(kind);
+      expect(ctx.oscillators.length).toBeGreaterThan(0);
+      sequences.add(ctx.oscillators.map((oscillator) => oscillator.frequencies[0]).join());
+    }
+    expect(sequences.size).toBe(11);
+  });
+
+  it("is silent when muted or at zero notification volume", () => {
+    const { audio, output } = setup();
+    const ctx = output.getAudioCtx() as unknown as FakeAudioContext;
     audio.outputMuted = true;
     output.playNotification("poke");
     audio.outputMuted = false;
     audio.notificationVolume = 0;
     output.playNotification("poke");
+    expect(ctx.oscillators).toHaveLength(0);
+  });
+
+  it("resumes a suspended context and plays once it runs", async () => {
+    const { audio, output } = setup();
     audio.notificationVolume = 0.5;
+    const ctx = output.getAudioCtx() as unknown as FakeAudioContext;
     ctx.setState("suspended");
     output.playNotification("poke");
-    expect(createOscillator).not.toHaveBeenCalled();
+    await vi.waitFor(() => expect(ctx.oscillators.length).toBeGreaterThan(0));
+  });
+
+  it("skips the cue when the context stays suspended", async () => {
+    const { audio, output } = setup();
+    audio.notificationVolume = 0.5;
+    const ctx = output.getAudioCtx() as unknown as FakeAudioContext;
+    ctx.setState("suspended");
+    ctx.resume = async () => undefined;
+    output.playNotification("poke");
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(ctx.oscillators).toHaveLength(0);
   });
 
   it("never throws when the audio graph is unavailable", () => {
     const { audio, output } = setup();
     audio.notificationVolume = 0.5;
-    output.getAudioCtx();
+    const ctx = output.getAudioCtx() as unknown as Record<string, unknown>;
+    ctx.createOscillator = () => {
+      throw new Error("no audio graph");
+    };
     expect(() => output.playNotification("connected")).not.toThrow();
   });
 });
