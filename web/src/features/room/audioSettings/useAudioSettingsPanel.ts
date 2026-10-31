@@ -145,7 +145,7 @@ export function useAudioSettingsPanel(options: UseAudioSettingsPanelOptions) {
       if (accompanimentActive.value) showToast(t("accompanimentStarted"));
     } catch (error: unknown) {
       if (accompanimentErrorCode.value === "gateway" || !accompanimentErrorCode.value) {
-        notifyEvent(t("failAccompaniment"), { error });
+        notifyEvent(t("failAccompaniment"), { error, variant: "danger" });
         return;
       }
       const messageKey: MessageKey =

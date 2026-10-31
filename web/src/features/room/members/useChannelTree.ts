@@ -159,7 +159,10 @@ export function useChannelTree(options: UseChannelTreeOptions) {
         clearTimeout(commitTimer);
         requested = null;
         // The refusal (no permission, channel full, ...) is otherwise only kept in the session state, which nothing shows here.
-        notifyEvent(t("failChannelSwitch"), { reason: code === "OPERATION_FAILED" ? "" : resolveText(voiceState.error) });
+        notifyEvent(t("failChannelSwitch"), {
+          reason: code === "OPERATION_FAILED" ? "" : resolveText(voiceState.error),
+          variant: "danger",
+        });
         clearError();
         return;
       }
@@ -242,7 +245,7 @@ export function useChannelTree(options: UseChannelTreeOptions) {
       await moveClient(member.id, targetChannelId);
       notify(t("moveMemberSuccess"));
     } catch (error: unknown) {
-      notifyEvent(t("failMoveMember"), { error });
+      notifyEvent(t("failMoveMember"), { error, variant: "danger" });
     }
   }
 

@@ -46,6 +46,18 @@ describe("useGatewayErrorNotices", () => {
     expect(notices()).toMatchObject([{ code: "INVALID_AUDIO_FRAME", text: { key: "err_INVALID_AUDIO_FRAME" } }]);
   });
 
+  it("gives each condition the severity listed for it", async () => {
+    const { raise } = setup();
+    await raise("INVALID_AUDIO_FRAME");
+    await raise("SESSION_NOT_READY");
+    await raise("WEBRTC_DISABLED");
+    expect(Object.fromEntries(notices().map((notice) => [notice.code, notice.variant]))).toEqual({
+      INVALID_AUDIO_FRAME: "danger",
+      SESSION_NOT_READY: "warning",
+      WEBRTC_DISABLED: "warning",
+    });
+  });
+
   it("lets the condition lapse once the errors stop, and keeps it while they continue", async () => {
     const { raise } = setup();
     await raise("INVALID_AUDIO_FRAME");

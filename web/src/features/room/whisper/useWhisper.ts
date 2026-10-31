@@ -29,7 +29,7 @@ export function useWhisper(options: UseWhisperOptions) {
   );
 
   function showFailure(error: unknown): void {
-    notifyEvent(t("failWhisper"), { error });
+    notifyEvent(t("failWhisper"), { error, variant: "danger" });
   }
 
   async function toggleWhisperTarget(member: ChannelMember): Promise<void> {

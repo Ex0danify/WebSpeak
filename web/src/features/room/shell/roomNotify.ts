@@ -22,25 +22,27 @@ function failureReason(error: unknown): string {
 }
 
 export interface EventOptions {
+  /** How serious it is, always the caller's call. */
+  variant: StatusVariant;
   /** The thrown value, its specific reason becomes the description. */
   error?: unknown;
   /** A reason already in hand, wins over `error`. */
   reason?: string;
   /** What it means for the user, shown after the reason. */
   hint?: string;
-  variant?: StatusVariant;
 }
 
-/** A toast that names what happened, followed by the reason and an optional hint. Defaults to a refusal. */
-export function notifyEvent(title: string, options: EventOptions = {}): void {
+/** A toast that names what happened, followed by the reason and an optional hint. */
+export function notifyEvent(title: string, options: EventOptions): void {
   const reason = options.reason ?? failureReason(options.error);
   const description = [reason, options.hint].filter(Boolean).join(" ");
-  toast({ title, ...(description ? { description } : {}), variant: options.variant ?? "danger", duration: EVENT_TOAST_MS });
+  toast({ title, ...(description ? { description } : {}), variant: options.variant, duration: EVENT_TOAST_MS });
 }
 
 export interface StateOptions {
+  /** How serious it is, always the caller's call. */
+  variant: RoomNotice["variant"];
   title?: MaybeLocalizedText;
-  variant?: RoomNotice["variant"];
   /** For a condition the gateway never reports as gone. It lapses this long after the last time it was raised. */
   expiresAfterMs?: number;
 }
@@ -53,13 +55,13 @@ function stopExpiry(code: string): void {
 }
 
 /** Shows a condition in the room banner until `clearState` is called with the same code. Raising it again replaces it. */
-export function notifyState(code: string, message: MaybeLocalizedText, options: StateOptions = {}): void {
+export function notifyState(code: string, message: MaybeLocalizedText, options: StateOptions): void {
   const session = useSessionStore();
   session.setRoomNotice({
     code,
     text: message,
     title: options.title ?? text("roomNoticeTitle"),
-    variant: options.variant ?? "warning",
+    variant: options.variant,
   });
   stopExpiry(code);
   if (options.expiresAfterMs) {

@@ -35,7 +35,7 @@ export function useAway(setAway: (away: boolean, message: string) => Promise<voi
       // The server kept the old state, so the button goes back to it.
       away.value = previous.away;
       awayMessage.value = previous.message;
-      notifyEvent(t("failAway"), { error });
+      notifyEvent(t("failAway"), { error, variant: "danger" });
     }
   }
 

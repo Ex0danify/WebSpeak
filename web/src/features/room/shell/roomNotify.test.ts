@@ -27,7 +27,7 @@ const notices = () => useSessionStore().roomNotices;
 
 describe("notifyEvent", () => {
   it("names what happened and gives the specific reason", () => {
-    notifyEvent("Poke failed", { error: new LocalizedError(text("err_PERMISSION_DENIED"), "PERMISSION_DENIED") });
+    notifyEvent("Poke failed", { error: new LocalizedError(text("err_PERMISSION_DENIED"), "PERMISSION_DENIED"), variant: "danger" });
     expect(last()).toMatchObject({
       variant: "danger",
       title: "Poke failed",
@@ -36,32 +36,37 @@ describe("notifyEvent", () => {
   });
 
   it("leaves the generic gateway failure out, it adds nothing to the title", () => {
-    notifyEvent("Poke failed", { error: new LocalizedError(text("err_OPERATION_FAILED"), "OPERATION_FAILED") });
+    notifyEvent("Poke failed", { error: new LocalizedError(text("err_OPERATION_FAILED"), "OPERATION_FAILED"), variant: "danger" });
     expect(last()?.title).toBe("Poke failed");
     expect(last()?.description).toBeUndefined();
   });
 
   it("uses the message of a plain error and nothing for other values", () => {
-    notifyEvent("Poke failed", { error: new Error("socket gone") });
+    notifyEvent("Poke failed", { error: new Error("socket gone"), variant: "danger" });
     expect(last()?.description).toBe("socket gone");
-    notifyEvent("Poke failed", { error: "oops" });
+    notifyEvent("Poke failed", { error: "oops", variant: "danger" });
     expect(last()?.description).toBeUndefined();
   });
 
   it("takes a reason in hand over the error and appends the hint", () => {
-    notifyEvent("Poke failed", { error: new Error("ignored"), reason: "No right", hint: "Try later." });
+    notifyEvent("Poke failed", { error: new Error("ignored"), reason: "No right", hint: "Try later.", variant: "danger" });
     expect(last()?.description).toBe("No right Try later.");
   });
 
   it("stays longer than a confirmation", () => {
-    notifyEvent("Poke failed");
+    notifyEvent("Poke failed", { variant: "danger" });
     expect(last()?.duration).toBeGreaterThan(2800);
+  });
+
+  it("shows the severity the caller gives", () => {
+    notifyEvent("Heads up", { variant: "warning" });
+    expect(last()?.variant).toBe("warning");
   });
 });
 
 describe("notifyState", () => {
   it("shows a notice until it is cleared, and replaces one with the same code", () => {
-    notifyState("SOME_STATE", "first");
+    notifyState("SOME_STATE", "first", { variant: "info" });
     notifyState("SOME_STATE", "second", { variant: "danger" });
     expect(notices()).toMatchObject([{ code: "SOME_STATE", text: "second", variant: "danger" }]);
     clearState("SOME_STATE");
@@ -69,9 +74,9 @@ describe("notifyState", () => {
   });
 
   it("lapses after the given time and a new raise starts the time again", () => {
-    notifyState("LAPSING", "x", { expiresAfterMs: 1000 });
+    notifyState("LAPSING", "x", { variant: "warning", expiresAfterMs: 1000 });
     vi.advanceTimersByTime(800);
-    notifyState("LAPSING", "x", { expiresAfterMs: 1000 });
+    notifyState("LAPSING", "x", { variant: "warning", expiresAfterMs: 1000 });
     vi.advanceTimersByTime(800);
     expect(notices()).toHaveLength(1);
     vi.advanceTimersByTime(300);
@@ -79,9 +84,9 @@ describe("notifyState", () => {
   });
 
   it("does not let a cleared notice lapse later on a newer one", () => {
-    notifyState("CODE", "x", { expiresAfterMs: 1000 });
+    notifyState("CODE", "x", { variant: "warning", expiresAfterMs: 1000 });
     clearState("CODE");
-    notifyState("CODE", "again");
+    notifyState("CODE", "again", { variant: "warning" });
     vi.advanceTimersByTime(2000);
     expect(notices()).toHaveLength(1);
   });

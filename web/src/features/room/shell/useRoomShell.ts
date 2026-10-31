@@ -66,7 +66,7 @@ export function useRoomShell({
       await sendPoke(member.id, message);
       showToast(t("pokeSent"));
     } catch (error: unknown) {
-      notifyEvent(t("failPoke"), { error });
+      notifyEvent(t("failPoke"), { error, variant: "danger" });
     }
   }
 
