@@ -15,7 +15,11 @@
         surface="surface-1"
         class="size-6.5 group-focus-within/row:[--avatar-gap:var(--color-surface-2)] group-hover/row:[--avatar-gap:var(--color-surface-2)] max-compact:size-10" /><AvatarMuteBadge
         v-if="mutedLocally"
-        :label="t('mutedLocally')" /><span
+        :label="t('mutedLocally')" /><AvatarMuteBadge
+        v-else-if="talkBlocked"
+        :label="t('noTalkPower')"
+        icon="mic-off"
+        tone="warning" /><span
         v-else
         :class="[
           'absolute -right-0.5 -bottom-0.5 size-2 rounded-full border-2 border-surface-1 max-compact:size-2.5',
@@ -68,6 +72,8 @@ import type { ChannelMember } from "@/features/session";
 defineProps<{
   member: ChannelMember;
   speaking: boolean;
+  /** Our own voice is dropped in this channel (moderated, not enough talk power). */
+  talkBlocked?: boolean;
   /** The local user muted this member on this client. */
   mutedLocally?: boolean;
   isMobileViewport: boolean;
