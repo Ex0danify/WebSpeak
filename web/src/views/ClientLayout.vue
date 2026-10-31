@@ -31,6 +31,8 @@ const { language, setThemeMode } = useAppearance();
 const { state: voiceState } = room.session;
 useRoomSounds({
   voiceState,
+  channels: room.roster.channels,
+  roomNotices: room.session.roomNotices,
   chatMessages: room.chat.chatMessages,
   pokeNotifications: room.roster.pokeNotifications,
   playNotification: room.audio.playNotification,
