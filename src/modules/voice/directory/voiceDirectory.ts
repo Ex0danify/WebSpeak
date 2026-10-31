@@ -2,6 +2,7 @@ import { randomBytes } from "node:crypto";
 import type { TSDirectorySnapshot } from "../../teamspeak/index.js";
 import type { MessageParams } from "../../../shared/messageCodes.js";
 import type { ServerEvent, VoiceConnection, WebClientEntry } from "../voiceTypes.js";
+import { syncTalkState } from "../selfActivity.js";
 import { avatarDataUrl, isChannelRecord, mapChannelTree, normalizeDirectorySnapshot } from "./voiceDirectoryView.js";
 
 export interface VoiceDirectoryDeps {
@@ -163,6 +164,7 @@ export function refreshDirectory(ctx: VoiceConnection) {
   ) {
     ctx.sendJson({ type: "whisperTargets", targetIds: nextWhisperTargets, active: ctx.entry.whisperActive });
   }
+  syncTalkState(ctx);
 }
 
 export function scheduleMemberAvatarRefresh(ctx: VoiceConnection, delayMs = 0): void {

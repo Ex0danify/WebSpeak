@@ -158,6 +158,32 @@ describe("browser to TeamSpeak: PCM in, Opus out", () => {
     expect(await counters(gateway, "alice")).toMatchObject({ ingressFrames: 25, ingressDroppedFrames: 0, tsSendFrames: 25 });
   });
 
+  it("reports the own client as speaking only for frames that the channel lets through", async () => {
+    const gateway = await gateways.start();
+    const alice = await joinVoice(gateway, { nickname: "alice" });
+    const selfId = alice.client.getClientId();
+    const isSelfActivity = (message: { type?: unknown; clientIds?: unknown }) =>
+      message.type === "voiceActivity" && Array.isArray(message.clientIds) && message.clientIds.includes(selfId);
+
+    sendFrames(alice, sinePcmWireFrames(440, 3));
+    await settle(alice);
+    expect(alice.socket.messages.some(isSelfActivity)).toBe(true);
+
+    // A moderated channel drops the voice without an answer, so the gateway must not claim we are heard.
+    const canSpeak = vi.spyOn(alice.client, "canSpeak").mockReturnValue(false);
+    gateway.ts.updateMember(selfId, { away: false });
+    await alice.socket.waitForMessage((message) => message.type === "talkState" && message.canSpeak === false);
+    const after = alice.socket.mark();
+    sendFrames(alice, sinePcmWireFrames(440, 3));
+    await settle(alice);
+    expect(alice.socket.messages.slice(after).some(isSelfActivity)).toBe(false);
+    expect(alice.client.sentVoice.length).toBeGreaterThan(3);
+
+    canSpeak.mockReturnValue(true);
+    gateway.ts.updateMember(selfId, { away: false });
+    await alice.socket.waitForMessage((message) => message.type === "talkState" && message.canSpeak === true);
+  });
+
   it("counts a frame that TeamSpeak refuses as a send error, and carries on with the next", async () => {
     const gateway = await gateways.start();
     const alice = await joinVoice(gateway, { nickname: "alice" });

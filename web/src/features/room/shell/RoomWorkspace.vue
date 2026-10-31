@@ -139,6 +139,7 @@
         :drag-over-channel-id="dragOverChannelId"
         :dragged-member-id="draggedMember?.id"
         :speaking-ids="speakingIds"
+        :can-speak="canSpeak"
         :muted-members="mutedMembers"
         :is-mobile-viewport="isMobileViewport"
         @select-channel="selectChannel"
@@ -239,7 +240,8 @@ const props = defineProps<{
 
 const { t } = useI18n();
 const { state: voiceState, roomNotices, reconnectNow } = props.session.session;
-const { members, serverEvents, pokeNotifications, speakingIds, mutedMembers, whisperTargetIds, whisperActive } = props.session.roster;
+const { members, serverEvents, pokeNotifications, speakingIds, canSpeak, mutedMembers, whisperTargetIds, whisperActive } =
+  props.session.roster;
 const {
   microphoneMuted,
   noiseSuppressionEnabled,

@@ -13,6 +13,8 @@ export interface SessionSelf {
   /** 0 until our own enter view arrived. */
   channelId: bigint;
   client: SessionClient | undefined;
+  /** Whether our voice is let through in this channel. True while we do not know better, the server decides in the end. */
+  canTalk: boolean;
 }
 
 /** What the server told us so far, read only. */
@@ -57,7 +59,9 @@ export class SessionState implements SessionView {
 
   get self(): SessionSelf {
     const client = this.#parts.clients.get(this.#parts.selfId);
-    return { clientId: this.#parts.selfId, channelId: client?.channelId ?? 0n, client };
+    const channel = client && this.#parts.channels.get(client.channelId);
+    const canTalk = !client || !channel || client.talker || client.talkPower >= channel.neededTalkPower;
+    return { clientId: this.#parts.selfId, channelId: client?.channelId ?? 0n, client, canTalk };
   }
 
   get server(): SessionServer {

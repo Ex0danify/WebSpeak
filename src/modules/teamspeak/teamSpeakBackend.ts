@@ -65,6 +65,8 @@ export interface TeamSpeakBackend extends EventEmitter<TeamSpeakBackendEvents> {
   /** 0 before the server assigned one. */
   clientId(): number;
   channelId(): bigint;
+  /** Whether the server lets our voice through in the current channel. */
+  canTalk(): boolean;
   /**
    * Answer rows, rejects with the server's refusal. `background` commands run through the client's
    * scheduler after interactive ones and are retried after a flood refusal (the post-connect burst).

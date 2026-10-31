@@ -138,10 +138,10 @@ describe("uplink: frame assembler", () => {
     expect(second[64]).toBe(5024);
   });
 
-  it("marks the own client as speaking after sending", async () => {
+  it("leaves the speaking indicator to the gateway, sending alone does not light it", async () => {
     const { worklet } = await liveMicrophone();
     capture(worklet, constant(0.5));
-    expect(harness.voice.roster.speakingIds.has(7)).toBe(true);
+    expect(harness.voice.roster.speakingIds.has(7)).toBe(false);
   });
 });
 

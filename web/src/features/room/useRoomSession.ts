@@ -55,7 +55,7 @@ export type {
 export function useRoomSession() {
   const session = useSessionStore();
   session.reset();
-  const { ws, whisperActive } = storeToRefs(session);
+  const { ws, whisperActive, canSpeak } = storeToRefs(session);
   const audio = useVoiceAudioStore();
   audio.reset();
   const {
@@ -148,7 +148,7 @@ export function useRoomSession() {
   const webrtcActive = ref(false);
   const identityMaterial = ref("");
   const playback = usePlayback({ getAudioCtx, effectiveOutputVolume, webrtcActive });
-  const { remoteGains, markSpeaking, clearSpeaking, handleAudioFrame, resetDownlink, handlers: playbackHandlers } = playback;
+  const { remoteGains, clearSpeaking, handleAudioFrame, resetDownlink, handlers: playbackHandlers } = playback;
 
   const {
     startScreenShare,
@@ -187,7 +187,6 @@ export function useRoomSession() {
     getAudioCtx,
     syncAudioContextNotice,
     releaseAudioCtx,
-    markSpeaking,
     clearSpeaking,
     sendCommand: sendCommandAndWait,
     webrtcActive,
@@ -215,8 +214,6 @@ export function useRoomSession() {
     syncWebRtcPlayback,
     setAudioNotice,
     clearAudioNotice,
-    markSpeaking,
-    clearSpeaking,
     sendCmd,
     sendCommand: sendCommandAndWait,
     connectionSequence: () => connection.getConnectionSequence(),
@@ -307,6 +304,7 @@ export function useRoomSession() {
       members,
       channels,
       speakingIds,
+      canSpeak,
       volumes,
       mutedMembers,
       whisperTargetIds,

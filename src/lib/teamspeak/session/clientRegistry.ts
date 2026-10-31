@@ -20,6 +20,8 @@ export interface ClientFields {
   prioritySpeaker: boolean;
   recording: boolean;
   talkPower: number;
+  /** Granted the right to talk in a moderated channel. The server clears it on a channel change. */
+  talker: boolean;
   description: string;
   avatar: string;
 }
@@ -48,6 +50,7 @@ const CLIENT_FIELDS: FieldSpec<ClientFields> = {
   prioritySpeaker: ["client_is_priority_speaker", flag, false],
   recording: ["client_is_recording", flag, false],
   talkPower: ["client_talk_power", parseI32, 0],
+  talker: ["client_is_talker", flag, false],
   description: ["client_description", text, ""],
   avatar: ["client_flag_avatar", text, ""],
 };

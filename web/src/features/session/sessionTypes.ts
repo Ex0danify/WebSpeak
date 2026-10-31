@@ -142,6 +142,7 @@ export type ServerMessage =
       serverEventLog: ServerEvent[];
       whisperTargetIds: number[];
       whisperActive: boolean;
+      canSpeak: boolean;
       webrtcAvailable: boolean;
       screenShareIceServers: unknown;
       accelerated: boolean;
@@ -171,6 +172,7 @@ export type ServerMessage =
   | { type: "channelSwitched"; requestId?: string; channelId: string | number }
   | { type: "commandCompleted"; requestId: string }
   | { type: "whisperTargets"; targetIds: number[]; active: boolean }
+  | { type: "talkState"; canSpeak: boolean }
   | {
       type: "error";
       requestId?: string;

@@ -42,6 +42,8 @@ export const useSessionStore = defineStore("voiceSession", () => {
   const speakingIds = reactive(new Set<number>());
   const whisperTargetIds = reactive(new Set<number>());
   const whisperActive = ref(false);
+  /** False while the channel drops our voice (moderated, not enough talk power). Set by the gateway. */
+  const canSpeak = ref(true);
 
   function setRoomNotice(notice: RoomNotice): void {
     for (let i = roomNotices.length - 1; i >= 0; i--) {
@@ -75,6 +77,7 @@ export const useSessionStore = defineStore("voiceSession", () => {
     speakingIds.clear();
     whisperTargetIds.clear();
     whisperActive.value = false;
+    canSpeak.value = true;
   }
 
   return {
@@ -92,6 +95,7 @@ export const useSessionStore = defineStore("voiceSession", () => {
     speakingIds,
     whisperTargetIds,
     whisperActive,
+    canSpeak,
     reset,
   };
 });

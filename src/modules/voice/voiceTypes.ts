@@ -120,6 +120,9 @@ export interface WebClientEntry {
   invalidFrameWarnedAt: number; // time of the last INVALID_AUDIO_FRAME answer, used to rate-limit it
   whisperTargetIds: Set<number>;
   whisperActive: boolean;
+  /** Whether the channel we are in lets our voice through, see `syncTalkState`. */
+  canSpeak: boolean;
+  selfActivityAt: number;
   isAlive: boolean;
   reconnectTimer: ReturnType<typeof setTimeout> | null;
   audio: AudioFlowStats;

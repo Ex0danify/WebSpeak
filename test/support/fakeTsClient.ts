@@ -347,9 +347,8 @@ export class FakeTSClient extends EventEmitter {
   getChannelId(): bigint {
     return this.server.members.get(this.clientId)?.channelID ?? 0n;
   }
-  isConnected(): boolean {
-    return this.isUp;
-  }
+  isConnected = (): boolean => this.isUp;
+  canSpeak = (): boolean => true;
 
   async execCommandWithResponse(command: string, _timeoutMs = 3000): Promise<Record<string, string>[]> {
     this.ready();

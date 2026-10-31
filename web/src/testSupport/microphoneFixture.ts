@@ -37,7 +37,6 @@ export function setup(overrides: Partial<MicrophoneDeps> = {}) {
     getAudioCtx: vi.fn(() => fx.ctx as unknown as SinkAudioContext),
     syncAudioContextNotice: vi.fn(),
     releaseAudioCtx: vi.fn(),
-    markSpeaking: vi.fn(),
     clearSpeaking: vi.fn(),
     sendCommand: vi.fn(async () => undefined),
     webrtcActive: ref(false),

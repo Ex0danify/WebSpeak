@@ -31,6 +31,22 @@ describe("MemberRow local mute badge", () => {
   });
 });
 
+describe("MemberRow talk power badge", () => {
+  const blocked = (extra: Partial<ChannelMember> = {}) =>
+    mount(MemberRow, { props: { member: { ...member, ...extra }, speaking: false, talkBlocked: true, isMobileViewport: false } });
+
+  it("marks the avatar with a labelled badge in place of the online dot, and leaves the status line alone", () => {
+    const wrapper = blocked({ isSelf: true });
+    expect(wrapper.find('[role="img"][aria-label="No talk power"]').exists()).toBe(true);
+    expect(wrapper.find(".bg-success").exists()).toBe(false);
+    expect(wrapper.text()).toContain("Your device");
+  });
+
+  it("shows no badge by default", () => {
+    expect(mountRow().find('[aria-label="No talk power"]').exists()).toBe(false);
+  });
+});
+
 describe("MemberRow away state", () => {
   function mountAway(extra: Partial<ChannelMember>) {
     return mount(MemberRow, { props: { member: { ...member, away: true, ...extra }, speaking: false, isMobileViewport: false } });
