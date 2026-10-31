@@ -129,6 +129,7 @@ export const de: Record<string, string> = {
   outputVolume: "Ausgabelautstärke",
   outputDeviceUnsupported: "Dieser Browser unterstützt keine Auswahl des Ausgabegeräts. Die Standardausgabe wird verwendet.",
   notificationVolume: "Benachrichtigungslautstärke",
+  roomNoticeTitle: "Hinweis",
   audioStatus: "Audiostatus",
   audioReady: "Audio bereit",
   noiseSuppression: "Browser-Geräuschunterdrückung",

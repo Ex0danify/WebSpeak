@@ -52,6 +52,7 @@ const EXPECTED_SURFACE: Record<string, Record<string, string>> = {
     identityMaterial: "ref",
     measureLatency: "function",
     reconnectNow: "function",
+    roomNotices: "reactive-array",
     state: "reactive-object",
     ws: "ref",
   },

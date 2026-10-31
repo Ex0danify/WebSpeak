@@ -1,6 +1,6 @@
 import { computed, ref } from "vue";
 import { useI18n } from "@/shared/i18n/useI18n.js";
-import { toastActionFailure } from "@/features/room/actionFailure";
+import { notifyEvent } from "@/features/room/shell/roomNotify";
 import { toast as raiseToast } from "@/shared/composables/useToast.js";
 import type { ChannelMember } from "@/features/session";
 import type { RoomSession } from "@/features/room/roomTypes";
@@ -29,7 +29,7 @@ export function useWhisper(options: UseWhisperOptions) {
   );
 
   function showFailure(error: unknown): void {
-    toastActionFailure(t("failWhisper"), error);
+    notifyEvent(t("failWhisper"), { error });
   }
 
   async function toggleWhisperTarget(member: ChannelMember): Promise<void> {

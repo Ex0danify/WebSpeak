@@ -1,6 +1,6 @@
 import { defineStore } from "pinia";
 import { reactive, ref, shallowRef } from "vue";
-import type { ChannelInfo, ChannelMember, ChatMessage, ServerEvent, VoiceState } from "@/features/session/sessionTypes";
+import type { ChannelInfo, ChannelMember, ChatMessage, RoomNotice, ServerEvent, VoiceState } from "@/features/session/sessionTypes";
 
 export type PokeNotification = {
   id: string;
@@ -24,8 +24,6 @@ function initialState(): VoiceState {
     unattributedError: null,
     microphoneError: "",
     microphoneErrorCode: "",
-    audioNotice: "",
-    audioNoticeCode: "",
     channelSwitchedChannelId: "",
   };
 }
@@ -40,9 +38,30 @@ export const useSessionStore = defineStore("voiceSession", () => {
   const chatMessages = reactive<ChatMessage[]>([]);
   const serverEvents = reactive<ServerEvent[]>([]);
   const pokeNotifications = reactive<PokeNotification[]>([]);
+  const roomNotices = reactive<RoomNotice[]>([]);
   const speakingIds = reactive(new Set<number>());
   const whisperTargetIds = reactive(new Set<number>());
   const whisperActive = ref(false);
+
+  function setRoomNotice(notice: RoomNotice): void {
+    for (let i = roomNotices.length - 1; i >= 0; i--) {
+      const existing = roomNotices[i];
+      if (existing.code === notice.code || (notice.group && existing.group === notice.group)) roomNotices.splice(i, 1);
+    }
+    roomNotices.push(notice);
+  }
+
+  /** Without arguments every notice goes, with a code only that one, with a group the whole group. */
+  function clearRoomNotice(code?: string, group?: string): void {
+    for (let i = roomNotices.length - 1; i >= 0; i--) {
+      const notice = roomNotices[i];
+      if ((!code && !group) || (code && notice.code === code) || (group && notice.group === group)) roomNotices.splice(i, 1);
+    }
+  }
+
+  function hasRoomNotice(code: string): boolean {
+    return roomNotices.some((notice) => notice.code === code);
+  }
 
   function reset(): void {
     ws.value = null;
@@ -52,6 +71,7 @@ export const useSessionStore = defineStore("voiceSession", () => {
     chatMessages.splice(0);
     serverEvents.splice(0);
     pokeNotifications.splice(0);
+    roomNotices.splice(0);
     speakingIds.clear();
     whisperTargetIds.clear();
     whisperActive.value = false;
@@ -65,6 +85,10 @@ export const useSessionStore = defineStore("voiceSession", () => {
     chatMessages,
     serverEvents,
     pokeNotifications,
+    roomNotices,
+    setRoomNotice,
+    clearRoomNotice,
+    hasRoomNotice,
     speakingIds,
     whisperTargetIds,
     whisperActive,

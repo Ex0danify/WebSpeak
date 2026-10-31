@@ -55,8 +55,7 @@ export function makeVoiceState(overrides: Partial<VoiceState> = {}): VoiceState 
     errorCode: "",
     microphoneError: "",
     microphoneErrorCode: "",
-    audioNotice: "",
-    audioNoticeCode: "",
+    unattributedError: null,
     channelSwitchedChannelId: "",
     ...overrides,
   }) as VoiceState;

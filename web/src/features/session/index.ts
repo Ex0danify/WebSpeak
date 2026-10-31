@@ -4,7 +4,15 @@ export { useSessionStore, type PokeNotification } from "@/features/session/sessi
 export { createMessageRouter, createRosterHandlers, type MessageHandlers } from "@/features/session/messageRouter";
 export { SCREEN_SHARE_NEGOTIATION_TIMEOUT_MS, getScreenShareIceServers } from "@/features/session/iceServers";
 export { errorKey, safeClientErrorCode, safeClientErrorDetail, visibleErrorCode } from "@/features/session/sessionErrors";
-export type { ChannelInfo, ChannelMember, ChatMessage, LatencyProbeResult, ServerEvent, VoiceState } from "@/features/session/sessionTypes";
+export type {
+  ChannelInfo,
+  ChannelMember,
+  ChatMessage,
+  LatencyProbeResult,
+  RoomNotice,
+  ServerEvent,
+  VoiceState,
+} from "@/features/session/sessionTypes";
 export {
   channelNameText,
   isSpeaking,

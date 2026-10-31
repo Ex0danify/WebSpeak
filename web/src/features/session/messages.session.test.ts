@@ -210,14 +210,14 @@ describe("audioError", () => {
   it("raises an audio notice, with the encoder-specific text for AUDIO_ENCODER_UNAVAILABLE", async () => {
     const socket = await connected();
     await push(socket, { type: "audioError", code: "AUDIO_ENCODER_UNAVAILABLE", detail: "opus missing" });
-    expect(harness.voice.session.state.audioNoticeCode).toBe("AUDIO_ENCODER_UNAVAILABLE");
-    expect(harness.voice.session.state.audioNotice).toEqual({
+    expect(harness.voice.session.roomNotices[0]?.code ?? "").toBe("AUDIO_ENCODER_UNAVAILABLE");
+    expect(harness.voice.session.roomNotices[0]?.text ?? "").toEqual({
       key: "audioNoticeEncoder",
       params: { code: "AUDIO_ENCODER_UNAVAILABLE" },
     });
     await push(socket, { type: "audioError" });
-    expect(harness.voice.session.state.audioNoticeCode).toBe("AUDIO_ERROR");
-    expect(harness.voice.session.state.audioNotice).toEqual({ key: "audioNoticeLink", params: { code: "AUDIO_ERROR" } });
+    expect(harness.voice.session.roomNotices[0]?.code ?? "").toBe("AUDIO_ERROR");
+    expect(harness.voice.session.roomNotices[0]?.text ?? "").toEqual({ key: "audioNoticeLink", params: { code: "AUDIO_ERROR" } });
   });
 });
 
@@ -248,8 +248,11 @@ describe("webrtcAnswer / webrtcError", () => {
     await push(socket, { type: "webrtcError", code: "WEBRTC_DISABLED" });
     expect(socket.sentOfType("webrtcStop")).toHaveLength(1);
     expect(FakeRTCPeerConnection.instances[0].closed).toBe(true);
-    expect(harness.voice.session.state.audioNoticeCode).toBe("WEBRTC_FALLBACK");
-    expect(harness.voice.session.state.audioNotice).toEqual({ key: "audioNoticeWebrtcFallback", params: { code: "WEBRTC_DISABLED" } });
+    expect(harness.voice.session.roomNotices[0]?.code ?? "").toBe("WEBRTC_FALLBACK");
+    expect(harness.voice.session.roomNotices[0]?.text ?? "").toEqual({
+      key: "audioNoticeWebrtcFallback",
+      params: { code: "WEBRTC_DISABLED" },
+    });
     await push(socket, { type: "webrtcError", code: "AGAIN" });
     expect(socket.sentOfType("webrtcStop")).toHaveLength(1);
   });

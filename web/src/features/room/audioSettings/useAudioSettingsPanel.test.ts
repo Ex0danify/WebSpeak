@@ -1,7 +1,8 @@
 import { flushPromises, mount } from "@vue/test-utils";
 import { defineComponent, reactive, ref } from "vue";
-import { afterEach, describe, expect, it, vi } from "vitest";
-import type { VoiceState } from "@/features/session";
+import { createPinia, setActivePinia } from "pinia";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { useSessionStore, type VoiceState } from "@/features/session";
 import { LocalizedError, text } from "@/shared/i18n/localizedText";
 import { useToast } from "@/shared/composables/useToast";
 
@@ -37,8 +38,7 @@ function makeVoiceState(overrides: Partial<VoiceState> = {}): VoiceState {
     errorCode: "",
     microphoneError: "",
     microphoneErrorCode: "",
-    audioNotice: "",
-    audioNoticeCode: "",
+    unattributedError: null,
     channelSwitchedChannelId: "",
     ...overrides,
   }) as VoiceState;
@@ -77,6 +77,10 @@ async function mountUseAudioSettingsPanel(overrides: Record<string, unknown> = {
   await flushPromises();
   return { wrapper, vm: wrapper.vm as unknown as Exposed, options };
 }
+
+beforeEach(() => {
+  setActivePinia(createPinia());
+});
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -294,11 +298,13 @@ describe("toggleMicrophone when the gateway refuses the mute", () => {
     });
     const { vm } = await mountUseAudioSettingsPanel({ microphoneMuted, setMicrophoneMuted });
     await vm.toggleMicrophone();
-    expect(useToast().toasts.value.at(-1)).toMatchObject({
-      variant: "danger",
-      title: "Mute status could not be synced",
-      description: "Others may still see you as unmuted. Your microphone stays off.",
-    });
+    expect(useSessionStore().roomNotices).toMatchObject([
+      {
+        code: "MUTE_SYNC_FAILED",
+        title: { key: "muteSyncFailed" },
+        text: "Others may still see you as unmuted. Your microphone stays off.",
+      },
+    ]);
   });
 });
 

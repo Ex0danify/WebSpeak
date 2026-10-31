@@ -15,12 +15,13 @@ export interface AudioOutputDeps {
   remoteGains(): Map<number, GainNode>;
 }
 
-/** The output side of the audio graph, covering the shared AudioContext, speaker sink, output volume, the audio notice slot,
+const AUDIO_NOTICE_GROUP = "audio";
+
+/** The output side of the audio graph, covering the shared AudioContext, speaker sink, output volume, the audio notices,
  *  notification sounds and the native WebRTC playback element. The context and the element are non-reactive closure state,
  *  never in Pinia. */
 export function useAudioOutput(deps: AudioOutputDeps) {
   const session = useSessionStore();
-  const { state } = session;
   const audio = useVoiceAudioStore();
   const { outputVolume, outputMuted, notificationVolume, selectedOutputDeviceId, outputDeviceSupported, audioContextState } =
     storeToRefs(audio);
@@ -77,14 +78,18 @@ export function useAudioOutput(deps: AudioOutputDeps) {
   /** Non-fatal audio notice (WebRTC fallback, blocked autoplay, device list failure...). */
   function setAudioNotice(code: string, params?: TextParams): void {
     const noticeCode = safeClientErrorCode(code) || "AUDIO_NOTICE";
-    state.audioNoticeCode = noticeCode;
-    state.audioNotice = audioNoticeText(noticeCode, params);
+    session.setRoomNotice({
+      code: noticeCode,
+      text: audioNoticeText(noticeCode, params),
+      title: text("audioStatus"),
+      variant: noticeCode === "VOICE_CONNECTING" ? "info" : noticeCode === "VOICE_FAILED" ? "danger" : "warning",
+      group: AUDIO_NOTICE_GROUP,
+    });
   }
 
   function clearAudioNotice(code?: string): void {
-    if (code && state.audioNoticeCode !== safeClientErrorCode(code)) return;
-    state.audioNotice = "";
-    state.audioNoticeCode = "";
+    if (code) session.clearRoomNotice(safeClientErrorCode(code));
+    else session.clearRoomNotice(undefined, AUDIO_NOTICE_GROUP);
   }
 
   /** A suspended AudioContext silently swallows capture, so say so instead of pretending. */

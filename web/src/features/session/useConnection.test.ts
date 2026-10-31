@@ -80,7 +80,6 @@ describe("disconnect", () => {
       "rejectPendingCommands:The voice connection was closed",
       "stopMicrophone",
       "clearMicrophoneError",
-      "clearAudioNotice",
       "stopScreenShareTransport:true",
       "stopWebRtcTransport",
       "resetDownlink",
@@ -288,7 +287,6 @@ describe("socket close", () => {
       "stopWebRtcTransport",
       "stopMicrophone",
       "clearMicrophoneError",
-      "clearAudioNotice",
     ]);
   });
 

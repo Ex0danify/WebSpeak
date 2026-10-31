@@ -24,8 +24,6 @@ describe("useSessionStore", () => {
       unattributedError: null,
       microphoneError: "",
       microphoneErrorCode: "",
-      audioNotice: "",
-      audioNoticeCode: "",
       channelSwitchedChannelId: "",
     });
     expect(s.ws).toBeNull();

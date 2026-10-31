@@ -61,8 +61,7 @@ export function makeVoiceState(): VoiceState {
     errorCode: "",
     microphoneError: "",
     microphoneErrorCode: "",
-    audioNotice: "",
-    audioNoticeCode: "",
+    unattributedError: null,
     channelSwitchedChannelId: "",
   }) as VoiceState;
 }

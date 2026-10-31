@@ -1,6 +1,6 @@
 import { ref } from "vue";
 import { useI18n } from "@/shared/i18n/useI18n.js";
-import { toastActionFailure } from "@/features/room/actionFailure";
+import { notifyEvent } from "@/features/room/shell/roomNotify";
 import { useDialog } from "@/shared/composables/useDialog.js";
 
 /** The away toggle: flips the state, asks for a message through the shared prompt and reports both to the server, rolling
@@ -35,7 +35,7 @@ export function useAway(setAway: (away: boolean, message: string) => Promise<voi
       // The server kept the old state, so the button goes back to it.
       away.value = previous.away;
       awayMessage.value = previous.message;
-      toastActionFailure(t("failAway"), error);
+      notifyEvent(t("failAway"), { error });
     }
   }
 

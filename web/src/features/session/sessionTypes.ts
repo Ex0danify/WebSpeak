@@ -18,9 +18,18 @@ export interface VoiceState {
    */
   microphoneError: MaybeLocalizedText;
   microphoneErrorCode: string;
-  audioNotice: MaybeLocalizedText;
-  audioNoticeCode: string;
   channelSwitchedChannelId: string;
+}
+
+/** A condition of the room that stays true until it is fixed, shown by the room notice banner. */
+export interface RoomNotice {
+  /** Stable identifier, a notice with the same code is replaced instead of stacked. */
+  code: string;
+  text: MaybeLocalizedText;
+  title: MaybeLocalizedText;
+  variant: "info" | "warning" | "danger";
+  /** A notice replaces the others of its group, the audio diagnostics are one line that reflects the latest. */
+  group?: string;
 }
 
 export interface ChannelMember {

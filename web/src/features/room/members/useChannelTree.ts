@@ -1,7 +1,7 @@
 import { computed, onScopeDispose, reactive, ref, watch, type Ref } from "vue";
 import { useI18n } from "@/shared/i18n/useI18n.js";
 import { resolveText } from "@/shared/i18n/localizedText.js";
-import { toastActionFailure, toastActionFailureReason } from "@/features/room/actionFailure";
+import { notifyEvent } from "@/features/room/shell/roomNotify";
 import { toast as raiseToast } from "@/shared/composables/useToast.js";
 import { useAway } from "@/features/room/members/useAway.js";
 import { channelNameText, type ChannelMember } from "@/features/session";
@@ -159,7 +159,7 @@ export function useChannelTree(options: UseChannelTreeOptions) {
         clearTimeout(commitTimer);
         requested = null;
         // The refusal (no permission, channel full, ...) is otherwise only kept in the session state, which nothing shows here.
-        toastActionFailureReason(t("failChannelSwitch"), code === "OPERATION_FAILED" ? "" : resolveText(voiceState.error));
+        notifyEvent(t("failChannelSwitch"), { reason: code === "OPERATION_FAILED" ? "" : resolveText(voiceState.error) });
         clearError();
         return;
       }
@@ -242,7 +242,7 @@ export function useChannelTree(options: UseChannelTreeOptions) {
       await moveClient(member.id, targetChannelId);
       notify(t("moveMemberSuccess"));
     } catch (error: unknown) {
-      toastActionFailure(t("failMoveMember"), error);
+      notifyEvent(t("failMoveMember"), { error });
     }
   }
 

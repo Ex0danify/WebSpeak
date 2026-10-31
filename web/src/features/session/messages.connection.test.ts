@@ -105,24 +105,26 @@ describe("connected", () => {
     expect(socket.sentOfType("setOutputMuted")).toMatchObject([{ type: "setOutputMuted", payload: { muted: true } }]);
   });
 
-  it("toasts a refused connect-time mute and keeps the local mute", async () => {
+  it("shows a refused connect-time mute as a room notice and keeps the local mute", async () => {
     harness = await createVoiceHarness();
     harness.voice.audio.microphoneMuted.value = true;
     const socket = await harness.joinAndConnect();
     const [{ requestId }] = socket.sentOfType("setMicrophoneMuted");
     await push(socket, { type: "error", requestId, error: { code: "OPERATION_FAILED", message: "refused" } });
-    expect(useToast().toasts.value).toMatchObject([
-      { variant: "danger", title: "Mute status could not be synced", description: expect.stringContaining("microphone stays off") },
-    ]);
+    expect(harness.voice.session.roomNotices).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ code: "MUTE_SYNC_FAILED", variant: "warning", text: expect.stringContaining("microphone stays off") }),
+      ]),
+    );
     expect(harness.voice.audio.microphoneMuted.value).toBe(true);
   });
 
-  it("does not toast when the socket closes during the connect-time mute sync", async () => {
+  it("shows no mute notice when the socket closes during the connect-time mute sync", async () => {
     harness = await createVoiceHarness();
     const socket = await harness.joinAndConnect();
     socket.onclose?.({ code: 1006, reason: "" });
     await flushPromises();
-    expect(useToast().toasts.value).toEqual([]);
+    expect(harness.voice.session.roomNotices).toEqual([]);
   });
 
   it("without WebRTC it tries the microphone and records the failure as an audio diagnostic, not a connection error", async () => {
@@ -130,7 +132,7 @@ describe("connected", () => {
     expect(harness.voice.session.state.connected).toBe(true);
     expect(harness.voice.session.state.error).toBe("");
     expect(harness.voice.session.state.microphoneErrorCode).not.toBe("");
-    expect(harness.voice.session.state.audioNoticeCode).toBe("VOICE_FAILED");
+    expect(harness.voice.session.roomNotices[0]?.code ?? "").toBe("VOICE_FAILED");
   });
 
   it("does not report a failed voice when the microphone start is cut short by a reconnect", async () => {
@@ -140,7 +142,7 @@ describe("connected", () => {
     await push(socket, { type: "reconnecting", attempt: 1 });
     rejectMic(new Error("closed"));
     await flushPromises();
-    expect(harness.voice.session.state.audioNoticeCode).not.toBe("VOICE_FAILED");
+    expect(harness.voice.session.roomNotices[0]?.code ?? "").not.toBe("VOICE_FAILED");
   });
 
   it("negotiates a WebRTC voice peer instead when the gateway advertises WebRTC", async () => {
@@ -154,11 +156,11 @@ describe("connected", () => {
       { payload: { sdp: { type: "offer" }, muted: false, accompanimentActive: false } },
     ]);
     expect(socket.sentBinary).toHaveLength(0);
-    expect(harness.voice.session.state.audioNoticeCode).toBe("VOICE_CONNECTING");
+    expect(harness.voice.session.roomNotices[0]?.code ?? "").toBe("VOICE_CONNECTING");
     const peer = FakeRTCPeerConnection.instances[0]!;
     peer.connectionState = "connected";
     peer.onconnectionstatechange?.();
-    expect(harness.voice.session.state.audioNoticeCode).toBe("");
+    expect(harness.voice.session.roomNotices[0]?.code ?? "").toBe("");
   });
 
   it("clears the connecting notice once the PCM microphone is running", async () => {
@@ -167,7 +169,7 @@ describe("connected", () => {
     harness.voice.audio.noiseSuppressionEnabled.value = false;
     await harness.joinAndConnect();
     await flushPromises();
-    expect(harness.voice.session.state.audioNoticeCode).toBe("");
+    expect(harness.voice.session.roomNotices[0]?.code ?? "").toBe("");
   });
 });
 
