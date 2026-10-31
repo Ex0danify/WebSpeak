@@ -5,10 +5,11 @@ export { default as NetworkPerformancePanel } from "@/features/room/network/Netw
 export { useNetworkPerformance } from "@/features/room/network/useNetworkPerformance";
 export { default as RoomWorkspace } from "@/features/room/shell/RoomWorkspace.vue";
 export { useRoomShell } from "@/features/room/shell/useRoomShell";
+export { useGatewayErrorNotices } from "@/features/room/shell/useGatewayErrorNotices";
 export { useRoomSounds } from "@/features/room/shell/useRoomSounds";
 export { default as WorkspaceHeader } from "@/features/room/shell/WorkspaceHeader.vue";
 export { default as ReconnectBanner } from "@/features/room/shell/ReconnectBanner.vue";
-export { default as AudioNoticeBanner } from "@/features/room/shell/AudioNoticeBanner.vue";
+export { default as RoomNoticeBanner } from "@/features/room/shell/RoomNoticeBanner.vue";
 export { default as MobileMorePanel } from "@/features/room/shell/MobileMorePanel.vue";
 export { default as MobileNav } from "@/features/room/shell/MobileNav.vue";
 export { default as PokeStack } from "@/features/room/whisper/PokeStack.vue";

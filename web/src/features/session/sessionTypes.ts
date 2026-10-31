@@ -10,15 +10,26 @@ export interface VoiceState {
   /** Rendered at the edge with `resolveText`, so a language switch re-renders it. */
   error: MaybeLocalizedText;
   errorCode: string;
+  /** A gateway error that answers no request. Replaced on every one so a watcher sees repeats of the same code too. */
+  unattributedError: { code: string; text: MaybeLocalizedText } | null;
   /**
    * Non-fatal audio diagnostics. Unlike error/errorCode they never take over the connect form, they explain a degraded
    * microphone or playback path while the voice room stays joined and usable.
    */
   microphoneError: MaybeLocalizedText;
   microphoneErrorCode: string;
-  audioNotice: MaybeLocalizedText;
-  audioNoticeCode: string;
   channelSwitchedChannelId: string;
+}
+
+/** A condition of the room that stays true until it is fixed, shown by the room notice banner. */
+export interface RoomNotice {
+  /** Stable identifier, a notice with the same code is replaced instead of stacked. */
+  code: string;
+  text: MaybeLocalizedText;
+  title: MaybeLocalizedText;
+  variant: "info" | "warning" | "danger";
+  /** A notice replaces the others of its group, the audio diagnostics are one line that reflects the latest. */
+  group?: string;
 }
 
 export interface ChannelMember {

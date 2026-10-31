@@ -21,10 +21,9 @@ describe("useSessionStore", () => {
       tsClientId: 0,
       error: "",
       errorCode: "",
+      unattributedError: null,
       microphoneError: "",
       microphoneErrorCode: "",
-      audioNotice: "",
-      audioNoticeCode: "",
       channelSwitchedChannelId: "",
     });
     expect(s.ws).toBeNull();

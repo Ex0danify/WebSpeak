@@ -130,6 +130,7 @@ export const en = {
   outputDeviceUnsupported: "Output device selection is not supported by this browser. Using the default output device.",
   notificationVolume: "Notification volume",
   audioStatus: "Audio status",
+  roomNoticeTitle: "Notice",
   audioReady: "Audio ready",
   noiseSuppression: "Browser noise suppression",
   noiseSuppressionHint: "Process audio in the browser",

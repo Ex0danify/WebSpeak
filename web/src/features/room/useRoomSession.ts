@@ -1,6 +1,6 @@
 import { ref } from "vue";
 import { storeToRefs } from "pinia";
-import { toastMuteSyncFailure } from "@/features/room/actionFailure";
+import { clearMuteSyncFailure, notifyMuteSyncFailure } from "@/features/room/shell/roomNotify";
 import { useSessionActions } from "@/features/session";
 import { createMessageRouter, createRosterHandlers } from "@/features/session";
 import { useConnection } from "@/features/session";
@@ -92,7 +92,7 @@ export function useRoomSession() {
     screenShareRemoteVolume,
   } = storeToRefs(screenShare);
   const { screenShareStreams, screenShareWebRtcStats } = screenShare;
-  const { state, members, channels, chatMessages, serverEvents, pokeNotifications, speakingIds, whisperTargetIds } = session;
+  const { state, members, channels, chatMessages, serverEvents, pokeNotifications, roomNotices, speakingIds, whisperTargetIds } = session;
   const {
     sendCmd,
     sendCommandAndWait,
@@ -259,9 +259,10 @@ export function useRoomSession() {
         sendCommandAndWait("setMicrophoneMuted", { muted: microphoneMuted.value }),
         outputMuted.value ? sendCommandAndWait("setOutputMuted", { muted: true }) : undefined,
       ]);
+      clearMuteSyncFailure();
     },
     reportMuteSyncFailure: (error) => {
-      toastMuteSyncFailure(error, microphoneMuted.value);
+      notifyMuteSyncFailure(error, microphoneMuted.value);
     },
     clearMemberVolumes: () => {
       for (const key of Object.keys(volumes)) delete volumes[Number(key)];
@@ -294,6 +295,7 @@ export function useRoomSession() {
     session: {
       ws,
       state,
+      roomNotices,
       identityMaterial,
       connect,
       reconnectNow,

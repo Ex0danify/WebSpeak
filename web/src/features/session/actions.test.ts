@@ -171,9 +171,19 @@ describe("commands", () => {
     harness.voice.actions.switchChannel("6", "pw");
     expect(harness.voice.session.state).toMatchObject({ error: "", errorCode: "", channelSwitchedChannelId: "" });
     expect(socket.sentJson).toEqual([
-      { type: "switchChannel", payload: { channelId: "5" } },
-      { type: "switchChannel", payload: { channelId: "6", password: "pw" } },
+      { type: "switchChannel", payload: { channelId: "5" }, requestId: expect.any(String) },
+      { type: "switchChannel", payload: { channelId: "6", password: "pw" }, requestId: expect.any(String) },
     ]);
+    expect(new Set(socket.sentJson.map((frame) => frame.requestId)).size).toBe(2);
+  });
+
+  it("a refused switchChannel is attributed to its request, not handed to the room as a stray error", async () => {
+    const socket = await connected();
+    harness.voice.actions.switchChannel("5");
+    const [{ requestId }] = socket.sentOfType("switchChannel");
+    socket.receive({ type: "error", requestId, error: { code: "PERMISSION_DENIED", message: "no" } });
+    expect(harness.voice.session.state.errorCode).toBe("PERMISSION_DENIED");
+    expect(harness.voice.session.state.unattributedError).toBeNull();
   });
 
   it("switchChannel says so when the socket is not open instead of dropping the click", async () => {

@@ -33,10 +33,14 @@ export function useSessionActions(deps: RoomActionsDeps) {
     if (ws.value?.readyState === WebSocket.OPEN) ws.value.send(JSON.stringify({ type, payload, ...(requestId ? { requestId } : {}) }));
   }
 
+  function nextRequestId(): string {
+    return `command-${Date.now().toString(36)}-${(commandSequence++).toString(36)}`;
+  }
+
   function sendCommandAndWait(type: string, payload: Record<string, unknown>, timeoutMs = 8_000): Promise<void> {
     if (ws.value?.readyState !== WebSocket.OPEN)
       return Promise.reject(new LocalizedError(text("voiceConnectionNotReady"), "VOICE_CONNECTION_NOT_READY"));
-    const requestId = `command-${Date.now().toString(36)}-${(commandSequence++).toString(36)}`;
+    const requestId = nextRequestId();
     return new Promise((resolve, reject) => {
       const timer = setTimeout(() => {
         pendingCommands.delete(requestId);
@@ -56,7 +60,8 @@ export function useSessionActions(deps: RoomActionsDeps) {
       state.error = text("voiceConnectionNotReady");
       return;
     }
-    sendCmd("switchChannel", { channelId, ...(password ? { password } : {}) });
+    // The id marks the answer as belonging to this request, so the channel tree shows its refusal and nothing else does.
+    sendCmd("switchChannel", { channelId, ...(password ? { password } : {}) }, nextRequestId());
   }
 
   function moveClient(clientId: number, channelId: string, password = ""): Promise<void> {
@@ -236,22 +241,23 @@ export function useSessionActions(deps: RoomActionsDeps) {
       }
     },
     error: (msg) => {
-      state.errorCode = normalizedClientErrorCode(msg.error?.code, "OPERATION_FAILED");
-      state.error = deps.protocolErrorMessage(state.errorCode, String(msg.error?.message || msg.message || ""));
-      {
-        const requestId = typeof msg.requestId === "string" ? msg.requestId : "";
-        const pending = requestId ? pendingCommands.get(requestId) : undefined;
-        if (pending) {
-          clearTimeout(pending.timer);
-          pendingCommands.delete(requestId);
-          pending.reject(
-            new LocalizedError(
-              deps.protocolErrorMessage(state.errorCode, String(msg.error?.message || msg.message || "")),
-              state.errorCode,
-            ),
-          );
-        }
+      const code = normalizedClientErrorCode(msg.error?.code, "OPERATION_FAILED");
+      const message = deps.protocolErrorMessage(code, String(msg.error?.message || msg.message || ""));
+      const requestId = typeof msg.requestId === "string" ? msg.requestId : "";
+      // Once joined, an error that answers no request is shown by the room and must not look like the answer to a pending
+      // channel switch. Before that the join screen reads it from the state.
+      if (requestId || !state.connected) {
+        state.errorCode = code;
+        state.error = message;
       }
+      const pending = requestId ? pendingCommands.get(requestId) : undefined;
+      if (pending) {
+        clearTimeout(pending.timer);
+        pendingCommands.delete(requestId);
+        pending.reject(new LocalizedError(message, code));
+      }
+      // An answer to a request has its caller to tell the user. Only one without an id would otherwise go unseen.
+      if (!requestId) state.unattributedError = { code, text: message };
     },
   };
 

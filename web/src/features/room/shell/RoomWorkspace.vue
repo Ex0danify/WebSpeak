@@ -44,7 +44,7 @@
         @reconnect-now="reconnectNow"
         @disconnect="doDisconnect"
       />
-      <AudioNoticeBanner :audio-notice="voiceState.audioNotice" :audio-notice-code="voiceState.audioNoticeCode" />
+      <RoomNoticeBanner :notices="roomNotices" />
       <PokeStack :pokes="pokeNotifications" @dismiss="dismissPoke" />
 
       <div :class="[scrollClass, mobileSection === 'chat' && 'max-compact:overflow-hidden']">
@@ -212,7 +212,7 @@ import PokeStack from "@/features/room/whisper/PokeStack.vue";
 import WhisperStrip from "@/features/room/whisper/WhisperStrip.vue";
 import type { useWhisper } from "@/features/room/whisper/useWhisper";
 import type { RoomSession } from "@/features/room/roomTypes";
-import AudioNoticeBanner from "@/features/room/shell/AudioNoticeBanner.vue";
+import RoomNoticeBanner from "@/features/room/shell/RoomNoticeBanner.vue";
 import MobileMorePanel from "@/features/room/shell/MobileMorePanel.vue";
 import MobileNav from "@/features/room/shell/MobileNav.vue";
 import ReconnectBanner from "@/features/room/shell/ReconnectBanner.vue";
@@ -238,7 +238,7 @@ const props = defineProps<{
 }>();
 
 const { t } = useI18n();
-const { state: voiceState, reconnectNow } = props.session.session;
+const { state: voiceState, roomNotices, reconnectNow } = props.session.session;
 const { members, serverEvents, pokeNotifications, speakingIds, mutedMembers, whisperTargetIds, whisperActive } = props.session.roster;
 const {
   microphoneMuted,

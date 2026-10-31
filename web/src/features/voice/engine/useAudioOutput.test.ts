@@ -131,42 +131,42 @@ describe("audio notices", () => {
   it("sets a sanitized code, and clears only a matching code when one is given", () => {
     const { session, output } = setup();
     output.setAudioNotice("PLAYBACK_BLOCKED");
-    expect(session.state.audioNoticeCode).toBe("PLAYBACK_BLOCKED");
-    expect(session.state.audioNotice).toEqual({ key: "audioNoticePlaybackBlocked" });
+    expect(session.roomNotices[0]?.code ?? "").toBe("PLAYBACK_BLOCKED");
+    expect(session.roomNotices[0]?.text ?? "").toEqual({ key: "audioNoticePlaybackBlocked" });
     output.clearAudioNotice("OTHER");
-    expect(session.state.audioNotice).toEqual({ key: "audioNoticePlaybackBlocked" });
+    expect(session.roomNotices[0]?.text ?? "").toEqual({ key: "audioNoticePlaybackBlocked" });
     output.clearAudioNotice("PLAYBACK_BLOCKED");
-    expect(session.state.audioNotice).toBe("");
-    expect(session.state.audioNoticeCode).toBe("");
+    expect(session.roomNotices[0]?.text ?? "").toBe("");
+    expect(session.roomNotices[0]?.code ?? "").toBe("");
   });
 
   it("falls back to AUDIO_NOTICE for an empty code and clears everything without a code", () => {
     const { session, output } = setup();
     output.setAudioNotice("");
-    expect(session.state.audioNoticeCode).toBe("AUDIO_NOTICE");
+    expect(session.roomNotices[0]?.code ?? "").toBe("AUDIO_NOTICE");
     output.clearAudioNotice();
-    expect(session.state.audioNotice).toBe("");
+    expect(session.roomNotices[0]?.text ?? "").toBe("");
   });
 
   it("syncAudioContextNotice reports a suspended context and clears the notice when it runs", () => {
     const { session, output } = setup();
     output.syncAudioContextNotice();
-    expect(session.state.audioNotice).toBe("");
+    expect(session.roomNotices[0]?.text ?? "").toBe("");
     output.getAudioCtx();
     FakeAudioContext.instances[0].setState("suspended");
     output.syncAudioContextNotice();
-    expect(session.state.audioNoticeCode).toBe("AUDIO_CONTEXT_SUSPENDED");
+    expect(session.roomNotices[0]?.code ?? "").toBe("AUDIO_CONTEXT_SUSPENDED");
     FakeAudioContext.instances[0].setState("running");
     output.syncAudioContextNotice();
-    expect(session.state.audioNotice).toBe("");
+    expect(session.roomNotices[0]?.text ?? "").toBe("");
   });
 
   it("the gateway's audioError becomes the encoder notice, or the generic link notice, with the detail as a param", () => {
     const { session, output } = setup();
     output.handlers.audioError?.({ type: "audioError", code: "AUDIO_ENCODER_UNAVAILABLE" } as never);
-    expect(session.state.audioNotice).toEqual({ key: "audioNoticeEncoder", params: { code: "AUDIO_ENCODER_UNAVAILABLE" } });
+    expect(session.roomNotices[0]?.text ?? "").toEqual({ key: "audioNoticeEncoder", params: { code: "AUDIO_ENCODER_UNAVAILABLE" } });
     output.handlers.audioError?.({ type: "audioError", code: "AUDIO_X", detail: "boom" } as never);
-    expect(session.state.audioNotice).toEqual({ key: "audioNoticeLinkDetail", params: { code: "AUDIO_X", detail: "boom" } });
+    expect(session.roomNotices[0]?.text ?? "").toEqual({ key: "audioNoticeLinkDetail", params: { code: "AUDIO_X", detail: "boom" } });
   });
 });
 
@@ -211,13 +211,13 @@ describe("WebRTC playback element", () => {
     await output.syncWebRtcPlayback();
     expect(element.muted).toBe(false);
     expect(element.play).toHaveBeenCalled();
-    expect(session.state.audioNotice).toBe("");
+    expect(session.roomNotices[0]?.text ?? "").toBe("");
   });
 
   it("does nothing without an element and a stream", async () => {
     const { session, output } = setup();
     await output.syncWebRtcPlayback();
-    expect(session.state.audioNotice).toBe("");
+    expect(session.roomNotices[0]?.text ?? "").toBe("");
   });
 
   it("tells the user when autoplay is blocked and retries on the next interaction", async () => {
@@ -226,10 +226,10 @@ describe("WebRTC playback element", () => {
     element.play.mockRejectedValueOnce(new Error("NotAllowedError"));
     output.attachWebRtcPlayback(element, new MediaStream());
     await output.syncWebRtcPlayback();
-    expect(session.state.audioNoticeCode).toBe("PLAYBACK_BLOCKED");
+    expect(session.roomNotices[0]?.code ?? "").toBe("PLAYBACK_BLOCKED");
     window.dispatchEvent(new Event("pointerdown"));
     await vi.waitFor(() => expect(element.play).toHaveBeenCalledTimes(2));
-    await vi.waitFor(() => expect(session.state.audioNotice).toBe(""));
+    await vi.waitFor(() => expect(session.roomNotices[0]?.text ?? "").toBe(""));
     window.dispatchEvent(new Event("pointerdown"));
     await Promise.resolve();
     expect(element.play).toHaveBeenCalledTimes(2);

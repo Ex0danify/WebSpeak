@@ -91,9 +91,9 @@ export function useConnection(deps: ConnectionDeps) {
     failureAlreadyReported = false;
     state.error = "";
     state.errorCode = "";
-    // Audio diagnostics belong to the previous session, never to the new one.
+    // Audio diagnostics and room notices belong to the previous session, never to the new one.
     deps.clearMicrophoneError();
-    deps.clearAudioNotice();
+    session.clearRoomNotice();
     state.connecting = true;
     state.reconnecting = false;
     state.reconnectAttempt = 0;
@@ -197,7 +197,7 @@ export function useConnection(deps: ConnectionDeps) {
       deps.stopWebRtcTransport();
       deps.stopMicrophone();
       deps.clearMicrophoneError();
-      deps.clearAudioNotice();
+      session.clearRoomNotice();
       whisperTargetIds.clear();
       whisperActive.value = false;
     };
@@ -214,7 +214,7 @@ export function useConnection(deps: ConnectionDeps) {
     if (!preserveConnection) lastConnection = null;
     deps.stopMicrophone();
     deps.clearMicrophoneError();
-    deps.clearAudioNotice();
+    session.clearRoomNotice();
     deps.stopScreenShareTransport(!preserveConnection);
     const socket = ws.value;
     ws.value = null;
@@ -309,7 +309,7 @@ export function useConnection(deps: ConnectionDeps) {
         // A start cut short by a disconnect or reconnect fails on purpose, the next connect starts voice again.
         if (!state.connected) return;
         deps.setMicrophoneError(error);
-        if (state.audioNoticeCode !== "WEBRTC_FALLBACK") deps.setAudioNotice("VOICE_FAILED");
+        if (!session.hasRoomNotice("WEBRTC_FALLBACK")) deps.setAudioNotice("VOICE_FAILED");
       };
       const pcmStarted = (): void => deps.clearAudioNotice("VOICE_CONNECTING");
       if (wasReconnecting) {

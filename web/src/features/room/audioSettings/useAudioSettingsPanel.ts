@@ -4,7 +4,7 @@ import { Meter } from "@/shared/ui/meter";
 import { useI18n } from "@/shared/i18n/useI18n.js";
 import { toast as raiseToast } from "@/shared/composables/useToast.js";
 import { errorText, text, type MaybeLocalizedText } from "@/shared/i18n/localizedText.js";
-import { toastActionFailure, toastMuteSyncFailure } from "@/features/room/actionFailure";
+import { clearMuteSyncFailure, notifyEvent, notifyMuteSyncFailure } from "@/features/room/shell/roomNotify";
 import { microphoneErrorText } from "@/features/voice";
 import type { RoomSession } from "@/features/room/roomTypes";
 
@@ -127,9 +127,10 @@ export function useAudioSettingsPanel(options: UseAudioSettingsPanelOptions) {
     showToast(microphoneMuted.value ? t("microphoneMuted") : t("microphoneActive"));
     try {
       await synced;
+      clearMuteSyncFailure();
     } catch (error: unknown) {
       // The local state already applies, but the TeamSpeak server may still show the old one.
-      toastMuteSyncFailure(error, microphoneMuted.value);
+      notifyMuteSyncFailure(error, microphoneMuted.value);
     }
   }
 
@@ -144,7 +145,7 @@ export function useAudioSettingsPanel(options: UseAudioSettingsPanelOptions) {
       if (accompanimentActive.value) showToast(t("accompanimentStarted"));
     } catch (error: unknown) {
       if (accompanimentErrorCode.value === "gateway" || !accompanimentErrorCode.value) {
-        toastActionFailure(t("failAccompaniment"), error);
+        notifyEvent(t("failAccompaniment"), { error, variant: "danger" });
         return;
       }
       const messageKey: MessageKey =
