@@ -158,7 +158,7 @@ export function useAudioSettingsPanel(options: UseAudioSettingsPanelOptions) {
               : accompanimentErrorCode.value === "unsupported"
                 ? "accompanimentUnsupported"
                 : "accompanimentPermissionDenied";
-      showToast(t(messageKey));
+      notifyEvent(t(messageKey), { variant: "warning" });
     }
   }
 

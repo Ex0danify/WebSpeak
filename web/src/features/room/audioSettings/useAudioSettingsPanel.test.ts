@@ -333,7 +333,7 @@ describe("toggleAccompaniment when the gateway has WebRTC off", () => {
       }),
     });
     await vm.toggleAccompaniment();
-    expect(useToast().toasts.value.at(-1)).toMatchObject({ title: "Not enabled on this gateway" });
+    expect(useToast().toasts.value.at(-1)).toMatchObject({ variant: "warning", title: "Not enabled on this gateway" });
   });
 });
 
