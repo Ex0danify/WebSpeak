@@ -19,7 +19,7 @@ import { demoMessages } from "@/features/demo";
 import { sessionMessages } from "@/features/session";
 import { screenShareMessages } from "@/features/screenShare";
 import { voiceMessages } from "@/features/voice";
-import { chatMessages } from "@/features/room";
+import { chatMessages, profileMessages } from "@/features/room";
 import { identityMessages } from "@/features/identity";
 
 for (const messages of [
@@ -34,6 +34,7 @@ for (const messages of [
   screenShareMessages,
   voiceMessages,
   chatMessages,
+  profileMessages,
 ])
   registerMessages(messages);
 

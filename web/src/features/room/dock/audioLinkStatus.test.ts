@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { audioLinkStatus } from "@/features/room/audioSettings/audioLinkStatus";
+import { audioLinkStatus } from "@/features/room/dock/audioLinkStatus";
 
 const up = { connected: true, connecting: false, reconnecting: false, reconnectFailed: false };
 

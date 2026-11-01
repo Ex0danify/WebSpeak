@@ -206,7 +206,7 @@ test.describe("away message dialog", () => {
     await field.fill("lunch");
     await dialog.getByRole("button", { name: "Set away" }).click();
     await expect(dialog).toBeHidden();
-    await expect(page.getByRole("button", { name: "Away" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Away", exact: true })).toBeVisible();
     await expect
       .poll(() => {
         const self = [...gateway.ts.members.values()].find((member) => member.nickname === "dlg-away");

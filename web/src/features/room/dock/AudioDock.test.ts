@@ -1,9 +1,9 @@
 import { mount, type VueWrapper } from "@vue/test-utils";
 import { afterEach, describe, expect, it } from "vitest";
 import { nextTick } from "vue";
-import AudioDock from "@/features/room/audioSettings/AudioDock.vue";
+import AudioDock from "@/features/room/dock/AudioDock.vue";
 import type { ChannelMember } from "@/features/session";
-import type { AudioLinkStatus } from "@/features/room/audioSettings/audioLinkStatus";
+import type { AudioLinkStatus } from "@/features/room/dock/audioLinkStatus";
 
 const base = {
   member: { id: 1, nickname: "roka", uid: "u1", avatar: "", isSelf: true } as ChannelMember | null,
@@ -44,6 +44,12 @@ describe("AudioDock identity", () => {
     mountDock();
     expect(document.body.textContent).toContain("roka");
     expect(document.body.textContent).toContain("Connected");
+  });
+
+  it("asks to open the profile from the name and avatar", () => {
+    const dock = mountDock();
+    button("Your profile: roka, Connected")?.click();
+    expect(dock.emitted("open-profile")).toHaveLength(1);
   });
 
   it("names the state of the voice link and colors it", async () => {

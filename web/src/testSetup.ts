@@ -8,6 +8,7 @@ import { sessionMessages } from "@/features/session";
 import { screenShareMessages } from "@/features/screenShare";
 import { translations as voiceMessages } from "@/features/voice/i18n";
 import { translations as chatMessages } from "@/features/room/chat/i18n";
+import { translations as profileMessages } from "@/features/room/profile/i18n";
 import { translations as identityMessages } from "@/features/identity/i18n";
 
 for (const messages of [
@@ -22,5 +23,6 @@ for (const messages of [
   screenShareMessages,
   voiceMessages,
   chatMessages,
+  profileMessages,
 ])
   registerMessages(messages);
