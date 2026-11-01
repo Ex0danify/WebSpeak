@@ -110,7 +110,6 @@
               @toggle-output-mute="toggleOutputMute"
               @toggle-accompaniment="toggleAccompaniment"
               @open-settings="settingsOpen = true"
-              @open-profile="profileOpen = true"
               @open-screen-share="screenShareSettingsOpen = true"
               @stop-screen-share="stopScreenShare"
             />
@@ -187,7 +186,6 @@
           @toggle-output-mute="toggleOutputMute"
           @toggle-accompaniment="toggleAccompaniment"
           @open-settings="settingsOpen = true"
-          @open-profile="profileOpen = true"
           @open-screen-share="screenShareSettingsOpen = true"
           @stop-screen-share="stopScreenShare"
         />
@@ -207,12 +205,11 @@
     />
 
     <MobileNav v-model="mobileSection" />
-    <ProfileDialog v-model="profileOpen" />
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, ref, type Ref } from "vue";
+import { computed, type Ref } from "vue";
 import { isSpeaking } from "@/features/session";
 import { useI18n } from "@/shared/i18n/useI18n";
 import type { useAppearance } from "@/shared/composables/useAppearance";
@@ -223,7 +220,6 @@ import AudioDock from "@/features/room/dock/AudioDock.vue";
 import { accompanimentAvailability } from "@/features/room/dock/accompanimentAvailability";
 import { audioLinkStatus } from "@/features/room/dock/audioLinkStatus";
 import type { useAudioSettingsPanel } from "@/features/room/audioSettings/useAudioSettingsPanel";
-import ProfileDialog from "@/features/room/profile/ProfileDialog.vue";
 import MemberPanel from "@/features/room/members/MemberPanel.vue";
 import MemberTree from "@/features/room/members/MemberTree.vue";
 import type { useChannelTree } from "@/features/room/members/useChannelTree";
@@ -339,7 +335,6 @@ const {
   screenShareViewerStyle,
 } = props.screenShare;
 const { settingsOpen, toggleMicrophone, toggleAccompaniment } = props.audioPanel;
-const profileOpen = ref(false);
 
 const { whisperPttActive, whisperTargets, clearWhisperTargets, onWhisperPttDown, onWhisperPttUp } = props.whisper;
 const { performancePanelOpen, performanceRunning, performanceStats, togglePerformancePanel, refreshPerformanceProbe } = props.performance;

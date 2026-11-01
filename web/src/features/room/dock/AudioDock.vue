@@ -5,21 +5,13 @@
     :aria-label="t('desktopAudioControls')"
   >
     <div class="flex min-w-0 flex-1 items-center gap-2 pl-0.5">
-      <Button
-        v-if="member"
-        variant="ghost"
-        size="row"
-        class="-mx-1.25 w-auto min-w-0 gap-2 max-compact:-mx-2.5"
-        :aria-label="profileLabel"
-        aria-haspopup="dialog"
-        @click="$emit('open-profile')"
-      >
+      <div v-if="member" class="flex min-w-0 items-center gap-2">
         <Avatar :name="member.nickname" :src="member.avatar || undefined" size="md" surface="surface-2" tint self :speaking="speaking" />
         <span class="flex min-w-0 flex-col gap-0.5">
           <strong class="truncate text-xs leading-none text-fg">{{ nicknameText(member.nickname, t, member.unnamed) }}</strong>
           <span :class="['truncate text-2xs leading-none font-semibold', statusClass[connection]]">{{ statusText }}</span>
         </span>
-      </Button>
+      </div>
     </div>
     <Tooltip :text="microphoneMuted ? t('unmuteMic') : t('muteMic')"
       ><Button
@@ -168,7 +160,6 @@ const emit = defineEmits<{
   (e: "toggle-output-mute"): void;
   (e: "toggle-accompaniment"): void;
   (e: "open-settings"): void;
-  (e: "open-profile"): void;
   (e: "open-screen-share"): void;
   (e: "stop-screen-share"): void;
 }>();
@@ -203,12 +194,6 @@ const statusText = computed(() =>
     : props.connection === "connecting"
       ? t("audioLinkConnecting")
       : t("audioLinkDisconnected"),
-);
-// The button's label replaces its content for screen readers, so name and link state go in with it.
-const profileLabel = computed(() =>
-  props.member
-    ? `${t("profileMenu")}: ${nicknameText(props.member.nickname, t, props.member.unnamed)}, ${statusText.value}`
-    : t("profileMenu"),
 );
 const optionsLabel = computed(() => (props.accompanimentActive ? t("audioOptionsSharing") : t("audioOptions")));
 </script>
