@@ -72,6 +72,7 @@ export const de: Record<string, string> = {
   failAway: "Abwesenheitsstatus konnte nicht geändert werden",
   failWhisper: "Flüstern konnte nicht geändert werden",
   failAccompaniment: "Begleitung teilen fehlgeschlagen",
+  failScreenShare: "Bildschirm teilen fehlgeschlagen",
   muteSyncFailed: "Stummschaltung konnte nicht synchronisiert werden",
   muteSyncHintMuted: "Andere sehen dich evtl. noch als nicht stumm. Dein Mikrofon bleibt aus.",
   muteSyncHintUnmuted: "Andere sehen dich evtl. noch als stumm.",

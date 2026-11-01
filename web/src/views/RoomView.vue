@@ -101,6 +101,7 @@ import {
   useNetworkPerformance,
   useRoomContext,
   useRoomShell,
+  useScreenShareErrorNotice,
   useWhisper,
 } from "@/features/room";
 import PasswordDialog from "@/shared/components/PasswordDialog.vue";
@@ -226,4 +227,5 @@ const { toggleWhisperTarget } = whisper;
 
 const performance = useNetworkPerformance({ session: session.session });
 useGatewayErrorNotices(voiceState);
+useScreenShareErrorNotice(screenShare.screenShareErrorText);
 </script>

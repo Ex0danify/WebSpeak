@@ -72,6 +72,7 @@ export const en = {
   failAway: "Changing the away status failed",
   failWhisper: "Whisper change failed",
   failAccompaniment: "Accompaniment sharing failed",
+  failScreenShare: "Screen sharing failed",
   muteSyncFailed: "Mute status could not be synced",
   muteSyncHintMuted: "Others may still see you as unmuted. Your microphone stays off.",
   muteSyncHintUnmuted: "Others may still see you as muted.",
