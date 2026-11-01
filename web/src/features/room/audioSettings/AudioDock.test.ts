@@ -2,8 +2,13 @@ import { mount, type VueWrapper } from "@vue/test-utils";
 import { afterEach, describe, expect, it } from "vitest";
 import { nextTick } from "vue";
 import AudioDock from "@/features/room/audioSettings/AudioDock.vue";
+import type { ChannelMember } from "@/features/session";
+import type { AudioLinkStatus } from "@/features/room/audioSettings/audioLinkStatus";
 
 const base = {
+  member: { id: 1, nickname: "roka", uid: "u1", avatar: "", isSelf: true } as ChannelMember | null,
+  speaking: false,
+  connection: "connected" as AudioLinkStatus,
   microphoneMuted: false,
   outputMuted: false,
   accompanimentActive: false,
@@ -32,6 +37,37 @@ afterEach(() => {
   wrapper?.unmount();
   wrapper = undefined;
   document.body.innerHTML = "";
+});
+
+describe("AudioDock identity", () => {
+  it("shows who you are and that you are connected", () => {
+    mountDock();
+    expect(document.body.textContent).toContain("roka");
+    expect(document.body.textContent).toContain("Connected");
+  });
+
+  it("names the state of the voice link and colors it", async () => {
+    const dock = mountDock({ connection: "connecting" });
+    const status = () =>
+      Array.from(document.body.querySelectorAll("span")).find((el) => /^(Connected|Connecting…|Disconnected)$/.test(el.textContent ?? ""));
+    expect(status()?.textContent).toBe("Connecting…");
+    expect(status()?.className).toContain("text-warning");
+    await dock.setProps({ connection: "disconnected" });
+    expect(status()?.textContent).toBe("Disconnected");
+    expect(status()?.className).toContain("text-danger");
+    await dock.setProps({ connection: "connected" });
+    expect(status()?.className).toContain("text-success");
+  });
+
+  it("says nothing about the microphone under your name", () => {
+    mountDock({ microphoneMuted: true });
+    expect(document.body.textContent).not.toContain("Microphone off");
+  });
+
+  it("still renders the buttons before the member is known", () => {
+    mountDock({ member: null });
+    expect(button("Microphone on")).not.toBeNull();
+  });
 });
 
 describe("AudioDock mute buttons", () => {
@@ -100,6 +136,7 @@ describe("AudioDock screen share button", () => {
     const dock = mountDock({ screenShareStarting: true });
     const starting = button("Starting live stream");
     expect(starting?.getAttribute("aria-busy")).toBe("true");
+    expect(starting?.querySelector(".animate-spin")).toBeNull();
     starting?.click();
     await nextTick();
     expect(dock.emitted("open-screen-share")).toBeUndefined();

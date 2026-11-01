@@ -43,6 +43,8 @@ export const de: Record<string, string> = {
   voiceSpace: "Sprachbereich",
   onlineShort: "{{count}} online",
   connectedYou: "Verbunden · du",
+  audioLinkConnecting: "Verbindet…",
+  audioLinkDisconnected: "Getrennt",
   noTalkPower: "Keine Sprechberechtigung",
   waitingForMembers: "Warte auf weitere Mitglieder",
   prepareMicrophone: "Du kannst dein Mikrofon hier vorbereiten.",

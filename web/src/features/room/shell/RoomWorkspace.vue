@@ -96,6 +96,9 @@
             />
             <AudioDock
               v-if="isMobileViewport"
+              :member="selfMember"
+              :speaking="selfSpeaking"
+              :connection="audioLink"
               :microphone-muted="microphoneMuted"
               :output-muted="outputMuted"
               :accompaniment-active="accompanimentActive"
@@ -169,6 +172,9 @@
       <template #footer>
         <AudioDock
           v-if="!isMobileViewport"
+          :member="selfMember"
+          :speaking="selfSpeaking"
+          :connection="audioLink"
           :microphone-muted="microphoneMuted"
           :output-muted="outputMuted"
           :accompaniment-active="accompanimentActive"
@@ -203,13 +209,15 @@
 </template>
 
 <script setup lang="ts">
-import type { Ref } from "vue";
+import { computed, type Ref } from "vue";
+import { isSpeaking } from "@/features/session";
 import { useI18n } from "@/shared/i18n/useI18n";
 import type { useAppearance } from "@/shared/composables/useAppearance";
 import type { useScreenShare } from "@/features/screenShare";
 import ChatPanel from "@/features/room/chat/ChatPanel.vue";
 import type { useChat } from "@/features/room/chat/useChat";
 import AudioDock from "@/features/room/audioSettings/AudioDock.vue";
+import { audioLinkStatus } from "@/features/room/audioSettings/audioLinkStatus";
 import type { useAudioSettingsPanel } from "@/features/room/audioSettings/useAudioSettingsPanel";
 import MemberPanel from "@/features/room/members/MemberPanel.vue";
 import MemberTree from "@/features/room/members/MemberTree.vue";
@@ -329,6 +337,10 @@ const { settingsOpen, toggleMicrophone, toggleAccompaniment } = props.audioPanel
 const { whisperPttActive, whisperTargets, clearWhisperTargets, onWhisperPttDown, onWhisperPttUp } = props.whisper;
 const { performancePanelOpen, performanceRunning, performanceStats, togglePerformancePanel, refreshPerformanceProbe } = props.performance;
 const { openMemberActions, openMemberMenu } = props.memberMenu;
+const selfMember = computed(() => members.find((member) => member.isSelf) ?? null);
+const audioLink = computed(() => audioLinkStatus(voiceState, roomNotices));
+const selfSpeaking = computed(() => (selfMember.value ? isSpeaking(selfMember.value, speakingIds) : false));
+
 // Browsers without screen capture (most phones) get no share button.
 const screenShareSupported = typeof navigator.mediaDevices?.getDisplayMedia === "function";
 const { themeIcon, themeLabel, cycleTheme, persistLanguage } = props.appearance;

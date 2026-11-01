@@ -4,6 +4,15 @@
     role="toolbar"
     :aria-label="t('desktopAudioControls')"
   >
+    <div class="flex min-w-0 flex-1 items-center gap-2 pl-0.5">
+      <template v-if="member">
+        <Avatar :name="member.nickname" :src="member.avatar || undefined" size="md" surface="surface-2" tint self :speaking="speaking" />
+        <span class="flex min-w-0 flex-col gap-0.5">
+          <strong class="truncate text-xs leading-none text-fg">{{ nicknameText(member.nickname, t, member.unnamed) }}</strong>
+          <span :class="['truncate text-2xs leading-none font-semibold', statusClass[connection]]">{{ statusText }}</span>
+        </span>
+      </template>
+    </div>
     <Tooltip :text="microphoneMuted ? t('unmuteMic') : t('muteMic')"
       ><Button
         :variant="microphoneMuted ? 'softDanger' : 'soft'"
@@ -30,16 +39,10 @@
         ><Icon :name="outputMuted ? 'volume-off' : 'volume'"
       /></Button>
     </Tooltip>
-    <span class="flex-1"></span>
-    <Button
-      v-if="screenShareStarting"
-      variant="softWarning"
-      size="sm"
-      icon-only
-      loading
-      :class="buttonClass"
-      :aria-label="t('screenShareStarting')"
-    />
+    <Tooltip v-if="screenShareStarting" :text="t('screenShareStarting')"
+      ><Button variant="softWarning" size="sm" icon-only :class="buttonClass" aria-busy="true" :aria-label="t('screenShareStarting')"
+        ><Icon name="monitor" class="motion-safe:animate-pulse" /></Button
+    ></Tooltip>
     <Tooltip v-else-if="screenShareActive" :text="t('stopScreenShare')"
       ><span class="inline-flex"
         ><Popover side="top" align="end" :label="t('stopScreenShare')" class="w-64">
@@ -116,6 +119,7 @@
 
 <script setup lang="ts">
 import { computed, ref, useId } from "vue";
+import { Avatar } from "@/shared/ui/avatar";
 import { Button } from "@/shared/ui/button";
 import { Icon } from "@/shared/ui/icon";
 import { Popover } from "@/shared/ui/popover";
@@ -123,8 +127,14 @@ import { Separator } from "@/shared/ui/separator";
 import { Switch } from "@/shared/ui/switch";
 import { Tooltip } from "@/shared/ui/tooltip";
 import { useI18n } from "@/shared/i18n/useI18n.js";
+import { nicknameText, type ChannelMember } from "@/features/session";
+import type { AudioLinkStatus } from "@/features/room/audioSettings/audioLinkStatus";
 
 const props = defineProps<{
+  /** The local user, shown on the left. */
+  member: ChannelMember | null;
+  speaking: boolean;
+  connection: AudioLinkStatus;
   microphoneMuted: boolean;
   outputMuted: boolean;
   accompanimentActive: boolean;
@@ -158,5 +168,13 @@ function openSettings(): void {
   emit("open-settings");
 }
 const hintId = useId();
+const statusClass: Record<AudioLinkStatus, string> = { connected: "text-success", connecting: "text-warning", disconnected: "text-danger" };
+const statusText = computed(() =>
+  props.connection === "connected"
+    ? t("connected")
+    : props.connection === "connecting"
+      ? t("audioLinkConnecting")
+      : t("audioLinkDisconnected"),
+);
 const optionsLabel = computed(() => (props.accompanimentActive ? t("audioOptionsSharing") : t("audioOptions")));
 </script>

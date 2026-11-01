@@ -43,6 +43,8 @@ export const en = {
   voiceSpace: "Voice space",
   onlineShort: "{{count}} online",
   connectedYou: "Connected · you",
+  audioLinkConnecting: "Connecting…",
+  audioLinkDisconnected: "Disconnected",
   noTalkPower: "No talk power",
   waitingForMembers: "Waiting for people to join",
   prepareMicrophone: "You can get your microphone ready.",
