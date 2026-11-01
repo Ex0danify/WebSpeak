@@ -117,7 +117,13 @@
     },
     {
       "file": "features/room/audioSettings/useAudioSettingsPanel.ts",
-      "keys": ["accompanimentNeedsWebRtc", "accompanimentNoAudio", "accompanimentUnsupported", "accompanimentPermissionDenied"]
+      "keys": [
+        "accompanimentGatewayDisabled",
+        "accompanimentNeedsWebRtc",
+        "accompanimentNoAudio",
+        "accompanimentUnsupported",
+        "accompanimentPermissionDenied"
+      ]
     },
     {
       "file": "features/screenShare/ScreenShareSettingsDialog.vue",

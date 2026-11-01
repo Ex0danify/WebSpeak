@@ -328,6 +328,20 @@ describe("toggleAccompaniment when the gateway refuses", () => {
   });
 });
 
+describe("toggleAccompaniment when the gateway has WebRTC off", () => {
+  it("toasts that it is not enabled on this gateway", async () => {
+    const { vm } = await mountUseAudioSettingsPanel({
+      accompanimentActive: ref(false),
+      accompanimentErrorCode: ref("gatewayDisabled"),
+      startAccompaniment: vi.fn(async () => {
+        throw new Error("off");
+      }),
+    });
+    await vm.toggleAccompaniment();
+    expect(useToast().toasts.value.at(-1)).toMatchObject({ variant: "warning", title: "Not enabled on this gateway" });
+  });
+});
+
 describe("toggleAccompaniment", () => {
   it("starts accompaniment when inactive", async () => {
     const { vm, options } = await mountUseAudioSettingsPanel({ accompanimentActive: ref(false) });
