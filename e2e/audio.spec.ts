@@ -146,6 +146,38 @@ test.describe("audio dock", () => {
     await expect(page.getByRole("dialog", { name: "Share settings" })).toBeVisible();
   });
 
+  test("the stop sharing confirmation stays above the dock, and confirming ends the share", async ({ page }) => {
+    await page.addInitScript(() => {
+      navigator.mediaDevices.getDisplayMedia = async () => {
+        const canvas = document.createElement("canvas");
+        canvas.width = 320;
+        canvas.height = 180;
+        const context = canvas.getContext("2d")!;
+        setInterval(() => context.fillRect(0, 0, 320, 180), 100);
+        return canvas.captureStream(10);
+      };
+    });
+    await join(page, "aud-share-stop");
+    await dock(page).getByRole("button", { name: "Share screen" }).click();
+    await page
+      .getByRole("dialog", { name: "Share settings" })
+      .getByRole("button", { name: /Start|Share/ })
+      .first()
+      .click();
+    const live = dock(page).getByRole("button", { name: /^Sharing your screen/ });
+    await expect(live).toBeVisible();
+
+    await live.click();
+    const panel = page.getByRole("dialog", { name: "Stop sharing" });
+    await expect(panel).toBeVisible();
+    const [dockBox, panelBox] = [await dock(page).boundingBox(), await panel.boundingBox()];
+    expect(panelBox!.x).toBeGreaterThanOrEqual(dockBox!.x);
+    expect(panelBox!.x + panelBox!.width).toBeLessThanOrEqual(dockBox!.x + dockBox!.width);
+
+    await panel.getByRole("button", { name: "Stop sharing" }).click();
+    await expect(dock(page).getByRole("button", { name: "Share screen" })).toBeVisible();
+  });
+
   test("input volume, output volume and noise suppression take the keyboard and are still set after a reload", async ({ page }) => {
     await join(page, "aud-dock-keep");
     const { dialog } = await openSettings(page);

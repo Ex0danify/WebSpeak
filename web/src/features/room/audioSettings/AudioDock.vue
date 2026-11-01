@@ -45,7 +45,7 @@
     ></Tooltip>
     <Tooltip v-else-if="screenShareActive" :text="t('stopScreenShare')"
       ><span class="inline-flex"
-        ><Popover side="top" align="end" :label="t('stopScreenShare')" class="w-64">
+        ><Popover side="top" align="end" :label="t('stopScreenShare')" class="w-56">
           <template #trigger>
             <Button variant="softSuccess" size="sm" icon-only :class="buttonClass" :aria-label="t('screenShareStopLabel')"
               ><Icon name="monitor"
@@ -54,7 +54,7 @@
           <template #default="{ close }">
             <strong class="block text-caption text-fg">{{ t("screenShareStopTitle") }}</strong>
             <p class="mt-1 text-2xs text-fg-muted">{{ t("screenShareStopBody") }}</p>
-            <div class="mt-3 flex justify-end gap-2">
+            <div class="mt-3 flex flex-wrap justify-end gap-2">
               <Button variant="outline" size="sm" @click="close()">{{ t("cancel") }}</Button>
               <Button
                 variant="dangerSoft"
