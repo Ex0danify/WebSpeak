@@ -123,10 +123,8 @@ export function useAudioSettingsPanel(options: UseAudioSettingsPanelOptions) {
   }
 
   async function toggleMicrophone(): Promise<void> {
-    const synced = setMicrophoneMuted(!microphoneMuted.value);
-    showToast(microphoneMuted.value ? t("microphoneMuted") : t("microphoneActive"));
     try {
-      await synced;
+      await setMicrophoneMuted(!microphoneMuted.value);
       clearMuteSyncFailure();
     } catch (error: unknown) {
       // The local state already applies, but the TeamSpeak server may still show the old one.

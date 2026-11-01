@@ -287,6 +287,12 @@ describe("toggleMicrophone", () => {
     await vm.toggleMicrophone();
     expect(options.setMicrophoneMuted).toHaveBeenCalledWith(true);
   });
+
+  it("does not toast the new state", async () => {
+    const { vm } = await mountUseAudioSettingsPanel({ microphoneMuted: ref(false) });
+    await vm.toggleMicrophone();
+    expect(useToast().toasts.value).toHaveLength(0);
+  });
 });
 
 describe("toggleMicrophone when the gateway refuses the mute", () => {
