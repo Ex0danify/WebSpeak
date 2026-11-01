@@ -149,14 +149,16 @@ export function useAudioSettingsPanel(options: UseAudioSettingsPanelOptions) {
         return;
       }
       const messageKey: MessageKey =
-        accompanimentErrorCode.value === "needsWebRtc"
-          ? "accompanimentNeedsWebRtc"
-          : accompanimentErrorCode.value === "noAudio"
-            ? "accompanimentNoAudio"
-            : accompanimentErrorCode.value === "unsupported"
-              ? "accompanimentUnsupported"
-              : "accompanimentPermissionDenied";
-      showToast(t(messageKey));
+        accompanimentErrorCode.value === "gatewayDisabled"
+          ? "accompanimentGatewayDisabled"
+          : accompanimentErrorCode.value === "needsWebRtc"
+            ? "accompanimentNeedsWebRtc"
+            : accompanimentErrorCode.value === "noAudio"
+              ? "accompanimentNoAudio"
+              : accompanimentErrorCode.value === "unsupported"
+                ? "accompanimentUnsupported"
+                : "accompanimentPermissionDenied";
+      notifyEvent(t(messageKey), { variant: "warning" });
     }
   }
 

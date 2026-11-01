@@ -1,5 +1,6 @@
 // The accompaniment (shared display audio) mixed into the WebRTC stream, driven through the transport that owns the peer.
 import { describe, expect, it, vi } from "vitest";
+import { useSessionStore } from "@/features/session";
 import { FakeMediaStream, FakeMediaStreamTrack } from "@/testSupport/browserStubs";
 import {
   FakeDisplayTrack,
@@ -23,6 +24,14 @@ describe("accompaniment", () => {
     audio.accompanimentSupported = false;
     await expect(transport.startAccompaniment()).rejects.toThrow("Accompaniment sharing is unavailable");
     expect(audio.accompanimentErrorCode).toBe("unsupported");
+  });
+
+  it("says so when the gateway has WebRTC switched off", async () => {
+    const { audio, transport } = await started();
+    audio.accompanimentSupported = true;
+    useSessionStore().webrtcAvailable = false;
+    await expect(transport.startAccompaniment()).rejects.toThrow("not enabled on this gateway");
+    expect(audio.accompanimentErrorCode).toBe("gatewayDisabled");
   });
 
   it("needs an active WebRTC transport with a peer and a microphone", async () => {

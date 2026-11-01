@@ -1,5 +1,6 @@
 import { storeToRefs } from "pinia";
 import type { Ref } from "vue";
+import { useSessionStore } from "@/features/session";
 import { useVoiceAudioStore } from "@/features/voice/stores/voiceAudioStore";
 
 /** What the accompaniment needs from the transport that owns the peer and the mix. */
@@ -19,6 +20,7 @@ export function useWebRtcAccompaniment(deps: WebRtcAccompanimentDeps) {
   const audio = useVoiceAudioStore();
   const { accompanimentActive, accompanimentSupported, accompanimentErrorCode } = storeToRefs(audio);
   const { webrtcActive } = deps;
+  const { webrtcAvailable } = storeToRefs(useSessionStore());
 
   let accompanimentStream: MediaStream | null = null;
 
@@ -33,6 +35,10 @@ export function useWebRtcAccompaniment(deps: WebRtcAccompanimentDeps) {
     if (!accompanimentSupported.value) {
       accompanimentErrorCode.value = "unsupported";
       throw new Error("Accompaniment sharing is unavailable");
+    }
+    if (!webrtcAvailable.value) {
+      accompanimentErrorCode.value = "gatewayDisabled";
+      throw new Error("WebRTC is not enabled on this gateway");
     }
     if (!webrtcActive.value || !deps.hasPeer() || !deps.getMicStream()) {
       accompanimentErrorCode.value = "needsWebRtc";
