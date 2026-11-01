@@ -17,7 +17,8 @@ export const de: Record<string, string> = {
   accompanimentStarted: "Begleitung wird geteilt",
   accompanimentStopped: "Begleitung beendet",
   accompanimentActive: "Begleitung aktiv",
-  accompanimentNeedsWebRtc: "Die Begleitungsfunktion benötigt WebRTC.",
+  accompanimentGatewayDisabled: "Auf diesem Gateway nicht aktiviert",
+  accompanimentNeedsWebRtc: "Im Moment nicht verfügbar",
   accompanimentNoAudio: "Die ausgewählte Quelle enthält kein teilbares Audio. Wähle sie erneut und aktiviere die Audiofreigabe.",
   accompanimentPermissionDenied:
     "Begleitungs-Audio konnte nicht abgerufen werden. Erlaube die Bildschirmfreigabe und aktiviere die Audiofreigabe.",

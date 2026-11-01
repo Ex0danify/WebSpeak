@@ -44,6 +44,8 @@ export const useSessionStore = defineStore("voiceSession", () => {
   const whisperActive = ref(false);
   /** False while the channel drops our voice (moderated, not enough talk power). Set by the gateway. */
   const canSpeak = ref(true);
+  /** False when the gateway has WebRTC switched off. Set from the connected message. */
+  const webrtcAvailable = ref(true);
 
   function setRoomNotice(notice: RoomNotice): void {
     for (let i = roomNotices.length - 1; i >= 0; i--) {
@@ -78,6 +80,7 @@ export const useSessionStore = defineStore("voiceSession", () => {
     whisperTargetIds.clear();
     whisperActive.value = false;
     canSpeak.value = true;
+    webrtcAvailable.value = true;
   }
 
   return {
@@ -96,6 +99,7 @@ export const useSessionStore = defineStore("voiceSession", () => {
     whisperTargetIds,
     whisperActive,
     canSpeak,
+    webrtcAvailable,
     reset,
   };
 });

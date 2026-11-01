@@ -232,6 +232,15 @@ describe("mute sync", () => {
     accelerated: false,
   };
 
+  it("stores whether the gateway offers WebRTC", async () => {
+    const { connection, session } = setup();
+    await connectAndOpen(connection);
+    connection.handlers.connected!(connectedMessage);
+    expect(session.webrtcAvailable).toBe(false);
+    connection.handlers.connected!({ ...connectedMessage, webrtcAvailable: true });
+    expect(session.webrtcAvailable).toBe(true);
+  });
+
   it("reports a refusal and leaves the connection up", async () => {
     const { connection, deps, session } = setup();
     deps.syncMuteState.mockRejectedValueOnce(refused());
