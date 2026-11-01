@@ -105,17 +105,17 @@ describe("connected", () => {
     expect(socket.sentOfType("setOutputMuted")).toMatchObject([{ type: "setOutputMuted", payload: { muted: true } }]);
   });
 
-  it("shows a refused connect-time mute as a room notice and keeps the local mute", async () => {
+  it("toasts a refused connect-time mute and keeps the local mute", async () => {
     harness = await createVoiceHarness();
     harness.voice.audio.microphoneMuted.value = true;
     const socket = await harness.joinAndConnect();
     const [{ requestId }] = socket.sentOfType("setMicrophoneMuted");
     await push(socket, { type: "error", requestId, error: { code: "OPERATION_FAILED", message: "refused" } });
-    expect(harness.voice.session.roomNotices).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({ code: "MUTE_SYNC_FAILED", variant: "warning", text: expect.stringContaining("microphone stays off") }),
-      ]),
-    );
+    expect(harness.voice.session.roomNotices.some((notice) => notice.code === "MUTE_SYNC_FAILED")).toBe(false);
+    expect(useToast().toasts.value.at(-1)).toMatchObject({
+      variant: "warning",
+      description: expect.stringContaining("microphone stays off"),
+    });
     expect(harness.voice.audio.microphoneMuted.value).toBe(true);
   });
 

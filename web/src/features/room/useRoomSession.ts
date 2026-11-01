@@ -1,6 +1,6 @@
 import { ref } from "vue";
 import { storeToRefs } from "pinia";
-import { clearMuteSyncFailure, notifyMuteSyncFailure } from "@/features/room/shell/roomNotify";
+import { notifyMuteSyncFailure } from "@/features/room/shell/roomNotify";
 import { useSessionActions } from "@/features/session";
 import { createMessageRouter, createRosterHandlers } from "@/features/session";
 import { useConnection } from "@/features/session";
@@ -93,6 +93,7 @@ export function useRoomSession() {
   } = storeToRefs(screenShare);
   const { screenShareStreams, screenShareWebRtcStats } = screenShare;
   const { state, members, channels, chatMessages, serverEvents, pokeNotifications, roomNotices, speakingIds, whisperTargetIds } = session;
+  const { webrtcAvailable } = storeToRefs(session);
   const {
     sendCmd,
     sendCommandAndWait,
@@ -144,6 +145,7 @@ export function useRoomSession() {
     applyInputVolume,
     applyOutputVolume,
     syncOutputMuted: (muted) => sendCommandAndWait("setOutputMuted", { muted }),
+    reportOutputMuteSyncFailure: (error, muted) => notifyMuteSyncFailure(error, muted, "output"),
   });
   const webrtcActive = ref(false);
   const identityMaterial = ref("");
@@ -256,7 +258,6 @@ export function useRoomSession() {
         sendCommandAndWait("setMicrophoneMuted", { muted: microphoneMuted.value }),
         outputMuted.value ? sendCommandAndWait("setOutputMuted", { muted: true }) : undefined,
       ]);
-      clearMuteSyncFailure();
     },
     reportMuteSyncFailure: (error) => {
       notifyMuteSyncFailure(error, microphoneMuted.value);
@@ -341,6 +342,8 @@ export function useRoomSession() {
       accompanimentActive,
       accompanimentSupported,
       accompanimentErrorCode,
+      webrtcActive,
+      webrtcAvailable,
       setVolume,
       setMemberMuted,
       setInputVolume,

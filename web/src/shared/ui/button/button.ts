@@ -15,6 +15,11 @@ export const buttonVariants = cva(
         danger: "border-transparent bg-danger text-surface-1 hover:bg-danger/90",
         // Quiet control that lights up on hover (icon buttons in bars and rows); `aria-current="true"` keeps it lit.
         soft: "border-transparent bg-transparent text-fg-muted hover:bg-accent-soft hover:text-accent aria-[current=true]:bg-accent-soft aria-[current=true]:text-accent",
+        // `soft` in a status color, for an icon control that reports a state by its color (muted, starting, live). Hover dims the
+        // color and adds no background, so it looks the same on any surface.
+        softDanger: "border-transparent bg-transparent text-danger hover:text-danger/75",
+        softWarning: "border-transparent bg-transparent text-warning hover:text-warning/75",
+        softSuccess: "border-transparent bg-transparent text-success hover:text-success/75",
         // `soft` with a faint outline, for an icon button that would otherwise sit bare on its container (mute in a menu row).
         softOutline:
           "border-line bg-transparent text-fg-muted hover:bg-accent-soft hover:text-accent aria-[current=true]:bg-accent-soft aria-[current=true]:text-accent",

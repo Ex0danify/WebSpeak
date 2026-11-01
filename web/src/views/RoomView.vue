@@ -58,7 +58,6 @@
     :input-devices="inputDevices"
     :audio-permission="audioPermission"
     :microphone-muted="microphoneMuted"
-    :is-mobile-viewport="isMobileViewport"
     :noise-suppression-enabled="noiseSuppressionEnabled"
     :input-volume="inputVolume"
     :vox-threshold="voxThreshold"
@@ -102,6 +101,7 @@ import {
   useNetworkPerformance,
   useRoomContext,
   useRoomShell,
+  useScreenShareErrorNotice,
   useWhisper,
 } from "@/features/room";
 import PasswordDialog from "@/shared/components/PasswordDialog.vue";
@@ -227,4 +227,5 @@ const { toggleWhisperTarget } = whisper;
 
 const performance = useNetworkPerformance({ session: session.session });
 useGatewayErrorNotices(voiceState);
+useScreenShareErrorNotice(screenShare.screenShareErrorText);
 </script>

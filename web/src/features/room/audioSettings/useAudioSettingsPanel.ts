@@ -4,7 +4,7 @@ import { Meter } from "@/shared/ui/meter";
 import { useI18n } from "@/shared/i18n/useI18n.js";
 import { toast as raiseToast } from "@/shared/composables/useToast.js";
 import { errorText, text, type MaybeLocalizedText } from "@/shared/i18n/localizedText.js";
-import { clearMuteSyncFailure, notifyEvent, notifyMuteSyncFailure } from "@/features/room/shell/roomNotify";
+import { notifyEvent, notifyMuteSyncFailure } from "@/features/room/shell/roomNotify";
 import { microphoneErrorText } from "@/features/voice";
 import type { RoomSession } from "@/features/room/roomTypes";
 
@@ -123,11 +123,8 @@ export function useAudioSettingsPanel(options: UseAudioSettingsPanelOptions) {
   }
 
   async function toggleMicrophone(): Promise<void> {
-    const synced = setMicrophoneMuted(!microphoneMuted.value);
-    showToast(microphoneMuted.value ? t("microphoneMuted") : t("microphoneActive"));
     try {
-      await synced;
-      clearMuteSyncFailure();
+      await setMicrophoneMuted(!microphoneMuted.value);
     } catch (error: unknown) {
       // The local state already applies, but the TeamSpeak server may still show the old one.
       notifyMuteSyncFailure(error, microphoneMuted.value);

@@ -287,10 +287,16 @@ describe("toggleMicrophone", () => {
     await vm.toggleMicrophone();
     expect(options.setMicrophoneMuted).toHaveBeenCalledWith(true);
   });
+
+  it("does not toast the new state", async () => {
+    const { vm } = await mountUseAudioSettingsPanel({ microphoneMuted: ref(false) });
+    await vm.toggleMicrophone();
+    expect(useToast().toasts.value).toHaveLength(0);
+  });
 });
 
 describe("toggleMicrophone when the gateway refuses the mute", () => {
-  it("keeps the local state and toasts the reason", async () => {
+  it("keeps the local state and toasts what others may see", async () => {
     const microphoneMuted = ref(false);
     const setMicrophoneMuted = vi.fn(async (muted: boolean) => {
       microphoneMuted.value = muted;
@@ -298,13 +304,12 @@ describe("toggleMicrophone when the gateway refuses the mute", () => {
     });
     const { vm } = await mountUseAudioSettingsPanel({ microphoneMuted, setMicrophoneMuted });
     await vm.toggleMicrophone();
-    expect(useSessionStore().roomNotices).toMatchObject([
-      {
-        code: "MUTE_SYNC_FAILED",
-        title: { key: "muteSyncFailed" },
-        text: "Others may still see you as unmuted. Your microphone stays off.",
-      },
-    ]);
+    expect(useSessionStore().roomNotices).toEqual([]);
+    expect(useToast().toasts.value.at(-1)).toMatchObject({
+      variant: "warning",
+      title: "Mute status could not be synced",
+      description: "Others may still see you as unmuted. Your microphone stays off.",
+    });
   });
 });
 

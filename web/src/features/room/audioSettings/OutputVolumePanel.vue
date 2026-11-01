@@ -18,19 +18,17 @@
     <p v-else class="mb-5 flex items-start gap-2 rounded-md bg-surface-0 p-3 text-ui leading-normal text-fg-muted">
       <Icon name="info" :size="16" class="shrink-0 text-accent" /><span>{{ t("outputDeviceUnsupported") }}</span>
     </p>
-    <template v-if="isMobileViewport">
-      <div class="flex items-center justify-between gap-3">
-        <Label for="output-volume">{{ t("speakers") }}</Label
-        ><strong class="text-ui text-accent">{{ Math.round(outputVolume * 100) }}%</strong>
-      </div>
-      <Slider
-        id="output-volume"
-        :model-value="Math.round(outputVolume * 100)"
-        :value-text="`${Math.round(outputVolume * 100)}%`"
-        class="mb-2"
-        @update:model-value="$emit('set-output-volume', $event / 100)"
-      />
-    </template>
+    <div class="flex items-center justify-between gap-3">
+      <Label for="output-volume">{{ t("speakers") }}</Label
+      ><strong class="text-ui text-accent">{{ Math.round(outputVolume * 100) }}%</strong>
+    </div>
+    <Slider
+      id="output-volume"
+      :model-value="Math.round(outputVolume * 100)"
+      :value-text="`${Math.round(outputVolume * 100)}%`"
+      class="mb-2"
+      @update:model-value="$emit('set-output-volume', $event / 100)"
+    />
     <div class="flex items-center justify-between gap-3">
       <Label for="notification-volume">{{ t("notificationVolume") }}</Label
       ><strong class="text-ui text-accent">{{ Math.round(notificationVolume * 100) }}%</strong>
@@ -67,7 +65,6 @@ defineProps<{
   outputDeviceSupported: boolean;
   selectedOutputDeviceId: string;
   outputDevices: AudioOutputDevice[];
-  isMobileViewport: boolean;
   outputVolume: number;
   notificationVolume: number;
   audioStatus: { variant: "success" | "warning" | "danger" | "neutral"; label: string };

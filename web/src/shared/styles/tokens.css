@@ -146,6 +146,17 @@
     }
   }
 
+  /* Dock screen share icon while the stream starts. Needs a deep fade, a thin outline barely shows a shallow one. */
+  --animate-share-starting-icon: share-starting-icon 1s ease-in-out infinite alternate;
+  @keyframes share-starting-icon {
+    from {
+      opacity: 1;
+    }
+    to {
+      opacity: 0.3;
+    }
+  }
+
   /* Bars of the "sharing screen" badge on a member tile. */
   --animate-share-wave: share-wave 1.1s ease-in-out infinite alternate;
   @keyframes share-wave {

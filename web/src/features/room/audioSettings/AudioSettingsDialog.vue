@@ -7,7 +7,6 @@
         :input-devices="inputDevices"
         :audio-permission="audioPermission"
         :microphone-muted="microphoneMuted"
-        :is-mobile-viewport="isMobileViewport"
         :noise-suppression-enabled="noiseSuppressionEnabled"
         :input-volume="inputVolume"
         :vox-threshold="voxThreshold"
@@ -29,7 +28,6 @@
         :output-device-supported="outputDeviceSupported"
         :selected-output-device-id="selectedOutputDeviceId"
         :output-devices="outputDevices"
-        :is-mobile-viewport="isMobileViewport"
         :output-volume="outputVolume"
         :notification-volume="notificationVolume"
         :audio-status="audioStatus"
@@ -63,7 +61,6 @@ defineProps<{
   inputDevices: AudioInputDevice[];
   audioPermission: AudioPermission;
   microphoneMuted: boolean;
-  isMobileViewport: boolean;
   noiseSuppressionEnabled: boolean;
   inputVolume: number;
   voxThreshold: number;

@@ -78,6 +78,8 @@ const EXPECTED_SURFACE: Record<string, Record<string, string>> = {
   audio: {
     accompanimentActive: "ref",
     accompanimentErrorCode: "ref",
+    webrtcActive: "ref",
+    webrtcAvailable: "ref",
     accompanimentSupported: "ref",
     audioContextState: "ref",
     audioPermission: "ref",

@@ -94,10 +94,24 @@
               @ptt-down="onWhisperPttDown"
               @ptt-up="onWhisperPttUp"
             />
-            <MobileVoiceControls
+            <AudioDock
+              v-if="isMobileViewport"
+              :member="selfMember"
+              :speaking="selfSpeaking"
+              :connection="audioLink"
               :microphone-muted="microphoneMuted"
+              :output-muted="outputMuted"
+              :accompaniment-active="accompanimentActive"
+              :accompaniment="accompaniment"
+              :screen-share-active="screenShareActive"
+              :screen-share-starting="screenShareStarting"
+              :screen-share-supported="screenShareSupported"
               @toggle-microphone="toggleMicrophone"
+              @toggle-output-mute="toggleOutputMute"
+              @toggle-accompaniment="toggleAccompaniment"
               @open-settings="settingsOpen = true"
+              @open-screen-share="screenShareSettingsOpen = true"
+              @stop-screen-share="stopScreenShare"
             />
           </section>
 
@@ -156,21 +170,24 @@
         @open-member-actions="openMemberActions"
       />
       <template #footer>
-        <DesktopAudioDock
+        <AudioDock
           v-if="!isMobileViewport"
-          :accompaniment-active="accompanimentActive"
+          :member="selfMember"
+          :speaking="selfSpeaking"
+          :connection="audioLink"
           :microphone-muted="microphoneMuted"
-          :input-volume="inputVolume"
-          :noise-suppression-enabled="noiseSuppressionEnabled"
           :output-muted="outputMuted"
-          :output-volume="outputVolume"
+          :accompaniment-active="accompanimentActive"
+          :accompaniment="accompaniment"
+          :screen-share-active="screenShareActive"
+          :screen-share-starting="screenShareStarting"
+          :screen-share-supported="screenShareSupported"
           @toggle-microphone="toggleMicrophone"
-          @set-input-volume="setInputVolume"
-          @set-noise-suppression="setNoiseSuppressionEnabled"
           @toggle-output-mute="toggleOutputMute"
-          @set-output-volume="setOutputVolume"
-          @open-settings="settingsOpen = true"
           @toggle-accompaniment="toggleAccompaniment"
+          @open-settings="settingsOpen = true"
+          @open-screen-share="screenShareSettingsOpen = true"
+          @stop-screen-share="stopScreenShare"
         />
       </template>
     </MemberPanel>
@@ -192,13 +209,16 @@
 </template>
 
 <script setup lang="ts">
-import type { Ref } from "vue";
+import { computed, type Ref } from "vue";
+import { isSpeaking } from "@/features/session";
 import { useI18n } from "@/shared/i18n/useI18n";
 import type { useAppearance } from "@/shared/composables/useAppearance";
 import type { useScreenShare } from "@/features/screenShare";
 import ChatPanel from "@/features/room/chat/ChatPanel.vue";
 import type { useChat } from "@/features/room/chat/useChat";
-import DesktopAudioDock from "@/features/room/audioSettings/DesktopAudioDock.vue";
+import AudioDock from "@/features/room/dock/AudioDock.vue";
+import { accompanimentAvailability } from "@/features/room/dock/accompanimentAvailability";
+import { audioLinkStatus } from "@/features/room/dock/audioLinkStatus";
 import type { useAudioSettingsPanel } from "@/features/room/audioSettings/useAudioSettingsPanel";
 import MemberPanel from "@/features/room/members/MemberPanel.vue";
 import MemberTree from "@/features/room/members/MemberTree.vue";
@@ -208,7 +228,6 @@ import NetworkPerformancePanel from "@/features/room/network/NetworkPerformanceP
 import type { useNetworkPerformance } from "@/features/room/network/useNetworkPerformance";
 import VoiceGrid from "@/features/room/voiceGrid/VoiceGrid.vue";
 import VoiceHeading from "@/features/room/voiceGrid/VoiceHeading.vue";
-import MobileVoiceControls from "@/features/room/voiceGrid/MobileVoiceControls.vue";
 import PokeStack from "@/features/room/whisper/PokeStack.vue";
 import WhisperStrip from "@/features/room/whisper/WhisperStrip.vue";
 import type { useWhisper } from "@/features/room/whisper/useWhisper";
@@ -242,18 +261,8 @@ const { t } = useI18n();
 const { state: voiceState, roomNotices, reconnectNow } = props.session.session;
 const { members, serverEvents, pokeNotifications, speakingIds, canSpeak, mutedMembers, whisperTargetIds, whisperActive } =
   props.session.roster;
-const {
-  microphoneMuted,
-  noiseSuppressionEnabled,
-  inputVolume,
-  outputVolume,
-  outputMuted,
-  setInputVolume,
-  setNoiseSuppressionEnabled,
-  setOutputVolume,
-  toggleOutputMute,
-  accompanimentActive,
-} = props.session.audio;
+const { microphoneMuted, outputMuted, toggleOutputMute, accompanimentActive, accompanimentSupported, webrtcActive, webrtcAvailable } =
+  props.session.audio;
 const {
   screenShareActive,
   screenShareStarting,
@@ -326,9 +335,25 @@ const {
   screenShareViewerStyle,
 } = props.screenShare;
 const { settingsOpen, toggleMicrophone, toggleAccompaniment } = props.audioPanel;
+
 const { whisperPttActive, whisperTargets, clearWhisperTargets, onWhisperPttDown, onWhisperPttUp } = props.whisper;
 const { performancePanelOpen, performanceRunning, performanceStats, togglePerformancePanel, refreshPerformanceProbe } = props.performance;
 const { openMemberActions, openMemberMenu } = props.memberMenu;
+const selfMember = computed(() => members.find((member) => member.isSelf) ?? null);
+const audioLink = computed(() => audioLinkStatus(voiceState, roomNotices));
+const accompaniment = computed(() =>
+  accompanimentAvailability({
+    supported: accompanimentSupported.value,
+    active: accompanimentActive.value,
+    webrtcAvailable: webrtcAvailable.value,
+    webrtcActive: webrtcActive.value,
+    connection: audioLink.value,
+  }),
+);
+const selfSpeaking = computed(() => (selfMember.value ? isSpeaking(selfMember.value, speakingIds) : false));
+
+// Browsers without screen capture (most phones) get no share button.
+const screenShareSupported = typeof navigator.mediaDevices?.getDisplayMedia === "function";
 const { themeIcon, themeLabel, cycleTheme, persistLanguage } = props.appearance;
 const { doShare, doDisconnect } = props;
 

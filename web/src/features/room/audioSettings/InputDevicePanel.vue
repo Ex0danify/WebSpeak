@@ -36,10 +36,7 @@
         ><Icon :name="microphoneMuted ? 'mic-off' : 'mic'" :size="16" /> {{ microphoneMuted ? t("unmuteMic") : t("muteMic") }}</Button
       >
     </div>
-    <label
-      v-if="isMobileViewport"
-      class="mb-4.5 flex cursor-pointer items-center justify-between gap-3 rounded-lg border border-line bg-surface-2 p-3"
-    >
+    <label class="mb-4.5 flex cursor-pointer items-center justify-between gap-3 rounded-lg border border-line bg-surface-2 p-3">
       <span class="min-w-0">
         <strong class="block text-ui font-medium text-fg">{{ t("noiseSuppression") }}</strong>
         <small class="mt-0.5 block text-xs leading-4 text-fg-muted">{{ t("noiseSuppressionHint") }}</small>
@@ -50,19 +47,17 @@
         @update:model-value="$emit('set-noise-suppression', $event)"
       />
     </label>
-    <template v-if="isMobileViewport">
-      <div class="flex items-center justify-between gap-3">
-        <Label for="input-volume">{{ t("inputVolume") }}</Label
-        ><strong class="text-ui text-accent">{{ Math.round(inputVolume * 100) }}%</strong>
-      </div>
-      <Slider
-        id="input-volume"
-        :model-value="Math.round(inputVolume * 100)"
-        :value-text="`${Math.round(inputVolume * 100)}%`"
-        class="mb-2"
-        @update:model-value="$emit('set-input-volume', $event / 100)"
-      />
-    </template>
+    <div class="flex items-center justify-between gap-3">
+      <Label for="input-volume">{{ t("inputVolume") }}</Label
+      ><strong class="text-ui text-accent">{{ Math.round(inputVolume * 100) }}%</strong>
+    </div>
+    <Slider
+      id="input-volume"
+      :model-value="Math.round(inputVolume * 100)"
+      :value-text="`${Math.round(inputVolume * 100)}%`"
+      class="mb-2"
+      @update:model-value="$emit('set-input-volume', $event / 100)"
+    />
     <div class="flex items-center justify-between gap-3">
       <Label for="vox-threshold">{{ t("voxThreshold") }}</Label
       ><strong class="text-ui text-accent">{{ (voxThreshold * 100).toFixed(1) }}%</strong>
@@ -129,7 +124,6 @@ defineProps<{
   inputDevices: AudioInputDevice[];
   audioPermission: AudioPermission;
   microphoneMuted: boolean;
-  isMobileViewport: boolean;
   noiseSuppressionEnabled: boolean;
   inputVolume: number;
   voxThreshold: number;

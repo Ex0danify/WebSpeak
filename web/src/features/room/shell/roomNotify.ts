@@ -7,13 +7,12 @@ import type { StatusVariant } from "@/shared/ui/shared/status";
 
 // How the room tells the user something, three ways. Pick by what the thing is, not by how serious it feels:
 //   notifyEvent     something that just happened and can be forgotten (a refusal, a throttle). A toast.
-//   notifyState     a condition that stays true until it is fixed (audio degraded, mute out of sync). A banner that goes
+//   notifyState     a condition that stays true until it is fixed (audio degraded). A banner that goes
 //                   away with the condition, so whoever raises it also clears it.
 //   notifyBlocking  the user has to acknowledge or decide before going on. A dialog.
 // Problems that belong to one form or section are shown inline there, not through these.
 
 const EVENT_TOAST_MS = 6000;
-const MUTE_SYNC_CODE = "MUTE_SYNC_FAILED";
 
 /** The reason a person can act on. The generic gateway failure says nothing the title does not, so it is left out. */
 function failureReason(error: unknown): string {
@@ -82,16 +81,12 @@ export function notifyBlocking(options: AlertOptions): Promise<void> {
   return useDialog().alert(options);
 }
 
-/** The local mute stays when the sync fails, so the banner says what others may see instead. */
-export function notifyMuteSyncFailure(error: unknown, muted: boolean): void {
+/** The local mute stays when the sync fails, so the toast says what others may see instead. */
+export function notifyMuteSyncFailure(error: unknown, muted: boolean, target: "microphone" | "output" = "microphone"): void {
   const { t } = useI18n();
-  const hint = muted ? t("muteSyncHintMuted") : t("muteSyncHintUnmuted");
-  notifyState(MUTE_SYNC_CODE, [failureReason(error), hint].filter(Boolean).join(" "), {
-    title: text("muteSyncFailed"),
-    variant: "warning",
-  });
-}
-
-export function clearMuteSyncFailure(): void {
-  clearState(MUTE_SYNC_CODE);
+  const hints = {
+    microphone: { on: t("muteSyncHintMuted"), off: t("muteSyncHintUnmuted") },
+    output: { on: t("muteSyncHintOutputMuted"), off: t("muteSyncHintOutputUnmuted") },
+  };
+  notifyEvent(t("muteSyncFailed"), { variant: "warning", error, hint: hints[target][muted ? "on" : "off"] });
 }
