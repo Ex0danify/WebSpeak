@@ -52,13 +52,13 @@
             /></Button>
           </template>
           <template #default="{ close }">
-            <strong class="block text-caption text-fg">{{ t("screenShareStopTitle") }}</strong>
-            <p class="mt-1 text-2xs text-fg-muted">{{ t("screenShareStopBody") }}</p>
-            <div class="mt-3 flex flex-wrap justify-end gap-2">
-              <Button variant="outline" size="sm" @click="close()">{{ t("cancel") }}</Button>
+            <strong class="block text-sm text-fg">{{ t("screenShareStopTitle") }}</strong>
+            <p class="mt-1 text-sm text-fg-muted">{{ t("screenShareStopBody") }}</p>
+            <div class="mt-3 flex flex-col gap-2">
+              <Button variant="outline" class="w-full" @click="close()">{{ t("cancel") }}</Button>
               <Button
                 variant="dangerSoft"
-                size="sm"
+                class="w-full"
                 @click="
                   close();
                   $emit('stop-screen-share');
@@ -102,8 +102,8 @@
           </template>
           <label class="flex cursor-pointer items-start justify-between gap-3">
             <span class="min-w-0">
-              <strong class="block text-caption text-fg">{{ t("shareAudio") }}</strong>
-              <span :id="hintId" class="mt-0.5 block text-2xs leading-snug text-fg-muted">{{
+              <strong class="block text-sm text-fg">{{ t("shareAudio") }}</strong>
+              <span :id="hintId" class="mt-0.5 block text-xs leading-snug text-fg-muted">{{
                 accompanimentSupported ? t("shareAudioHint") : t("accompanimentUnsupported")
               }}</span>
             </span>
@@ -116,8 +116,8 @@
             />
           </label>
           <Separator class="my-3" />
-          <Button variant="outline" size="sm" class="w-full" @click="openSettings"
-            ><Icon name="settings" :size="15" /> {{ t("audioSettings") }}</Button
+          <Button variant="outline" class="w-full" @click="openSettings"
+            ><Icon name="settings" :size="16" /> {{ t("audioSettings") }}</Button
           >
         </Popover></span
       ></Tooltip
