@@ -14,6 +14,8 @@ export const en = {
   audioOptionsSharing: "Audio options, sharing audio",
   shareAudio: "Share audio",
   shareAudioHint: "Play audio from a tab or screen into the channel",
+  shareAudioGatewayOff: "Not enabled on this gateway",
+  shareAudioUnavailable: "Not available right now",
   screenShareStopLabel: "Sharing your screen. Stop sharing",
   screenShareStopTitle: "Stop sharing your screen?",
   screenShareStopBody: "Everyone watching loses your stream.",

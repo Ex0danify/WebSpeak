@@ -14,6 +14,8 @@ export const de: Record<string, string> = {
   audioOptionsSharing: "Audiooptionen, Audio wird geteilt",
   shareAudio: "Audio teilen",
   shareAudioHint: "Audio eines Tabs oder Bildschirms in den Kanal übertragen",
+  shareAudioGatewayOff: "Auf diesem Gateway nicht aktiviert",
+  shareAudioUnavailable: "Im Moment nicht verfügbar",
   screenShareStopLabel: "Dein Bildschirm wird geteilt. Freigabe beenden",
   screenShareStopTitle: "Bildschirmfreigabe beenden?",
   screenShareStopBody: "Alle Zuschauer verlieren deinen Stream.",

@@ -108,22 +108,22 @@
               ></span
             ></Button>
           </template>
-          <label class="flex cursor-pointer items-start justify-between gap-3">
-            <span class="min-w-0">
-              <strong class="block text-sm text-fg">{{ t("shareAudio") }}</strong>
-              <span :id="hintId" class="mt-0.5 block text-xs leading-snug text-fg-muted">{{
-                accompanimentSupported ? t("shareAudioHint") : t("accompanimentUnsupported")
-              }}</span>
-            </span>
-            <Switch
-              :model-value="accompanimentActive"
-              :disabled="!accompanimentSupported"
-              :aria-label="t('shareAudio')"
-              :aria-describedby="hintId"
-              @update:model-value="$emit('toggle-accompaniment')"
-            />
-          </label>
-          <Separator class="my-3" />
+          <template v-if="accompaniment !== 'hidden'">
+            <label class="flex items-start justify-between gap-3" :class="accompaniment === 'ready' ? 'cursor-pointer' : 'cursor-default'">
+              <span class="min-w-0">
+                <strong class="block text-sm text-fg">{{ t("shareAudio") }}</strong>
+                <span :id="hintId" class="mt-0.5 block text-xs leading-snug text-fg-muted">{{ shareAudioHint }}</span>
+              </span>
+              <Switch
+                :model-value="accompanimentActive"
+                :disabled="accompaniment !== 'ready'"
+                :aria-label="t('shareAudio')"
+                :aria-describedby="hintId"
+                @update:model-value="$emit('toggle-accompaniment')"
+              />
+            </label>
+            <Separator class="my-3" />
+          </template>
           <Button variant="outline" class="w-full" @click="openSettings"
             ><Icon name="settings" :size="16" /> {{ t("audioSettings") }}</Button
           >
@@ -144,6 +144,7 @@ import { Switch } from "@/shared/ui/switch";
 import { Tooltip } from "@/shared/ui/tooltip";
 import { useI18n } from "@/shared/i18n/useI18n.js";
 import { nicknameText, type ChannelMember } from "@/features/session";
+import type { AccompanimentAvailability } from "@/features/room/dock/accompanimentAvailability";
 import type { AudioLinkStatus } from "@/features/room/dock/audioLinkStatus";
 
 const props = defineProps<{
@@ -154,7 +155,8 @@ const props = defineProps<{
   microphoneMuted: boolean;
   outputMuted: boolean;
   accompanimentActive: boolean;
-  accompanimentSupported: boolean;
+  /** Whether sharing audio is offered, and why not when it is switched off. */
+  accompaniment: AccompanimentAvailability;
   screenShareActive: boolean;
   screenShareStarting: boolean;
   /** Browsers without screen capture (most phones) get no button. */
@@ -187,6 +189,13 @@ function openSettings(): void {
   emit("open-settings");
 }
 const hintId = useId();
+const shareAudioHint = computed(() =>
+  props.accompaniment === "gatewayOff"
+    ? t("shareAudioGatewayOff")
+    : props.accompaniment === "fallback"
+      ? t("shareAudioUnavailable")
+      : t("shareAudioHint"),
+);
 const statusClass: Record<AudioLinkStatus, string> = { connected: "text-success", connecting: "text-warning", disconnected: "text-danger" };
 const statusText = computed(() =>
   props.connection === "connected"

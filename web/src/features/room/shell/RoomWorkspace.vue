@@ -102,7 +102,7 @@
               :microphone-muted="microphoneMuted"
               :output-muted="outputMuted"
               :accompaniment-active="accompanimentActive"
-              :accompaniment-supported="accompanimentSupported"
+              :accompaniment="accompaniment"
               :screen-share-active="screenShareActive"
               :screen-share-starting="screenShareStarting"
               :screen-share-supported="screenShareSupported"
@@ -179,7 +179,7 @@
           :microphone-muted="microphoneMuted"
           :output-muted="outputMuted"
           :accompaniment-active="accompanimentActive"
-          :accompaniment-supported="accompanimentSupported"
+          :accompaniment="accompaniment"
           :screen-share-active="screenShareActive"
           :screen-share-starting="screenShareStarting"
           :screen-share-supported="screenShareSupported"
@@ -220,6 +220,7 @@ import type { useScreenShare } from "@/features/screenShare";
 import ChatPanel from "@/features/room/chat/ChatPanel.vue";
 import type { useChat } from "@/features/room/chat/useChat";
 import AudioDock from "@/features/room/dock/AudioDock.vue";
+import { accompanimentAvailability } from "@/features/room/dock/accompanimentAvailability";
 import { audioLinkStatus } from "@/features/room/dock/audioLinkStatus";
 import type { useAudioSettingsPanel } from "@/features/room/audioSettings/useAudioSettingsPanel";
 import ProfileDialog from "@/features/room/profile/ProfileDialog.vue";
@@ -264,7 +265,8 @@ const { t } = useI18n();
 const { state: voiceState, roomNotices, reconnectNow } = props.session.session;
 const { members, serverEvents, pokeNotifications, speakingIds, canSpeak, mutedMembers, whisperTargetIds, whisperActive } =
   props.session.roster;
-const { microphoneMuted, outputMuted, toggleOutputMute, accompanimentActive, accompanimentSupported } = props.session.audio;
+const { microphoneMuted, outputMuted, toggleOutputMute, accompanimentActive, accompanimentSupported, webrtcActive, webrtcAvailable } =
+  props.session.audio;
 const {
   screenShareActive,
   screenShareStarting,
@@ -344,6 +346,15 @@ const { performancePanelOpen, performanceRunning, performanceStats, togglePerfor
 const { openMemberActions, openMemberMenu } = props.memberMenu;
 const selfMember = computed(() => members.find((member) => member.isSelf) ?? null);
 const audioLink = computed(() => audioLinkStatus(voiceState, roomNotices));
+const accompaniment = computed(() =>
+  accompanimentAvailability({
+    supported: accompanimentSupported.value,
+    active: accompanimentActive.value,
+    webrtcAvailable: webrtcAvailable.value,
+    webrtcActive: webrtcActive.value,
+    connection: audioLink.value,
+  }),
+);
 const selfSpeaking = computed(() => (selfMember.value ? isSpeaking(selfMember.value, speakingIds) : false));
 
 // Browsers without screen capture (most phones) get no share button.

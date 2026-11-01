@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { nextTick } from "vue";
 import AudioDock from "@/features/room/dock/AudioDock.vue";
 import type { ChannelMember } from "@/features/session";
+import type { AccompanimentAvailability } from "@/features/room/dock/accompanimentAvailability";
 import type { AudioLinkStatus } from "@/features/room/dock/audioLinkStatus";
 
 const base = {
@@ -12,7 +13,7 @@ const base = {
   microphoneMuted: false,
   outputMuted: false,
   accompanimentActive: false,
-  accompanimentSupported: true,
+  accompaniment: "ready" as AccompanimentAvailability,
   screenShareActive: false,
   screenShareStarting: false,
   screenShareSupported: true,
@@ -108,13 +109,32 @@ describe("AudioDock options popover", () => {
     expect(button("Audio options")?.getAttribute("aria-expanded")).toBe("false");
   });
 
-  it("disables the switch and says why when sharing audio is unsupported", async () => {
-    mountDock({ accompanimentSupported: false });
+  it("leaves the row out where the browser cannot share audio", async () => {
+    mountDock({ accompaniment: "hidden" });
+    button("Audio options")?.click();
+    await nextTick();
+    expect(document.body.querySelector("[role=switch]")).toBeNull();
+    expect(buttonByText("Audio settings")).toBeDefined();
+  });
+
+  it.each([
+    ["gatewayOff", "Not enabled on this gateway"],
+    ["fallback", "Not available right now"],
+  ] as const)("disables the switch and says why when %s", async (accompaniment, hint) => {
+    mountDock({ accompaniment });
     button("Audio options")?.click();
     await nextTick();
     const toggle = document.body.querySelector<HTMLButtonElement>("[role=switch]");
     expect(toggle?.disabled).toBe(true);
-    expect(document.body.textContent).toContain("does not support");
+    expect(document.getElementById(toggle?.getAttribute("aria-describedby") ?? "")?.textContent).toBe(hint);
+  });
+
+  it("keeps the switch off with the normal hint while the link is set up", async () => {
+    mountDock({ accompaniment: "waiting" });
+    button("Audio options")?.click();
+    await nextTick();
+    expect(document.body.querySelector<HTMLButtonElement>("[role=switch]")?.disabled).toBe(true);
+    expect(document.body.textContent).toContain("Play audio from a tab or screen");
   });
 
   it("marks the gear while audio is shared", () => {

@@ -93,6 +93,7 @@ export function useRoomSession() {
   } = storeToRefs(screenShare);
   const { screenShareStreams, screenShareWebRtcStats } = screenShare;
   const { state, members, channels, chatMessages, serverEvents, pokeNotifications, roomNotices, speakingIds, whisperTargetIds } = session;
+  const { webrtcAvailable } = storeToRefs(session);
   const {
     sendCmd,
     sendCommandAndWait,
@@ -341,6 +342,8 @@ export function useRoomSession() {
       accompanimentActive,
       accompanimentSupported,
       accompanimentErrorCode,
+      webrtcActive,
+      webrtcAvailable,
       setVolume,
       setMemberMuted,
       setInputVolume,
