@@ -40,8 +40,14 @@
       /></Button>
     </Tooltip>
     <Tooltip v-if="screenShareStarting" :text="t('screenShareStarting')"
-      ><Button variant="softWarning" size="sm" icon-only :class="buttonClass" aria-busy="true" :aria-label="t('screenShareStarting')"
-        ><Icon name="monitor" class="motion-safe:animate-pulse" /></Button
+      ><Button
+        variant="softWarning"
+        size="sm"
+        icon-only
+        :class="buttonClass"
+        aria-busy="true"
+        :aria-label="t('screenShareStarting')"
+        ><Icon name="monitor" class="motion-safe:animate-share-starting-icon" /></Button
     ></Tooltip>
     <Tooltip v-else-if="screenShareActive" :text="t('stopScreenShare')"
       ><span class="inline-flex"
@@ -165,8 +171,7 @@ const emit = defineEmits<{
 const { t } = useI18n();
 // The dock pads and borders its buttons by 10 px, so the pointer tips land on its top edge instead of stopping just short of it.
 const arrowOffset = 10;
-const buttonClass = "size-8.5 max-compact:size-11";
-const optionsButtonClass = `${buttonClass} relative`;
+const buttonClass = "size-8.5 max-compact:size-11";const optionsButtonClass = `${buttonClass} relative`;
 
 const optionsOpen = ref(false);
 const optionsButton = ref<{ $el: HTMLElement } | null>(null);

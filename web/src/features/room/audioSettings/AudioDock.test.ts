@@ -137,6 +137,7 @@ describe("AudioDock screen share button", () => {
     const starting = button("Starting live stream");
     expect(starting?.getAttribute("aria-busy")).toBe("true");
     expect(starting?.querySelector(".animate-spin")).toBeNull();
+    expect(starting?.querySelector("svg")?.getAttribute("class")).toContain("motion-safe:animate-share-starting-icon");
     starting?.click();
     await nextTick();
     expect(dock.emitted("open-screen-share")).toBeUndefined();
