@@ -45,7 +45,7 @@
     ></Tooltip>
     <Tooltip v-else-if="screenShareActive" :text="t('stopScreenShare')"
       ><span class="inline-flex"
-        ><Popover side="top" align="end" :label="t('stopScreenShare')" class="w-56">
+        ><Popover side="top" align="end" arrow :side-offset="arrowOffset" :label="t('stopScreenShare')" class="w-56">
           <template #trigger>
             <Button variant="softSuccess" size="sm" icon-only :class="buttonClass" :aria-label="t('screenShareStopLabel')"
               ><Icon name="monitor"
@@ -82,7 +82,15 @@
     ></Tooltip>
     <Tooltip :text="optionsLabel"
       ><span class="inline-flex"
-        ><Popover v-model:open="optionsOpen" side="top" align="end" :label="t('audioOptions')" class="w-64">
+        ><Popover
+          v-model:open="optionsOpen"
+          side="top"
+          align="end"
+          arrow
+          :side-offset="arrowOffset"
+          :label="t('audioOptions')"
+          class="w-64"
+        >
           <template #trigger>
             <Button ref="optionsButton" variant="soft" size="sm" icon-only :class="optionsButtonClass" :aria-label="optionsLabel"
               ><Icon name="settings" /><span
@@ -155,6 +163,8 @@ const emit = defineEmits<{
 }>();
 
 const { t } = useI18n();
+// The dock pads and borders its buttons by 10 px, so the pointer tips land on its top edge instead of stopping just short of it.
+const arrowOffset = 10;
 const buttonClass = "size-8.5 max-compact:size-11";
 const optionsButtonClass = `${buttonClass} relative`;
 

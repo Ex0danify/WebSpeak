@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, watch } from "vue";
-import { PopoverAnchor, PopoverContent, PopoverPortal, PopoverRoot, PopoverTrigger } from "reka-ui";
+import { PopoverAnchor, PopoverArrow, PopoverContent, PopoverPortal, PopoverRoot, PopoverTrigger } from "reka-ui";
 import { cn } from "@/shared/lib/cn";
 import { popoverContentClass } from "@/shared/ui/popover/popover";
 
@@ -13,11 +13,15 @@ const props = withDefaults(
   defineProps<{
     label?: string;
     side?: "top" | "right" | "bottom" | "left";
+    /** Gap to the trigger in px. With `arrow` the pointer sits inside it, so its tip lands this far from the trigger. */
+    sideOffset?: number;
     align?: "start" | "center" | "end";
     trigger?: "click" | "hover";
+    /** A pointer on the panel that aims at the trigger, for a panel that does not sit centered over it. */
+    arrow?: boolean;
     class?: string;
   }>(),
-  { side: "bottom", align: "center", trigger: "click" },
+  { side: "bottom", align: "center", trigger: "click", sideOffset: 8 },
 );
 
 const open = defineModel<boolean>("open", { default: false });
@@ -120,10 +124,11 @@ function releaseTabAtEdges(event: KeyboardEvent): void {
         <PopoverContent
           :side="side"
           :align="align"
-          :side-offset="8"
+          :side-offset="sideOffset"
           :collision-padding="8"
+          :arrow-padding="arrow ? 14 : 0"
           :aria-label="label"
-          :class="cn(popoverContentClass, props.class)"
+          :class="cn(popoverContentClass, arrow && 'overflow-visible', props.class)"
           v-bind="hover ? hoverEvents : {}"
           @open-auto-focus="keepOpen"
           @close-auto-focus="keepOpen"
@@ -132,6 +137,11 @@ function releaseTabAtEdges(event: KeyboardEvent): void {
           @escape-key-down="hover && dismiss()"
         >
           <slot :close="() => (open = false)" />
+          <PopoverArrow v-if="arrow" :width="14" :height="7" class="overflow-visible">
+            <!-- The fill reaches past the base to hide the panel's border, only the two slanted sides are stroked. -->
+            <path d="M0 -1H12V0L6 6L0 0Z" class="fill-surface-1" />
+            <path d="M0 0L6 6L12 0" fill="none" class="stroke-line" vector-effect="non-scaling-stroke" />
+          </PopoverArrow>
         </PopoverContent>
       </div>
     </PopoverPortal>
