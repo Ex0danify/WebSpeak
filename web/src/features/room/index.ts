@@ -29,4 +29,3 @@ export { useMemberMenu } from "@/features/room/members/useMemberMenu";
 export { useChannelTree } from "@/features/room/members/useChannelTree";
 export { default as VoiceGrid } from "@/features/room/voiceGrid/VoiceGrid.vue";
 export { default as VoiceHeading } from "@/features/room/voiceGrid/VoiceHeading.vue";
-export { default as MobileVoiceControls } from "@/features/room/voiceGrid/MobileVoiceControls.vue";

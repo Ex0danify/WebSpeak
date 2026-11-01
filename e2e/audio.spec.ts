@@ -174,3 +174,23 @@ test.describe("audio dock", () => {
     await expect(again.getByRole("switch", { name: "Browser noise suppression" })).toHaveAttribute("aria-checked", noiseAfter!);
   });
 });
+
+test.describe("audio dock on a phone", () => {
+  test.beforeEach(({ isMobile }) => {
+    test.skip(!isMobile, "the desktop's dock is covered above");
+  });
+
+  test("sits in the voice view with the same controls", async ({ page }) => {
+    await join(page, "aud-phone-dock");
+    await page.getByRole("tab", { name: "Voice" }).click();
+    await expect(dock(page)).toBeVisible();
+    await dock(page).getByRole("button", { name: "Microphone on" }).click();
+    await expect(dock(page).getByRole("button", { name: "Microphone off" })).toHaveAttribute("aria-pressed", "true");
+
+    await dock(page).getByRole("button", { name: "Audio options" }).click();
+    const panel = page.getByRole("dialog", { name: "Audio options" });
+    await expect(panel.getByRole("switch", { name: "Share audio" })).toBeVisible();
+    await panel.getByRole("button", { name: "Audio settings" }).click();
+    await expect(page.getByRole("dialog", { name: "Audio configuration" })).toBeVisible();
+  });
+});

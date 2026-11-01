@@ -10,6 +10,7 @@ const base = {
   accompanimentSupported: true,
   screenShareActive: false,
   screenShareStarting: false,
+  screenShareSupported: true,
 };
 
 let wrapper: VueWrapper | undefined;
@@ -81,6 +82,12 @@ describe("AudioDock options popover", () => {
 });
 
 describe("AudioDock screen share button", () => {
+  it("is left out where the browser cannot capture the screen", () => {
+    mountDock({ screenShareSupported: false });
+    expect(button("Share screen")).toBeNull();
+    expect(button("Audio options")).not.toBeNull();
+  });
+
   it("opens the share dialog while idle", async () => {
     const dock = mountDock();
     button("Share screen")?.click();

@@ -94,10 +94,21 @@
               @ptt-down="onWhisperPttDown"
               @ptt-up="onWhisperPttUp"
             />
-            <MobileVoiceControls
+            <AudioDock
+              v-if="isMobileViewport"
               :microphone-muted="microphoneMuted"
+              :output-muted="outputMuted"
+              :accompaniment-active="accompanimentActive"
+              :accompaniment-supported="accompanimentSupported"
+              :screen-share-active="screenShareActive"
+              :screen-share-starting="screenShareStarting"
+              :screen-share-supported="screenShareSupported"
               @toggle-microphone="toggleMicrophone"
+              @toggle-output-mute="toggleOutputMute"
+              @toggle-accompaniment="toggleAccompaniment"
               @open-settings="settingsOpen = true"
+              @open-screen-share="screenShareSettingsOpen = true"
+              @stop-screen-share="stopScreenShare"
             />
           </section>
 
@@ -164,6 +175,7 @@
           :accompaniment-supported="accompanimentSupported"
           :screen-share-active="screenShareActive"
           :screen-share-starting="screenShareStarting"
+          :screen-share-supported="screenShareSupported"
           @toggle-microphone="toggleMicrophone"
           @toggle-output-mute="toggleOutputMute"
           @toggle-accompaniment="toggleAccompaniment"
@@ -207,7 +219,6 @@ import NetworkPerformancePanel from "@/features/room/network/NetworkPerformanceP
 import type { useNetworkPerformance } from "@/features/room/network/useNetworkPerformance";
 import VoiceGrid from "@/features/room/voiceGrid/VoiceGrid.vue";
 import VoiceHeading from "@/features/room/voiceGrid/VoiceHeading.vue";
-import MobileVoiceControls from "@/features/room/voiceGrid/MobileVoiceControls.vue";
 import PokeStack from "@/features/room/whisper/PokeStack.vue";
 import WhisperStrip from "@/features/room/whisper/WhisperStrip.vue";
 import type { useWhisper } from "@/features/room/whisper/useWhisper";
@@ -314,9 +325,12 @@ const {
   screenShareViewerStyle,
 } = props.screenShare;
 const { settingsOpen, toggleMicrophone, toggleAccompaniment } = props.audioPanel;
+
 const { whisperPttActive, whisperTargets, clearWhisperTargets, onWhisperPttDown, onWhisperPttUp } = props.whisper;
 const { performancePanelOpen, performanceRunning, performanceStats, togglePerformancePanel, refreshPerformanceProbe } = props.performance;
 const { openMemberActions, openMemberMenu } = props.memberMenu;
+// Browsers without screen capture (most phones) get no share button.
+const screenShareSupported = typeof navigator.mediaDevices?.getDisplayMedia === "function";
 const { themeIcon, themeLabel, cycleTheme, persistLanguage } = props.appearance;
 const { doShare, doDisconnect } = props;
 

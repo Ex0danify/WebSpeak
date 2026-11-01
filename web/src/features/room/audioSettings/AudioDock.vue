@@ -1,6 +1,6 @@
 <template>
   <div
-    class="mt-3 flex min-w-0 flex-none items-center gap-1.5 rounded-lg border border-line bg-accent-soft p-2.25 text-fg-muted shadow-lg max-compact:hidden compact:absolute compact:right-4.5 compact:bottom-4.5 compact:left-4.5 compact:z-6 compact:mt-0"
+    class="mt-3 flex min-w-0 flex-none items-center gap-1.5 rounded-lg border border-line bg-accent-soft p-2.25 text-fg-muted shadow-lg max-compact:bg-surface-2 max-compact:shadow-none compact:absolute compact:right-4.5 compact:bottom-4.5 compact:left-4.5 compact:z-6 compact:mt-0"
     role="toolbar"
     :aria-label="t('desktopAudioControls')"
   >
@@ -9,7 +9,7 @@
         variant="soft"
         size="sm"
         icon-only
-        class="size-8.5"
+        :class="buttonClass"
         :aria-label="microphoneMuted ? t('microphoneMuted') : t('microphoneActive')"
         :pressed="microphoneMuted"
         @click="$emit('toggle-microphone')"
@@ -21,7 +21,7 @@
         variant="soft"
         size="sm"
         icon-only
-        class="size-8.5"
+        :class="buttonClass"
         :aria-label="outputMuted ? t('unmuteOutput') : t('muteOutput')"
         :pressed="outputMuted"
         @click="$emit('toggle-output-mute')"
@@ -36,14 +36,14 @@
       icon-only
       loading
       disabled
-      class="size-8.5"
+      :class="buttonClass"
       :aria-label="t('screenShareStarting')"
     />
     <Tooltip v-else-if="screenShareActive" :text="t('stopScreenShare')"
       ><span class="inline-flex"
         ><Popover side="top" align="end" :label="t('stopScreenShare')" class="w-64">
           <template #trigger>
-            <Button variant="primary" size="sm" icon-only class="size-8.5" :aria-label="t('screenShareStopLabel')"
+            <Button variant="primary" size="sm" icon-only :class="buttonClass" :aria-label="t('screenShareStopLabel')"
               ><Icon name="monitor"
             /></Button>
           </template>
@@ -66,15 +66,21 @@
         </Popover></span
       ></Tooltip
     >
-    <Tooltip v-else :text="t('startScreenShare')"
-      ><Button variant="soft" size="sm" icon-only class="size-8.5" :aria-label="t('startScreenShare')" @click="$emit('open-screen-share')"
+    <Tooltip v-else-if="screenShareSupported" :text="t('startScreenShare')"
+      ><Button
+        variant="soft"
+        size="sm"
+        icon-only
+        :class="buttonClass"
+        :aria-label="t('startScreenShare')"
+        @click="$emit('open-screen-share')"
         ><Icon name="monitor" /></Button
     ></Tooltip>
     <Tooltip :text="optionsLabel"
       ><span class="inline-flex"
         ><Popover v-model:open="optionsOpen" side="top" align="end" :label="t('audioOptions')" class="w-64">
           <template #trigger>
-            <Button ref="optionsButton" variant="soft" size="sm" icon-only class="relative size-8.5" :aria-label="optionsLabel"
+            <Button ref="optionsButton" variant="soft" size="sm" icon-only :class="optionsButtonClass" :aria-label="optionsLabel"
               ><Icon name="settings" /><span
                 v-if="accompanimentActive"
                 class="absolute top-1 right-1 size-2 rounded-full bg-accent ring-2 ring-surface-1"
@@ -124,6 +130,8 @@ const props = defineProps<{
   accompanimentSupported: boolean;
   screenShareActive: boolean;
   screenShareStarting: boolean;
+  /** Browsers without screen capture (most phones) get no button. */
+  screenShareSupported: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -136,6 +144,8 @@ const emit = defineEmits<{
 }>();
 
 const { t } = useI18n();
+const buttonClass = "size-8.5 max-compact:size-11";
+const optionsButtonClass = `${buttonClass} relative`;
 const optionsOpen = ref(false);
 const optionsButton = ref<{ $el: HTMLElement } | null>(null);
 
