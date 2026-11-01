@@ -5,7 +5,6 @@ import { useToast } from "@/shared/composables/useToast";
 import { LocalizedError, text } from "@/shared/i18n/localizedText";
 import { useSessionStore } from "@/features/session";
 import {
-  clearMuteSyncFailure,
   clearState,
   notifyBlocking,
   notifyEvent,
@@ -103,19 +102,22 @@ describe("notifyBlocking", () => {
 });
 
 describe("mute sync failure", () => {
-  it("is a notice that says what others may see, and goes when the sync works again", () => {
+  it("is a toast that says what others may see", () => {
     notifyMuteSyncFailure(new Error("refused"), true);
-    expect(notices()).toMatchObject([
-      {
-        code: "MUTE_SYNC_FAILED",
-        title: { key: "muteSyncFailed" },
-        text: "refused Others may still see you as unmuted. Your microphone stays off.",
-      },
-    ]);
-    notifyMuteSyncFailure(new Error("refused"), false);
-    expect(notices()).toHaveLength(1);
-    expect(notices()[0].text).toBe("refused Others may still see you as muted.");
-    clearMuteSyncFailure();
     expect(notices()).toEqual([]);
+    expect(useToast().toasts.value.at(-1)).toMatchObject({
+      variant: "warning",
+      title: "Mute status could not be synced",
+      description: "refused Others may still see you as unmuted. Your microphone stays off.",
+    });
+    notifyMuteSyncFailure(new Error("refused"), false);
+    expect(useToast().toasts.value.at(-1)?.description).toBe("refused Others may still see you as muted.");
+  });
+
+  it("words the hint for the output when the audio sync failed", () => {
+    notifyMuteSyncFailure(new Error("refused"), true, "output");
+    expect(useToast().toasts.value.at(-1)?.description).toBe("refused Others may not see that your audio is off. It stays off for you.");
+    notifyMuteSyncFailure(new Error("refused"), false, "output");
+    expect(useToast().toasts.value.at(-1)?.description).toBe("refused Others may still see your audio as off.");
   });
 });

@@ -78,6 +78,8 @@ export const en = {
   muteSyncFailed: "Mute status could not be synced",
   muteSyncHintMuted: "Others may still see you as unmuted. Your microphone stays off.",
   muteSyncHintUnmuted: "Others may still see you as muted.",
+  muteSyncHintOutputMuted: "Others may not see that your audio is off. It stays off for you.",
+  muteSyncHintOutputUnmuted: "Others may still see your audio as off.",
   copyNickname: "Copy nickname",
   moveMemberMenu: "Move to",
   moveMemberMyChannel: "My channel",

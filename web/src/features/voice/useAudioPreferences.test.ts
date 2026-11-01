@@ -26,6 +26,7 @@ function setup() {
     applyInputVolume: vi.fn(),
     applyOutputVolume: vi.fn(),
     syncOutputMuted: vi.fn(async () => undefined),
+    reportOutputMuteSyncFailure: vi.fn(),
   };
   const prefs = useAudioPreferences(deps);
   return { deps, prefs, audio: useVoiceAudioStore(), session: useSessionStore() };
@@ -149,6 +150,16 @@ describe("setters", () => {
     expect(deps.syncOutputMuted.mock.calls).toEqual([[true], [false]]);
     expect(deps.applyOutputVolume).toHaveBeenCalledTimes(4);
     expect(save).not.toHaveBeenCalled();
+  });
+
+  it("keeps the output mute and reports it when the sync is refused", async () => {
+    const { prefs, deps, audio } = setup();
+    await prefs.audioPreferencesReady;
+    const error = new Error("refused");
+    deps.syncOutputMuted.mockRejectedValueOnce(error);
+    prefs.toggleOutputMute();
+    await vi.waitFor(() => expect(deps.reportOutputMuteSyncFailure).toHaveBeenCalledWith(error, true));
+    expect(audio.outputMuted).toBe(true);
   });
 
   it("setVoxThreshold clamps to 0.001..0.08 and setNotificationVolume to 0..1", async () => {

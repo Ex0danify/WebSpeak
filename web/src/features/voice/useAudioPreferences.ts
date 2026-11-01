@@ -17,6 +17,8 @@ export interface AudioPreferencesDeps {
   applyOutputVolume(): void;
   /** Tell the TeamSpeak server this client is deafened or not, so other users see it. */
   syncOutputMuted(muted: boolean): Promise<void>;
+  /** The sync was refused or timed out. The local mute stays. */
+  reportOutputMuteSyncFailure(error: unknown, muted: boolean): void;
 }
 
 /** Loading, saving and changing the stored audio preferences: volumes, VOX threshold, remembered
@@ -120,9 +122,10 @@ export function useAudioPreferences(deps: AudioPreferencesDeps) {
 
   /** The local mute takes effect at once. A refused sync leaves it on, the next connect sends the state again. */
   function toggleOutputMute(): void {
-    outputMuted.value = !outputMuted.value;
+    const muted = !outputMuted.value;
+    outputMuted.value = muted;
     deps.applyOutputVolume();
-    deps.syncOutputMuted(outputMuted.value).catch(() => undefined);
+    deps.syncOutputMuted(muted).catch((error: unknown) => deps.reportOutputMuteSyncFailure(error, muted));
   }
 
   function setVoxThreshold(threshold: number): void {

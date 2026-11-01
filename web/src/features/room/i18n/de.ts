@@ -78,6 +78,8 @@ export const de: Record<string, string> = {
   muteSyncFailed: "Stummschaltung konnte nicht synchronisiert werden",
   muteSyncHintMuted: "Andere sehen dich evtl. noch als nicht stumm. Dein Mikrofon bleibt aus.",
   muteSyncHintUnmuted: "Andere sehen dich evtl. noch als stumm.",
+  muteSyncHintOutputMuted: "Andere sehen evtl. nicht, dass dein Ton aus ist. Für dich bleibt er aus.",
+  muteSyncHintOutputUnmuted: "Andere sehen deinen Ton evtl. noch als aus.",
   copyNickname: "Namen kopieren",
   moveMemberMenu: "Verschieben nach",
   moveMemberMyChannel: "Mein Kanal",
