@@ -4,13 +4,7 @@ import { useDialog } from "@/shared/composables/useDialog";
 import { useToast } from "@/shared/composables/useToast";
 import { LocalizedError, text } from "@/shared/i18n/localizedText";
 import { useSessionStore } from "@/features/session";
-import {
-  clearState,
-  notifyBlocking,
-  notifyEvent,
-  notifyMuteSyncFailure,
-  notifyState,
-} from "@/features/room/shell/roomNotify";
+import { clearState, notifyBlocking, notifyEvent, notifyMuteSyncFailure, notifyState } from "@/features/room/shell/roomNotify";
 
 beforeEach(() => {
   setActivePinia(createPinia());
