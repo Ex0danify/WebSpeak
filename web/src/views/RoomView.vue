@@ -58,7 +58,6 @@
     :input-devices="inputDevices"
     :audio-permission="audioPermission"
     :microphone-muted="microphoneMuted"
-    :is-mobile-viewport="isMobileViewport"
     :noise-suppression-enabled="noiseSuppressionEnabled"
     :input-volume="inputVolume"
     :vox-threshold="voxThreshold"

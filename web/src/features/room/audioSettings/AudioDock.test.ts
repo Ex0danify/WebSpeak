@@ -1,0 +1,123 @@
+import { mount, type VueWrapper } from "@vue/test-utils";
+import { afterEach, describe, expect, it } from "vitest";
+import { nextTick } from "vue";
+import AudioDock from "@/features/room/audioSettings/AudioDock.vue";
+
+const base = {
+  microphoneMuted: false,
+  outputMuted: false,
+  accompanimentActive: false,
+  accompanimentSupported: true,
+  screenShareActive: false,
+  screenShareStarting: false,
+};
+
+let wrapper: VueWrapper | undefined;
+
+function mountDock(props: Partial<typeof base> = {}) {
+  wrapper = mount(AudioDock, { props: { ...base, ...props }, attachTo: document.body });
+  return wrapper;
+}
+
+function button(label: string) {
+  return document.body.querySelector<HTMLButtonElement>(`button[aria-label="${label}"]`);
+}
+
+function buttonByText(text: string) {
+  return Array.from(document.body.querySelectorAll<HTMLButtonElement>("button")).find((b) => b.textContent?.trim() === text);
+}
+
+afterEach(() => {
+  wrapper?.unmount();
+  wrapper = undefined;
+  document.body.innerHTML = "";
+});
+
+describe("AudioDock mute buttons", () => {
+  it("only toggle mute, they never open a panel", async () => {
+    const dock = mountDock();
+    button("Microphone on")?.click();
+    button("Mute all audio")?.click();
+    await nextTick();
+    expect(dock.emitted("toggle-microphone")).toHaveLength(1);
+    expect(dock.emitted("toggle-output-mute")).toHaveLength(1);
+    expect(document.body.querySelector("[role=dialog]")).toBeNull();
+  });
+
+  it("report their state through aria-pressed and the label", () => {
+    mountDock({ microphoneMuted: true, outputMuted: true });
+    expect(button("Microphone off")?.getAttribute("aria-pressed")).toBe("true");
+    expect(button("Restore audio")?.getAttribute("aria-pressed")).toBe("true");
+  });
+});
+
+describe("AudioDock options popover", () => {
+  it("toggles audio sharing and opens the audio settings", async () => {
+    const dock = mountDock();
+    button("Audio options")?.click();
+    await nextTick();
+    document.body.querySelector<HTMLButtonElement>("[role=switch]")?.click();
+    expect(dock.emitted("toggle-accompaniment")).toHaveLength(1);
+
+    buttonByText("Audio settings")?.click();
+    await nextTick();
+    expect(dock.emitted("open-settings")).toHaveLength(1);
+    expect(button("Audio options")?.getAttribute("aria-expanded")).toBe("false");
+  });
+
+  it("disables the switch and says why when sharing audio is unsupported", async () => {
+    mountDock({ accompanimentSupported: false });
+    button("Audio options")?.click();
+    await nextTick();
+    const toggle = document.body.querySelector<HTMLButtonElement>("[role=switch]");
+    expect(toggle?.disabled).toBe(true);
+    expect(document.body.textContent).toContain("does not support");
+  });
+
+  it("marks the gear while audio is shared", () => {
+    mountDock({ accompanimentActive: true });
+    expect(button("Audio options, sharing audio")).not.toBeNull();
+  });
+});
+
+describe("AudioDock screen share button", () => {
+  it("opens the share dialog while idle", async () => {
+    const dock = mountDock();
+    button("Share screen")?.click();
+    await nextTick();
+    expect(dock.emitted("open-screen-share")).toHaveLength(1);
+    expect(dock.emitted("stop-screen-share")).toBeUndefined();
+  });
+
+  it("ignores clicks while the stream starts", async () => {
+    const dock = mountDock({ screenShareStarting: true });
+    const starting = button("Starting live stream");
+    expect(starting?.disabled).toBe(true);
+    starting?.click();
+    await nextTick();
+    expect(dock.emitted("open-screen-share")).toBeUndefined();
+    expect(dock.emitted("stop-screen-share")).toBeUndefined();
+  });
+
+  it("asks before it stops a running share", async () => {
+    const dock = mountDock({ screenShareActive: true });
+    button("Sharing your screen. Stop sharing")?.click();
+    await nextTick();
+    expect(dock.emitted("stop-screen-share")).toBeUndefined();
+    expect(document.body.textContent).toContain("Stop sharing your screen?");
+
+    buttonByText("Stop sharing")?.click();
+    await nextTick();
+    expect(dock.emitted("stop-screen-share")).toHaveLength(1);
+  });
+
+  it("keeps sharing when the confirmation is cancelled", async () => {
+    const dock = mountDock({ screenShareActive: true });
+    button("Sharing your screen. Stop sharing")?.click();
+    await nextTick();
+    buttonByText("Cancel")?.click();
+    await nextTick();
+    expect(dock.emitted("stop-screen-share")).toBeUndefined();
+    expect(button("Sharing your screen. Stop sharing")?.getAttribute("aria-expanded")).toBe("false");
+  });
+});

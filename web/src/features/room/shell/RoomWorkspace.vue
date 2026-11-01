@@ -156,21 +156,20 @@
         @open-member-actions="openMemberActions"
       />
       <template #footer>
-        <DesktopAudioDock
+        <AudioDock
           v-if="!isMobileViewport"
-          :accompaniment-active="accompanimentActive"
           :microphone-muted="microphoneMuted"
-          :input-volume="inputVolume"
-          :noise-suppression-enabled="noiseSuppressionEnabled"
           :output-muted="outputMuted"
-          :output-volume="outputVolume"
+          :accompaniment-active="accompanimentActive"
+          :accompaniment-supported="accompanimentSupported"
+          :screen-share-active="screenShareActive"
+          :screen-share-starting="screenShareStarting"
           @toggle-microphone="toggleMicrophone"
-          @set-input-volume="setInputVolume"
-          @set-noise-suppression="setNoiseSuppressionEnabled"
           @toggle-output-mute="toggleOutputMute"
-          @set-output-volume="setOutputVolume"
-          @open-settings="settingsOpen = true"
           @toggle-accompaniment="toggleAccompaniment"
+          @open-settings="settingsOpen = true"
+          @open-screen-share="screenShareSettingsOpen = true"
+          @stop-screen-share="stopScreenShare"
         />
       </template>
     </MemberPanel>
@@ -198,7 +197,7 @@ import type { useAppearance } from "@/shared/composables/useAppearance";
 import type { useScreenShare } from "@/features/screenShare";
 import ChatPanel from "@/features/room/chat/ChatPanel.vue";
 import type { useChat } from "@/features/room/chat/useChat";
-import DesktopAudioDock from "@/features/room/audioSettings/DesktopAudioDock.vue";
+import AudioDock from "@/features/room/audioSettings/AudioDock.vue";
 import type { useAudioSettingsPanel } from "@/features/room/audioSettings/useAudioSettingsPanel";
 import MemberPanel from "@/features/room/members/MemberPanel.vue";
 import MemberTree from "@/features/room/members/MemberTree.vue";
@@ -242,18 +241,7 @@ const { t } = useI18n();
 const { state: voiceState, roomNotices, reconnectNow } = props.session.session;
 const { members, serverEvents, pokeNotifications, speakingIds, canSpeak, mutedMembers, whisperTargetIds, whisperActive } =
   props.session.roster;
-const {
-  microphoneMuted,
-  noiseSuppressionEnabled,
-  inputVolume,
-  outputVolume,
-  outputMuted,
-  setInputVolume,
-  setNoiseSuppressionEnabled,
-  setOutputVolume,
-  toggleOutputMute,
-  accompanimentActive,
-} = props.session.audio;
+const { microphoneMuted, outputMuted, toggleOutputMute, accompanimentActive, accompanimentSupported } = props.session.audio;
 const {
   screenShareActive,
   screenShareStarting,

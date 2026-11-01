@@ -91,90 +91,76 @@ test("the mic level in the settings follows the microphone", async ({ page }) =>
   await expect.poll(async () => Number.parseInt((await level.textContent()) ?? "0", 10)).toBeGreaterThan(10);
 });
 
-/** The panels of the dock exist for the eye and the accessibility tree only while hovered or focused. */
-async function revealMicPanel(page: Page): Promise<void> {
-  await dock(page)
-    .getByRole("button", { name: /^Microphone (on|off)$/ })
-    .hover();
-}
-async function revealOutputPanel(page: Page): Promise<void> {
-  await dock(page)
-    .getByRole("button", { name: /^(Mute all audio|Restore audio)$/ })
-    .hover();
-}
-
 test.describe("audio dock", () => {
   test.beforeEach(({ isMobile }) => {
     test.skip(isMobile, "the dock is the desktop's; a phone has the settings dialog and the More tab");
   });
 
-  test("Mute all audio switches to Restore audio and back, and leaves the master volume alone", async ({ page }) => {
+  test("Mute all audio switches to Restore audio and back", async ({ page }) => {
     await join(page, "aud-deafen");
-    await revealOutputPanel(page);
-    const master = dock(page).getByRole("slider", { name: "Master volume" });
-    const before = await master.getAttribute("aria-valuenow");
-
     const mute = dock(page).getByRole("button", { name: "Mute all audio" });
     await expect(mute).toHaveAttribute("aria-pressed", "false");
     await mute.click();
     const restore = dock(page).getByRole("button", { name: "Restore audio" });
     await expect(restore).toHaveAttribute("aria-pressed", "true");
-    await revealOutputPanel(page);
-    await expect(master).toHaveAttribute("aria-valuenow", before!);
     await restore.click();
     await expect(dock(page).getByRole("button", { name: "Mute all audio" })).toHaveAttribute("aria-pressed", "false");
   });
 
-  test("the microphone panel opens on hover and on keyboard focus, and closes again", async ({ page }) => {
-    await join(page, "aud-panel-mic");
-    const panel = dock(page).getByRole("dialog", { name: "Microphone" });
-    const button = dock(page).getByRole("button", { name: "Microphone on" });
-    await expect(panel).toBeHidden();
-
-    await button.hover();
-    await expect(panel).toBeVisible();
-    await expect(panel.getByRole("slider", { name: "Input volume" })).toBeVisible();
-    await expect(panel.getByRole("switch", { name: "Browser noise suppression" })).toBeVisible();
-    await page.mouse.move(2, 2);
-    await expect(panel).toBeHidden();
-
-    await button.focus();
-    await expect(panel).toBeVisible();
-    await page.keyboard.press("Tab");
-    await expect(panel.getByRole("slider", { name: "Input volume" })).toBeFocused();
-    await expect(panel).toBeVisible();
+  test("the mute buttons open nothing, not on hover and not on click", async ({ page }) => {
+    await join(page, "aud-no-popup");
+    for (const name of [/^Microphone (on|off)$/, /^(Mute all audio|Restore audio)$/]) {
+      const button = dock(page).getByRole("button", { name });
+      await button.hover();
+      await button.click();
+      await expect(page.getByRole("dialog")).toHaveCount(0);
+      await page.mouse.move(2, 2);
+    }
   });
 
-  test("the master volume panel opens on hover and on keyboard focus", async ({ page }) => {
-    await join(page, "aud-panel-out");
-    const panel = dock(page).getByRole("dialog", { name: "Master volume" });
-    const button = dock(page).getByRole("button", { name: "Mute all audio" });
-    await expect(panel).toBeHidden();
+  test("the options popover opens on click and closes with Escape, the focus goes back to the button", async ({ page }) => {
+    await join(page, "aud-options");
+    const button = dock(page).getByRole("button", { name: "Audio options" });
+    const panel = page.getByRole("dialog", { name: "Audio options" });
     await button.hover();
-    await expect(panel).toBeVisible();
-    await page.mouse.move(2, 2);
     await expect(panel).toBeHidden();
-    await button.focus();
+
+    await button.click();
     await expect(panel).toBeVisible();
+    await expect(panel.getByRole("switch", { name: "Share audio" })).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(panel).toBeHidden();
+    await expect(button).toBeFocused();
   });
 
-  test("input volume, master volume and noise suppression take the keyboard and are still set after a reload", async ({ page }) => {
+  test("the options popover opens the audio settings and closes", async ({ page }) => {
+    await join(page, "aud-options-settings");
+    const { dialog } = await openSettings(page);
+    await expect(page.getByRole("dialog", { name: "Audio options" })).toBeHidden();
+    await expect(dialog).toBeVisible();
+  });
+
+  test("the share screen button opens the share settings", async ({ page }) => {
+    await join(page, "aud-share-open");
+    await dock(page).getByRole("button", { name: "Share screen" }).click();
+    await expect(page.getByRole("dialog", { name: "Share settings" })).toBeVisible();
+  });
+
+  test("input volume, output volume and noise suppression take the keyboard and are still set after a reload", async ({ page }) => {
     await join(page, "aud-dock-keep");
-    await revealMicPanel(page);
-    const input = dock(page).getByRole("slider", { name: "Input volume" });
-    const master = dock(page).getByRole("slider", { name: "Master volume" });
-    const noise = dock(page).getByRole("switch", { name: "Browser noise suppression" });
+    const { dialog } = await openSettings(page);
+    const input = dialog.getByRole("slider", { name: "Input volume" });
+    const output = dialog.getByRole("slider", { name: "Speakers" });
+    const noise = dialog.getByRole("switch", { name: "Browser noise suppression" });
     const noiseBefore = await noise.getAttribute("aria-checked");
 
     await input.focus();
     for (let press = 0; press < 5; press++) await page.keyboard.press("ArrowLeft");
     await expect(input).toHaveAttribute("aria-valuenow", "95");
-    await revealOutputPanel(page);
-    await master.focus();
+    await output.focus();
     await page.keyboard.press("End");
     await page.keyboard.press("ArrowLeft");
-    await expect(master).toHaveAttribute("aria-valuenow", "99");
-    await revealMicPanel(page);
+    await expect(output).toHaveAttribute("aria-valuenow", "99");
     await noise.focus();
     await page.keyboard.press("Space");
     await expect(noise).not.toHaveAttribute("aria-checked", noiseBefore!);
@@ -182,10 +168,9 @@ test.describe("audio dock", () => {
 
     await page.reload();
     await join(page, "aud-dock-keep");
-    await revealOutputPanel(page);
-    await expect(dock(page).getByRole("slider", { name: "Master volume" })).toHaveAttribute("aria-valuenow", "99");
-    await revealMicPanel(page);
-    await expect(dock(page).getByRole("slider", { name: "Input volume" })).toHaveAttribute("aria-valuenow", "95");
-    await expect(dock(page).getByRole("switch", { name: "Browser noise suppression" })).toHaveAttribute("aria-checked", noiseAfter!);
+    const again = (await openSettings(page)).dialog;
+    await expect(again.getByRole("slider", { name: "Speakers" })).toHaveAttribute("aria-valuenow", "99");
+    await expect(again.getByRole("slider", { name: "Input volume" })).toHaveAttribute("aria-valuenow", "95");
+    await expect(again.getByRole("switch", { name: "Browser noise suppression" })).toHaveAttribute("aria-checked", noiseAfter!);
   });
 });
