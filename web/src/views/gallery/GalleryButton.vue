@@ -6,11 +6,12 @@
         <Button variant="secondary">Cancel</Button>
         <Button variant="outline">Settings</Button>
         <Button variant="ghost">Skip</Button>
-        <Button variant="danger">Leave</Button><Button variant="soft">Soft</Button><Button variant="softOutline">Soft outline</Button
-        ><Button variant="accentSoft">Accent</Button><Button variant="inverse">Inverse</Button><Button variant="warning">Away</Button
-        ><Button variant="tinted">Tinted</Button><Button variant="dangerSoft">Stop</Button><Button variant="pill" size="xs">Pill</Button
-        ><Button variant="success">Talking</Button><Button variant="link" size="inline">Link</Button
-        ><Button variant="soft" size="row" aria-current="true" class="w-32">Row</Button
+        <Button variant="danger">Leave</Button><Button variant="soft">Soft</Button><Button variant="softDanger">Muted</Button
+        ><Button variant="softWarning">Starting</Button><Button variant="softSuccess">Live</Button
+        ><Button variant="softOutline">Soft outline</Button><Button variant="accentSoft">Accent</Button
+        ><Button variant="inverse">Inverse</Button><Button variant="warning">Away</Button><Button variant="tinted">Tinted</Button
+        ><Button variant="dangerSoft">Stop</Button><Button variant="pill" size="xs">Pill</Button><Button variant="success">Talking</Button
+        ><Button variant="link" size="inline">Link</Button><Button variant="soft" size="row" aria-current="true" class="w-32">Row</Button
         ><span class="inline-flex bg-media p-2"
           ><Button variant="media" icon-only aria-label="Close"><Icon name="close" /></Button></span
         ><Button variant="secondary" size="xs" pressed pressed-tone="accent">On</Button>

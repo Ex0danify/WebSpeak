@@ -6,10 +6,11 @@
   >
     <Tooltip :text="microphoneMuted ? t('unmuteMic') : t('muteMic')"
       ><Button
-        variant="soft"
+        :variant="microphoneMuted ? 'softDanger' : 'soft'"
         size="sm"
         icon-only
         :class="buttonClass"
+        pressed-tone="none"
         :aria-label="microphoneMuted ? t('microphoneMuted') : t('microphoneActive')"
         :pressed="microphoneMuted"
         @click="$emit('toggle-microphone')"
@@ -18,10 +19,11 @@
     </Tooltip>
     <Tooltip :text="outputMuted ? t('unmuteOutput') : t('muteOutput')"
       ><Button
-        variant="soft"
+        :variant="outputMuted ? 'softDanger' : 'soft'"
         size="sm"
         icon-only
         :class="buttonClass"
+        pressed-tone="none"
         :aria-label="outputMuted ? t('unmuteOutput') : t('muteOutput')"
         :pressed="outputMuted"
         @click="$emit('toggle-output-mute')"
@@ -31,11 +33,10 @@
     <span class="flex-1"></span>
     <Button
       v-if="screenShareStarting"
-      variant="soft"
+      variant="softWarning"
       size="sm"
       icon-only
       loading
-      disabled
       :class="buttonClass"
       :aria-label="t('screenShareStarting')"
     />
@@ -43,7 +44,7 @@
       ><span class="inline-flex"
         ><Popover side="top" align="end" :label="t('stopScreenShare')" class="w-64">
           <template #trigger>
-            <Button variant="primary" size="sm" icon-only :class="buttonClass" :aria-label="t('screenShareStopLabel')"
+            <Button variant="softSuccess" size="sm" icon-only :class="buttonClass" :aria-label="t('screenShareStopLabel')"
               ><Icon name="monitor"
             /></Button>
           </template>
@@ -146,6 +147,7 @@ const emit = defineEmits<{
 const { t } = useI18n();
 const buttonClass = "size-8.5 max-compact:size-11";
 const optionsButtonClass = `${buttonClass} relative`;
+
 const optionsOpen = ref(false);
 const optionsButton = ref<{ $el: HTMLElement } | null>(null);
 

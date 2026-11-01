@@ -99,7 +99,7 @@ describe("AudioDock screen share button", () => {
   it("ignores clicks while the stream starts", async () => {
     const dock = mountDock({ screenShareStarting: true });
     const starting = button("Starting live stream");
-    expect(starting?.disabled).toBe(true);
+    expect(starting?.getAttribute("aria-busy")).toBe("true");
     starting?.click();
     await nextTick();
     expect(dock.emitted("open-screen-share")).toBeUndefined();
