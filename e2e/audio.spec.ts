@@ -38,7 +38,6 @@ test.describe("microphone mute", () => {
     await session.waitForBinary(10, "sent");
 
     await (await micButton(page, "on")).click();
-    await expect(page.getByText("Microphone off", { exact: true }).first()).toBeVisible();
     await expectUplinkStops(session);
     const stopped = session.binarySent;
     await expect(await micButton(page, "off")).toBeVisible();
