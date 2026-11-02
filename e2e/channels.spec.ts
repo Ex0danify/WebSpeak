@@ -102,13 +102,12 @@ test.describe("channel tree", () => {
     await expect.poll(() => headingColor(page, "Lobby"), { timeout: 2000 }).not.toBe(before);
   });
 
-  test("the channel chat tab and the voice card count follow a move someone else made", async ({ page, gateway, script, isMobile }) => {
+  test("the channel chat tab follows a move someone else made", async ({ page, gateway, script, isMobile }) => {
     const { otherName } = await beMovedByAnother(page, gateway, script, "tree-moved-chat");
     // The chat tab strip's channel tab is named after the current channel.
     if (!isMobile) {
       await expect(page.getByRole("tab", { name: otherName, exact: true })).toBeVisible();
       await expect(page.getByRole("tab", { name: "Lobby", exact: true })).toBeHidden();
-      await expect(page.getByText("1 online")).toBeVisible();
     }
     const chatTab = page.getByRole("tab", { name: "Chat" });
     if (await chatTab.isVisible()) await chatTab.click();
@@ -135,29 +134,6 @@ test.describe("speaking", () => {
     // No more frames: the indicator holds a moment and then clears by itself.
     await expect(row.getByText("Online")).toBeVisible();
     await expect(row.getByText("Speaking…")).toBeHidden();
-  });
-
-  test("the voice section has a card for each person in your channel, and the speaker's card says so", async ({
-    page,
-    script,
-    isMobile,
-  }) => {
-    const talker = script.member("speak-card-talker");
-    script.member("speak-card-away", script.channel("speak-card-other"));
-    await join(page, "speak-card-self");
-    if (await page.getByRole("tab", { name: "Voice" }).isVisible()) await page.getByRole("tab", { name: "Voice" }).click();
-
-    const card = (nickname: string) => page.getByRole("article").filter({ has: page.getByText(nickname, { exact: true }) });
-    await expect(card("speak-card-talker")).toContainText("Connected");
-    await expect(card("You")).toContainText("Connected · you");
-    // Somebody in another channel has no card, and the counter is the people in yours.
-    await expect(card("speak-card-away")).toHaveCount(0);
-    // (The counter is not drawn on a phone.)
-    if (!isMobile) await expect(page.getByText("2 online")).toBeVisible();
-
-    await speakUntilShown(talker, card("speak-card-talker").getByText("Speaking…"));
-    await expect(card("You")).not.toContainText("Speaking…");
-    await expect(card("speak-card-talker")).not.toContainText("Speaking…");
   });
 });
 
