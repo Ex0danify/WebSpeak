@@ -3,7 +3,6 @@ export { useScreenShare, type ScreenShareResolutionPreset, type UseScreenShareOp
 export { useScreenShareStore } from "@/features/screenShare/stores/screenShareStore";
 export { default as ScreenSharePlayer } from "@/features/screenShare/ScreenSharePlayer.vue";
 export { default as ScreenShareSettingsDialog } from "@/features/screenShare/ScreenShareSettingsDialog.vue";
-export { default as ScreenShareInlineError } from "@/features/screenShare/ScreenShareInlineError.vue";
 export type {
   ScreenShareCaptureStats,
   ScreenShareOutputSettings,

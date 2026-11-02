@@ -54,7 +54,6 @@
       <div :class="bodyClass">
         <div :class="bodyInnerClass">
           <section :class="[voiceSectionClass, mobileSection !== 'voice' && 'max-compact:hidden']">
-            <ScreenShareInlineError v-if="screenShareError" :text="screenShareErrorText" />
             <ScreenSharePlayer
               v-model:remote-volume="screenShareRemoteVolume"
               :viewing="screenShareViewing"
@@ -246,7 +245,7 @@ import MobileNav from "@/features/room/shell/MobileNav.vue";
 import ReconnectBanner from "@/features/room/shell/ReconnectBanner.vue";
 import WorkspaceHeader from "@/features/room/shell/WorkspaceHeader.vue";
 import type { useRoomShell } from "@/features/room/shell/useRoomShell";
-import { ScreenShareInlineError, ScreenSharePlayer, ScreenShareSettingsDialog } from "@/features/screenShare";
+import { ScreenSharePlayer, ScreenShareSettingsDialog } from "@/features/screenShare";
 
 /** The connected workspace. It takes the return values of the composables RoomView assembles, with refs inside these objects so
  *  they stay refs here (a top-level ref prop would be unwrapped by the parent template). `session` is the grouped room session. */
