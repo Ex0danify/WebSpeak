@@ -233,7 +233,7 @@ describe("TeamSpeak clients watching a browser share", () => {
     notify([owner], "notifystreamclientleft", { id: TS_STREAM, clid: "78" });
     notify([owner], "notifystreamclientleft", { id: TS_STREAM, clid: "78" });
     const toOwner = await received(owner, marks[0]!);
-    expect(commandsOf(owner, "removeclientfromstream")).toEqual([`removeclientfromstream id=${TS_STREAM} clid=${NATIVE_VIEWER}`]);
+    expect(commandsOf(owner, "removeclientfromstream")).toEqual([`removeclientfromstream id=${TS_STREAM} clid=${NATIVE_VIEWER} reason=1`]);
     expect(toOwner).toMatchObject([
       { type: "screenShareViewerLeft", viewerPeerId: NATIVE_PEER },
       { type: "screenShareViewerCount", viewerCount: 2 },

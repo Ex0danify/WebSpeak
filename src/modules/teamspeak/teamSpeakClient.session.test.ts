@@ -83,9 +83,9 @@ describe("TSClient protocol commands", () => {
   it("waits for the acknowledgement of stream cleanup", async () => {
     const { client, sdk } = await fixture();
     await client.sendProtocolCommand("stopstream id=1 reason=1");
-    await client.sendProtocolCommand("removeclientfromstream id=1 clid=9");
+    await client.sendProtocolCommand("removeclientfromstream id=1 clid=9 reason=1");
     expect(sdk.sent).toEqual([]);
-    expect(sdk.commands).toEqual(["stopstream id=1 reason=1", "removeclientfromstream id=1 clid=9"]);
+    expect(sdk.commands).toEqual(["stopstream id=1 reason=1", "removeclientfromstream id=1 clid=9 reason=1"]);
   });
 
   it("rejects a cleanup the server refused", async () => {

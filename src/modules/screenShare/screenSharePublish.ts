@@ -199,6 +199,7 @@ function relayScreenShareSignal(
           clid: String(sourceClientId),
           json: JSON.stringify(payload),
         }),
+        hub.signalSendOptions(stream, entry.id, sourceClientId),
       )
       .catch((error: unknown) => {
         sendJson(failureFrame("SCREEN_SHARE_SIGNAL_FAILED", error, "Failed to send the screen share signal"));
@@ -219,9 +220,11 @@ function relayScreenShareSignal(
           buildTeamSpeakCommand("removeclientfromstream", {
             id: stream.teamSpeakStreamId,
             clid: String(viewerClid),
+            reason: "1",
           }),
         )
         .catch(() => undefined);
+      hub.dropQueuedSignals(stream, publisher.id, viewerClid);
       stream.nativeViewerClids.delete(viewerClid);
       stream.viewerCount = hub.screenShareViewerCount(stream);
       hub.sendToEntry(entry.id, { type: "screenShareViewerLeft", streamId: stream.streamId, viewerPeerId: targetPeerId });
@@ -261,7 +264,9 @@ function relayScreenShareSignal(
     } else {
       return;
     }
-    void publisher.tsClient.sendProtocolCommand(command).catch((error: unknown) => {
+    // The answer to a join request is not part of the candidate burst.
+    const options = signal.kind === "iceCandidate" ? hub.signalSendOptions(stream, publisher.id, viewerClid) : undefined;
+    void publisher.tsClient.sendProtocolCommand(command, options).catch((error: unknown) => {
       sendJson(failureFrame("SCREEN_SHARE_SIGNAL_FAILED", error, "Failed to send the screen share signal"));
     });
     return;

@@ -225,14 +225,14 @@ describe("screenShareNativeViewerJoined / screenShareViewerLeft", () => {
 });
 
 describe("screenShareLeft", () => {
-  it("leaves the watched stream and tells the gateway", async () => {
+  it("leaves the watched stream without answering the gateway", async () => {
     const socket = await connected();
     await push(socket, { type: "screenShareJoined", stream: stream() });
     await push(socket, { type: "screenShareLeft", streamId: "other" });
     expect(harness.voice.screenShare.screenShareViewing.value).toBe(true);
     await push(socket, { type: "screenShareLeft", streamId: "s1" });
     expect(harness.voice.screenShare.screenShareViewing.value).toBe(false);
-    expect(socket.sentOfType("screenShareLeave")).toEqual([{ type: "screenShareLeave", streamId: "s1" }]);
+    expect(socket.sentOfType("screenShareLeave")).toEqual([]);
   });
 });
 
