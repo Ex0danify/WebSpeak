@@ -141,6 +141,51 @@ test.describe("channel chat", () => {
   });
 });
 
+test.describe("channel notices", () => {
+  const log = (page: Page): Locator => page.getByRole("log");
+
+  test("who joins, leaves or moves in your channel shows up between the messages, other channels stay out", async ({
+    page,
+    script,
+    gateway,
+  }) => {
+    await join(page, "notice-self");
+    await openChat(page);
+    const roomA = [...gateway.ts.channels.values()].find((channel) => channel.name === "Room A")!.id;
+    const lobby = [...gateway.ts.channels.values()].find((channel) => channel.name === "Lobby")!.id;
+
+    // Somewhere else: nothing here.
+    const far = script.member("notice-far", roomA);
+    await expect(page.getByRole("tab", { name: "Lobby" })).toBeVisible();
+    far.say("channel", "unrelated");
+    const visitor = script.member("notice-visitor");
+    await expect(log(page)).toContainText("notice-visitor joined the server");
+    await expect(log(page)).not.toContainText("notice-far");
+
+    visitor.say("channel", "hello from the lobby");
+    await expect(message(page, "notice-visitor", "hello from the lobby")).toBeVisible();
+
+    visitor.moveTo(roomA);
+    await expect(log(page)).toContainText("notice-visitor moved to Room A");
+    far.moveTo(lobby);
+    await expect(log(page)).toContainText("notice-far joined this channel");
+  });
+
+  test("your own move is announced in the channel you land in, and the old notices stay behind", async ({ page, script, gateway }) => {
+    await join(page, "notice-mover");
+    await openChat(page);
+    const visitor = script.member("notice-old");
+    await expect(log(page)).toContainText("notice-old joined the server");
+    visitor.leave();
+    await expect(log(page)).toContainText("notice-old left the server");
+
+    const roomB = [...gateway.ts.channels.values()].find((channel) => channel.name === "Room B")!.id;
+    gateway.ts.moveMember(idOf(gateway, "notice-mover"), roomB);
+    await expect(log(page)).toContainText("You moved to Room B");
+    await expect(log(page)).not.toContainText("notice-old");
+  });
+});
+
 test.describe("server chat", () => {
   test("has its own tab: what you send goes to the server, what arrives there stays out of the channel", async ({
     page,

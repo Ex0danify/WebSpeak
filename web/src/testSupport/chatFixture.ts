@@ -54,10 +54,12 @@ export async function mountUseChat(overrides: Record<string, unknown> = {}) {
   const voiceState = makeVoiceState();
   const members = reactive<ChannelMember[]>([member(1, "Lucas"), member(2, "Ana")]);
   const chatMessages = reactive<ChatMessage[]>([]);
+  const serverEvents = reactive<ServerEvent[]>([]);
   const options = {
     voiceState,
     members,
     chatMessages,
+    serverEvents,
     currentChannel: ref<TreeChannel | undefined>(channel("lobby", "Lobby")),
     currentChannelName: ref("Lobby"),
     selectedChannelId: ref(""),
@@ -76,12 +78,12 @@ export async function mountUseChat(overrides: Record<string, unknown> = {}) {
         useChat({
           ...options,
           session: { state: options.voiceState },
-          roster: { members: options.members },
+          roster: { members: options.members, serverEvents: options.serverEvents },
           chat: options,
         }),
       template: "<div/>",
     }),
   );
   await flushPromises();
-  return { wrapper, vm: wrapper.vm as unknown as Exposed, options, voiceState, members, chatMessages };
+  return { wrapper, vm: wrapper.vm as unknown as Exposed, options, voiceState, members, chatMessages, serverEvents };
 }

@@ -116,6 +116,7 @@
             :members="members"
             :format-time="formatTime"
             :set-list-element="setChatListElement"
+            :notices="channelNotices"
             :unread-tabs="unreadTabs"
             :at-bottom="atBottom"
             @open-private-chat="openPrivateChat"
@@ -312,6 +313,7 @@ const {
   visibleChatMessages,
   unreadTabs,
   closePrivateChat,
+  channelNotices,
   chatTitle,
   chatPlaceholder,
   privatePeerName,

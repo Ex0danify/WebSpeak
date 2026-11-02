@@ -41,53 +41,63 @@
           :aria-label="chatTitle"
           :class="[columnClass, 'flex min-h-full flex-col gap-3.5 pb-3']"
         >
-          <div v-if="!messageGroups.length" :class="emptyState">
+          <div v-if="!timeline.length" :class="emptyState">
             <div :class="emptyIcon"><Icon name="message" :size="24" /></div>
             <strong class="text-md text-fg-muted">{{ chatTab === "private" ? t("privateChatStart") : t("chatStart") }}</strong
             ><span class="mt-1.25 text-ui">{{ chatTab === "private" ? t("privateChatStartLead") : t("chatStartLead") }}</span>
           </div>
-          <article
-            v-for="group in messageGroups"
-            :key="group.id"
-            :class="[
-              'flex max-w-39/50 items-start gap-2.75 max-compact:max-w-15/16 max-compact:gap-2.25',
-              group.isSelf && 'flex-row-reverse self-end',
-            ]"
-          >
-            <Avatar
-              :name="group.invokerName"
-              :src="messageAvatar(group.messages[0]!, members) || undefined"
-              size="message"
-              tint
-              :self="group.isSelf"
-              surface="surface-1"
-            />
-            <div :class="['flex min-w-0 flex-col gap-1', group.isSelf && 'items-end']">
-              <div class="mt-px mb-0.5 flex items-baseline gap-2">
-                <strong class="text-sm text-fg max-compact:text-xs">{{ group.isSelf ? t("you") : group.invokerName }}</strong
-                ><time class="text-caption text-fg-muted">{{ formatTime(group.messages[0]!.timestamp) }}</time>
+          <template v-for="item in timeline" :key="item.kind === 'group' ? item.group.id : item.notice.id">
+            <p
+              v-if="item.kind === 'notice'"
+              class="-mx-2 flex items-baseline gap-3 rounded-md bg-surface-2/60 px-2.5 py-1 text-xs leading-snug text-fg-muted"
+            >
+              <span class="min-w-0 flex-1"
+                >{{ noticeParts(item.notice)[0] }}<strong class="font-semibold text-fg">{{ noticeParts(item.notice)[1] }}</strong
+                >{{ noticeParts(item.notice)[2] }}</span
+              ><time class="flex-none text-2xs">{{ formatTime(item.notice.timestamp) }}</time>
+            </p>
+            <article
+              v-else
+              :class="[
+                'flex max-w-39/50 items-start gap-2.75 max-compact:max-w-15/16 max-compact:gap-2.25',
+                item.group.isSelf && 'flex-row-reverse self-end',
+              ]"
+            >
+              <Avatar
+                :name="item.group.invokerName"
+                :src="messageAvatar(item.group.messages[0]!, members) || undefined"
+                size="message"
+                tint
+                :self="item.group.isSelf"
+                surface="surface-1"
+              />
+              <div :class="['flex min-w-0 flex-col gap-1', item.group.isSelf && 'items-end']">
+                <div class="mt-px mb-0.5 flex items-baseline gap-2">
+                  <strong class="text-sm text-fg max-compact:text-xs">{{ item.group.isSelf ? t("you") : item.group.invokerName }}</strong
+                  ><time class="text-caption text-fg-muted">{{ formatTime(item.group.messages[0]!.timestamp) }}</time>
+                </div>
+                <template v-for="(message, index) in item.group.messages" :key="message.id">
+                  <div
+                    :class="[
+                      'px-3.25 py-2.5 text-md leading-normal max-compact:px-3 max-compact:text-sm',
+                      item.group.isSelf ? 'bg-accent text-accent-fg' : 'bg-surface-2 text-fg',
+                      index === 0 ? (item.group.isSelf ? 'rounded-lg rounded-tr-sm' : 'rounded-lg rounded-tl-sm') : 'rounded-lg',
+                    ]"
+                  >
+                    <time v-if="index > 0" class="sr-only">{{ formatTime(message.timestamp) }}</time>
+                    <span>{{ message.message }}</span>
+                  </div>
+                  <div
+                    v-if="message.status"
+                    :class="['text-caption', message.status === 'failed' ? 'text-danger' : 'text-fg-muted']"
+                    :role="message.status === 'failed' ? 'alert' : undefined"
+                  >
+                    {{ message.status === "failed" ? t("messageNotDelivered") : t("messageSending") }}
+                  </div>
+                </template>
               </div>
-              <template v-for="(message, index) in group.messages" :key="message.id">
-                <div
-                  :class="[
-                    'px-3.25 py-2.5 text-md leading-normal max-compact:px-3 max-compact:text-sm',
-                    group.isSelf ? 'bg-accent text-accent-fg' : 'bg-surface-2 text-fg',
-                    index === 0 ? (group.isSelf ? 'rounded-lg rounded-tr-sm' : 'rounded-lg rounded-tl-sm') : 'rounded-lg',
-                  ]"
-                >
-                  <time v-if="index > 0" class="sr-only">{{ formatTime(message.timestamp) }}</time>
-                  <span>{{ message.message }}</span>
-                </div>
-                <div
-                  v-if="message.status"
-                  :class="['text-caption', message.status === 'failed' ? 'text-danger' : 'text-fg-muted']"
-                  :role="message.status === 'failed' ? 'alert' : undefined"
-                >
-                  {{ message.status === "failed" ? t("messageNotDelivered") : t("messageSending") }}
-                </div>
-              </template>
-            </div>
-          </article>
+            </article>
+          </template>
         </div>
         <Button v-if="!atBottom" variant="tinted" size="sm" class="sticky bottom-2 mx-auto mt-2 -mb-1 flex" @click="$emit('jump-to-latest')"
           ><Icon name="chevron-down" :size="15" /> {{ t("jumpToLatest") }}</Button
@@ -136,7 +146,7 @@ import { Icon } from "@/shared/ui/icon";
 import { Input } from "@/shared/ui/input";
 import { Tab, TabList, TabPanel, Tabs } from "@/shared/ui/tabs";
 import UnreadMark from "@/features/room/chat/UnreadMark.vue";
-import { groupMessages } from "@/features/room/chat/groupMessages";
+import { buildTimeline, splitAroundName, type Notice } from "@/features/room/chat/groupMessages";
 import { useI18n } from "@/shared/i18n/useI18n.js";
 import { messageAvatar } from "@/features/session";
 import type { ChatTab } from "@/features/room/roomTypes";
@@ -152,6 +162,8 @@ const props = defineProps<{
   /** The name of the person the open private chat is with while they are away, "" otherwise. */
   privatePeerName: string;
   visibleChatMessages: ChatMessage[];
+  /** Who came and went in the open channel, shown between its messages. */
+  notices: Notice[];
   members: ChannelMember[];
   formatTime: (timestamp: number) => string;
   setListElement: (element: unknown) => void;
@@ -173,7 +185,8 @@ const messageDraft = defineModel<string>("messageDraft", { default: "" });
 
 const { t } = useI18n();
 
-const messageGroups = computed(() => groupMessages(props.visibleChatMessages));
+const timeline = computed(() => buildTimeline(props.visibleChatMessages, props.notices));
+const noticeParts = (notice: Notice) => splitAroundName(notice.text, notice.name);
 
 // One tab key per tab: the three fixed ones and `private-<id>` per conversation.
 const activeTab = computed({

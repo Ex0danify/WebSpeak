@@ -2,6 +2,7 @@ import { computed, nextTick, onScopeDispose, reactive, ref, watch, type Ref } fr
 import { useI18n } from "@/shared/i18n/useI18n.js";
 import { formatTime as formatTimestamp } from "@/shared/lib/format.js";
 import type { ChatTab, TreeChannel } from "@/features/room/roomTypes.js";
+import type { Notice } from "@/features/room/chat/groupMessages.js";
 import { nicknameText, privateConversationKey, type ChannelMember, type ChatMessage, type ServerEvent } from "@/features/session";
 import type { RoomSession } from "@/features/room/roomTypes.js";
 
@@ -11,7 +12,7 @@ const AUTO_SCROLL_MS = 600;
 
 export interface UseChatOptions {
   session: Pick<RoomSession["session"], "state">;
-  roster: Pick<RoomSession["roster"], "members">;
+  roster: Pick<RoomSession["roster"], "members" | "serverEvents">;
   chat: Pick<RoomSession["chat"], "chatMessages" | "sendTextMessage" | "sendServerMessage" | "sendPrivateMessage">;
   /** Owned by useChannelTree. */
   currentChannel: Ref<TreeChannel | undefined>;
@@ -32,7 +33,7 @@ export interface UseChatOptions {
 export function useChat(options: UseChatOptions) {
   const { currentChannel, currentChannelName, selectedChannelId, chatTab, memberMenu, isMobileViewport, mobileSection } = options;
   const { state: voiceState } = options.session;
-  const { members } = options.roster;
+  const { members, serverEvents } = options.roster;
   const { chatMessages, sendTextMessage, sendServerMessage, sendPrivateMessage } = options.chat;
   const { language, t } = useI18n();
 
@@ -233,6 +234,8 @@ export function useChat(options: UseChatOptions) {
         return t("eventMemberLeft", { nickname });
       case "moved":
         return t("eventMemberMoved", { nickname });
+      case "selfMoved":
+        return t("eventSelfMoved", { channel });
       case "renamed":
         return t("eventMemberRenamed", { previous: nicknameText(event.previousNickname ?? "", t), nickname });
       case "poke":
@@ -246,7 +249,50 @@ export function useChat(options: UseChatOptions) {
     }
   }
 
+  /** The sentence for an event in the conversation of the open channel, null when the event belongs somewhere else. */
+  function channelNoticeText(event: ServerEvent, channelId: string): string | null {
+    switch (event.kind) {
+      case "joined":
+      case "left":
+      case "selfMoved":
+        return event.channelId === channelId ? eventText(event) : null;
+      case "moved":
+        if (event.channelId === channelId) return t("eventMemberMovedIn", { nickname: nicknameText(event.nickname ?? "", t) });
+        if (event.fromChannelId !== channelId) return null;
+        return t("eventMemberMovedOut", {
+          nickname: nicknameText(event.nickname ?? "", t),
+          channel: event.channelName || t("unnamedChannel"),
+        });
+      default:
+        return null;
+    }
+  }
+
+  // Who came and went in the channel you are in, since you got there. Everything before your last move or connect happened
+  // somewhere else. The log in the header keeps all of it.
+  const channelNotices = computed<Notice[]>(() => {
+    const channelId = currentChannel.value?.id;
+    if (!channelId || chatTab.value !== "channel") return [];
+    let boundary = serverEvents.length - 1;
+    while (boundary > 0 && serverEvents[boundary]!.kind !== "selfMoved" && serverEvents[boundary]!.kind !== "connection") boundary--;
+    const notices: Notice[] = [];
+    for (const event of serverEvents.slice(Math.max(boundary, 0))) {
+      const text = channelNoticeText(event, channelId);
+      if (text) notices.push({ id: event.id, timestamp: event.timestamp, text, name: event.nickname || undefined });
+    }
+    return notices;
+  });
+
+  // A notice at the end of the list is news like a message is.
+  watch(
+    () => channelNotices.value.length,
+    () => {
+      if (atBottom.value) void nextTick(scrollChatToEnd);
+    },
+  );
+
   return {
+    channelNotices,
     messageDraft,
     privateConversationId,
     privatePeerName,
