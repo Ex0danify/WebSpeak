@@ -11,6 +11,7 @@ export type {
   LatencyProbeResult,
   RoomNotice,
   ServerEvent,
+  ServerEventKind,
   VoiceState,
 } from "@/features/session/sessionTypes";
 export {

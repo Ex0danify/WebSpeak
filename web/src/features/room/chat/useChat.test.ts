@@ -1,7 +1,7 @@
 import { flushPromises, mount } from "@vue/test-utils";
 import { defineComponent, reactive, ref } from "vue";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import type { ChannelMember, ChatMessage, ServerEvent, VoiceState } from "@/features/session";
+import type { ChannelMember, ChatMessage, ServerEvent, ServerEventKind, VoiceState } from "@/features/session";
 import type { TreeChannel } from "@/features/room/roomTypes";
 
 type Exposed = {
@@ -351,6 +351,13 @@ describe("eventText", () => {
     );
   });
 
+  it("names both names of a rename", async () => {
+    const { vm } = await mountUseChat();
+    expect(vm.eventText({ id: "1", kind: "renamed", message: "x", nickname: "Robert", previousNickname: "Bob", timestamp: 0 })).toBe(
+      "Bob is now called Robert",
+    );
+  });
+
   it("builds a translated sentence when the gateway sends a nickname", async () => {
     const { vm } = await mountUseChat();
     expect(vm.eventText({ id: "1", kind: "joined", message: "fallback", nickname: "Ana", timestamp: 0 })).toContain("Ana");
@@ -361,8 +368,23 @@ describe("eventText", () => {
     expect(vm.eventText({ id: "1", kind: "channelCreated", message: "fallback", channelName: "Raid", timestamp: 0 })).toContain("Raid");
   });
 
-  it("falls back to the raw message for an unknown event kind", async () => {
+  it("has a sentence for every kind of the event log", async () => {
     const { vm } = await mountUseChat();
-    expect(vm.eventText({ id: "1", kind: "unknown", message: "whatever", timestamp: 0 })).toBe("whatever");
+    const kinds: ServerEventKind[] = [
+      "joined",
+      "left",
+      "moved",
+      "renamed",
+      "poke",
+      "connection",
+      "channelCreated",
+      "channelRenamed",
+      "channelDeleted",
+    ];
+    for (const kind of kinds) {
+      const sentence = vm.eventText({ id: "1", kind, message: "english", nickname: "Ana", channelName: "Raid", timestamp: 0 });
+      expect(sentence, kind).toBeTruthy();
+      expect(sentence, kind).not.toBe("english");
+    }
   });
 });

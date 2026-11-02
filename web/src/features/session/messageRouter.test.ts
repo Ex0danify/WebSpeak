@@ -60,6 +60,7 @@ describe("roster handlers", () => {
       "chatMessage",
       "memberAvatar",
       "memberEnter",
+      "memberUpdate",
       "pokeReceived",
       "serverEvent",
     ]);
@@ -101,6 +102,33 @@ describe("roster handlers", () => {
     expect(session.channels[0]!.members![1]!.avatar).toBeUndefined();
     handlers.memberAvatar!({ id: 5, avatar: "" });
     expect(session.members[0]!.avatar).toBeUndefined();
+  });
+
+  it("memberUpdate renames the roster entry and the channel tree entry, matching the uid when given", () => {
+    const { handlers, session } = setup();
+    session.members.push({ id: 5, uid: "u", nickname: "a", isSelf: false } as never);
+    session.channels.push({
+      id: "1",
+      members: [
+        { id: 5, uid: "u", nickname: "a" },
+        { id: 6, uid: "v", nickname: "b" },
+      ],
+    } as never);
+    handlers.memberUpdate!({ type: "memberUpdate", id: 5, uid: "other", nickname: "wrong" });
+    expect(session.members[0]!.nickname).toBe("a");
+    handlers.memberUpdate!({ type: "memberUpdate", id: 5, uid: "u", nickname: "renamed" });
+    expect(session.members[0]!.nickname).toBe("renamed");
+    expect(session.channels[0]!.members![0]!.nickname).toBe("renamed");
+    expect(session.channels[0]!.members![1]!.nickname).toBe("b");
+  });
+
+  it("memberUpdate flags an empty name as unnamed and clears the flag again", () => {
+    const { handlers, session } = setup();
+    session.members.push({ id: 5, uid: "u", nickname: "a", isSelf: false } as never);
+    handlers.memberUpdate!({ type: "memberUpdate", id: 5, uid: "u", nickname: "", unnamed: true });
+    expect(session.members[0]).toMatchObject({ nickname: "", unnamed: true });
+    handlers.memberUpdate!({ type: "memberUpdate", id: 5, uid: "u", nickname: "back" });
+    expect(session.members[0]!.unnamed).toBeUndefined();
   });
 
   it("chatMessage skips echoes of the own client and normalises scope and target", () => {
@@ -146,7 +174,7 @@ describe("bounds on what the gateway can make the store hold", () => {
     const h = handlers();
     for (let i = 0; i < 700; i++) {
       h.chatMessage!({ invokerId: 9, invokerName: "a", message: `m${i}`, scope: "channel" });
-      h.serverEvent!({ event: { id: `e${i}`, kind: "join", timestamp: i } });
+      h.serverEvent!({ event: { id: `e${i}`, kind: "joined", timestamp: i } });
       h.pokeReceived!({ invokerId: 1, invokerName: "a", message: `p${i}` });
     }
     expect(store.chatMessages).toHaveLength(500);

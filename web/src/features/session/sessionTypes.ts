@@ -89,12 +89,18 @@ export interface ChatMessage {
 /** Values a gateway code is rendered with, the same shape in every frame that carries them. */
 export type MessageParams = Record<string, string | number | boolean>;
 
+/** The kinds of the server event log, the same list as the gateway's `ServerEvent` (the contract test compares them). */
+export type ServerEventKind =
+  "joined" | "left" | "moved" | "renamed" | "poke" | "connection" | "channelCreated" | "channelRenamed" | "channelDeleted";
+
 export interface ServerEvent {
   id: string;
-  kind: string;
+  kind: ServerEventKind;
+  // English, for logs. The sentence shown is built from the kind, the names and the params.
   message: string;
-  // Set by a gateway that builds a translatable sentence. An older gateway sends neither and `message` is shown as it is.
   nickname?: string;
+  /** For a rename, the name before it. */
+  previousNickname?: string;
   channelName?: string;
   // Optional values for rendering the sentence in the user's language.
   params?: MessageParams;
@@ -156,6 +162,7 @@ export type ServerMessage =
   | { type: "memberEnter"; id: number; nickname: string; uid?: string; avatar?: string; isSelf?: boolean }
   | { type: "memberLeave"; id: number }
   | { type: "memberAvatar"; id: number; uid?: string; avatar?: string }
+  | { type: "memberUpdate"; id: number; uid?: string; nickname: string; unnamed?: boolean }
   | { type: "channelList"; channels: ChannelInfo[] }
   | {
       type: "chatMessage";

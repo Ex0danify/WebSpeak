@@ -49,7 +49,7 @@ export function useSessionActions(deps: RoomActionsDeps) {
         pendingCommands.delete(requestId);
         reject(new LocalizedError(text("commandTimeout"), "COMMAND_TIMEOUT"));
       }, timeoutMs);
-      pendingCommands.set(requestId, { resolve, reject, timer });
+      pendingCommands.set(requestId, { resolve: () => resolve(), reject, timer });
       sendCmd(type, payload, requestId);
     });
   }
@@ -175,6 +175,11 @@ export function useSessionActions(deps: RoomActionsDeps) {
 
   function sendPoke(clientId: number, message = ""): Promise<void> {
     return sendCommandAndWait("poke", { clientId, message: message.trim().slice(0, 200) });
+  }
+
+  /** Renames the own client on the TeamSpeak server, rejects with the server's refusal (name taken, invalid). */
+  function setNickname(nickname: string): Promise<void> {
+    return sendCommandAndWait("setNickname", { nickname });
   }
 
   function setAway(away: boolean, message = ""): Promise<void> {
@@ -307,6 +312,7 @@ export function useSessionActions(deps: RoomActionsDeps) {
     sendPrivateMessage,
     sendPoke,
     setAway,
+    setNickname,
     setWhisperTargets,
     setWhisperActive,
     applyWhisperState,

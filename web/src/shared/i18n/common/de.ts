@@ -8,6 +8,7 @@ export const de: Record<string, string> = {
   optional: "Optional",
   poke: "Anstupsen",
   pokedYou: "hat dich angestupst",
+  savedStatus: "Gespeichert",
   send: "Senden",
   serverAddress: "TeamSpeak-Serveradresse",
   serverPassword: "Serverpasswort",
