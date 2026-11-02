@@ -1,3 +1,18 @@
 export const de: Record<string, string> = {
   profileMenu: "Dein Profil",
+  profileSections: "Profilbereiche",
+  profileTab: "Profil",
+  identityTab: "Identität",
+  copyUid: "Eindeutige ID kopieren",
+  uidCopiedToast: "Eindeutige ID kopiert",
+  uidCopyFailedToast: "Kopieren fehlgeschlagen",
+  identityExportHint:
+    "Sichere die Identität dieser Verbindung, um sie auf einem anderen Gerät oder nach dem Löschen der Browserdaten zu nutzen.",
+  identityRequestFailed: "Die Identität konnte nicht abgerufen oder gespeichert werden. Versuche es erneut.",
+  identitySectionTitle: "Diese Identität",
+  identityBackupTitle: "Sicherung",
+  identitySavedStatus: "Auf diesem Gerät gespeichert",
+  identityTemporaryStatus: "Temporär",
+  identityTemporary: "Sie ist weg, sobald du gehst, wenn du sie nicht speicherst.",
+  identitySaveToDevice: "Auf diesem Gerät speichern",
 };

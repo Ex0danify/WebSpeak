@@ -1,3 +1,17 @@
 export const en = {
   profileMenu: "Your profile",
+  profileSections: "Profile sections",
+  profileTab: "Profile",
+  identityTab: "Identity",
+  copyUid: "Copy unique ID",
+  uidCopiedToast: "Unique ID copied",
+  uidCopyFailedToast: "Copy failed",
+  identityExportHint: "Save the identity you are connected with, to use it on another device or after clearing browser data.",
+  identityRequestFailed: "The identity could not be retrieved or saved. Try again.",
+  identitySectionTitle: "This identity",
+  identityBackupTitle: "Backup",
+  identitySavedStatus: "Saved on this device",
+  identityTemporaryStatus: "Temporary",
+  identityTemporary: "It is gone when you leave, unless you save it.",
+  identitySaveToDevice: "Save to this device",
 };
