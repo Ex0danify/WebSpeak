@@ -91,7 +91,7 @@ export type MessageParams = Record<string, string | number | boolean>;
 
 /** The kinds of the server event log, the same list as the gateway's `ServerEvent` (the contract test compares them). */
 export type ServerEventKind =
-  "joined" | "left" | "moved" | "renamed" | "poke" | "connection" | "channelCreated" | "channelRenamed" | "channelDeleted";
+  "joined" | "left" | "moved" | "selfMoved" | "renamed" | "poke" | "connection" | "channelCreated" | "channelRenamed" | "channelDeleted";
 
 export interface ServerEvent {
   id: string;
@@ -101,6 +101,10 @@ export interface ServerEvent {
   nickname?: string;
   /** For a rename, the name before it. */
   previousNickname?: string;
+  /** The channel the event happened in: where a member joined or left, where a member or you moved to. */
+  channelId?: string;
+  /** For a move, the channel the member came from. */
+  fromChannelId?: string;
   channelName?: string;
   // Optional values for rendering the sentence in the user's language.
   params?: MessageParams;

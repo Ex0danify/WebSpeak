@@ -40,7 +40,10 @@ export function registerVoiceDirectory(ctx: VoiceConnection, deps: VoiceDirector
       if (!wasKnown)
         ctx.sendJson({ type: "memberEnter", id: info.id, nickname: info.nickname, uid: info.uid, isSelf: info.id === ctx.state.selfId });
       if (!wasKnown && info.id !== ctx.state.selfId)
-        addServerEvent(ctx, "joined", `${info.nickname || "Unknown user"} joined the server`, { nickname: info.nickname });
+        addServerEvent(ctx, "joined", `${info.nickname || "Unknown user"} joined the server`, {
+          nickname: info.nickname,
+          ...channelRef(info.channelID),
+        });
       scheduleMemberAvatarRefresh(ctx);
     }
   });
@@ -49,6 +52,7 @@ export function registerVoiceDirectory(ctx: VoiceConnection, deps: VoiceDirector
     deps.reconcileNativeScreenShareAfterClientLeave(ctx.entry, info.id);
     const wasKnown = ctx.entry.members.has(info.id);
     const leavingMember = ctx.entry.members.get(info.id);
+    const leftFrom = ctx.directory.getClientChannelId(info.id);
     ctx.entry.webrtc?.setMemberVolume(info.id, 1);
     ctx.directory.applyClientLeave(info.id);
     refreshDirectory(ctx);
@@ -56,7 +60,10 @@ export function registerVoiceDirectory(ctx: VoiceConnection, deps: VoiceDirector
       ctx.sendJson({ type: "memberLeave", id: info.id });
       ctx.sendJson({ type: "channelList", channels: ctx.entry.channelTree });
       if (info.id !== ctx.state.selfId)
-        addServerEvent(ctx, "left", `${leavingMember?.nickname || "A user"} left the server`, { nickname: leavingMember?.nickname });
+        addServerEvent(ctx, "left", `${leavingMember?.nickname || "A user"} left the server`, {
+          nickname: leavingMember?.nickname,
+          ...channelRef(leftFrom),
+        });
     }
   });
 
@@ -64,13 +71,26 @@ export function registerVoiceDirectory(ctx: VoiceConnection, deps: VoiceDirector
     if (info.targetChannelID === undefined || info.targetChannelID === 0n) return;
     deps.reconcileScreenShareAfterClientMove(ctx.entry, info.id, info.targetChannelID);
     const movedMember = ctx.entry.members.get(info.id);
+    const movedFrom = ctx.directory.getClientChannelId(info.id);
     if (info.id === ctx.state.selfId) ctx.state.selfChannelId = info.targetChannelID;
     ctx.directory.applyClientMoved(info.id, info.targetChannelID);
     refreshDirectory(ctx);
     if (ctx.state.tsReady && ctx.state.initialStateSent) {
       ctx.sendJson({ type: "channelList", channels: ctx.entry.channelTree });
-      if (info.id !== ctx.state.selfId)
-        addServerEvent(ctx, "moved", `${movedMember?.nickname || "A user"} moved to another channel`, { nickname: movedMember?.nickname });
+      const channelName = channelNameOf(ctx, info.targetChannelID);
+      if (info.id === ctx.state.selfId) {
+        addServerEvent(ctx, "selfMoved", `You moved to ${channelName || "another channel"}`, {
+          ...channelRef(info.targetChannelID),
+          ...(channelName === undefined ? {} : { channelName }),
+        });
+      } else {
+        addServerEvent(ctx, "moved", `${movedMember?.nickname || "A user"} moved to another channel`, {
+          nickname: movedMember?.nickname,
+          ...channelRef(info.targetChannelID),
+          ...(movedFrom === undefined ? {} : { fromChannelId: String(movedFrom) }),
+          ...(channelName === undefined ? {} : { channelName }),
+        });
+      }
     }
   });
 
@@ -115,7 +135,13 @@ function trackChannelEvents(ctx: VoiceConnection, previous: unknown[], next: unk
       addServerEvent(ctx, "channelDeleted", `Channel "${channel.name}" was deleted`, { channelName: channel.name });
 }
 
-type EventExtra = Partial<Pick<ServerEvent, "nickname" | "previousNickname" | "channelName">>;
+type EventExtra = Partial<Pick<ServerEvent, "nickname" | "previousNickname" | "channelName" | "channelId" | "fromChannelId">>;
+
+const channelRef = (id: bigint | undefined): { channelId?: string } => (id === undefined || id === 0n ? {} : { channelId: String(id) });
+
+function channelNameOf(ctx: VoiceConnection, id: bigint): string | undefined {
+  return ctx.entry.channelTree.filter(isChannelRecord).find((channel) => channel.id === String(id))?.name;
+}
 
 function eventParams(extra: EventExtra): { params?: MessageParams } {
   const params: MessageParams = {};
