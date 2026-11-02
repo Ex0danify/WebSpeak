@@ -21,6 +21,8 @@ vi.mock("@/features/identity", async () => {
 const member: ChannelMember = { id: 7, nickname: "roka", uid: "dWlkLWJhc2U2NA==", isSelf: true };
 
 afterEach(() => {
+  vi.useRealTimers();
+  vi.restoreAllMocks();
   document.body.innerHTML = "";
   downloadIdentity.mockReset();
   importIdentity.mockReset();
@@ -28,7 +30,14 @@ afterEach(() => {
   store.list.value = [];
 });
 
-async function open(options: { request?: () => Promise<string>; identityMaterial?: string; savedId?: string | null } = {}) {
+async function open(
+  options: {
+    request?: () => Promise<string>;
+    identityMaterial?: string;
+    savedId?: string | null;
+    changeNickname?: (nickname: string) => Promise<void>;
+  } = {},
+) {
   const wrapper = mount(ProfileDialog, {
     props: {
       modelValue: true,
@@ -37,8 +46,10 @@ async function open(options: { request?: () => Promise<string>; identityMaterial
       member,
       identityMaterial: options.identityMaterial ?? "",
       requestIdentity: options.request ?? (() => Promise.resolve("secret-material")),
+      changeNickname: options.changeNickname ?? (() => Promise.resolve()),
     },
     attachTo: document.body,
+    global: { stubs: { transition: false } },
   });
   await nextTick();
   return wrapper;
@@ -48,8 +59,14 @@ const button = (label: string) =>
   Array.from(document.body.querySelectorAll("button")).find(
     (b) => b.textContent?.trim() === label || b.getAttribute("aria-label") === label,
   );
-const status = () => document.body.querySelector('[aria-live="polite"]')?.textContent ?? "";
+// Live regions of the dialog, the identity state is the one with the chip.
+const status = () =>
+  Array.from(document.body.querySelectorAll('[aria-live="polite"]'))
+    .map((el) => el.textContent)
+    .join(" ");
 
+// What a screen reader is told after a save, the visible hint is aria-hidden.
+const savedLive = () => document.body.querySelector('[role="dialog"] .sr-only[aria-live="polite"]')?.textContent ?? "";
 const dialogText = () => document.body.querySelector('[role="dialog"]')?.textContent ?? "";
 
 async function identityTab(): Promise<void> {
@@ -74,11 +91,20 @@ describe("ProfileDialog", () => {
     wrapper.unmount();
   });
 
-  it("shows the own name and unique id", async () => {
+  it("shows the own name on the profile tab and the unique id on the identity tab", async () => {
     const wrapper = await open();
-    const text = document.body.textContent ?? "";
-    expect(text).toContain("roka");
-    expect(text).toContain(member.uid);
+    const [profilePanel, identityPanel] = Array.from(document.body.querySelectorAll('[role="tabpanel"]'));
+    expect(profilePanel!.textContent).toContain("roka");
+    expect(profilePanel!.textContent).not.toContain(member.uid);
+    expect(identityPanel!.textContent).toContain("Unique ID");
+    expect(identityPanel!.textContent).toContain(member.uid);
+    wrapper.unmount();
+  });
+
+  it("shows no unique id line for a member the server gave none", async () => {
+    const wrapper = await open();
+    await wrapper.setProps({ member: { ...member, uid: undefined } });
+    expect(document.body.textContent).not.toContain("Unique ID");
     wrapper.unmount();
   });
 
@@ -90,6 +116,157 @@ describe("ProfileDialog", () => {
     expect(writeText).toHaveBeenCalledWith(member.uid);
     wrapper.unmount();
     vi.unstubAllGlobals();
+  });
+});
+
+describe("ProfileDialog nickname", () => {
+  const nicknameInput = () => document.getElementById("profile-nickname") as HTMLInputElement | null;
+  const edit = async () => {
+    button("Change nickname")?.click();
+    await nextTick();
+  };
+
+  it("shows the nickname as a label with an edit button, no input yet", async () => {
+    const wrapper = await open();
+    expect(dialogText()).toContain("roka");
+    expect(nicknameInput()).toBeNull();
+    expect(button("Change nickname")).toBeDefined();
+    wrapper.unmount();
+  });
+
+  it("turns into an input with the current name, a save and a cancel button, and keeps save off until it is valid", async () => {
+    const wrapper = await open();
+    await edit();
+    expect(nicknameInput()!.value).toBe("roka");
+    expect(button("Change nickname")).toBeUndefined();
+    expect((button("Save") as HTMLButtonElement).disabled).toBe(true);
+    await type("profile-nickname", "ab");
+    expect((button("Save") as HTMLButtonElement).disabled).toBe(true);
+    await type("profile-nickname", "Ex0");
+    expect((button("Save") as HTMLButtonElement).disabled).toBe(false);
+    wrapper.unmount();
+  });
+
+  it("counts the characters against the limit of 30 and stops typing there", async () => {
+    const wrapper = await open();
+    await edit();
+    expect(dialogText()).toContain("4/30");
+    await type("profile-nickname", "Ex0");
+    expect(dialogText()).toContain("3/30");
+    expect(nicknameInput()!.getAttribute("maxlength")).toBe("30");
+    wrapper.unmount();
+  });
+
+  it("names the rules for assistive tech, since the field shows only the counter", async () => {
+    const wrapper = await open();
+    await edit();
+    expect(nicknameInput()!.getAttribute("aria-label")).toBe("Nickname, 3 to 30 characters");
+    wrapper.unmount();
+  });
+
+  it("marks confirm and cancel by their status color on hover, not by a shape", async () => {
+    const wrapper = await open();
+    await edit();
+    expect(button("Save")!.className).toContain("hover:text-success");
+    expect(button("Cancel")!.className).toContain("hover:text-danger");
+    expect(button("Save")!.className).not.toMatch(/hover:bg-/);
+    expect(button("Cancel")!.className).not.toMatch(/hover:bg-/);
+    wrapper.unmount();
+  });
+
+  it("puts the cursor in the field, and back on the edit button after cancelling", async () => {
+    const wrapper = await open();
+    await edit();
+    expect(document.activeElement).toBe(nicknameInput());
+    button("Cancel")?.click();
+    await flushPromises();
+    expect(nicknameInput()).toBeNull();
+    expect(document.activeElement).toBe(button("Change nickname"));
+    expect(dialogText()).toContain("roka");
+    wrapper.unmount();
+  });
+
+  it("sends the trimmed name, then shows it as the label with the saved hint", async () => {
+    const changeNickname = vi.fn().mockResolvedValue(undefined);
+    const wrapper = await open({ changeNickname });
+    await edit();
+    await type("profile-nickname", "  Ex0-web  ");
+    button("Save")?.click();
+    await flushPromises();
+    expect(changeNickname).toHaveBeenCalledWith("Ex0-web");
+    expect(nicknameInput()).toBeNull();
+    expect(dialogText()).toContain("Ex0-web");
+    expect(savedLive()).toBe("Saved");
+    const hint = Array.from(document.body.querySelectorAll('[role="dialog"] [aria-hidden="true"]'));
+    expect(hint.some((el) => el.textContent?.includes("Saved"))).toBe(true);
+    expect(document.activeElement).toBe(button("Change nickname"));
+    wrapper.unmount();
+  });
+
+  it("does not leave the pencil's tooltip open when focus returns to it after saving", async () => {
+    // The browser's answer for a mouse user: not hovering the pencil, focus not from the keyboard.
+    const real = Element.prototype.matches;
+    vi.spyOn(Element.prototype, "matches").mockImplementation(function (this: Element, selector: string) {
+      return selector === ":hover" || selector === ":focus-visible" ? false : real.call(this, selector);
+    });
+    const wrapper = await open();
+    await edit();
+    await type("profile-nickname", "Ex0-web");
+    button("Save")?.click();
+    await flushPromises();
+    expect(document.activeElement).toBe(button("Change nickname"));
+    expect(document.body.textContent).not.toContain("Change nickname");
+    wrapper.unmount();
+  });
+
+  it("lets the saved hint fade again", async () => {
+    const wrapper = await open();
+    await edit();
+    await type("profile-nickname", "Ex0-web");
+    vi.useFakeTimers();
+    button("Save")?.click();
+    await vi.advanceTimersByTimeAsync(0);
+    expect(savedLive()).toBe("Saved");
+    await vi.advanceTimersByTimeAsync(3000);
+    expect(savedLive()).toBe("");
+    wrapper.unmount();
+  });
+
+  it("shows the refusal under the field, stays in edit mode and allows another try", async () => {
+    const { LocalizedError, text } = await import("@/shared/i18n/localizedText");
+    const changeNickname = vi.fn().mockRejectedValue(new LocalizedError(text("opErr_NICKNAME_IN_USE"), "NICKNAME_IN_USE"));
+    const wrapper = await open({ changeNickname });
+    await edit();
+    await type("profile-nickname", "taken");
+    button("Save")?.click();
+    await flushPromises();
+    expect(dialogText()).toContain("already in use");
+    expect(nicknameInput()).not.toBeNull();
+    expect(savedLive()).toBe("");
+    expect((button("Save") as HTMLButtonElement).disabled).toBe(false);
+    await type("profile-nickname", "free");
+    expect(dialogText()).not.toContain("already in use");
+    wrapper.unmount();
+  });
+
+  it("follows a rename that comes from the server", async () => {
+    const wrapper = await open();
+    await wrapper.setProps({ member: { ...member, nickname: "renamed" } });
+    expect(dialogText()).toContain("renamed");
+    await edit();
+    expect(nicknameInput()!.value).toBe("renamed");
+    wrapper.unmount();
+  });
+
+  it("starts from the current name again after a cancelled edit", async () => {
+    const wrapper = await open();
+    await edit();
+    await type("profile-nickname", "half-typed");
+    button("Cancel")?.click();
+    await flushPromises();
+    await edit();
+    expect(nicknameInput()!.value).toBe("roka");
+    wrapper.unmount();
   });
 });
 

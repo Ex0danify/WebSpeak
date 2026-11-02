@@ -213,6 +213,7 @@
       :member="selfMember"
       :identity-material="identityMaterial"
       :request-identity="requestIdentity"
+      :change-nickname="changeNickname"
     />
   </div>
 </template>
@@ -230,6 +231,7 @@ import { accompanimentAvailability } from "@/features/room/dock/accompanimentAva
 import { audioLinkStatus } from "@/features/room/dock/audioLinkStatus";
 import type { useAudioSettingsPanel } from "@/features/room/audioSettings/useAudioSettingsPanel";
 import ProfileDialog from "@/features/room/profile/ProfileDialog.vue";
+import { useNicknameChange } from "@/features/room/profile/useNicknameChange";
 import MemberPanel from "@/features/room/members/MemberPanel.vue";
 import MemberTree from "@/features/room/members/MemberTree.vue";
 import type { useChannelTree } from "@/features/room/members/useChannelTree";
@@ -268,7 +270,8 @@ const props = defineProps<{
 }>();
 
 const { t } = useI18n();
-const { state: voiceState, roomNotices, reconnectNow, requestIdentity, identityMaterial } = props.session.session;
+const { state: voiceState, roomNotices, reconnectNow, requestIdentity, identityMaterial, setNickname } = props.session.session;
+const changeNickname = useNicknameChange({ setNickname });
 const { members, serverEvents, pokeNotifications, speakingIds, canSpeak, mutedMembers, whisperTargetIds, whisperActive } =
   props.session.roster;
 const { microphoneMuted, outputMuted, toggleOutputMute, accompanimentActive, accompanimentSupported, webrtcActive, webrtcAvailable } =
