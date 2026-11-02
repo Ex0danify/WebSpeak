@@ -39,9 +39,6 @@
     "src/features/room/audioSettings/AudioSettingsDialog.vue": {
       "arbitrary": 2
     },
-    "src/features/room/chat/ChatPanel.vue": {
-      "arbitrary": 3
-    },
     "src/features/room/members/MemberContextMenu.vue": {
       "arbitrary": 1
     },
@@ -58,7 +55,7 @@
       "arbitrary": 2
     },
     "src/features/room/shell/RoomWorkspace.vue": {
-      "arbitrary": 14
+      "arbitrary": 12
     },
     "src/features/room/shell/WorkspaceHeader.vue": {
       "arbitrary": 2

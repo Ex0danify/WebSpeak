@@ -1,9 +1,13 @@
-import { computed, nextTick, ref, watch, type Ref } from "vue";
+import { computed, nextTick, onScopeDispose, ref, watch, type Ref } from "vue";
 import { useI18n } from "@/shared/i18n/useI18n.js";
 import { formatTime as formatTimestamp } from "@/shared/lib/format.js";
 import type { TreeChannel } from "@/features/room/roomTypes.js";
 import { nicknameText, privateConversationKey, type ChannelMember, type ServerEvent } from "@/features/session";
 import type { RoomSession } from "@/features/room/roomTypes.js";
+
+// Distance from the end that still counts as being at the bottom, and how long a smooth scroll to the end may take.
+const BOTTOM_SLACK_PX = 48;
+const AUTO_SCROLL_MS = 600;
 
 export interface UseChatOptions {
   session: Pick<RoomSession["session"], "state">;
@@ -114,16 +118,54 @@ export function useChat(options: UseChatOptions) {
         : t("sendMessagePlaceholder"),
   );
 
+  // The list follows new messages while it sits at the bottom. Scrolled up, it stays put and "atBottom" turns false.
+  const atBottom = ref(true);
+  let autoScrolling = false;
+  let autoScrollTimer: ReturnType<typeof setTimeout> | undefined;
+
+  const distanceFromBottom = (list: HTMLElement) => list.scrollHeight - list.scrollTop - list.clientHeight;
+
+  function onChatScroll() {
+    const list = chatListEl.value;
+    if (!list) return;
+    const nearBottom = distanceFromBottom(list) <= BOTTOM_SLACK_PX;
+    // A smooth scroll to the end passes through positions that are not at the bottom yet.
+    if (autoScrolling) {
+      if (!nearBottom) return;
+      autoScrolling = false;
+    }
+    atBottom.value = nearBottom;
+  }
+
   function scrollChatToEnd() {
     const list = chatListEl.value;
-    if (list) list.scrollTo({ top: list.scrollHeight, behavior: "smooth" });
+    if (!list) return;
+    atBottom.value = true;
+    autoScrolling = true;
+    clearTimeout(autoScrollTimer);
+    autoScrollTimer = setTimeout(() => (autoScrolling = false), AUTO_SCROLL_MS);
+    list.scrollTo({ top: list.scrollHeight, behavior: "smooth" });
   }
 
   function setChatListElement(element: unknown): void {
+    chatListEl.value?.removeEventListener("scroll", onChatScroll);
     chatListEl.value = element instanceof HTMLElement ? element : null;
+    chatListEl.value?.addEventListener("scroll", onChatScroll, { passive: true });
   }
 
-  watch([() => chatMessages.length, chatTab, privateConversationId], () => nextTick(scrollChatToEnd));
+  onScopeDispose(() => {
+    clearTimeout(autoScrollTimer);
+    chatListEl.value?.removeEventListener("scroll", onChatScroll);
+  });
+
+  // Your own message always brings you back to the end, someone else's only when you were reading the end.
+  watch(
+    () => chatMessages.length,
+    () => {
+      if (atBottom.value || chatMessages.at(-1)?.isSelf) void nextTick(scrollChatToEnd);
+    },
+  );
+  watch([chatTab, privateConversationId], () => nextTick(scrollChatToEnd));
 
   function submitMessage() {
     if (!messageDraft.value.trim()) return;
@@ -189,6 +231,7 @@ export function useChat(options: UseChatOptions) {
     formatTime,
     submitMessage,
     openPrivateChat,
+    atBottom,
     scrollChatToEnd,
     setChatListElement,
     eventText,

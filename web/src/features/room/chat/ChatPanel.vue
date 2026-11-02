@@ -1,7 +1,7 @@
 <template>
   <section :class="[panel, mobileSection === 'chat' ? panelMobile : 'max-compact:hidden']">
     <Tabs v-model="activeTab" variant="pills" class="contents">
-      <TabList :aria-label="t('chatTabs')" class="mt-4.5 max-compact:mt-0">
+      <TabList :aria-label="t('chatTabs')" class="mt-4 max-compact:mt-0">
         <Tab value="channel"><Icon name="hash" :size="15" /> {{ currentChannelName }}</Tab>
         <Tab value="server"><Icon name="server" :size="15" /> {{ t("serverChat") }}</Tab>
         <Tab v-for="conversation in privateConversations" :key="conversation.id" :value="`private-${conversation.id}`"
@@ -10,7 +10,7 @@
         <Tab value="events"><Icon name="bell" :size="15" /> {{ t("eventLog") }}</Tab>
       </TabList>
       <div
-        class="flex items-end justify-between gap-5 pt-6.25 max-compact:flex-none max-compact:gap-2.5 max-compact:pt-3.25 max-compact:pb-2.25"
+        class="flex items-end justify-between gap-5 pt-4 max-compact:flex-none max-compact:gap-2.5 max-compact:pt-3.25 max-compact:pb-2.25"
       >
         <div>
           <span class="text-ui font-bold tracking-kicker text-fg-muted">{{ chatTabLabel }}</span>
@@ -27,82 +27,86 @@
           chatTab === "events" ? t("eventCount", { count: serverEvents.length }) : t("messageCount", { count: visibleChatMessages.length })
         }}</span>
       </div>
-      <TabPanel
-        :ref="bindListElement"
-        :value="activeTab"
-        class="flex max-h-[min(360px,42dvh)] min-h-[clamp(150px,20dvh,220px)] flex-col gap-4.5 overflow-y-auto pt-5.5 pr-2 pb-2.5 pl-0.75 max-compact:max-h-none max-compact:min-h-0 max-compact:flex-auto max-compact:overscroll-contain max-compact:px-0.5 max-compact:pt-2.5 max-compact:pb-4"
-      >
-        <div v-if="chatTab === 'events'">
-          <article
-            v-for="event in serverEvents"
-            :key="event.id"
-            class="flex items-baseline gap-3 border-b border-line px-2.5 py-2.25 text-xs leading-snug text-fg-muted"
-          >
-            <time class="flex-none text-2xs">{{ formatTime(event.timestamp) }}</time
-            ><span>{{ eventText(event) }}</span>
-          </article>
-          <div v-if="!serverEvents.length" :class="emptyState">
-            <div :class="emptyIcon"><Icon name="bell" :size="24" /></div>
-            <strong class="text-md text-fg-muted">{{ t("noEvents") }}</strong
-            ><span class="mt-1.25 text-ui">{{ t("noEventsLead") }}</span>
-          </div>
-        </div>
-        <div v-else-if="!visibleChatMessages.length" :class="emptyState">
-          <div :class="emptyIcon"><Icon name="message" :size="24" /></div>
-          <strong class="text-md text-fg-muted">{{ chatTab === "private" ? t("privateChatStart") : t("chatStart") }}</strong
-          ><span class="mt-1.25 text-ui">{{ chatTab === "private" ? t("privateChatStartLead") : t("chatStartLead") }}</span>
-        </div>
-        <template v-for="message in visibleChatMessages" :key="message.id">
-          <article
-            v-if="chatTab !== 'events'"
-            :class="[
-              'flex max-w-39/50 items-start gap-2.75 max-compact:max-w-15/16 max-compact:gap-2.25',
-              message.isSelf && 'flex-row-reverse self-end',
-            ]"
-          >
-            <Avatar
-              :name="message.invokerName"
-              :src="messageAvatar(message, members) || undefined"
-              size="message"
-              tint
-              :self="message.isSelf"
-              surface="surface-1"
-            />
-            <div class="min-w-0">
-              <div :class="['mt-px mb-1.5 flex items-baseline gap-2', message.isSelf && 'justify-end']">
-                <strong class="text-sm text-fg max-compact:text-xs">{{ message.isSelf ? t("you") : message.invokerName }}</strong
-                ><time class="text-caption text-fg-muted">{{ formatTime(message.timestamp) }}</time>
-              </div>
-              <div
-                :class="[
-                  'px-3.25 py-2.5 text-md leading-normal max-compact:px-3 max-compact:text-sm',
-                  message.isSelf ? 'rounded-lg rounded-tr-sm bg-accent text-accent-fg' : 'rounded-lg rounded-tl-sm bg-surface-2 text-fg',
-                ]"
-              >
-                {{ message.message }}
-              </div>
-              <div
-                v-if="message.status"
-                :class="[
-                  'mt-1 text-caption',
-                  message.status === 'failed' ? 'text-danger' : 'text-fg-muted',
-                  message.isSelf && 'text-right',
-                ]"
-                :role="message.status === 'failed' ? 'alert' : undefined"
-              >
-                {{ message.status === "failed" ? t("messageNotDelivered") : t("messageSending") }}
-              </div>
+      <TabPanel :ref="bindListElement" :value="activeTab" class="min-h-0 flex-1 overflow-y-auto overscroll-contain pt-4 max-compact:pt-2.5">
+        <div :class="[columnClass, 'flex min-h-full flex-col gap-4.5 pb-3']">
+          <div v-if="chatTab === 'events'">
+            <article
+              v-for="event in serverEvents"
+              :key="event.id"
+              class="flex items-baseline gap-3 border-b border-line px-2.5 py-2.25 text-xs leading-snug text-fg-muted"
+            >
+              <time class="flex-none text-2xs">{{ formatTime(event.timestamp) }}</time
+              ><span>{{ eventText(event) }}</span>
+            </article>
+            <div v-if="!serverEvents.length" :class="emptyState">
+              <div :class="emptyIcon"><Icon name="bell" :size="24" /></div>
+              <strong class="text-md text-fg-muted">{{ t("noEvents") }}</strong
+              ><span class="mt-1.25 text-ui">{{ t("noEventsLead") }}</span>
             </div>
-          </article>
-        </template>
+          </div>
+          <div v-else-if="!visibleChatMessages.length" :class="emptyState">
+            <div :class="emptyIcon"><Icon name="message" :size="24" /></div>
+            <strong class="text-md text-fg-muted">{{ chatTab === "private" ? t("privateChatStart") : t("chatStart") }}</strong
+            ><span class="mt-1.25 text-ui">{{ chatTab === "private" ? t("privateChatStartLead") : t("chatStartLead") }}</span>
+          </div>
+          <template v-for="message in visibleChatMessages" :key="message.id">
+            <article
+              v-if="chatTab !== 'events'"
+              :class="[
+                'flex max-w-39/50 items-start gap-2.75 max-compact:max-w-15/16 max-compact:gap-2.25',
+                message.isSelf && 'flex-row-reverse self-end',
+              ]"
+            >
+              <Avatar
+                :name="message.invokerName"
+                :src="messageAvatar(message, members) || undefined"
+                size="message"
+                tint
+                :self="message.isSelf"
+                surface="surface-1"
+              />
+              <div class="min-w-0">
+                <div :class="['mt-px mb-1.5 flex items-baseline gap-2', message.isSelf && 'justify-end']">
+                  <strong class="text-sm text-fg max-compact:text-xs">{{ message.isSelf ? t("you") : message.invokerName }}</strong
+                  ><time class="text-caption text-fg-muted">{{ formatTime(message.timestamp) }}</time>
+                </div>
+                <div
+                  :class="[
+                    'px-3.25 py-2.5 text-md leading-normal max-compact:px-3 max-compact:text-sm',
+                    message.isSelf ? 'rounded-lg rounded-tr-sm bg-accent text-accent-fg' : 'rounded-lg rounded-tl-sm bg-surface-2 text-fg',
+                  ]"
+                >
+                  {{ message.message }}
+                </div>
+                <div
+                  v-if="message.status"
+                  :class="[
+                    'mt-1 text-caption',
+                    message.status === 'failed' ? 'text-danger' : 'text-fg-muted',
+                    message.isSelf && 'text-right',
+                  ]"
+                  :role="message.status === 'failed' ? 'alert' : undefined"
+                >
+                  {{ message.status === "failed" ? t("messageNotDelivered") : t("messageSending") }}
+                </div>
+              </div>
+            </article>
+          </template>
+        </div>
+        <Button v-if="!atBottom" variant="tinted" size="sm" class="sticky bottom-2 mx-auto mt-2 -mb-1 flex" @click="$emit('jump-to-latest')"
+          ><Icon name="chevron-down" :size="15" /> {{ t("jumpToLatest") }}</Button
+        >
       </TabPanel>
     </Tabs>
-    <Banner v-if="privatePeerName" variant="warning" class="mt-3 compact:absolute compact:inset-x-0 compact:bottom-20">
+    <Banner v-if="privatePeerName" variant="warning" :class="`mt-3 ${columnClass}`">
       {{ t("privatePeerAway", { name: privatePeerName }) }}
     </Banner>
     <form
       v-if="chatTab !== 'events'"
-      class="sticky bottom-[env(safe-area-inset-bottom,0px)] z-3 flex min-h-12 items-center gap-1.75 rounded-lg bg-surface-2 py-1.5 pr-2 pl-3 max-compact:relative max-compact:mb-1 max-compact:min-h-13.5 max-compact:flex-none max-compact:border max-compact:border-line max-compact:py-1.75 max-compact:pl-3.25 compact:absolute compact:inset-x-0 compact:bottom-4"
+      :class="[
+        columnClass,
+        'mt-3 flex min-h-12 flex-none items-center gap-1.75 rounded-lg bg-surface-2 py-1.5 pr-2 pl-3 max-compact:mb-1 max-compact:min-h-13.5 max-compact:border max-compact:border-line max-compact:py-1.75 max-compact:pl-3.25',
+      ]"
       @submit.prevent="$emit('submit')"
     >
       <Input
@@ -156,11 +160,14 @@ const props = defineProps<{
   eventText: (event: ServerEvent) => string;
   formatTime: (timestamp: number) => string;
   setListElement: (element: unknown) => void;
+  /** The list shows its newest message. */
+  atBottom: boolean;
 }>();
 
 const emit = defineEmits<{
   (e: "open-private-chat", target: number | string): void;
   (e: "submit"): void;
+  (e: "jump-to-latest"): void;
 }>();
 
 const chatTab = defineModel<"channel" | "server" | "private" | "events">("chatTab", { default: "channel" });
@@ -181,10 +188,10 @@ const activeTab = computed({
 const bindListElement = (instance: Element | ComponentPublicInstance | null) =>
   props.setListElement(instance && "$el" in instance ? instance.$el : instance);
 
-// Frame of the panel. On a phone only the chat tab shows it and it fills the height of the shell;
-// from 741 px the composer is pinned to the bottom of the panel, which reserves the room for it.
-const panel = "mt-8.5 min-h-0 border-t border-line pb-4 compact:relative compact:pb-16";
-const panelMobile = "max-compact:mt-0 max-compact:flex max-compact:flex-1 max-compact:flex-col max-compact:border-t-0 max-compact:pb-0";
+// The panel fills the height left by the voice section. Messages and composer share one centered column.
+const panel = "flex min-h-0 flex-1 flex-col border-t border-line px-8 pb-4 max-wide:px-5.5 max-compact:px-3.5";
+const panelMobile = "max-compact:mt-0 max-compact:border-t-0 max-compact:pb-0";
+const columnClass = "mx-auto w-full max-w-190";
 const emptyState = "flex min-h-36.25 flex-col items-center justify-center text-center text-fg-muted";
 const emptyIcon = "mb-2.75 grid size-12 place-items-center rounded-lg bg-accent-soft text-accent";
 </script>

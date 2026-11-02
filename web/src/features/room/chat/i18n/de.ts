@@ -4,6 +4,7 @@ export const de: Record<string, string> = {
   chatStart: "Dies ist der Anfang des Chats",
   chatStartLead: "Sende eine Nachricht und begrüße deine Kanalmitglieder.",
   chatTabs: "Chat-Tabs",
+  jumpToLatest: "Zu den neuesten",
   serverChat: "Server",
   privateMessagePlaceholder: "Private Nachricht senden…",
   serverMessagePlaceholder: "Nachricht an den Server senden…",

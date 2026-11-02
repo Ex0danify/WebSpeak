@@ -4,6 +4,7 @@ export const en = {
   chatStart: "This is the beginning of the chat",
   chatStartLead: "Send a message and say hello to your channel friends.",
   chatTabs: "Chat tabs",
+  jumpToLatest: "Jump to latest",
   serverChat: "Server",
   privateMessagePlaceholder: "Message privately…",
   serverMessagePlaceholder: "Message the server…",
