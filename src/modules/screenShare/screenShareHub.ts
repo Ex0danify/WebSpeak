@@ -169,18 +169,20 @@ export class ScreenShareHub {
     stream.viewerCount = 0;
   }
 
-  leaveScreenStream(entry: ScreenShareParticipant, stream: ScreenStreamRecord): void {
+  /** `serverDropped`: the server already removed the viewer (it changed channel), so there is nothing to clean up there. */
+  leaveScreenStream(entry: ScreenShareParticipant, stream: ScreenStreamRecord, serverDropped = false): void {
     if (!stream.viewerEntryIds.delete(entry.id)) return;
     this.dropQueuedSignals(stream, entry.id);
     stream.viewerCount = this.screenShareViewerCount(stream);
     if (stream.source === "browser")
       this.sendToEntry(stream.ownerEntryId, { type: "screenShareViewerLeft", streamId: stream.streamId, viewerPeerId: entry.screenPeerId });
-    else {
+    else if (!serverDropped) {
       void entry.tsClient
         .sendProtocolCommand(
           buildTeamSpeakCommand("removeclientfromstream", {
             id: stream.streamId,
             clid: String(entry.tsClient.getClientId()),
+            reason: "1",
           }),
         )
         .catch(() => undefined);
@@ -220,7 +222,7 @@ export class ScreenShareHub {
         continue;
       }
       if (movedIsSelf && stream.viewerEntryIds.has(entry.id) && stream.channelId !== targetChannelId) {
-        this.leaveScreenStream(entry, stream);
+        this.leaveScreenStream(entry, stream, true);
       }
     }
   }

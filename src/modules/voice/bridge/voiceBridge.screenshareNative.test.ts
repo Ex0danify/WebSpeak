@@ -207,8 +207,18 @@ describe("watching a stream that a TeamSpeak user shares", () => {
     signalTo(other, `ts-${source.id}`, { kind: "close" });
     await ask(other, "sendTextMessage", { message: "" });
     for (const session of [viewer, other]) {
-      expect(session.client.protocolCommands).toContain(`removeclientfromstream id=${STREAM_ID} clid=${session.id}`);
+      expect(session.client.protocolCommands).toContain(`removeclientfromstream id=${STREAM_ID} clid=${session.id} reason=1`);
     }
+  });
+
+  it("does not ask the server to remove a viewer that left by changing channel, the server already did", async () => {
+    const gateway = await gateways.start();
+    const { viewer } = await nativeShare(gateway);
+    await join(viewer);
+    const mark = await markOf(viewer);
+    await ask(viewer, "switchChannel", { channelId: "2" }, "move");
+    expect(await received(viewer, mark)).toEqual(expect.arrayContaining([{ type: "screenShareLeft", streamId: STREAM_ID }]));
+    expect(viewer.client.protocolCommands.filter((command) => command.startsWith("removeclientfromstream"))).toEqual([]);
   });
 
   it("turns what the source sends into signals for the viewer that joined", async () => {

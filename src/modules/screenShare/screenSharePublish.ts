@@ -220,6 +220,7 @@ function relayScreenShareSignal(
           buildTeamSpeakCommand("removeclientfromstream", {
             id: stream.teamSpeakStreamId,
             clid: String(viewerClid),
+            reason: "1",
           }),
         )
         .catch(() => undefined);
