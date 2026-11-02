@@ -7,6 +7,7 @@ import { AUDIO_CLOCK_INTERVAL_MS, AUDIO_FRAME_SAMPLES, AUDIO_SAMPLE_RATE, MAX_MI
 import { WEBRTC_UDP_PORT_RANGE } from "../../../config/webrtcConfig.js";
 import type { WebRtcIceInfo } from "../iceInfo.js";
 import { readIceInfo } from "./webrtcIceInfo.js";
+import { UplinkVoiceGate } from "./uplinkVoiceGate.js";
 
 const DEFAULT_WEBRTC_OPUS_PAYLOAD_TYPE = 111;
 const SPEAKER_ACTIVITY_INTERVAL_MS = 100;
@@ -27,6 +28,8 @@ export interface WebRtcAudioSessionOptions {
   microphoneMuted?: boolean;
   accompanimentActive?: boolean;
   onVoiceFrame: (data: Buffer, codec: 4 | 5) => void;
+  /** The speaker went quiet, TeamSpeak is told with an empty packet. */
+  onVoiceEnd?: (codec: 4 | 5) => void;
   onVoiceActivity: (clientIds: number[]) => void;
   /** Seam for the mixer's Opus encoder, production uses the native one. */
   createEncoder?: () => OpusCodec;
@@ -63,6 +66,9 @@ export class WebRtcAudioSession {
   private readonly transceiver: RTCRtpTransceiver;
   private readonly logger: LoggerType;
   private readonly onVoiceFrame: (data: Buffer, codec: 4 | 5) => void;
+  private readonly onVoiceEnd: (codec: 4 | 5) => void;
+  private readonly uplinkGate: UplinkVoiceGate;
+  private uplinkCodec: 4 | 5 = 4;
   private readonly onVoiceActivity: (clientIds: number[]) => void;
   private readonly outgoingTrack: MediaStreamTrack;
   private readonly opusPayloadTypes = new Set<number>();
@@ -124,6 +130,8 @@ export class WebRtcAudioSession {
   private constructor(options: WebRtcAudioSessionOptions, encoder: OpusCodec) {
     this.logger = options.logger.child({ component: "webrtc-audio", connectionId: options.connectionId });
     this.onVoiceFrame = options.onVoiceFrame;
+    this.onVoiceEnd = options.onVoiceEnd ?? (() => {});
+    this.uplinkGate = new UplinkVoiceGate(createOpusCodec(AUDIO_SAMPLE_RATE, 1), () => this.stats.webrtcIngressDecodeErrors++);
     this.onVoiceActivity = options.onVoiceActivity;
     this.microphoneMuted = options.microphoneMuted === true;
     this.accompanimentActive = options.accompanimentActive === true;
@@ -176,9 +184,12 @@ export class WebRtcAudioSession {
         // A muted mic must stop here, some browsers still send comfort silence RTP that keeps the user
         // speaking in TS. With accompaniment on the browser already removed the mic part, so keep going.
         if (this.microphoneMuted && !this.accompanimentActive) return;
-        // Forward valid Opus payloads unchanged. No RMS decode or speech gate, dropping quiet frames
-        // causes gaps, clicks and decoder recovery artifacts.
-        this.onVoiceFrame(payload, this.accompanimentActive ? 5 : 4);
+        // Frames are forwarded unchanged. The browser sends them around the clock, so only the ones in a
+        // talk burst go on, TeamSpeak shows the sender as speaking for as long as voice keeps arriving.
+        const codec = this.accompanimentActive ? 5 : 4;
+        this.endUplinkIfIdle();
+        for (const frame of this.uplinkGate.push(payload, Date.now())) this.onVoiceFrame(frame, codec);
+        this.uplinkCodec = codec;
       });
       void this.transceiver.sender.replaceTrack(this.outgoingTrack).catch((error: unknown) => {
         this.logger.warn({ err: error instanceof Error ? error.message : String(error) }, "Could not attach WebRTC output track");
@@ -225,6 +236,7 @@ export class WebRtcAudioSession {
     if (this.audioTimer) clearTimeout(this.audioTimer);
     this.audioTimer = null;
     clearInterval(this.activityTimer);
+    this.uplinkGate.dispose();
     this.mixer.close();
     this.outgoingTrack.stop();
     await this.peer.close();
@@ -277,15 +289,27 @@ export class WebRtcAudioSession {
 
   private flushSpeakerActivity(): void {
     if (this.closed) return;
+    this.endUplinkIfIdle();
     const ids = this.mixer.takeActiveSpeakers();
     if (ids.length) this.onVoiceActivity(ids);
   }
 
+  private endUplinkIfIdle(): void {
+    if (this.uplinkGate.expired(Date.now())) this.onVoiceEnd(this.uplinkCodec);
+  }
+
+  private endUplink(): void {
+    if (this.uplinkGate.stop()) this.onVoiceEnd(this.uplinkCodec);
+  }
+
   setMicrophoneMuted(muted: boolean): void {
     this.microphoneMuted = muted;
+    if (muted && !this.accompanimentActive) this.endUplink();
   }
 
   setAccompanimentActive(active: boolean): void {
+    // The burst on the old codec ends, the next frame starts a new one on the other.
+    if (active !== this.accompanimentActive) this.endUplink();
     this.accompanimentActive = active;
   }
 

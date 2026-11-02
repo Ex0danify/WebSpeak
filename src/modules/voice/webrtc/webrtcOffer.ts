@@ -78,6 +78,15 @@ export async function handleWebRtcOffer(
         // A packet during session replacement is dropped, the WebRTC peer can still be closed on its own.
       }
     },
+    onVoiceEnd: (codec) => {
+      try {
+        // An empty payload is how TeamSpeak learns the speaker stopped.
+        if (entry.whisperActive && entry.whisperTargetIds.size) entry.tsClient.sendWhisper(Buffer.alloc(0), [...entry.whisperTargetIds], codec);
+        else entry.tsClient.sendVoice(Buffer.alloc(0), codec);
+      } catch {
+        entry.audio.tsSendErrors++;
+      }
+    },
     onVoiceActivity: (clientIds) => {
       if (entry.ws.readyState === WebSocket.OPEN) sendJson({ type: "voiceActivity", clientIds });
     },
