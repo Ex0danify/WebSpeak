@@ -151,7 +151,6 @@
         :is-mobile-viewport="isMobileViewport"
         :stream-for-member="screenShareStreamForMember"
         :viewing-stream-id="screenShareViewingStreamId"
-        :sharing-ids="screenShareSharingIds"
         :indicator-bars="screenShareIndicatorBars"
         @toggle-screen-share="toggleScreenShareForMember"
         @select-channel="selectChannel"
@@ -278,7 +277,6 @@ const {
   screenShareStarting,
   screenShareViewing,
   screenShareViewingStreamId,
-  screenShareSharingIds,
   screenShareRemoteStream,
   screenShareError,
   screenShareRemoteVolume,

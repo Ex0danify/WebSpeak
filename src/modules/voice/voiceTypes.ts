@@ -84,6 +84,7 @@ export interface ChannelMember {
   inputMuted?: boolean;
   outputMuted?: boolean;
   channelCommander?: boolean;
+  streaming?: boolean;
 }
 
 export interface ServerEvent {

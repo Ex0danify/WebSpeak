@@ -9,6 +9,7 @@ export interface VoiceDirectoryDeps {
   sendInitialState(ctx: VoiceConnection): void;
   reconcileScreenShareAfterClientMove(entry: WebClientEntry, clientId: number, targetChannelId: bigint): void;
   reconcileNativeScreenShareAfterClientLeave(entry: WebClientEntry, clientId: number): void;
+  reconcileNativeScreenShareAfterStreamingEnded(entry: WebClientEntry, clientId: number): void;
 }
 
 /**
@@ -96,9 +97,11 @@ export function registerVoiceDirectory(ctx: VoiceConnection, deps: VoiceDirector
 
   ctx.tsClient.on("clientUpdated", (info) => {
     const previousNickname = ctx.entry.members.get(info.id)?.nickname;
+    const wasStreaming = ctx.entry.members.get(info.id)?.streaming === true;
     ctx.directory.applyClientUpdated(info);
     refreshDirectory(ctx);
     const member = ctx.entry.members.get(info.id);
+    if (wasStreaming && member?.streaming !== true) deps.reconcileNativeScreenShareAfterStreamingEnded(ctx.entry, info.id);
     const renamed = previousNickname !== undefined && member !== undefined && member.nickname !== previousNickname;
     // Also covers a rename by someone else, which would otherwise leave the name stale after a reconnect.
     if (renamed && info.id === ctx.state.selfId) ctx.entry.nickname = member.nickname;
@@ -193,6 +196,7 @@ export function refreshDirectory(ctx: VoiceConnection) {
       inputMuted: client.inputMuted,
       outputMuted: client.outputMuted,
       channelCommander: client.channelCommander,
+      streaming: client.streaming,
     });
   }
   for (const clientId of ctx.entry.whisperTargetIds) {

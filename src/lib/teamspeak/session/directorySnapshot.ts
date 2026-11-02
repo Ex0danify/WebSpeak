@@ -24,6 +24,7 @@ export interface DirectoryClient {
   inputMuted: boolean;
   outputMuted: boolean;
   channelCommander: boolean;
+  streaming: boolean;
 }
 
 export interface DirectorySnapshot {
@@ -51,4 +52,5 @@ export const directoryClient = (client: SessionClient): DirectoryClient => ({
   inputMuted: client.inputMuted,
   outputMuted: client.outputMuted,
   channelCommander: client.channelCommander,
+  streaming: client.streaming,
 });

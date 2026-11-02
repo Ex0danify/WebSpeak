@@ -43,6 +43,8 @@ export interface ChannelMember {
   inputMuted?: boolean;
   outputMuted?: boolean;
   channelCommander?: boolean;
+  /** Shares a screen, in any channel. */
+  streaming?: boolean;
   /** The gateway sends an empty nickname with this flag; the view renders `unnamedMember`. */
   unnamed?: boolean;
 }
@@ -66,6 +68,7 @@ export interface ChannelInfo {
     inputMuted?: boolean;
     outputMuted?: boolean;
     channelCommander?: boolean;
+    streaming?: boolean;
   }[];
 }
 
@@ -204,7 +207,6 @@ export type ServerMessage =
   | { type: "webrtcAnswer"; payload: { sdp: string } }
   | { type: "webrtcError"; code: string }
   | { type: "screenShareList"; streams: ScreenShareStreamPayload[] }
-  | { type: "sharingMembers"; clientIds: number[] }
   | { type: "screenShareStarted"; requestId?: string; stream: ScreenShareStreamPayload; owner: boolean }
   | { type: "screenShareJoined"; requestId?: string; stream: ScreenShareStreamPayload; ownerPeerId: string; mode: "browser" | "teamspeak" }
   | { type: "screenShareStopped"; streamId: string; reason: string }

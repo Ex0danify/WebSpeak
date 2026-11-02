@@ -30,7 +30,7 @@ export interface ScreenShareParticipant {
   readonly tsClient: ScreenShareTeamSpeakClient;
   readonly ws: ScreenShareSocket;
   /** Only the client ids are read, the values are the session's own member records. */
-  readonly members: ReadonlyMap<number, unknown>;
+  readonly members: ReadonlyMap<number, { streaming?: boolean }>;
   /** The channel of any client this session knows of, undefined when it does not know the client. */
   clientChannelId?(clientId: number): bigint | undefined;
 }

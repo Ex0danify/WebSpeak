@@ -77,6 +77,8 @@ export class VoiceBridge {
         this.screenHub.reconcileScreenShareAfterClientMove(entry, clientId, targetChannelId),
       reconcileNativeScreenShareAfterClientLeave: (entry, clientId) =>
         this.screenHub.reconcileNativeScreenShareAfterClientLeave(entry, clientId),
+      reconcileNativeScreenShareAfterStreamingEnded: (entry, clientId) =>
+        this.screenHub.reconcileNativeScreenShareAfterStreamingEnded(entry, clientId),
     };
     this.cleanupDeps = {
       entries: this.entries,

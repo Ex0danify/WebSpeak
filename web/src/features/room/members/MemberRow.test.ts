@@ -101,7 +101,7 @@ describe("MemberRow screen share", () => {
   });
 
   it("shows the badge for a member who shares in another channel, without a way to watch", () => {
-    const wrapper = mount(MemberRow, { props: { member, speaking: false, isMobileViewport: false, sharing: true } });
+    const wrapper = mount(MemberRow, { props: { member: { ...member, streaming: true }, speaking: false, isMobileViewport: false } });
     expect(wrapper.text()).toContain("Live");
     expect(wrapper.find('[aria-label="Watch screen"]').exists()).toBe(false);
   });

@@ -47,7 +47,7 @@
         ><Icon name="shield" :size="13"
       /></span>
     </div>
-    <span v-if="stream || sharing" :class="liveBadge"
+    <span v-if="stream || member.streaming" :class="liveBadge"
       ><span class="inline-flex h-3 items-center gap-px text-accent" aria-hidden="true"
         ><i
           v-for="(bar, index) in indicatorBars"
@@ -104,13 +104,11 @@ withDefaults(
     isMobileViewport: boolean;
     /** The screen share this member owns, if any. */
     stream?: ScreenShareStream | null;
-    /** The member shares a screen, in any channel. A stream is there only when it is in your own. */
-    sharing?: boolean;
     /** The local user is watching that stream. */
     watching?: boolean;
     indicatorBars?: number[];
   }>(),
-  { stream: null, sharing: false, watching: false, indicatorBars: () => [] },
+  { stream: null, watching: false, indicatorBars: () => [] },
 );
 
 defineEmits<{

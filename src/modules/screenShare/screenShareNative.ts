@@ -187,7 +187,6 @@ export function handleRawScreenNotification(hub: ScreenShareHub, entry: ScreenSh
     if (params.name) delete stream.nameKind;
     stream.audio = params.audio === "1";
     hub.screenStreams.set(key, stream);
-    hub.announceSharing(stream.targetKey);
     // Every session on the same target sees this notification, only the first one announces a
     // new stream or viewers get duplicate cards.
     if (!current) {

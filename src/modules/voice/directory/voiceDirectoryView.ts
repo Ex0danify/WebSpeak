@@ -32,6 +32,7 @@ export function mapChannelTree(snapshot: TSDirectorySnapshot, avatarCache = new 
           inputMuted: client.inputMuted,
           outputMuted: client.outputMuted,
           channelCommander: client.channelCommander,
+          streaming: client.streaming,
         };
       }),
   }));

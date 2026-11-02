@@ -68,6 +68,16 @@ describe("clients", () => {
     expect(session.client(6)!.channelId).toBe(2n);
   });
 
+  it("follows the streaming flag of a client in any channel", () => {
+    const { session, feed } = welcomed();
+    expect(session.client(6)!.streaming).toBe(false);
+    const [on] = feed(cmd("notifyclientupdated", { clid: 6, client_is_streaming: 1 }));
+    expect(on).toMatchObject({ type: "clientUpdated", changed: ["streaming"] });
+    expect(session.client(6)!.streaming).toBe(true);
+    feed(cmd("notifyclientupdated", { clid: 6, client_is_streaming: 0 }));
+    expect(session.client(6)!.streaming).toBe(false);
+  });
+
   it("takes the channel group of a join", () => {
     const { session, feed } = welcomed();
     const changed = { invokerid: 0, invokername: "Server", cgid: 8, cid: 2, clid: 6, cgi: 2 };

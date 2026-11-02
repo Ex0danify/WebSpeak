@@ -89,7 +89,7 @@ export function useRoomSession() {
     screenShareErrorCode,
     screenShareRemoteVolume,
   } = storeToRefs(screenShare);
-  const { screenShareStreams, screenShareSharingIds, screenShareWebRtcStats } = screenShare;
+  const { screenShareStreams, screenShareWebRtcStats } = screenShare;
   const { state, members, channels, chatMessages, serverEvents, pokeNotifications, roomNotices, speakingIds, whisperTargetIds } = session;
   const { webrtcAvailable, serverName } = storeToRefs(session);
   const {
@@ -372,7 +372,6 @@ export function useRoomSession() {
     },
     screenShare: {
       screenShareStreams,
-      screenShareSharingIds,
       screenShareActive,
       screenShareStarting,
       screenShareActiveStreamId,
