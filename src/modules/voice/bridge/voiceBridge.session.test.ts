@@ -155,6 +155,44 @@ describe("members after the initial state", () => {
     });
   });
 
+  it("announces a renamed member with `memberUpdate` and a server event that names both names", async () => {
+    const gateway = await gateways.start();
+    const bob = gateway.ts.addMember("bob", 2n);
+    const { socket } = await joinVoice(gateway, { nickname: "alice" });
+    const after = socket.mark();
+    bob.update({ nickname: "robert" });
+    expect(await socket.waitForMessage("memberUpdate", { after })).toEqual({
+      type: "memberUpdate",
+      id: bob.id,
+      uid: "remote-bob",
+      nickname: "robert",
+    });
+    const list = await socket.waitForMessage(
+      (message) => message.type === "channelList" && memberNames(message, "Room A").includes("robert"),
+      { after },
+    );
+    expect(memberNames(list, "Room A")).toEqual(["robert"]);
+    expect((await socket.waitForMessage("serverEvent", { after })).event).toMatchObject({
+      kind: "renamed",
+      message: "bob is now called robert",
+      nickname: "robert",
+      previousNickname: "bob",
+      params: { nickname: "robert", previousNickname: "bob" },
+    });
+  });
+
+  it("sends no `memberUpdate` when only other fields of a member change", async () => {
+    const gateway = await gateways.start();
+    const bob = gateway.ts.addMember("bob", 2n);
+    const { socket } = await joinVoice(gateway, { nickname: "alice" });
+    const after = socket.mark();
+    bob.update({ away: true });
+    await socket.waitForMessage((message) => message.type === "channelList" && channel(message, "Room A").members[0]?.away === true, {
+      after,
+    });
+    expect(socket.messagesOfType("memberUpdate")).toEqual([]);
+  });
+
   it("carries away and mute flags of other members in the tree", async () => {
     const gateway = await gateways.start();
     const bob = gateway.ts.addMember("bob", 2n);

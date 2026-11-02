@@ -1,5 +1,10 @@
 import { TeamSpeakServerError } from "../../src/lib/teamspeak/index.js";
-import type { TSChatMessage, TSChatScope, TSDirectoryClient as DirectoryClientInfo } from "../../src/modules/teamspeak/teamSpeakClient.js";
+import type {
+  TSChatMessage,
+  TSChatScope,
+  TSDirectoryClient as DirectoryClientInfo,
+  TSVoiceData,
+} from "../../src/modules/teamspeak/teamSpeakClient.js";
 import type { FakeTeamSpeakServer } from "./fakeTsClient.js";
 
 /** Routes a text message of the fake server: channel to the sender's channel, private to one client, server to everyone. */
@@ -28,5 +33,16 @@ export function deliverChat(
     if (scope === "channel" && member.channelID !== from.channelID) continue;
     if (scope === "private" && id !== Number(targetId)) continue;
     client.emit("textMessage", payload);
+  }
+}
+
+/** Voice reaches the sender's channel, or only `toIds` for a whisper. */
+export function deliverVoice(server: FakeTeamSpeakServer, fromId: number, data: Buffer, codec: number, toIds?: number[]): void {
+  const from = server.members.get(fromId);
+  if (!from) return;
+  for (const [id, client] of server.connected) {
+    if (id === fromId) continue;
+    if (toIds ? !toIds.includes(id) : server.members.get(id)!.channelID !== from.channelID) continue;
+    client.emit("voiceData", { clientId: fromId, codec, data: Buffer.from(data) } satisfies TSVoiceData);
   }
 }

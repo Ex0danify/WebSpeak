@@ -130,6 +130,10 @@ export async function handleCommand(
         command.payload.away as boolean,
         typeof command.payload.message === "string" ? command.payload.message.trim() : "",
       );
+    } else if (command.type === "setNickname") {
+      const nickname = (command.payload.nickname as string).trim();
+      await entry.tsClient.setNickname(nickname);
+      entry.nickname = nickname;
     } else if (command.type === "setWhisperTargets") {
       const targetIds = command.payload.targetIds as number[];
       const selfId = entry.tsClient.getClientId();

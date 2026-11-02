@@ -75,9 +75,28 @@ export function registerVoiceDirectory(ctx: VoiceConnection, deps: VoiceDirector
   });
 
   ctx.tsClient.on("clientUpdated", (info) => {
+    const previousNickname = ctx.entry.members.get(info.id)?.nickname;
     ctx.directory.applyClientUpdated(info);
     refreshDirectory(ctx);
-    if (ctx.state.tsReady && ctx.state.initialStateSent) ctx.sendJson({ type: "channelList", channels: ctx.entry.channelTree });
+    const member = ctx.entry.members.get(info.id);
+    const renamed = previousNickname !== undefined && member !== undefined && member.nickname !== previousNickname;
+    // Also covers a rename by someone else, which would otherwise leave the name stale after a reconnect.
+    if (renamed && info.id === ctx.state.selfId) ctx.entry.nickname = member.nickname;
+    if (!ctx.state.tsReady || !ctx.state.initialStateSent) return;
+    ctx.sendJson({ type: "channelList", channels: ctx.entry.channelTree });
+    if (!renamed) return;
+    ctx.sendJson({
+      type: "memberUpdate",
+      id: member.id,
+      uid: member.uid,
+      nickname: member.nickname,
+      ...(member.nickname ? {} : { unnamed: true }),
+    });
+    if (info.id !== ctx.state.selfId)
+      addServerEvent(ctx, "renamed", `${previousNickname || "A user"} is now called ${member.nickname || "an unnamed user"}`, {
+        nickname: member.nickname,
+        previousNickname,
+      });
   });
 }
 
@@ -96,19 +115,17 @@ function trackChannelEvents(ctx: VoiceConnection, previous: unknown[], next: unk
       addServerEvent(ctx, "channelDeleted", `Channel "${channel.name}" was deleted`, { channelName: channel.name });
 }
 
-function eventParams(extra: Partial<Pick<ServerEvent, "nickname" | "channelName">>): { params?: MessageParams } {
+type EventExtra = Partial<Pick<ServerEvent, "nickname" | "previousNickname" | "channelName">>;
+
+function eventParams(extra: EventExtra): { params?: MessageParams } {
   const params: MessageParams = {};
   if (extra.nickname) params.nickname = extra.nickname;
+  if (extra.previousNickname) params.previousNickname = extra.previousNickname;
   if (extra.channelName !== undefined) params.channelName = extra.channelName;
   return Object.keys(params).length ? { params } : {};
 }
 
-export function addServerEvent(
-  ctx: VoiceConnection,
-  kind: ServerEvent["kind"],
-  message: string,
-  extra: Partial<Pick<ServerEvent, "nickname" | "channelName">> = {},
-) {
+export function addServerEvent(ctx: VoiceConnection, kind: ServerEvent["kind"], message: string, extra: EventExtra = {}) {
   const event: ServerEvent = {
     id: `event-${Date.now().toString(36)}-${randomBytes(4).toString("hex")}`,
     kind,
