@@ -76,6 +76,13 @@ export function useIdentityManager() {
     await saveLocalPreferences({ schemaVersion: 1, defaultIdentityId: id });
   }
 
+  // Reads the stored default, a manager that never ran init() has none in memory and would overwrite the real one.
+  async function adoptAsDefaultIfNone(id: string): Promise<void> {
+    const stored = (await loadLocalPreferences()).defaultIdentityId;
+    if (has(stored)) defaultId.value = stored;
+    else await setDefault(id);
+  }
+
   async function create({ label, level, signal }: CreateOptions = {}): Promise<CreateResult> {
     mintState.value = { phase: "queued" };
     try {
@@ -90,7 +97,7 @@ export function useIdentityManager() {
       await saveIdentity(identity);
       await refresh();
       await select(identity.id);
-      if (!defaultId.value) await setDefault(identity.id);
+      await adoptAsDefaultIfNone(identity.id);
       mintState.value = { phase: "done" };
       return { ok: true, identity };
     } catch (error) {
@@ -129,7 +136,7 @@ export function useIdentityManager() {
     if (!saved) return { ok: false, code: "SAVE_FAILED" };
     await refresh();
     await select(identity.id);
-    if (!defaultId.value) await setDefault(identity.id);
+    await adoptAsDefaultIfNone(identity.id);
     return { ok: true, identity };
   }
 
