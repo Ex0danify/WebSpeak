@@ -22,4 +22,5 @@ export {
   nicknameText,
   privateConversationKey,
 } from "@/features/session/format";
+export { summarizeLatency, type LatencySummary } from "@/features/session/latencySummary";
 export { translations as sessionMessages } from "@/features/session/i18n/index.js";

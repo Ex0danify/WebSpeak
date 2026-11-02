@@ -1,6 +1,5 @@
 import { computed, onUnmounted, ref, watch } from "vue";
-import { median } from "@/shared/lib/format.js";
-import type { LatencyProbeResult } from "@/features/session";
+import { summarizeLatency, type LatencyProbeResult, type LatencySummary } from "@/features/session";
 import type { RoomSession } from "@/features/room/roomTypes";
 
 const PERFORMANCE_INTERVAL_MS = 3_000;
@@ -10,13 +9,7 @@ export interface UseNetworkPerformanceOptions {
   session: Pick<RoomSession["session"], "state" | "measureLatency">;
 }
 
-export interface NetworkPerformanceStats {
-  gatewayLatencyMs: number | null;
-  gatewayLossPercent: number | null;
-  teamSpeakLatencyMs: number | null;
-  teamSpeakLossPercent: number | null;
-  ready: boolean;
-}
+export type NetworkPerformanceStats = LatencySummary;
 
 /** The network-performance popover with its own open state, a rolling window of browser<->gateway and gateway<->TeamSpeak
  *  latency samples (measureLatency()), and the polling loop that keeps it fresh while open. It stops when the connection drops
@@ -32,21 +25,7 @@ export function useNetworkPerformance(options: UseNetworkPerformanceOptions) {
   let performanceTimer: number | null = null;
   let performanceMonitorGeneration = 0;
 
-  const performanceStats = computed<NetworkPerformanceStats>(() => {
-    const samples = performanceSamples.value;
-    const attempts = performanceAttempts.value;
-    const gatewaySamples = samples.map((sample) => sample.browserRttMs);
-    const teamSpeakSamples = samples
-      .filter((sample) => sample.teamSpeakReachable && sample.teamSpeakLatencyMs != null)
-      .map((sample) => sample.teamSpeakLatencyMs as number);
-    return {
-      gatewayLatencyMs: median(gatewaySamples),
-      gatewayLossPercent: attempts > 0 ? Math.round(((attempts - samples.length) / attempts) * 100) : null,
-      teamSpeakLatencyMs: median(teamSpeakSamples),
-      teamSpeakLossPercent: attempts > 0 ? Math.round(((attempts - teamSpeakSamples.length) / attempts) * 100) : null,
-      ready: attempts > 0,
-    };
-  });
+  const performanceStats = computed<NetworkPerformanceStats>(() => summarizeLatency(performanceProbeResults.value));
 
   function togglePerformancePanel(): void {
     performancePanelOpen.value = !performancePanelOpen.value;

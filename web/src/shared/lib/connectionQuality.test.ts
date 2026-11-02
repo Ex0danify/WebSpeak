@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createQualityTracker, rateConnection } from "@/features/room/network/connectionQuality";
+import { createQualityTracker, rateConnection } from "@/shared/lib/connectionQuality";
 
 describe("rateConnection", () => {
   it("rates each metric on its own scale", () => {
