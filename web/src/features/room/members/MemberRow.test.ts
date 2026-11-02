@@ -100,6 +100,12 @@ describe("MemberRow screen share", () => {
     expect(wrapper.get('button[aria-label="Watch screen"]').attributes("aria-pressed")).toBe("true");
   });
 
+  it("shows the badge for a member who shares in another channel, without a way to watch", () => {
+    const wrapper = mount(MemberRow, { props: { member, speaking: false, isMobileViewport: false, sharing: true } });
+    expect(wrapper.text()).toContain("Live");
+    expect(wrapper.find('[aria-label="Watch screen"]').exists()).toBe(false);
+  });
+
   it("does not offer to watch your own share", () => {
     const wrapper = mount(MemberRow, { props: { member: { ...member, isSelf: true }, speaking: false, isMobileViewport: false, stream } });
     expect(wrapper.text()).toContain("Live");

@@ -11,6 +11,8 @@ function initialStats(): ScreenShareWebRtcStats {
  *  stay closure state in the composable. */
 export const useScreenShareStore = defineStore("voiceScreenShare", () => {
   const screenShareStreams = reactive<ScreenShareStream[]>([]);
+  /** Client ids that share a screen right now, in any channel. Watching still needs a stream in your own. */
+  const screenShareSharingIds = reactive(new Set<number>());
   const screenShareActive = ref(false);
   const screenShareStarting = ref(false);
   const screenShareActiveStreamId = ref("");
@@ -25,6 +27,7 @@ export const useScreenShareStore = defineStore("voiceScreenShare", () => {
 
   function reset(): void {
     screenShareStreams.splice(0);
+    screenShareSharingIds.clear();
     screenShareActive.value = false;
     screenShareStarting.value = false;
     screenShareActiveStreamId.value = "";
@@ -39,6 +42,7 @@ export const useScreenShareStore = defineStore("voiceScreenShare", () => {
 
   return {
     screenShareStreams,
+    screenShareSharingIds,
     screenShareActive,
     screenShareStarting,
     screenShareActiveStreamId,

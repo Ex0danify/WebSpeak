@@ -14,6 +14,7 @@ export function handleScreenShareMessage(
 ): void {
   if (message.type === "screenShareList") {
     sendJson({ type: "screenShareList", streams: hub.listScreenStreamsFor(entry) });
+    sendJson({ type: "sharingMembers", clientIds: hub.sharingClientIds(teamSpeakTargetKey(entry.target)) });
     return;
   }
 
@@ -47,6 +48,7 @@ export function handleScreenShareMessage(
       nativeViewerClids: new Set(),
     };
     hub.screenStreams.set(screenStreamKey(stream.targetKey, stream.streamId), stream);
+    hub.announceSharing(stream.targetKey);
     sendJson({ type: "screenShareStarted", requestId: message.requestId, stream: hub.describeScreenStream(stream), owner: true });
     hub.broadcastScreenMessage(
       stream,

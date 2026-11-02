@@ -65,6 +65,23 @@ export class ScreenShareHub {
     return undefined;
   }
 
+  /** The client ids that own a stream on `targetKey`, in any channel. */
+  sharingClientIds(targetKey: string): number[] {
+    const ids = new Set<number>();
+    for (const stream of this.screenStreams.values()) {
+      if (stream.targetKey === targetKey && typeof stream.ownerClientId === "number") ids.add(stream.ownerClientId);
+    }
+    return [...ids].sort((a, b) => a - b);
+  }
+
+  /** Tells every session on the target who is sharing, so a member list can show it whatever channel the sharer is in. */
+  announceSharing(targetKey: string): void {
+    const message = { type: "sharingMembers", clientIds: this.sharingClientIds(targetKey) };
+    for (const candidate of this.host.participants()) {
+      if (candidate.target && teamSpeakTargetKey(candidate.target) === targetKey) this.sendToEntry(candidate.id, message);
+    }
+  }
+
   /** The streams in the entry's channel, or in `channelId` while the entry is still being moved there. */
   listScreenStreamsFor(entry: ScreenShareParticipant, channelId: bigint = entry.tsClient.getChannelId()): ScreenShareStreamDescription[] {
     const targetKey = teamSpeakTargetKey(entry.target);
@@ -165,6 +182,7 @@ export class ScreenShareHub {
     if (!this.screenStreams.delete(screenStreamKey(stream.targetKey, stream.streamId))) return;
     const message = { type: "screenShareStopped", streamId: stream.streamId, reason };
     this.broadcastScreenMessage(stream, message);
+    this.announceSharing(stream.targetKey);
     stream.viewerEntryIds.clear();
     stream.nativeViewerClids.clear();
     stream.viewerCount = 0;

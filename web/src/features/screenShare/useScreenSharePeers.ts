@@ -25,7 +25,7 @@ export function useScreenSharePeers() {
     screenShareError,
     screenShareErrorCode,
   } = storeToRefs(screenShare);
-  const { screenShareStreams } = screenShare;
+  const { screenShareStreams, screenShareSharingIds } = screenShare;
   const screenSharePeers = new Map<string, RTCPeerConnection>();
   const screenSharePeerRoles = new Map<string, "owner" | "viewer">();
   const screenSharePendingIce = new Map<string, RTCIceCandidateInit[]>();
@@ -179,6 +179,7 @@ export function useScreenSharePeers() {
     screenShareViewingStreamId.value = "";
     screenShareRemoteStream.value = null;
     screenShareStreams.length = 0;
+    screenShareSharingIds.clear();
   }
 
   function upsertScreenShareStream(raw: unknown): ScreenShareStream | null {
@@ -207,6 +208,10 @@ export function useScreenSharePeers() {
   }
 
   const handlers: MessageHandlers = {
+    sharingMembers: (msg) => {
+      screenShareSharingIds.clear();
+      if (Array.isArray(msg.clientIds)) for (const id of msg.clientIds) if (Number.isInteger(id)) screenShareSharingIds.add(id);
+    },
     screenShareList: (msg) => {
       screenShareStreams.length = 0;
       if (Array.isArray(msg.streams)) for (const raw of msg.streams) upsertScreenShareStream(raw);

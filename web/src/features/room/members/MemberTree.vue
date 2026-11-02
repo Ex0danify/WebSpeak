@@ -46,6 +46,7 @@
                   :muted-locally="Boolean(mutedMembers[member.id])"
                   :is-mobile-viewport="isMobileViewport"
                   :stream="streamForMember(member)"
+                  :sharing="sharingIds.has(member.id)"
                   :watching="viewingStreamId !== '' && streamForMember(member)?.streamId === viewingStreamId"
                   :indicator-bars="indicatorBars"
                   :class="{ dragging: draggedMemberId === member.id }"
@@ -94,6 +95,7 @@ const props = defineProps<{
   isMobileViewport: boolean;
   streamForMember: (member: ChannelMember) => ScreenShareStream | null;
   viewingStreamId: string;
+  sharingIds: Set<number>;
   indicatorBars: number[];
 }>();
 

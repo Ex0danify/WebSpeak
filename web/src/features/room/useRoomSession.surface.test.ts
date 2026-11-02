@@ -135,6 +135,7 @@ const EXPECTED_SURFACE: Record<string, Record<string, string>> = {
     screenShareRemoteVolume: "ref",
     screenShareStarting: "ref",
     screenShareStreams: "reactive-array",
+    screenShareSharingIds: "reactive-set",
     screenShareViewing: "ref",
     screenShareViewingStreamId: "ref",
     screenShareWebRtcStats: "reactive-object",

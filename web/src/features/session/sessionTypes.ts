@@ -204,6 +204,7 @@ export type ServerMessage =
   | { type: "webrtcAnswer"; payload: { sdp: string } }
   | { type: "webrtcError"; code: string }
   | { type: "screenShareList"; streams: ScreenShareStreamPayload[] }
+  | { type: "sharingMembers"; clientIds: number[] }
   | { type: "screenShareStarted"; requestId?: string; stream: ScreenShareStreamPayload; owner: boolean }
   | { type: "screenShareJoined"; requestId?: string; stream: ScreenShareStreamPayload; ownerPeerId: string; mode: "browser" | "teamspeak" }
   | { type: "screenShareStopped"; streamId: string; reason: string }
