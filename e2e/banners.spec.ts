@@ -95,6 +95,32 @@ test.describe("audio notice", () => {
   });
 });
 
+test.describe("banner placement", () => {
+  const chatTabs = (page: Page): Locator => page.getByRole("tablist", { name: "Chat tabs" });
+
+  async function showChat(page: Page): Promise<void> {
+    const chatTab = page.getByRole("tab", { name: "Chat", exact: true });
+    if (await chatTab.isVisible()) await chatTab.click();
+  }
+
+  test("stacked banners end above the chat tabs with a gap, not on their border", async ({ page }) => {
+    const scripted = await scriptedRoom(page);
+    scripted.send({ type: "reconnecting", attempt: 1 });
+    scripted.send({ type: "audioError", code: "AUDIO_ENCODER_UNAVAILABLE", detail: "opus encoder unavailable" });
+    await expect(reconnecting(page)).toBeVisible();
+    await expect(audioNotice(page)).toBeVisible();
+    await showChat(page);
+
+    const first = (await reconnecting(page).boundingBox())!;
+    const second = (await audioNotice(page).boundingBox())!;
+    const tabs = (await chatTabs(page).boundingBox())!;
+    const [upper, lower] = first.y < second.y ? [first, second] : [second, first];
+    expect(upper.y + upper.height).toBeLessThanOrEqual(lower.y);
+    // The chat panel draws its top border above the tabs, so the gap has to clear that too.
+    expect(tabs.y - (lower.y + lower.height)).toBeGreaterThanOrEqual(12);
+  });
+});
+
 test.describe("poke banners", () => {
   test("a poke from a person shows who poked and what they wrote, and Close removes it", async ({ page, gateway, script }) => {
     const poker = script.member("bnr-poker");

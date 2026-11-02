@@ -48,12 +48,6 @@
     "src/features/room/shell/MobileNav.vue": {
       "arbitrary": 1
     },
-    "src/features/room/shell/ReconnectBanner.vue": {
-      "arbitrary": 2
-    },
-    "src/features/room/shell/RoomNoticeBanner.vue": {
-      "arbitrary": 2
-    },
     "src/features/room/shell/RoomWorkspace.vue": {
       "arbitrary": 12
     },

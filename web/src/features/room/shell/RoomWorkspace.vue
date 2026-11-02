@@ -40,15 +40,17 @@
         @start="startScreenShareWithSettings"
       />
 
-      <ReconnectBanner
-        :reconnecting="voiceState.reconnecting"
-        :reconnect-failed="voiceState.reconnectFailed"
-        :reconnect-attempt="voiceState.reconnectAttempt"
-        :error="voiceState.error"
-        @reconnect-now="reconnectNow"
-        @disconnect="doDisconnect"
-      />
-      <RoomNoticeBanner :notices="roomNotices" />
+      <div :class="bannerStackClass">
+        <ReconnectBanner
+          :reconnecting="voiceState.reconnecting"
+          :reconnect-failed="voiceState.reconnectFailed"
+          :reconnect-attempt="voiceState.reconnectAttempt"
+          :error="voiceState.error"
+          @reconnect-now="reconnectNow"
+          @disconnect="doDisconnect"
+        />
+        <RoomNoticeBanner :notices="roomNotices" />
+      </div>
       <PokeStack :pokes="pokeNotifications" @dismiss="dismissPoke" />
 
       <div :class="bodyClass">
@@ -376,6 +378,8 @@ const shellClass =
   "grid h-dvh max-h-dvh min-h-0 grid-cols-[318px_minmax(0,1fr)] overflow-hidden bg-surface-1 desktop:h-[calc(100dvh/var(--ui-scale))] desktop:max-h-[calc(100dvh/var(--ui-scale))] max-medium:grid-cols-1 max-medium:grid-rows-[minmax(0,1fr)_minmax(210px,35dvh)] max-compact:flex max-compact:h-svh max-compact:max-h-svh max-compact:min-h-svh max-compact:flex-col max-compact:pb-[calc(74px+env(safe-area-inset-bottom,0px))]";
 const workspaceClass =
   "col-start-2 row-start-1 flex h-full min-h-0 min-w-0 flex-col bg-surface-1 max-medium:col-start-1 max-medium:h-auto max-compact:h-[calc(100svh-74px-env(safe-area-inset-bottom,0px))] max-compact:max-h-[calc(100svh-74px-env(safe-area-inset-bottom,0px))] max-compact:flex-auto max-compact:overflow-hidden";
+// The in-flow banners share one column, so the gap below the last one keeps it off the chat's top border.
+const bannerStackClass = "mx-auto flex w-full max-w-253.5 shrink-0 flex-col gap-3.5 px-8 py-3.5 empty:hidden max-compact:px-3.75";
 // The page never scrolls: the voice section above the chat is short and the message list takes the rest of the height. On a
 // phone the voice section is a screen of its own and scrolls.
 const bodyClass = "flex min-h-0 flex-1 flex-col pb-[env(safe-area-inset-bottom,0px)]";
