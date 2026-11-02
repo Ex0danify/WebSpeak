@@ -7,27 +7,16 @@
         :online-count="members.length"
         :is-mobile-viewport="isMobileViewport"
         :microphone-muted="microphoneMuted"
-        :theme-icon="themeIcon"
-        :theme-label="themeLabel"
+        :theme-mode="themeMode"
         @share="doShare"
         @toggle-microphone="toggleMicrophone"
         @open-settings="settingsOpen = true"
-        @cycle-theme="cycleTheme"
+        @select-theme="selectTheme"
         @language-change="persistLanguage"
         @disconnect="doDisconnect"
       >
         <template v-if="!isMobileViewport" #event-log>
           <EventLogPopover :events="serverEvents" :event-text="eventText" :format-time="formatTime" />
-        </template>
-        <template #network-performance>
-          <NetworkPerformancePanel
-            :performance-panel-open="performancePanelOpen"
-            :performance-running="performanceRunning"
-            :performance-stats="performanceStats"
-            :screen-share-web-rtc-stats="screenShareWebRtcStats"
-            @toggle-panel="togglePerformancePanel"
-            @refresh="refreshPerformanceProbe"
-          />
         </template>
       </WorkspaceHeader>
 
@@ -212,6 +201,7 @@
       :request-identity="requestIdentity"
       :change-nickname="changeNickname"
       :connection="session.session"
+      :screen-share-stats="screenShareWebRtcStats"
     />
   </div>
 </template>
@@ -235,8 +225,6 @@ import MemberPanel from "@/features/room/members/MemberPanel.vue";
 import MemberTree from "@/features/room/members/MemberTree.vue";
 import type { useChannelTree } from "@/features/room/members/useChannelTree";
 import type { useMemberMenu } from "@/features/room/members/useMemberMenu";
-import NetworkPerformancePanel from "@/features/room/network/NetworkPerformancePanel.vue";
-import type { useNetworkPerformance } from "@/features/room/network/useNetworkPerformance";
 import PokeStack from "@/features/room/whisper/PokeStack.vue";
 import WhisperStrip from "@/features/room/whisper/WhisperStrip.vue";
 import type { useWhisper } from "@/features/room/whisper/useWhisper";
@@ -259,9 +247,8 @@ const props = defineProps<{
   screenShare: ReturnType<typeof useScreenShare>;
   audioPanel: ReturnType<typeof useAudioSettingsPanel>;
   whisper: ReturnType<typeof useWhisper>;
-  performance: ReturnType<typeof useNetworkPerformance>;
   memberMenu: Pick<ReturnType<typeof useMemberMenu>, "openMemberMenu" | "openMemberActions">;
-  appearance: Pick<ReturnType<typeof useAppearance>, "themeIcon" | "themeLabel" | "cycleTheme" | "persistLanguage">;
+  appearance: Pick<ReturnType<typeof useAppearance>, "themeMode" | "themeIcon" | "themeLabel" | "cycleTheme" | "selectTheme" | "persistLanguage">;
   doShare: () => void;
   doDisconnect: () => void;
 }>();
@@ -351,7 +338,6 @@ const profileOpen = ref(false);
 const savedIdentityId = ref<string | null>(null);
 
 const { whisperPttActive, whisperTargets, clearWhisperTargets, onWhisperPttDown, onWhisperPttUp } = props.whisper;
-const { performancePanelOpen, performanceRunning, performanceStats, togglePerformancePanel, refreshPerformanceProbe } = props.performance;
 const { openMemberActions, openMemberMenu } = props.memberMenu;
 const selfMember = computed(() => members.find((member) => member.isSelf) ?? null);
 const audioLink = computed(() => audioLinkStatus(voiceState, roomNotices));
@@ -368,7 +354,7 @@ const selfSpeaking = computed(() => (selfMember.value ? isSpeaking(selfMember.va
 
 // Browsers without screen capture (most phones) get no share button.
 const screenShareSupported = typeof navigator.mediaDevices?.getDisplayMedia === "function";
-const { themeIcon, themeLabel, cycleTheme, persistLanguage } = props.appearance;
+const { themeMode, themeIcon, themeLabel, cycleTheme, selectTheme, persistLanguage } = props.appearance;
 const { doShare, doDisconnect } = props;
 
 // Frame of the connected view. Desktop has the member panel (318 px) beside the workspace, one viewport tall (the height is

@@ -7,7 +7,6 @@
     :screen-share="screenShare"
     :audio-panel="audioPanel"
     :whisper="whisper"
-    :performance="performance"
     :member-menu="roomMemberMenu"
     :appearance="appearance"
     :do-share="doShare"
@@ -98,7 +97,6 @@ import {
   useChat,
   useGatewayErrorNotices,
   useMemberMenu,
-  useNetworkPerformance,
   useRoomContext,
   useRoomShell,
   useScreenShareErrorNotice,
@@ -226,7 +224,6 @@ const {
 const whisper = useWhisper({ roster: session.roster, actions: session.actions });
 const { toggleWhisperTarget } = whisper;
 
-const performance = useNetworkPerformance({ session: session.session });
 useGatewayErrorNotices(voiceState);
 useScreenShareErrorNotice(screenShare.screenShareErrorText);
 </script>

@@ -7,16 +7,21 @@ import { loadJoinRoomTranslations } from "./helpers/translations";
 const translations = await loadJoinRoomTranslations();
 
 // Theme and language: what the page looks like and says, and what the page remembers. Real gateway,
-// fake TeamSpeak server. The theme button is in the room's header on desktop and on the More tab of a
-// phone; the language switcher is on the join form.
+// fake TeamSpeak server. A desktop picks the theme in the settings popover of the room's header, a
+// phone has a theme button on its More tab; the language switcher is on the join form.
 
 const themeButton = (page: Page) => page.getByRole("button", { name: /^Switch to (light|dark) theme$/ });
+const themeRadio = (page: Page, name: "System" | "Light" | "Dark") => page.getByRole("radio", { name, exact: true });
 
-/** Opens the More tab of a phone, where its theme button is; a desktop has it in the header. */
+/** Opens the More tab of a phone, where its theme button is. */
 async function showThemeButton(page: Page): Promise<void> {
-  const more = page.getByRole("tab", { name: "More" });
-  if (await more.isVisible()) await more.click();
+  await page.getByRole("tab", { name: "More" }).click();
   await expect(themeButton(page)).toBeVisible();
+}
+
+async function openSettings(page: Page): Promise<void> {
+  await page.getByRole("button", { name: "Settings", exact: true }).click();
+  await expect(themeRadio(page, "System")).toBeVisible();
 }
 
 const dataTheme = (page: Page): Promise<string | undefined> => page.evaluate(() => document.documentElement.dataset.theme);
@@ -40,7 +45,57 @@ test.describe("theme", () => {
     expect(dark).not.toBe(light);
   });
 
-  test("the theme button names the theme it would switch to, and its choice beats the operating system", async ({ page }) => {
+  test("the settings popover offers System, Light and Dark, and an explicit choice beats the operating system", async ({
+    page,
+    isMobile,
+  }) => {
+    test.skip(isMobile, "the phone has the theme button on its More tab");
+    await page.emulateMedia({ colorScheme: "light" });
+    await join(page, "theme-radio");
+    await openSettings(page);
+    await expect(themeRadio(page, "System")).toBeChecked();
+    const light = await pageBackground(page);
+
+    await themeRadio(page, "Dark").click();
+    await expect(themeRadio(page, "Dark")).toBeChecked();
+    expect(await dataTheme(page)).toBe("dark");
+    expect(await storedTheme(page)).toBe("dark");
+    await expect.poll(() => pageBackground(page)).not.toBe(light);
+
+    await page.emulateMedia({ colorScheme: "dark" });
+    await page.emulateMedia({ colorScheme: "light" });
+    expect(await dataTheme(page)).toBe("dark");
+
+    await themeRadio(page, "System").click();
+    expect(await dataTheme(page)).toBe("system");
+    await expect.poll(() => pageBackground(page)).toBe(light);
+  });
+
+  test("a theme chosen in the popover is stored and checked again after a reload", async ({ page, isMobile }) => {
+    test.skip(isMobile, "the phone has the theme button on its More tab");
+    await page.emulateMedia({ colorScheme: "light" });
+    await join(page, "theme-radio-stored");
+    await openSettings(page);
+    await themeRadio(page, "Dark").click();
+    expect(await storedTheme(page)).toBe("dark");
+
+    await page.reload();
+    await join(page, "theme-radio-stored");
+    await openSettings(page);
+    await expect(themeRadio(page, "Dark")).toBeChecked();
+  });
+
+  test("Esc closes the settings popover and gives the focus back to its button", async ({ page, isMobile }) => {
+    test.skip(isMobile, "the phone has no settings popover");
+    await join(page, "theme-radio-esc");
+    await openSettings(page);
+    await page.keyboard.press("Escape");
+    await expect(themeRadio(page, "System")).toBeHidden();
+    await expect(page.getByRole("button", { name: "Settings", exact: true })).toBeFocused();
+  });
+
+  test("the theme button names the theme it would switch to, and its choice beats the operating system", async ({ page, isMobile }) => {
+    test.skip(!isMobile, "the phone has the theme button, a desktop the settings popover");
     await page.emulateMedia({ colorScheme: "light" });
     await join(page, "theme-explicit");
     await showThemeButton(page);
@@ -66,7 +121,8 @@ test.describe("theme", () => {
     await expect.poll(() => pageBackground(page)).toBe(light);
   });
 
-  test("a chosen theme is stored and is already applied when the page loads again", async ({ page }) => {
+  test("a chosen theme is stored and is already applied when the page loads again", async ({ page, isMobile }) => {
+    test.skip(!isMobile, "the phone has the theme button, a desktop the settings popover");
     await page.emulateMedia({ colorScheme: "light" });
     await join(page, "theme-stored");
     await showThemeButton(page);
@@ -93,7 +149,8 @@ test.describe("theme", () => {
     await expect.poll(() => pageBackground(page)).not.toBe(light);
   }
 
-  test("the button follows the operating system while the setting is System, both ways", async ({ page }) => {
+  test("the button follows the operating system while the setting is System, both ways", async ({ page, isMobile }) => {
+    test.skip(!isMobile, "the phone has the theme button, a desktop the settings popover");
     await systemThenOsGoesDark(page, "theme-follow");
     await expect(themeButton(page)).toHaveAccessibleName("Switch to light theme");
     await page.emulateMedia({ colorScheme: "light" });
@@ -102,7 +159,8 @@ test.describe("theme", () => {
     await expect(themeButton(page)).toHaveAccessibleName("Switch to light theme");
   });
 
-  test("a click after the operating system went dark switches to light", async ({ page }) => {
+  test("a click after the operating system went dark switches to light", async ({ page, isMobile }) => {
+    test.skip(!isMobile, "the phone has the theme button, a desktop the settings popover");
     await systemThenOsGoesDark(page, "theme-click");
     await expect(themeButton(page)).toHaveAccessibleName("Switch to light theme");
     await themeButton(page).click();
@@ -110,7 +168,8 @@ test.describe("theme", () => {
     await expect(themeButton(page)).toHaveAccessibleName("Switch to dark theme");
   });
 
-  test("a chosen theme ignores later changes of the operating system", async ({ page }) => {
+  test("a chosen theme ignores later changes of the operating system", async ({ page, isMobile }) => {
+    test.skip(!isMobile, "the phone has the theme button, a desktop the settings popover");
     await page.emulateMedia({ colorScheme: "light" });
     await join(page, "theme-chosen");
     await showThemeButton(page);

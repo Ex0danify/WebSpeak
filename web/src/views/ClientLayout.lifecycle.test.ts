@@ -7,7 +7,7 @@ import { mountClient } from "@/testSupport/mountClient";
 import { FakeWebSocket } from "@/testSupport/fakeWebsocket";
 
 // Pins the lifecycle behaviors ClientLayout owns (sounds on connection changes, the server visit, the server-password dialog,
-// disconnect on unmount, the performance monitor, pokes, private chat sound) on the real component against the fake gateway.
+// disconnect on unmount, the connection monitor, pokes, private chat sound) on the real component against the fake gateway.
 // A behavior that looks wrong is recorded as it is, with a comment, not fixed here.
 
 const showToast = vi.fn();
@@ -48,7 +48,6 @@ type View = {
   connect: (host: string, channel: string, nickname: string) => void;
 };
 
-let RoomWorkspace: typeof import("@/features/room").RoomWorkspace;
 let store: typeof Persistence;
 let wrapper: VueWrapper | undefined;
 let stubs: BrowserStubs | undefined;
@@ -57,7 +56,6 @@ beforeAll(async () => {
   vi.stubGlobal("indexedDB", new IDBFactory());
   vi.stubGlobal("AudioWorkletNode", class {}); // the noise suppressor library extends it when it loads
   store = await import("@/shared/services/localPersistence");
-  RoomWorkspace = (await import("@/features/room")).RoomWorkspace;
 }, 30_000);
 
 beforeEach(async () => {
@@ -74,11 +72,6 @@ afterEach(() => {
   stubs?.restore();
   vi.useRealTimers();
 });
-
-/** The connected shell lives in RoomWorkspace, so its setup state is reached there. */
-function roomWorkspace() {
-  return wrapper!.findComponent(RoomWorkspace).vm as unknown as { togglePerformancePanel: () => void; performanceRunning: boolean };
-}
 
 async function mountView(): Promise<View> {
   const mounted = await mountClient();
@@ -230,28 +223,8 @@ describe("unmount", () => {
   });
 });
 
-describe("performance monitor", () => {
-  it("probes while connected with the panel open, stops when the connection drops, and restarts on reconnect", async () => {
-    vi.useFakeTimers({ toFake: ["setInterval", "clearInterval"] });
-    const view = await mountView();
-    const socket = await connected(view);
-    roomWorkspace().togglePerformancePanel();
-    await flushPromises();
-    expect(socket.sentOfType("latencyProbe")).toHaveLength(1);
-
-    socket.receive({ type: "reconnecting", attempt: 1 });
-    await flushPromises();
-    expect(roomWorkspace().performanceRunning).toBe(false);
-    vi.advanceTimersByTime(10_000);
-    await flushPromises();
-    expect(socket.sentOfType("latencyProbe")).toHaveLength(1);
-
-    socket.receive({ type: "connected", tsClientId: 7, members: [] });
-    await flushPromises();
-    expect(socket.sentOfType("latencyProbe")).toHaveLength(2);
-  });
-
-  it("does not probe on connect while the panel is closed", async () => {
+describe("connection monitor", () => {
+  it("does not probe on connect while the profile dialog is closed", async () => {
     const view = await mountView();
     const socket = await connected(view);
     expect(socket.sentOfType("latencyProbe")).toHaveLength(0);

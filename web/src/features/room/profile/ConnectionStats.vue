@@ -73,6 +73,7 @@ import { Chip } from "@/shared/ui/chip";
 import { Icon } from "@/shared/ui/icon";
 import { useFormat } from "@/shared/i18n/useFormat.js";
 import { useI18n } from "@/shared/i18n/useI18n.js";
+import { row, sectionTitle, term, value } from "@/features/room/profile/statsClasses";
 import type { ConnectionStatsData } from "@/features/room/profile/useConnectionStats";
 
 const props = defineProps<{ stats: ConnectionStatsData }>();
@@ -80,11 +81,6 @@ const { t } = useI18n();
 const format = useFormat();
 const latencyId = useId();
 const voiceId = useId();
-
-const sectionTitle = "m-0 mb-1 text-xs font-semibold tracking-wide text-fg-muted uppercase";
-const row = "flex items-baseline justify-between gap-3 border-b border-line py-1.5 last:border-b-0";
-const term = "text-sm text-fg-muted";
-const value = "m-0 text-sm font-medium text-fg tabular-nums";
 
 const voice = computed(() => props.stats.voice);
 // Only the WebRTC link reports packet loss, concealed audio, bitrate and codec, so the fallback shows what it can measure.

@@ -51,7 +51,7 @@ for (const language of discoveredLanguages().filter((code) => code !== "en")) {
           timestamp: Date.UTC(2026, 0, 15, 20, 15),
         },
       });
-      // The event log is a popover that closes when the language menu is used, so it is opened again after each switch.
+      // The event log is a popover that closes when the settings popover is used, so it is opened again after each switch.
       const showEventLog = async (lang: string): Promise<void> => {
         const bell = page.getByRole("button", { name: new RegExp(`^${msg("chat", lang, "eventLog")}`) });
         if ((await bell.getAttribute("aria-expanded")) !== "true") await bell.click();
@@ -62,12 +62,9 @@ for (const language of discoveredLanguages().filter((code) => code !== "en")) {
       const connections = scripted.connections;
 
       const pick = async (from: string, to: string): Promise<void> => {
-        await page.getByRole("button", { name: msg("common", from, "languageMenu"), exact: true }).click();
-        const option = new RegExp(await endonymOf(to));
-        await page
-          .getByRole("menuitem", { name: option })
-          .or(page.getByRole("dialog").getByRole("button", { name: option }))
-          .click();
+        await page.getByRole("button", { name: msg("room", from, "settings"), exact: true }).click();
+        await page.getByRole("combobox", { name: msg("common", from, "languageMenu"), exact: true }).click();
+        await page.getByRole("option", { name: new RegExp(await endonymOf(to)) }).click();
         await showEventLog(to);
         await expect(page.getByText(msg("chat", to, "eventMemberJoined", { nickname: "Zed" }))).toBeVisible();
         await expect(page.getByText(msg("screenShare", to, "err_SCREEN_SHARE_ALREADY_ACTIVE")).first()).toBeVisible();
