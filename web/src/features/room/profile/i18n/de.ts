@@ -20,7 +20,7 @@ export const de: Record<string, string> = {
   voiceJitterEstimated: "Jitter (geschätzt)",
   voiceLoss: "Paketverlust",
   voiceConcealed: "Überbrücktes Audio",
-  voiceDropouts: "Aussetzer",
+  voiceDropouts: "Aussetzer pro Minute",
   voiceUplink: "Upload",
   voiceCodec: "Codec",
   voiceWebSocketHint: "WebRTC ist nicht verfügbar. Nicht alle Werte können angezeigt werden.",

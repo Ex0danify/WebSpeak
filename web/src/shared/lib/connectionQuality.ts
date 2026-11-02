@@ -6,6 +6,8 @@ export interface QualityInput {
   rttMs?: number | null;
   jitterMs?: number | null;
   lossPercent?: number | null;
+  /** Gaps in playback, heard as a crackle. */
+  dropoutsPerMinute?: number | null;
 }
 
 // Upper bounds per level, anything above the last one is bad.
@@ -13,6 +15,7 @@ const LIMITS = {
   rttMs: [50, 100, 200],
   jitterMs: [10, 30, 60],
   lossPercent: [0.5, 2, 5],
+  dropoutsPerMinute: [1, 4, 10],
 } as const;
 
 function rank(value: number | null | undefined, limits: readonly number[]): number | null {
@@ -23,7 +26,12 @@ function rank(value: number | null | undefined, limits: readonly number[]): numb
 
 /** The worst metric decides, since a single bad one ruins a call. Null while nothing was measured. */
 export function rateConnection(input: QualityInput): ConnectionQuality | null {
-  const ranks = [rank(input.rttMs, LIMITS.rttMs), rank(input.jitterMs, LIMITS.jitterMs), rank(input.lossPercent, LIMITS.lossPercent)];
+  const ranks = [
+    rank(input.rttMs, LIMITS.rttMs),
+    rank(input.jitterMs, LIMITS.jitterMs),
+    rank(input.lossPercent, LIMITS.lossPercent),
+    rank(input.dropoutsPerMinute, LIMITS.dropoutsPerMinute),
+  ];
   const measured = ranks.filter((value): value is number => value !== null);
   return measured.length ? QUALITY_LEVELS[Math.max(...measured)] : null;
 }

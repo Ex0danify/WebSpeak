@@ -64,6 +64,33 @@ describe("useConnectionStats", () => {
     expect(stats().quality).toBe("bad");
   });
 
+  it("rates dropouts per minute over a rolling window and lets the badge recover", async () => {
+    let glitches = 0;
+    let step = 2;
+    const { stats } = mountStats(
+      async () => probe(30),
+      async () => link({ transport: "websocket", jitterMs: 4, lossPercent: null, glitches: (glitches += step) }),
+    );
+    await vi.advanceTimersByTimeAsync(0);
+    expect(stats().dropoutsPerMinute).toBeNull();
+    await vi.advanceTimersByTimeAsync(10_000);
+    expect(stats().dropoutsPerMinute).toBeCloseTo(60);
+    expect(stats().quality).toBe("bad");
+    step = 0;
+    await vi.advanceTimersByTimeAsync(60_000);
+    expect(stats().dropoutsPerMinute).toBe(0);
+    expect(stats().quality).toBe("excellent");
+  });
+
+  it("has no dropout rate on WebRTC", async () => {
+    const { stats } = mountStats(
+      async () => probe(30),
+      async () => link(),
+    );
+    await vi.advanceTimersByTimeAsync(10_000);
+    expect(stats().dropoutsPerMinute).toBeNull();
+  });
+
   it("does not poll while inactive and starts fresh when activated", async () => {
     const measure = vi.fn(async () => probe(30));
     const { active, stats } = mountStats(measure, async () => link());

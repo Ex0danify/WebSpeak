@@ -7,9 +7,13 @@ import type { RoomSession } from "@/features/room/roomTypes";
 
 const INTERVAL_MS = 2_000;
 const WINDOW_SIZE = 20;
+// Dropouts are rated over the last half minute, so the badge recovers once the link does.
+const DROPOUT_WINDOW_MS = 30_000;
+const DROPOUT_MIN_SPAN_S = 4;
 
 export interface ConnectionStatsData extends LatencySummary {
   voice: VoiceLinkStats | null;
+  dropoutsPerMinute: number | null;
   quality: ConnectionQuality | null;
 }
 
@@ -26,12 +30,33 @@ export function useConnectionStats(options: UseConnectionStatsOptions) {
   const probes = ref<Array<LatencyProbeResult | null>>([]);
   const voice = ref<VoiceLinkStats | null>(null);
   const quality = ref<ConnectionQuality | null>(null);
+  const dropoutsPerMinute = ref<number | null>(null);
+  const dropoutSamples: Array<{ at: number; glitches: number }> = [];
   const tracker = createQualityTracker();
   let timer: ReturnType<typeof setInterval> | null = null;
   let running = false;
   let generation = 0;
 
-  const stats = computed<ConnectionStatsData>(() => ({ ...summarizeLatency(probes.value), voice: voice.value, quality: quality.value }));
+  const stats = computed<ConnectionStatsData>(() => ({
+    ...summarizeLatency(probes.value),
+    voice: voice.value,
+    dropoutsPerMinute: dropoutsPerMinute.value,
+    quality: quality.value,
+  }));
+
+  function trackDropouts(link: VoiceLinkStats | null): void {
+    if (link?.glitches == null) {
+      dropoutSamples.length = 0;
+      dropoutsPerMinute.value = null;
+      return;
+    }
+    const at = Date.now();
+    dropoutSamples.push({ at, glitches: link.glitches });
+    while (dropoutSamples.length > 1 && at - dropoutSamples[0].at > DROPOUT_WINDOW_MS) dropoutSamples.shift();
+    const seconds = (at - dropoutSamples[0].at) / 1000;
+    dropoutsPerMinute.value =
+      seconds >= DROPOUT_MIN_SPAN_S ? (Math.max(0, link.glitches - dropoutSamples[0].glitches) / seconds) * 60 : null;
+  }
 
   async function sample(current: number): Promise<void> {
     if (running || !state.connected) return;
@@ -41,6 +66,7 @@ export function useConnectionStats(options: UseConnectionStatsOptions) {
       if (current !== generation) return;
       probes.value = [...probes.value, probe].slice(-WINDOW_SIZE);
       voice.value = link;
+      trackDropouts(link);
       const summary = summarizeLatency(probes.value);
       const legs = [summary.gatewayLatencyMs, summary.teamSpeakLatencyMs].filter((value): value is number => value !== null);
       quality.value = tracker.next(
@@ -48,6 +74,7 @@ export function useConnectionStats(options: UseConnectionStatsOptions) {
           rttMs: legs.length ? Math.max(...legs) : null,
           jitterMs: link?.jitterMs,
           lossPercent: link?.lossPercent,
+          dropoutsPerMinute: dropoutsPerMinute.value,
         }),
       );
     } catch {
@@ -62,6 +89,8 @@ export function useConnectionStats(options: UseConnectionStatsOptions) {
     probes.value = [];
     voice.value = null;
     quality.value = null;
+    dropoutsPerMinute.value = null;
+    dropoutSamples.length = 0;
     tracker.reset();
     const current = ++generation;
     void sample(current);

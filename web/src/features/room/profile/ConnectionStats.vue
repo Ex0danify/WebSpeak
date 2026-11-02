@@ -47,7 +47,9 @@
         </div>
         <div v-if="voice?.glitches != null" :class="row">
           <dt :class="term">{{ t("voiceDropouts") }}</dt>
-          <dd :class="value">{{ voice.glitches }}</dd>
+          <dd :class="value">
+            {{ stats.dropoutsPerMinute == null ? "—" : format.number(stats.dropoutsPerMinute, { maximumFractionDigits: 1 }) }}
+          </dd>
         </div>
         <div v-if="fullStats" :class="row">
           <dt :class="term">{{ t("voiceUplink") }}</dt>

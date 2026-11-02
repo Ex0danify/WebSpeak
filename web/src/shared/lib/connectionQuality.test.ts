@@ -9,6 +9,10 @@ describe("rateConnection", () => {
     expect(rateConnection({ rttMs: 400 })).toBe("bad");
     expect(rateConnection({ jitterMs: 45 })).toBe("poor");
     expect(rateConnection({ lossPercent: 3 })).toBe("poor");
+    expect(rateConnection({ dropoutsPerMinute: 0 })).toBe("excellent");
+    expect(rateConnection({ dropoutsPerMinute: 2 })).toBe("good");
+    expect(rateConnection({ dropoutsPerMinute: 6 })).toBe("poor");
+    expect(rateConnection({ dropoutsPerMinute: 30 })).toBe("bad");
   });
 
   it("lets the worst metric decide", () => {

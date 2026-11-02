@@ -20,7 +20,7 @@ export const en = {
   voiceJitterEstimated: "Jitter (estimated)",
   voiceLoss: "Packet loss",
   voiceConcealed: "Concealed audio",
-  voiceDropouts: "Dropouts",
+  voiceDropouts: "Dropouts per minute",
   voiceUplink: "Upstream",
   voiceCodec: "Codec",
   voiceWebSocketHint: "WebRTC is not available. Not all stats can be shown.",
