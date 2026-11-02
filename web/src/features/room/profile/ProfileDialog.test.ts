@@ -91,11 +91,15 @@ describe("ProfileDialog", () => {
     wrapper.unmount();
   });
 
-  it("shows the own name on the profile tab and the unique id on the identity tab", async () => {
+  it("keeps the own name and the identity state in a header above the tabs, the unique id on the identity tab", async () => {
     const wrapper = await open();
+    const header = document.body.querySelector('[role="dialog"] header.sticky')!;
     const [profilePanel, identityPanel] = Array.from(document.body.querySelectorAll('[role="tabpanel"]'));
-    expect(profilePanel!.textContent).toContain("roka");
+    expect(header.textContent).toContain("roka");
+    expect(header.textContent).toContain("Temporary");
+    expect(header.compareDocumentPosition(document.body.querySelector('[role="tablist"]')!)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
     expect(profilePanel!.textContent).not.toContain(member.uid);
+    expect(identityPanel!.textContent).not.toContain("roka");
     expect(identityPanel!.textContent).toContain("Unique ID");
     expect(identityPanel!.textContent).toContain(member.uid);
     wrapper.unmount();
@@ -203,6 +207,40 @@ describe("ProfileDialog nickname", () => {
     wrapper.unmount();
   });
 
+  it("renames the saved identity along with the nickname", async () => {
+    store.list.value = [{ id: "id-1", label: "Laptop", privateMaterial: "secret-material" }];
+    const wrapper = await open({ savedId: "id-1" });
+    await edit();
+    await type("profile-nickname", "Ex0-web");
+    button("Save")?.click();
+    await flushPromises();
+    expect(rename).toHaveBeenCalledWith("id-1", "Ex0-web");
+    wrapper.unmount();
+  });
+
+  it("leaves a temporary identity alone when the nickname changes", async () => {
+    const wrapper = await open();
+    await edit();
+    await type("profile-nickname", "Ex0-web");
+    button("Save")?.click();
+    await flushPromises();
+    expect(rename).not.toHaveBeenCalled();
+    wrapper.unmount();
+  });
+
+  it("still counts the nickname as saved when the identity label cannot be stored", async () => {
+    store.list.value = [{ id: "id-1", label: "Laptop", privateMaterial: "secret-material" }];
+    rename.mockRejectedValue(new Error("storage"));
+    const wrapper = await open({ savedId: "id-1" });
+    await edit();
+    await type("profile-nickname", "Ex0-web");
+    button("Save")?.click();
+    await flushPromises();
+    expect(nicknameInput()).toBeNull();
+    expect(savedLive()).toBe("Saved");
+    wrapper.unmount();
+  });
+
   it("does not leave the pencil's tooltip open when focus returns to it after saving", async () => {
     // The browser's answer for a mouse user: not hovering the pencil, focus not from the keyboard.
     const real = Element.prototype.matches;
@@ -271,15 +309,22 @@ describe("ProfileDialog nickname", () => {
 });
 
 describe("ProfileDialog identity", () => {
-  it("says a temporary identity is temporary and offers the nickname as its name", async () => {
+  it("says a temporary identity is temporary, with no name or field to edit one on the tab", async () => {
     const wrapper = await open();
     await identityTab();
     expect(status()).toContain("Temporary");
-    expect((document.getElementById("profile-identity-name") as HTMLInputElement).value).toBe("roka");
+    const [, identityPanel] = Array.from(document.body.querySelectorAll('[role="tabpanel"]'));
+    expect(identityPanel!.querySelector("input")).toBeNull();
+    expect(button("Rename")).toBeUndefined();
+    expect(dialogText()).not.toContain("…");
+    expect(dialogText()).toContain("Save this identity to keep using it on this device.");
+    store.list.value = [{ id: "id-1", label: "Laptop", privateMaterial: "secret-material" }];
+    await wrapper.setProps({ savedId: "id-1" });
+    expect(dialogText()).not.toContain("Save this identity to keep using it");
     wrapper.unmount();
   });
 
-  it("saves under the typed name, then shows it as saved and drops the form", async () => {
+  it("saves under the nickname, then shows it as saved and drops the save button", async () => {
     importIdentity.mockImplementation(async (privateMaterial: string, label: string) => {
       const identity = { id: "id-1", label, privateMaterial };
       store.list.value = [identity];
@@ -287,25 +332,12 @@ describe("ProfileDialog identity", () => {
     });
     const wrapper = await open();
     await identityTab();
-    await type("profile-identity-name", "Laptop");
-    button("Save to this device")?.click();
-    await flushPromises();
-    expect(importIdentity).toHaveBeenCalledWith("secret-material", "Laptop");
-    expect(wrapper.emitted("update:savedId")?.at(-1)).toEqual(["id-1"]);
-    expect(status()).toContain("Saved on this device");
-    expect(dialogText()).toContain("Laptop");
-    expect(button("Save to this device")).toBeUndefined();
-    wrapper.unmount();
-  });
-
-  it("falls back to the nickname when the name is cleared", async () => {
-    importIdentity.mockResolvedValue({ ok: true, identity: { id: "id-1", label: "roka", privateMaterial: "secret-material" } });
-    const wrapper = await open();
-    await identityTab();
-    await type("profile-identity-name", "");
     button("Save to this device")?.click();
     await flushPromises();
     expect(importIdentity).toHaveBeenCalledWith("secret-material", "roka");
+    expect(wrapper.emitted("update:savedId")?.at(-1)).toEqual(["id-1"]);
+    expect(status()).toContain("Saved on this device");
+    expect(button("Save to this device")).toBeUndefined();
     wrapper.unmount();
   });
 
@@ -315,7 +347,6 @@ describe("ProfileDialog identity", () => {
     const wrapper = await open({ identityMaterial: "remembered-key", request });
     await identityTab();
     expect(status()).toContain("Saved on this device");
-    expect(dialogText()).toContain("Desktop");
     expect(request).not.toHaveBeenCalled();
     wrapper.unmount();
   });
@@ -325,7 +356,6 @@ describe("ProfileDialog identity", () => {
     const wrapper = await open({ savedId: "id-1" });
     await identityTab();
     expect(status()).toContain("Saved on this device");
-    expect(dialogText()).toContain("Laptop");
     wrapper.unmount();
   });
 
@@ -337,21 +367,6 @@ describe("ProfileDialog identity", () => {
     await flushPromises();
     expect(importIdentity).not.toHaveBeenCalled();
     expect(wrapper.emitted("update:savedId")?.at(-1)).toEqual(["id-1"]);
-    wrapper.unmount();
-  });
-
-  it("renames a saved identity inline", async () => {
-    store.list.value = [{ id: "id-1", label: "Laptop", privateMaterial: "secret-material" }];
-    const wrapper = await open({ savedId: "id-1" });
-    await identityTab();
-    button("Rename")?.click();
-    await nextTick();
-    expect((document.getElementById("profile-identity-rename") as HTMLInputElement).value).toBe("Laptop");
-    await type("profile-identity-rename", "Work PC");
-    button("Save")?.click();
-    await flushPromises();
-    expect(rename).toHaveBeenCalledWith("id-1", "Work PC");
-    expect(document.getElementById("profile-identity-rename")).toBeNull();
     wrapper.unmount();
   });
 

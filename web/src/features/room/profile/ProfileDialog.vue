@@ -1,117 +1,95 @@
 <template>
   <Dialog v-model="open" size="sm" :title="t('profileMenu')" :close-label="t('close')">
+    <!-- Stays in view while a tab scrolls. The negative margin pulls it over the body's top padding, so it covers it. -->
+    <header v-if="member" class="sticky top-0 z-10 -mt-3 flex flex-col items-center gap-3 bg-surface-1 pb-4 text-center">
+      <Avatar :name="member.nickname" :src="member.avatar || undefined" size="xl" surface="surface-1" tint self />
+      <!-- The name stays centered in both states, the buttons hang off its end and do not push it. -->
+      <form v-if="editing" class="relative -mt-2 w-52" @submit.prevent="saveNickname">
+        <Field id="profile-nickname" :error="nicknameStatus.error" class="text-center">
+          <Input
+            ref="nicknameInput"
+            v-model.trim="nickname"
+            look="inline"
+            :maxlength="NICKNAME_MAX"
+            autocomplete="off"
+            :aria-label="t('nicknameInputLabel')"
+          >
+            <template #trailing
+              ><span aria-hidden="true" class="text-2xs font-normal text-fg-muted tabular-nums"
+                >{{ nickname.length }}/{{ NICKNAME_MAX }}</span
+              ></template
+            >
+          </Input>
+        </Field>
+        <span class="absolute top-0 left-full ml-3 flex h-9 items-center">
+          <Tooltip :text="t('nicknameSave')"
+            ><Button
+              type="submit"
+              variant="quietSuccess"
+              size="sm"
+              icon-only
+              :aria-label="t('nicknameSave')"
+              :disabled="!nicknameChanged || nicknameBusy"
+              ><Icon name="check" :size="18" /></Button
+          ></Tooltip>
+          <Tooltip :text="t('cancel')"
+            ><Button variant="quietDanger" size="sm" icon-only :aria-label="t('cancel')" @click="stopEditing"
+              ><Icon name="close" :size="16" /></Button
+          ></Tooltip>
+        </span>
+      </form>
+      <div v-else class="relative -mt-2 max-w-52">
+        <strong class="block h-9 truncate text-base leading-9 text-fg" :title="currentNickname">{{
+          nicknameText(currentNickname, t, member.unnamed)
+        }}</strong>
+        <span class="absolute top-0 left-full ml-1.5 flex h-9 items-center gap-1">
+          <Tooltip :text="t('nicknameChange')"
+            ><Button ref="editButton" variant="ghost" size="sm" icon-only :aria-label="t('nicknameChange')" @click="startEditing"
+              ><Icon name="pencil" :size="14" /></Button
+          ></Tooltip>
+          <SavedHint :status="nicknameStatus" />
+        </span>
+      </div>
+      <span aria-live="polite" class="sr-only">{{ nicknameStatus.state === "saved" ? t("savedStatus") : "" }}</span>
+      <span aria-live="polite">
+        <Chip v-if="savedIdentity" variant="success"
+          ><template #icon><Icon name="check" :size="13" /></template>{{ t("identitySavedStatus") }}</Chip
+        >
+        <Chip v-else>{{ t("identityTemporaryStatus") }}</Chip>
+      </span>
+    </header>
     <Tabs v-model="tab">
       <TabList :aria-label="t('profileSections')">
         <Tab value="profile">{{ t("profileTab") }}</Tab>
         <Tab value="identity">{{ t("identityTab") }}</Tab>
       </TabList>
       <!-- Both panels share one minimum height, so the dialog keeps its size when switching tabs. -->
-      <TabPanel value="profile" :class="`${panelClass} flex flex-col items-center gap-3 text-center`">
-        <template v-if="member">
-          <Avatar :name="member.nickname" :src="member.avatar || undefined" size="xl" surface="surface-1" tint self />
-          <!-- The name stays centered in both states, the buttons hang off its end and do not push it. -->
-          <form v-if="editing" class="relative -mt-2 w-52" @submit.prevent="saveNickname">
-            <Field id="profile-nickname" :error="nicknameStatus.error" class="text-center">
-              <Input
-                ref="nicknameInput"
-                v-model.trim="nickname"
-                look="inline"
-                :maxlength="NICKNAME_MAX"
-                autocomplete="off"
-                :aria-label="t('nicknameInputLabel')"
-              >
-                <template #trailing
-                  ><span aria-hidden="true" class="text-2xs font-normal text-fg-muted tabular-nums"
-                    >{{ nickname.length }}/{{ NICKNAME_MAX }}</span
-                  ></template
-                >
-              </Input>
-            </Field>
-            <span class="absolute top-0 left-full ml-3 flex h-9 items-center">
-              <Tooltip :text="t('nicknameSave')"
-                ><Button
-                  type="submit"
-                  variant="quietSuccess"
-                  size="sm"
-                  icon-only
-                  :aria-label="t('nicknameSave')"
-                  :disabled="!nicknameChanged || nicknameBusy"
-                  ><Icon name="check" :size="18" /></Button
-              ></Tooltip>
-              <Tooltip :text="t('cancel')"
-                ><Button variant="quietDanger" size="sm" icon-only :aria-label="t('cancel')" @click="stopEditing"
-                  ><Icon name="close" :size="16" /></Button
-              ></Tooltip>
-            </span>
-          </form>
-          <div v-else class="relative -mt-2 max-w-52">
-            <strong class="block h-9 truncate text-base leading-9 text-fg" :title="currentNickname">{{
-              nicknameText(currentNickname, t, member.unnamed)
-            }}</strong>
-            <span class="absolute top-0 left-full ml-1.5 flex h-9 items-center gap-1">
-              <Tooltip :text="t('nicknameChange')"
-                ><Button ref="editButton" variant="ghost" size="sm" icon-only :aria-label="t('nicknameChange')" @click="startEditing"
-                  ><Icon name="pencil" :size="14" /></Button
-              ></Tooltip>
-              <SavedHint :status="nicknameStatus" />
-            </span>
+      <TabPanel value="profile" :class="panelClass" />
+      <TabPanel value="identity" :class="`${panelClass} flex flex-col gap-4`">
+        <p v-if="!savedIdentity" class="m-0 text-sm text-fg-muted">{{ t("identityTemporary") }}</p>
+        <div v-if="member?.uid" class="min-w-0">
+          <span class="mb-1 block text-sm font-medium text-fg">{{ t("uniqueIdLabel") }}</span>
+          <div class="flex items-start gap-1 rounded-md border border-line bg-surface-2 py-1 pr-1 pl-3">
+            <code class="min-w-0 flex-1 py-1.5 font-mono text-xs break-all text-fg">{{ member.uid }}</code>
+            <Tooltip :text="t('copyUid')"
+              ><Button variant="ghost" size="sm" icon-only :aria-label="t('copyUid')" @click="copyUid(member.uid)"
+                ><Icon name="copy" :size="16" /></Button
+            ></Tooltip>
           </div>
-          <span aria-live="polite" class="sr-only">{{ nicknameStatus.state === "saved" ? t("savedStatus") : "" }}</span>
-        </template>
-      </TabPanel>
-      <TabPanel value="identity" :class="`${panelClass} flex flex-col gap-5`">
-        <section class="flex flex-col gap-3" :aria-labelledby="thisIdentityId">
-          <h3 :id="thisIdentityId" class="m-0 text-xs font-semibold tracking-wide text-fg-muted uppercase">
-            {{ t("identitySectionTitle") }}
-          </h3>
-          <div aria-live="polite">
-            <Chip v-if="savedIdentity" variant="success"
-              ><template #icon><Icon name="check" :size="13" /></template>{{ t("identitySavedStatus") }}</Chip
-            >
-            <Chip v-else>{{ t("identityTemporaryStatus") }}</Chip>
-          </div>
-          <p v-if="!savedIdentity" class="m-0 text-sm text-fg-muted">{{ t("identityTemporary") }}</p>
-          <div v-if="savedIdentity && renaming" class="flex flex-wrap items-end gap-2">
-            <Field id="profile-identity-rename" :label="t('identityRenameTitle')" class="min-w-0 flex-1">
-              <Input v-model.trim="renameLabel" maxlength="40" autofocus @keyup.enter="confirmRename" />
-            </Field>
-            <Button @click="confirmRename">{{ t("identitySave") }}</Button>
-            <Button variant="ghost" @click="renaming = false">{{ t("identityCancel") }}</Button>
-          </div>
-          <div v-else-if="savedIdentity" class="flex items-center justify-between gap-3">
-            <div class="min-w-0">
-              <span class="block text-xs text-fg-muted">{{ t("identityNameLabel") }}</span>
-              <strong class="block truncate text-sm text-fg">{{ savedName }}</strong>
-            </div>
-            <Button variant="outline" @click="startRename">{{ t("identityRename") }}</Button>
-          </div>
-          <div v-else class="flex flex-wrap items-end gap-2">
-            <Field id="profile-identity-name" :label="t('identityNameLabel')" class="min-w-0 flex-1">
-              <Input v-model.trim="name" maxlength="40" @keyup.enter="saveIdentity" />
-            </Field>
-            <Button :disabled="busy" @click="saveIdentity">{{ t("identitySaveToDevice") }}</Button>
-          </div>
-          <div v-if="member?.uid" class="min-w-0">
-            <span class="block text-xs text-fg-muted">{{ t("uniqueIdLabel") }}</span>
-            <span class="flex items-start gap-1">
-              <code class="min-w-0 pt-1.5 text-2xs break-all text-fg">{{ member.uid }}</code>
-              <Tooltip :text="t('copyUid')"
-                ><Button variant="ghost" size="sm" icon-only :aria-label="t('copyUid')" @click="copyUid(member.uid)"
-                  ><Icon name="copy" :size="14" /></Button
-              ></Tooltip>
-            </span>
-          </div>
-        </section>
+        </div>
+        <Button v-if="!savedIdentity" class="w-full" :disabled="busy" @click="saveIdentity">{{ t("identitySaveToDevice") }}</Button>
         <Separator />
-        <section class="flex flex-col gap-3" :aria-labelledby="backupId">
-          <h3 :id="backupId" class="m-0 text-xs font-semibold tracking-wide text-fg-muted uppercase">{{ t("identityBackupTitle") }}</h3>
-          <p class="m-0 text-sm text-fg-muted">{{ t("identityExportHint") }}</p>
-          <Banner v-if="exported" variant="warning">{{ t("identityExportWarning") }}</Banner>
-          <Banner v-if="failed" variant="danger">{{ t("identityRequestFailed") }}</Banner>
-          <Button variant="outline" class="self-start" :disabled="busy" @click="exportIdentity"
+        <div class="flex items-center justify-between gap-3">
+          <div class="min-w-0">
+            <span class="block text-sm font-semibold text-fg">{{ t("identityBackupTitle") }}</span>
+            <span class="block text-sm text-fg-muted">{{ t("identityExportHint") }}</span>
+          </div>
+          <Button variant="outline" class="shrink-0" :disabled="busy" @click="exportIdentity"
             ><Icon name="download" :size="16" /> {{ t("identityExport") }}</Button
           >
-        </section>
+        </div>
+        <Banner v-if="exported" variant="warning">{{ t("identityExportWarning") }}</Banner>
+        <Banner v-if="failed" variant="danger">{{ t("identityRequestFailed") }}</Banner>
       </TabPanel>
     </Tabs>
     <template #footer
@@ -121,7 +99,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, ref, useId, watch } from "vue";
+import { computed, nextTick, ref, watch } from "vue";
 import { Avatar } from "@/shared/ui/avatar";
 import { Banner } from "@/shared/ui/banner";
 import { Button } from "@/shared/ui/button";
@@ -156,16 +134,13 @@ const open = defineModel<boolean>({ required: true });
 const savedId = defineModel<string | null>("savedId", { default: null });
 const { t } = useI18n();
 
-const panelClass = "min-h-96 pt-4";
+const panelClass = "min-h-64 pt-4";
 const manager = useIdentityManager();
-const thisIdentityId = useId();
-const backupId = useId();
 const tab = ref("profile");
 const busy = ref(false);
 // The private-key warning only shows once a file was actually saved.
 const exported = ref(false);
 const failed = ref(false);
-const name = ref("");
 const nickname = ref("");
 const currentNickname = ref("");
 const editing = ref(false);
@@ -173,27 +148,22 @@ const nicknameStatus = createSaveStatus();
 const nicknameBusy = computed(() => nicknameStatus.state === "saving");
 const nicknameInput = ref<{ focus: () => void; select: () => void } | null>(null);
 const editButton = ref<{ $el: HTMLElement } | null>(null);
-const renaming = ref(false);
-const renameLabel = ref("");
 
 const savedIdentity = computed(() =>
   manager.identities.value.find(
     (entry) => entry.id === savedId.value || (props.identityMaterial !== "" && entry.privateMaterial === props.identityMaterial),
   ),
 );
-const savedName = computed(() => savedIdentity.value?.label || t("identityUnnamed"));
 
 watch(
   open,
   (isOpen) => {
     if (isOpen) {
       void manager.refresh();
-      name.value = props.member?.nickname ?? "";
       nickname.value = currentNickname.value = props.member?.nickname ?? "";
     } else {
       exported.value = false;
       failed.value = false;
-      renaming.value = false;
       editing.value = false;
       nicknameStatus.reset();
       tab.value = "profile";
@@ -241,10 +211,22 @@ async function saveNickname(): Promise<void> {
   try {
     await props.changeNickname(nickname.value);
     currentNickname.value = nickname.value;
+    await renameSavedIdentity(nickname.value);
     nicknameStatus.saved();
     await stopEditing();
   } catch (error) {
     nicknameStatus.failed(resolveText(errorText(error, text("err_OPERATION_FAILED"))));
+  }
+}
+
+// The nickname is already changed on the server, so a storage hiccup here must not turn that into a failure.
+async function renameSavedIdentity(label: string): Promise<void> {
+  const id = savedIdentity.value?.id;
+  if (!id) return;
+  try {
+    await manager.rename(id, label);
+  } catch {
+    /* the label keeps its old name */
   }
 }
 
@@ -278,21 +260,10 @@ function saveIdentity(): Promise<void> {
       savedId.value = existing.id;
       return;
     }
-    const result = await manager.importIdentity(privateMaterial, name.value || props.member?.nickname);
+    const result = await manager.importIdentity(privateMaterial, currentNickname.value);
     if (!result.ok) throw new Error(result.code);
     savedId.value = result.identity.id;
   });
-}
-
-function startRename(): void {
-  renameLabel.value = savedIdentity.value?.label ?? "";
-  renaming.value = true;
-}
-
-async function confirmRename(): Promise<void> {
-  const id = savedIdentity.value?.id;
-  if (id && renameLabel.value) await manager.rename(id, renameLabel.value);
-  renaming.value = false;
 }
 
 function copyUid(uid: string | undefined): void {
