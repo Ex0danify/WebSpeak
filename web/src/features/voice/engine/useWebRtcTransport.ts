@@ -7,6 +7,7 @@ import type { LocalizedText, TextParams } from "@/shared/i18n/localizedText";
 import type { SinkAudioContext, SinkAudioElement } from "@/features/voice/voiceTypes";
 import type { MessageHandlers } from "@/features/session";
 import { useWebRtcAccompaniment } from "@/features/voice/engine/useWebRtcAccompaniment";
+import { readVoiceStats, type VoiceStats, type VoiceStatsCounters } from "@/features/voice/engine/voiceStats";
 
 const ICE_CONNECT_TIMEOUT_MS = 6_000;
 
@@ -47,6 +48,7 @@ export function useWebRtcTransport(deps: WebRtcTransportDeps) {
   const { webrtcActive, micLevel } = deps;
 
   let webrtcPeer: RTCPeerConnection | null = null;
+  let voiceCounters: VoiceStatsCounters | null = null;
   let webrtcNegotiationPromise: Promise<void> | null = null;
   let webrtcFallbackStarted = false;
   let webrtcMixDestination: MediaStreamAudioDestinationNode | null = null;
@@ -123,6 +125,7 @@ export function useWebRtcTransport(deps: WebRtcTransportDeps) {
     deps.stopCaptureGraph();
     const peer = new RTCPeerConnection({ iceServers: [] });
     webrtcPeer = peer;
+    voiceCounters = null;
     webrtcFallbackStarted = false;
     microphoneTrack.enabled = !microphoneMuted.value;
     const mixedStream = createWebRtcMixStream();
@@ -324,6 +327,20 @@ export function useWebRtcTransport(deps: WebRtcTransportDeps) {
     return webrtcPeer;
   }
 
+  /** One sample of the voice link, null without a peer. The rates need two samples, the first one only has what is instant. */
+  async function collectVoiceStats(): Promise<VoiceStats | null> {
+    const peer = webrtcPeer;
+    if (!peer) {
+      voiceCounters = null;
+      return null;
+    }
+    const report = await peer.getStats();
+    if (peer !== webrtcPeer) return null;
+    const sample = readVoiceStats(report.values(), performance.now(), voiceCounters);
+    voiceCounters = sample.counters;
+    return sample.stats;
+  }
+
   /** The gain node of the microphone inside the mix stream, if a mix exists. */
   function getWebRtcMixMicGain(): GainNode | null {
     return webrtcMixMicGain;
@@ -363,5 +380,6 @@ export function useWebRtcTransport(deps: WebRtcTransportDeps) {
     releaseAccompanimentStream,
     getWebRtcPeer,
     getWebRtcMixMicGain,
+    collectVoiceStats,
   };
 }

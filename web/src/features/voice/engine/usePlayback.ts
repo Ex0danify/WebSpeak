@@ -1,4 +1,5 @@
 import type { Ref } from "vue";
+import { createArrivalJitter } from "@/features/voice/engine/arrivalJitter";
 import { useVoiceAudioStore } from "@/features/voice/stores/voiceAudioStore";
 import { useSessionStore } from "@/features/session";
 import { MAX_REMOTE_DECODE_QUEUE_FRAMES, MAX_REMOTE_PLAY_AHEAD_SECONDS, SPEAKING_HOLD_MS } from "@/features/voice/audioConstants";
@@ -30,6 +31,7 @@ export function usePlayback(deps: PlaybackDeps) {
   const remoteGains = new Map<number, GainNode>();
   const remoteDecodeTimestamps = new Map<number, number>();
   const speakingTimers = new Map<number, ReturnType<typeof setTimeout>>();
+  const arrivals = createArrivalJitter();
 
   function markSpeaking(clientId: number): void {
     if (!clientId) return;
@@ -113,7 +115,10 @@ export function usePlayback(deps: PlaybackDeps) {
               { once: true },
             );
             let playTime = remotePlayTimes.get(clientId) ?? ctx.currentTime;
-            if (playTime < ctx.currentTime) playTime = ctx.currentTime;
+            if (playTime < ctx.currentTime) {
+              if (arrivals.streaming(clientId, performance.now())) arrivals.glitch();
+              playTime = ctx.currentTime;
+            }
             if (playTime + numberOfFrames / sampleRate > ctx.currentTime + MAX_REMOTE_PLAY_AHEAD_SECONDS) {
               source.disconnect();
               sources.delete(source);
@@ -190,6 +195,7 @@ export function usePlayback(deps: PlaybackDeps) {
     const clientId = (data[1] << 8) | data[2];
     if (clientId === state.tsClientId) return;
     markSpeaking(clientId);
+    arrivals.frame(clientId, performance.now());
     playAudioFrame(clientId, data.slice(3));
   }
 
@@ -202,6 +208,7 @@ export function usePlayback(deps: PlaybackDeps) {
     for (const gain of remoteGains.values()) gain.disconnect();
     remoteGains.clear();
     clearSpeakingState();
+    arrivals.reset();
   }
 
   const handlers: MessageHandlers = {
@@ -209,6 +216,7 @@ export function usePlayback(deps: PlaybackDeps) {
       const clientId = Number(msg.id);
       clearSpeaking(clientId);
       clearRemotePlayback(clientId);
+      arrivals.forget(clientId);
       const index = members.findIndex((member) => member.id === clientId);
       if (index >= 0) members.splice(index, 1);
     },
@@ -230,5 +238,7 @@ export function usePlayback(deps: PlaybackDeps) {
     clearRemotePlayback,
     handleAudioFrame,
     resetDownlink,
+    /** Jitter and glitches of the WebSocket downlink, the WebRTC one reports through its stats. */
+    arrivalStats: (now: number) => arrivals.snapshot(now),
   };
 }
