@@ -214,6 +214,7 @@
       :identity-material="identityMaterial"
       :request-identity="requestIdentity"
       :change-nickname="changeNickname"
+      :connection="session.session"
     />
   </div>
 </template>

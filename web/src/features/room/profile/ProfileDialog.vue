@@ -62,6 +62,7 @@
       <TabList :aria-label="t('profileSections')">
         <Tab value="profile">{{ t("profileTab") }}</Tab>
         <Tab value="identity">{{ t("identityTab") }}</Tab>
+        <Tab value="connection">{{ t("connectionTab") }}</Tab>
       </TabList>
       <!-- Both panels share one minimum height, so the dialog keeps its size when switching tabs. -->
       <TabPanel value="profile" :class="panelClass" />
@@ -91,6 +92,7 @@
         <Banner v-if="exported" variant="warning">{{ t("identityExportWarning") }}</Banner>
         <Banner v-if="failed" variant="danger">{{ t("identityRequestFailed") }}</Banner>
       </TabPanel>
+      <TabPanel value="connection" :class="panelClass"><ConnectionStats :stats="connectionStats" /></TabPanel>
     </Tabs>
     <template #footer
       ><Button @click="open = false">{{ t("done") }}</Button></template
@@ -104,6 +106,7 @@ import { Avatar } from "@/shared/ui/avatar";
 import { Banner } from "@/shared/ui/banner";
 import { Button } from "@/shared/ui/button";
 import { Chip } from "@/shared/ui/chip";
+import ConnectionStats from "@/features/room/profile/ConnectionStats.vue";
 import { Dialog } from "@/shared/ui/dialog";
 import { Field } from "@/shared/ui/field";
 import { Icon } from "@/shared/ui/icon";
@@ -117,6 +120,7 @@ import { errorText, resolveText, text } from "@/shared/i18n/localizedText";
 import { createSaveStatus } from "@/shared/lib/saveStatus";
 import { useI18n } from "@/shared/i18n/useI18n.js";
 import { downloadIdentity, useIdentityManager } from "@/features/identity";
+import { useConnectionStats, type UseConnectionStatsOptions } from "@/features/room/profile/useConnectionStats";
 import { nicknameText, type ChannelMember } from "@/features/session";
 
 const props = defineProps<{
@@ -128,6 +132,8 @@ const props = defineProps<{
   requestIdentity: () => Promise<string>;
   /** Renames the own client, rejects with the reason when the server refuses the name. */
   changeNickname: (nickname: string) => Promise<void>;
+  /** The room session's connection part, sampled while the Connection tab is showing. */
+  connection: UseConnectionStatsOptions["session"];
 }>();
 const open = defineModel<boolean>({ required: true });
 // Kept by the room, so a temporary identity saved earlier still shows as saved after the dialog was closed.
@@ -137,6 +143,10 @@ const { t } = useI18n();
 const panelClass = "min-h-64 pt-4";
 const manager = useIdentityManager();
 const tab = ref("profile");
+const connectionStats = useConnectionStats({
+  session: props.connection,
+  active: () => open.value && tab.value === "connection",
+}).stats;
 const busy = ref(false);
 // The private-key warning only shows once a file was actually saved.
 const exported = ref(false);

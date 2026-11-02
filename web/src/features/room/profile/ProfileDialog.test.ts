@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { nextTick, type Ref } from "vue";
 import ProfileDialog from "@/features/room/profile/ProfileDialog.vue";
 import type { ChannelMember } from "@/features/session";
+import { fakeConnection } from "@/testSupport/connectionFixture";
 
 type Stored = { id: string; label?: string; privateMaterial: string };
 const downloadIdentity = vi.hoisted(() => vi.fn());
@@ -47,6 +48,7 @@ async function open(
       identityMaterial: options.identityMaterial ?? "",
       requestIdentity: options.request ?? (() => Promise.resolve("secret-material")),
       changeNickname: options.changeNickname ?? (() => Promise.resolve()),
+      connection: fakeConnection() as never,
     },
     attachTo: document.body,
     global: { stubs: { transition: false } },
