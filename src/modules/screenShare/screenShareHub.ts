@@ -2,7 +2,7 @@ import { WebSocket } from "ws";
 import { teamSpeakTargetKey } from "../../shared/teamSpeakTarget.js";
 import { buildTeamSpeakCommand } from "../teamspeak/index.js";
 import type { ScreenShareStreamDescription, ScreenShareViewerDescription } from "./screenShareProtocol.js";
-import type { ScreenShareHost, ScreenShareParticipant } from "./screenShareTypes.js";
+import type { ScreenShareHost, ScreenShareParticipant, ScreenShareSendOptions } from "./screenShareTypes.js";
 
 export interface ScreenStreamRecord extends ScreenShareStreamDescription {
   targetKey: string;
@@ -27,7 +27,33 @@ export class ScreenShareHub {
   readonly screenStreams = new Map<string, ScreenStreamRecord>();
   readonly screenStreamDiscoveryTargets = new Set<string>();
 
+  readonly #queuedSignals = new Map<string, { streamKey: string; senderEntryId: string; remote: string; abort: AbortController }>();
+
   constructor(readonly host: ScreenShareHost) {}
+
+  /** Signalling goes behind interactive commands (a channel switch) and dies with the stream, the sender or the peer it was for. */
+  signalSendOptions(stream: ScreenStreamRecord, senderEntryId: string, remote: string | number): ScreenShareSendOptions {
+    const streamKey = screenStreamKey(stream.targetKey, stream.streamId);
+    const key = `${streamKey}\u0000${senderEntryId}\u0000${remote}`;
+    let queued = this.#queuedSignals.get(key);
+    if (!queued) {
+      queued = { streamKey, senderEntryId, remote: String(remote), abort: new AbortController() };
+      this.#queuedSignals.set(key, queued);
+    }
+    return { priority: "bulk", signal: queued.abort.signal };
+  }
+
+  /** Drops what is still queued for the stream, narrowed to one sender and, if given, one remote peer. */
+  dropQueuedSignals(stream: ScreenStreamRecord, senderEntryId?: string, remote?: string | number): void {
+    const streamKey = screenStreamKey(stream.targetKey, stream.streamId);
+    for (const [key, queued] of this.#queuedSignals) {
+      if (queued.streamKey !== streamKey) continue;
+      if (senderEntryId !== undefined && queued.senderEntryId !== senderEntryId) continue;
+      if (remote !== undefined && queued.remote !== String(remote)) continue;
+      queued.abort.abort();
+      this.#queuedSignals.delete(key);
+    }
+  }
 
   /** The channel of a client on `targetKey`, from whichever session of this gateway can see it. */
   channelOfClient(targetKey: string, clientId: number): bigint | undefined {
@@ -134,6 +160,7 @@ export class ScreenShareHub {
           .catch(() => undefined);
       }
     }
+    this.dropQueuedSignals(stream);
     if (!this.screenStreams.delete(screenStreamKey(stream.targetKey, stream.streamId))) return;
     const message = { type: "screenShareStopped", streamId: stream.streamId, reason };
     this.broadcastScreenMessage(stream, message);
@@ -144,6 +171,7 @@ export class ScreenShareHub {
 
   leaveScreenStream(entry: ScreenShareParticipant, stream: ScreenStreamRecord): void {
     if (!stream.viewerEntryIds.delete(entry.id)) return;
+    this.dropQueuedSignals(stream, entry.id);
     stream.viewerCount = this.screenShareViewerCount(stream);
     if (stream.source === "browser")
       this.sendToEntry(stream.ownerEntryId, { type: "screenShareViewerLeft", streamId: stream.streamId, viewerPeerId: entry.screenPeerId });

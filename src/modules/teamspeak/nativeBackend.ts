@@ -16,6 +16,7 @@ import { detectTeamSpeakProtocol } from "./teamSpeakAdapter.js";
 import { forwardConnectionEvents } from "./nativeEvents.js";
 import {
   MAX_CLIENT_AVATAR_BYTES,
+  type SendOptions,
   type TeamSpeakBackend,
   type TeamSpeakBackendEvents,
   type TeamSpeakBackendOptions,
@@ -107,8 +108,8 @@ export class NativeBackend extends EventEmitter<TeamSpeakBackendEvents> implemen
     return rows.map((row) => ({ ...row }));
   }
 
-  async send(text: string): Promise<void> {
-    this.live().send(text);
+  async send(text: string, options?: SendOptions): Promise<void> {
+    this.live().send(text, options);
   }
 
   sendVoice(data: Buffer, codec: number): void {

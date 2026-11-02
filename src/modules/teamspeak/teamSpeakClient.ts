@@ -21,7 +21,7 @@ import { InputMuteSync } from "./inputMuteSync.js";
 import { OutputMuteSync } from "./outputMuteSync.js";
 import { sendStreamCommand } from "./teamSpeakStreamCommand.js";
 import { NativeBackend } from "./nativeBackend.js";
-import type { TeamSpeakBackend, TeamSpeakBackendEvents, TeamSpeakBackendFactory, TSClientAvatar } from "./teamSpeakBackend.js";
+import type { SendOptions, TeamSpeakBackend, TeamSpeakBackendEvents, TeamSpeakBackendFactory, TSClientAvatar } from "./teamSpeakBackend.js";
 import type { TeamSpeakProtocol } from "../../shared/teamSpeakProtocol.js";
 import type { TeamSpeakTarget } from "../../shared/teamSpeakTarget.js";
 import { createAccelerationRelayClient, type AccelerationRelayClient, type AccelerationRelayOptions } from "../relay/index.js";
@@ -297,8 +297,8 @@ export class TSClient extends EventEmitter {
   }
 
   /** Only the trusted stream adapter builds these commands, never the browser. */
-  async sendProtocolCommand(command: string): Promise<void> {
-    await sendStreamCommand(this.readyBackend(), this.logger, command);
+  async sendProtocolCommand(command: string, options?: SendOptions): Promise<void> {
+    await sendStreamCommand(this.readyBackend(), this.logger, command, options);
   }
 
   getIdentityString(): string {

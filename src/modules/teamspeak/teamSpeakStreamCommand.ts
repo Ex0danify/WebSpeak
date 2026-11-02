@@ -1,5 +1,5 @@
 import type { Logger } from "../../shared/logger.js";
-import type { TeamSpeakBackend } from "./teamSpeakBackend.js";
+import type { SendOptions, TeamSpeakBackend } from "./teamSpeakBackend.js";
 
 const ACKNOWLEDGED_STREAM_COMMANDS = new Set(["stopstream", "removeclientfromstream"]);
 
@@ -13,9 +13,10 @@ export async function sendStreamCommand(
   backend: Pick<TeamSpeakBackend, "command" | "send">,
   logger: Logger,
   command: string,
+  options?: SendOptions,
 ): Promise<void> {
   if (!ACKNOWLEDGED_STREAM_COMMANDS.has(command.split(" ", 1)[0] ?? "")) {
-    await backend.send(command);
+    await backend.send(command, options);
     return;
   }
   try {

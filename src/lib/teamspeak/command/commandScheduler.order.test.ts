@@ -41,6 +41,34 @@ describe("CommandScheduler", () => {
     expect(sent.at(-1)).toBe("clientupdate client_input_muted=1 return_code=2");
   });
 
+  it("lets an interactive command overtake a queued burst of bulk commands, which still go before background ones", () => {
+    const { scheduler, names, clock } = setup({ budget: { initial: 0 } });
+    scheduler.command("clientupdate client_input_muted=1", { priority: "background" }).catch(() => undefined);
+    for (let i = 0; i < 3; i++) scheduler.send(`streamsignaling n=${i}`, { priority: "bulk" });
+    scheduler.command("clientmove clid=1 cid=2").catch(() => undefined);
+    clock.advance(250);
+    expect(names()).toEqual(["clientmove clid=1 cid=2"]);
+    clock.advance(1000);
+    expect(names()).toEqual([
+      "clientmove clid=1 cid=2",
+      "streamsignaling n=0",
+      "streamsignaling n=1",
+      "streamsignaling n=2",
+      "clientupdate client_input_muted=1",
+    ]);
+  });
+
+  it("drops a queued bulk command whose signal is aborted", () => {
+    const { scheduler, names, clock } = setup({ budget: { initial: 0 } });
+    const abort = new AbortController();
+    scheduler.send("streamsignaling n=0", { priority: "bulk", signal: abort.signal });
+    scheduler.send("streamsignaling n=1", { priority: "bulk" });
+    abort.abort();
+    expect(scheduler.queued).toBe(1);
+    clock.advance(250);
+    expect(names()).toEqual(["streamsignaling n=1"]);
+  });
+
   it("runs background commands one at a time in order", async () => {
     const { scheduler, names, receive } = setup();
     const first = scheduler.command("clientupdate client_input_muted=1", { priority: "background" });

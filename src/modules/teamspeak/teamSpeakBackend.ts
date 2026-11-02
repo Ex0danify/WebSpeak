@@ -1,5 +1,12 @@
 import type { EventEmitter } from "node:events";
-import type { CommandPriority, CommandRequest, Identity, VersionProfile, VersionProfileName } from "../../lib/teamspeak/index.js";
+import type {
+  CommandPriority,
+  CommandRequest,
+  Identity,
+  ScheduledCommandOptions,
+  VersionProfile,
+  VersionProfileName,
+} from "../../lib/teamspeak/index.js";
 import type { Logger } from "../../shared/logger.js";
 import type { WebSpeakError } from "../../shared/errors.js";
 import type { TeamSpeakProtocol } from "../../shared/teamSpeakProtocol.js";
@@ -57,6 +64,8 @@ export interface TeamSpeakBackendOptions {
 }
 
 /** One connection attempt. TSClient builds a new backend after the tunnel closed or disconnect() ran. */
+export type SendOptions = Pick<ScheduledCommandOptions, "priority" | "signal">;
+
 export interface TeamSpeakBackend extends EventEmitter<TeamSpeakBackendEvents> {
   readonly protocol: TeamSpeakProtocol | null;
   /** Resolves once the server welcomed us, rejects with an error normalizeTeamSpeakError understands. */
@@ -72,8 +81,8 @@ export interface TeamSpeakBackend extends EventEmitter<TeamSpeakBackendEvents> {
    * scheduler after interactive ones and are retried after a flood refusal (the post-connect burst).
    */
   command(request: CommandRequest | string, timeoutMs?: number, priority?: CommandPriority): Promise<Record<string, string>[]>;
-  /** For commands whose answer comes as a notification. */
-  send(text: string): Promise<void>;
+  /** For commands whose answer comes as a notification. An aborted `signal` drops the command while it is still queued. */
+  send(text: string, options?: SendOptions): Promise<void>;
   sendVoice(data: Buffer, codec: number): void;
   sendWhisper(data: Buffer, clientIds: number[], codec: number): void;
   /** Null for a client without avatar, or one that is not `expectedUid` (any more). */

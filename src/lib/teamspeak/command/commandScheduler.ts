@@ -6,10 +6,11 @@ import type { CommandInput, CommandOptions, CommandTracker } from "./commandTrac
 import { FloodBudget, type FloodBudgetOptions } from "./floodBudget.js";
 
 /**
- * Interactive commands go first and as soon as the budget allows. Background commands run one at a
- * time in order, so a flood retry cannot overtake a later state change (mute on, mute off).
+ * Interactive commands go first and as soon as the budget allows. Bulk commands (a burst of ICE
+ * candidates) wait for them, so a channel switch is not stuck behind the burst. Background commands
+ * run one at a time in order, so a flood retry cannot overtake a later state change (mute on, mute off).
  */
-export type CommandPriority = "interactive" | "background";
+export type CommandPriority = "interactive" | "bulk" | "background";
 
 export interface ScheduledCommandOptions extends CommandOptions {
   priority?: CommandPriority;
@@ -47,6 +48,7 @@ export class CommandScheduler {
   readonly #floodRetries: number;
   readonly #floodRetryDelayMs: number;
   readonly #interactive: Queued[] = [];
+  readonly #bulk: Queued[] = [];
   readonly #background: Queued[] = [];
   #backgroundBusy = false;
   #timer: unknown;
@@ -63,7 +65,7 @@ export class CommandScheduler {
 
   /** Commands not sent yet. */
   get queued(): number {
-    return this.#interactive.length + this.#background.length;
+    return this.#interactive.length + this.#bulk.length + this.#background.length;
   }
 
   command(input: CommandInput, options: ScheduledCommandOptions = {}): Promise<CommandRow[]> {
@@ -82,7 +84,7 @@ export class CommandScheduler {
     this.#tracker.close(this.#closedWith);
     this.#clock.clearTimer(this.#timer);
     this.#timerAt = Infinity;
-    for (const item of [...this.#interactive.splice(0), ...this.#background.splice(0)]) {
+    for (const item of [...this.#interactive.splice(0), ...this.#bulk.splice(0), ...this.#background.splice(0)]) {
       item.detach();
       item.settle?.reject(this.#closedWith);
     }
@@ -92,10 +94,15 @@ export class CommandScheduler {
     if (this.#closedWith) return settle?.reject(this.#closedWith);
     if (options.signal?.aborted) return settle?.reject(abortReason(options.signal));
     const item: Queued = { input, settle, options, attempt: 0, notBefore: 0, detach: () => undefined };
-    const queue = options.priority === "background" ? this.#background : this.#interactive;
+    const queue = this.#queueFor(options.priority);
     this.#watchAbort(item, queue);
     queue.push(item);
     this.#pump();
+  }
+
+  #queueFor(priority: CommandPriority | undefined): Queued[] {
+    if (priority === "background") return this.#background;
+    return priority === "bulk" ? this.#bulk : this.#interactive;
   }
 
   /** An abort takes the item out of the queue while it waits, the tracker handles it once sent. */
@@ -115,6 +122,7 @@ export class CommandScheduler {
 
   #next(now: number): { queue: Queued[]; waitMs: number } | undefined {
     if (this.#interactive.length > 0) return { queue: this.#interactive, waitMs: 0 };
+    if (this.#bulk.length > 0) return { queue: this.#bulk, waitMs: 0 };
     const head = this.#background[0];
     if (!head || this.#backgroundBusy) return undefined;
     return { queue: this.#background, waitMs: Math.max(0, head.notBefore - now) };

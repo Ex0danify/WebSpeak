@@ -2,12 +2,18 @@ import type { Logger } from "../../shared/logger.js";
 import type { TeamSpeakTarget } from "../../shared/teamSpeakTarget.js";
 import type { ScreenShareIceServer } from "./screenShareProtocol.js";
 
+/** Mirrors the scheduler options of the TS client, `bulk` commands wait for interactive ones. */
+export interface ScreenShareSendOptions {
+  priority?: "interactive" | "bulk" | "background";
+  signal?: AbortSignal;
+}
+
 /** What screen share needs from a TS client. Structural, so voice's TSClient fits without importing teamspeak. */
 export interface ScreenShareTeamSpeakClient {
   getClientId(): number;
   getChannelId(): bigint;
   isConnected(): boolean;
-  sendProtocolCommand(command: string): Promise<void>;
+  sendProtocolCommand(command: string, options?: ScreenShareSendOptions): Promise<void>;
 }
 
 export interface ScreenShareSocket {

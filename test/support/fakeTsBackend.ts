@@ -2,6 +2,7 @@ import { EventEmitter } from "node:events";
 import { buildCommand, type CommandRequest } from "../../src/lib/teamspeak/index.js";
 import type { Logger } from "../../src/shared/logger.js";
 import type {
+  SendOptions,
   TeamSpeakBackend,
   TeamSpeakBackendEvents,
   TeamSpeakBackendFactory,
@@ -23,6 +24,7 @@ export const silentLogger: Logger = {
 export class FakeBackend extends EventEmitter<TeamSpeakBackendEvents> implements TeamSpeakBackend {
   readonly commands: string[] = [];
   readonly sent: string[] = [];
+  readonly sentOptions: (SendOptions | undefined)[] = [];
   protocol = null;
   id = 56;
   channel = 1n;
@@ -66,8 +68,9 @@ export class FakeBackend extends EventEmitter<TeamSpeakBackendEvents> implements
     return this.onCommand(text);
   }
 
-  async send(text: string): Promise<void> {
+  async send(text: string, options?: SendOptions): Promise<void> {
     this.sent.push(text);
+    this.sentOptions.push(options);
   }
 
   sendVoice(): void {}
