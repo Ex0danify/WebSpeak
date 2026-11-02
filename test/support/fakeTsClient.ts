@@ -336,6 +336,7 @@ export class FakeTSClient extends EventEmitter {
   getProtocol(): TeamSpeakProtocol | null {
     return this.isUp ? this.server.protocol : null;
   }
+  getServerName = (): string => (this.isUp ? "Fake Server" : "");
   getIdentityString(): string {
     return this.identity.toString();
   }

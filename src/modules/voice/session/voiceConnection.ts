@@ -274,6 +274,7 @@ export function sendInitialState(ctx: VoiceConnection, hooks: VoiceConnectionDep
   ctx.sendJson({
     type: "connected",
     tsClientId: ctx.state.selfId,
+    serverName: ctx.tsClient.getServerName(),
     members: Array.from(ctx.entry.members.values()),
     serverEventLog: ctx.entry.eventLog,
     whisperTargetIds: [...ctx.entry.whisperTargetIds],

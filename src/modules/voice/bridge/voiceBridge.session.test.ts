@@ -40,6 +40,7 @@ describe("the initial state", () => {
     );
     expect(connected.serverEventLog).toEqual([expect.objectContaining({ kind: "connection", message: "Connected to the server" })]);
     expect(connected).toMatchObject({ whisperTargetIds: [], whisperActive: false, webrtcAvailable: false, accelerated: false });
+    expect(connected.serverName).toBe("Fake Server");
     expect(connected.screenShareIceServers).toEqual(expect.any(Array));
   });
 

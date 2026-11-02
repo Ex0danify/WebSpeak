@@ -1,11 +1,8 @@
 import { ref } from "vue";
 import { storeToRefs } from "pinia";
 import { notifyMuteSyncFailure } from "@/features/room/shell/roomNotify";
-import { useSessionActions } from "@/features/session";
-import { createMessageRouter, createRosterHandlers } from "@/features/session";
-import { useConnection } from "@/features/session";
+import { createMessageRouter, createRosterHandlers, useConnection, useSessionActions, useSessionStore } from "@/features/session";
 import { useScreenSharePeers, useScreenShareStore } from "@/features/screenShare";
-import { useSessionStore } from "@/features/session";
 import {
   useAudioOutput,
   usePlayback,
@@ -94,7 +91,7 @@ export function useRoomSession() {
   } = storeToRefs(screenShare);
   const { screenShareStreams, screenShareWebRtcStats } = screenShare;
   const { state, members, channels, chatMessages, serverEvents, pokeNotifications, roomNotices, speakingIds, whisperTargetIds } = session;
-  const { webrtcAvailable } = storeToRefs(session);
+  const { webrtcAvailable, serverName } = storeToRefs(session);
   const {
     sendCmd,
     sendCommandAndWait,
@@ -318,6 +315,7 @@ export function useRoomSession() {
       whisperTargetIds,
       whisperActive,
       serverEvents,
+      serverName,
       pokeNotifications,
     },
     chat: {

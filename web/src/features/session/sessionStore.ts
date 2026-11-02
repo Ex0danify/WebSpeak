@@ -46,6 +46,8 @@ export const useSessionStore = defineStore("voiceSession", () => {
   const canSpeak = ref(true);
   /** False when the gateway has WebRTC switched off. Set from the connected message. */
   const webrtcAvailable = ref(true);
+  /** The virtual server's own name, "" until the gateway reported it. */
+  const serverName = ref("");
 
   function setRoomNotice(notice: RoomNotice): void {
     for (let i = roomNotices.length - 1; i >= 0; i--) {
@@ -81,6 +83,7 @@ export const useSessionStore = defineStore("voiceSession", () => {
     whisperActive.value = false;
     canSpeak.value = true;
     webrtcAvailable.value = true;
+    serverName.value = "";
   }
 
   return {
@@ -100,6 +103,7 @@ export const useSessionStore = defineStore("voiceSession", () => {
     whisperActive,
     canSpeak,
     webrtcAvailable,
+    serverName,
     reset,
   };
 });

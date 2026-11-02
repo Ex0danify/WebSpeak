@@ -144,6 +144,7 @@ export type ServerMessage =
   | {
       type: "connected";
       tsClientId: number;
+      serverName: string;
       members: ChannelMember[];
       serverEventLog: ServerEvent[];
       whisperTargetIds: number[];

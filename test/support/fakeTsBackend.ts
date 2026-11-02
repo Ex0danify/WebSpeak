@@ -26,6 +26,7 @@ export class FakeBackend extends EventEmitter<TeamSpeakBackendEvents> implements
   readonly sent: string[] = [];
   readonly sentOptions: (SendOptions | undefined)[] = [];
   protocol = null;
+  serverName = "";
   id = 56;
   channel = 1n;
   talkAllowed = true;

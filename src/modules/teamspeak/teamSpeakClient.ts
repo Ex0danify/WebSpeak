@@ -292,6 +292,10 @@ export class TSClient extends EventEmitter {
     return this.backend?.protocol ?? null;
   }
 
+  getServerName(): string {
+    return this.backend?.serverName ?? "";
+  }
+
   async execCommandWithResponse(command: string, timeoutMs = 3000): Promise<Record<string, string>[]> {
     return this.readyBackend().command(command, timeoutMs);
   }

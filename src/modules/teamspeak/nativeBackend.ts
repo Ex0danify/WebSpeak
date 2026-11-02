@@ -59,6 +59,10 @@ export class NativeBackend extends EventEmitter<TeamSpeakBackendEvents> implemen
     return this.connection ? detectTeamSpeakProtocol(this.connection.session.server.version) : null;
   }
 
+  get serverName(): string {
+    return this.connection?.session.server.name ?? "";
+  }
+
   async connect(): Promise<void> {
     const { transportTarget } = this.options;
     const address = await (this.seams.resolve ?? resolveTarget)(transportTarget.host, transportTarget.port);

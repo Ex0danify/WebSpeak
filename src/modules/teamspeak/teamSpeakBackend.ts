@@ -68,6 +68,8 @@ export type SendOptions = Pick<ScheduledCommandOptions, "priority" | "signal">;
 
 export interface TeamSpeakBackend extends EventEmitter<TeamSpeakBackendEvents> {
   readonly protocol: TeamSpeakProtocol | null;
+  /** The virtual server name from the welcome, "" until then. */
+  readonly serverName: string;
   /** Resolves once the server welcomed us, rejects with an error normalizeTeamSpeakError understands. */
   connect(): Promise<void>;
   disconnect(): Promise<void>;
