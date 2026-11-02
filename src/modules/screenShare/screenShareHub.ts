@@ -65,10 +65,11 @@ export class ScreenShareHub {
     return undefined;
   }
 
-  listScreenStreamsFor(entry: ScreenShareParticipant): ScreenShareStreamDescription[] {
+  /** The streams in the entry's channel, or in `channelId` while the entry is still being moved there. */
+  listScreenStreamsFor(entry: ScreenShareParticipant, channelId: bigint = entry.tsClient.getChannelId()): ScreenShareStreamDescription[] {
     const targetKey = teamSpeakTargetKey(entry.target);
     return [...this.screenStreams.values()]
-      .filter((stream) => stream.targetKey === targetKey && stream.channelId === entry.tsClient.getChannelId())
+      .filter((stream) => stream.targetKey === targetKey && stream.channelId === channelId)
       .map((stream) => this.describeScreenStream(stream));
   }
 
@@ -225,6 +226,8 @@ export class ScreenShareHub {
         this.leaveScreenStream(entry, stream, true);
       }
     }
+    // The browser only asked for the list when it connected, so the shares of the new channel have to be pushed.
+    if (movedIsSelf) this.sendToEntry(entry.id, { type: "screenShareList", streams: this.listScreenStreamsFor(entry, targetChannelId) });
   }
 
   reconcileNativeScreenShareAfterClientLeave(entry: ScreenShareParticipant, clientId: number): void {
