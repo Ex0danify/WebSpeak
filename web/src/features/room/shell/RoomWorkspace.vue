@@ -16,7 +16,7 @@
         @language-change="persistLanguage"
         @disconnect="doDisconnect"
       >
-        <template #event-log>
+        <template v-if="!isMobileViewport" #event-log>
           <EventLogPopover :events="serverEvents" :event-text="eventText" :format-time="formatTime" />
         </template>
         <template #network-performance>
@@ -122,7 +122,11 @@
             @submit="submitMessage"
             @jump-to-latest="scrollChatToEnd"
             @close-private-chat="closePrivateChat"
-          />
+          >
+            <template v-if="isMobileViewport" #bar-end>
+              <EventLogPopover :events="serverEvents" :event-text="eventText" :format-time="formatTime" />
+            </template>
+          </ChatPanel>
         </div>
       </div>
     </main>

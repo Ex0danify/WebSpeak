@@ -102,8 +102,42 @@ test.describe("channel chat", () => {
     await join(page, "chat-scroll-self");
     await openChat(page);
     for (let i = 1; i <= 30; i++) other.say("channel", `scroll line ${i}`);
-    await expect(message(page, "chat-scroll-other", "scroll line 30")).toBeInViewport();
-    await expect(message(page, "chat-scroll-other", /^scroll line 1$/)).not.toBeInViewport();
+    await expect(page.getByText("scroll line 30", { exact: true })).toBeInViewport();
+    await expect(page.getByText("scroll line 1", { exact: true })).not.toBeInViewport();
+    // The page itself never scrolls, only the list does.
+    expect(await overflowScan(page)).toEqual({ clipped: [], pageScrolls: false });
+  });
+
+  test("a reader who scrolled up stays there and gets a way back to the latest message", async ({ page, script }) => {
+    const other = script.member("chat-up-other");
+    await join(page, "chat-up-self");
+    await openChat(page);
+    for (let i = 1; i <= 30; i++) other.say("channel", `up line ${i}`);
+    await expect(page.getByText("up line 30", { exact: true })).toBeInViewport();
+    const jump = page.getByRole("button", { name: "Jump to latest" });
+    await expect(jump).toHaveCount(0);
+
+    await page.getByText("up line 1", { exact: true }).scrollIntoViewIfNeeded();
+    await expect(jump).toBeVisible();
+    other.say("channel", "up line 31");
+    await expect(page.getByText("up line 31", { exact: true })).not.toBeInViewport();
+
+    await jump.click();
+    await expect(page.getByText("up line 31", { exact: true })).toBeInViewport();
+    await expect(jump).toHaveCount(0);
+  });
+
+  test("consecutive messages from one person share one header, and the list is a live log", async ({ page, script }) => {
+    const other = script.member("chat-group-other");
+    await join(page, "chat-group-self");
+    await openChat(page);
+    other.say("channel", "first of two");
+    other.say("channel", "second of two");
+    const group = message(page, "chat-group-other", "second of two");
+    await expect(group).toContainText("first of two");
+    await expect(page.getByRole("article")).toHaveCount(1);
+    await expect(group.getByText("chat-group-other", { exact: true })).toHaveCount(1);
+    await expect(page.getByRole("log")).toHaveAttribute("aria-live", "polite");
   });
 });
 
