@@ -27,6 +27,7 @@
     </section>
     <section :aria-labelledby="voiceId">
       <h3 :id="voiceId" :class="sectionTitle">{{ t("connectionVoiceSection") }}</h3>
+      <Banner v-if="!fullStats" variant="info" class="mb-1">{{ t("voiceWebSocketHint") }}</Banner>
       <dl class="m-0">
         <div :class="row">
           <dt :class="term">{{ t("voiceTransport") }}</dt>
@@ -36,11 +37,11 @@
           <dt :class="term">{{ voice?.transport === "websocket" ? t("voiceJitterEstimated") : t("voiceJitter") }}</dt>
           <dd :class="value">{{ ms(voice?.jitterMs) }}</dd>
         </div>
-        <div :class="row">
+        <div v-if="fullStats" :class="row">
           <dt :class="term">{{ t("voiceLoss") }}</dt>
           <dd :class="value">{{ percent(voice?.lossPercent) }}</dd>
         </div>
-        <div :class="row">
+        <div v-if="fullStats" :class="row">
           <dt :class="term">{{ t("voiceConcealed") }}</dt>
           <dd :class="value">{{ percent(voice?.concealedPercent) }}</dd>
         </div>
@@ -48,24 +49,24 @@
           <dt :class="term">{{ t("voiceDropouts") }}</dt>
           <dd :class="value">{{ voice.glitches }}</dd>
         </div>
-        <div :class="row">
+        <div v-if="fullStats" :class="row">
           <dt :class="term">{{ t("voiceUplink") }}</dt>
           <dd :class="value">
             {{ voice?.uplinkKbps == null ? "—" : format.unit(voice.uplinkKbps, "kilobit-per-second", { maximumFractionDigits: 0 }) }}
           </dd>
         </div>
-        <div :class="row">
+        <div v-if="fullStats" :class="row">
           <dt :class="term">{{ t("voiceCodec") }}</dt>
           <dd :class="value">{{ voice?.codec ?? "—" }}</dd>
         </div>
       </dl>
-      <p v-if="voice?.transport === 'websocket'" class="m-0 mt-2 text-xs text-fg-muted">{{ t("voiceWebSocketHint") }}</p>
     </section>
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed, useId } from "vue";
+import { Banner } from "@/shared/ui/banner";
 import { Chip } from "@/shared/ui/chip";
 import { Icon } from "@/shared/ui/icon";
 import { useFormat } from "@/shared/i18n/useFormat.js";
@@ -84,6 +85,8 @@ const term = "text-sm text-fg-muted";
 const value = "m-0 text-sm font-medium text-fg tabular-nums";
 
 const voice = computed(() => props.stats.voice);
+// Only the WebRTC link reports packet loss, concealed audio, bitrate and codec, so the fallback shows what it can measure.
+const fullStats = computed(() => voice.value?.transport !== "websocket");
 
 function ms(milliseconds: number | null | undefined): string {
   return milliseconds == null ? "—" : format.unit(milliseconds, "millisecond", { maximumFractionDigits: 0 });

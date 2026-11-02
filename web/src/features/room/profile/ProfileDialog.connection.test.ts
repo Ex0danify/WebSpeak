@@ -106,7 +106,9 @@ describe("ProfileDialog connection", () => {
     await selectTab("Connection");
     const text = dialogText();
     expect(text).toContain("Jitter (estimated)");
-    expect(text).toContain("cannot count lost packets");
+    expect(text).toContain("WebRTC is not in use");
+    expect(text).not.toContain("Packet loss");
+    expect(text).not.toContain("Codec");
     expect(text).toContain("Dropouts");
     wrapper.unmount();
   });

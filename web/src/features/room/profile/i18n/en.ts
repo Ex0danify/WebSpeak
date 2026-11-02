@@ -23,7 +23,8 @@ export const en = {
   voiceDropouts: "Dropouts",
   voiceUplink: "Upstream",
   voiceCodec: "Codec",
-  voiceWebSocketHint: "The WebSocket fallback cannot count lost packets, jitter is estimated from the arriving audio.",
+  voiceWebSocketHint:
+    "WebRTC is not in use, so voice runs over the WebSocket fallback. It cannot report packet loss, concealed audio, bitrate or codec. Jitter is estimated from the arriving audio, and dropouts count gaps in playback.",
   nicknameInputLabel: "Nickname, 3 to 30 characters",
   nicknameChange: "Change nickname",
   nicknameSave: "Save",
