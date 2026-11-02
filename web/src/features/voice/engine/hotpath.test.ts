@@ -286,12 +286,12 @@ describe("downlink: scheduling", () => {
     const first = decoded(decoder);
     decoded(decoder);
     const starts = ctx().bufferSources.flatMap((source) => source.started);
-    expect(starts[0]).toBe(1);
-    expect(starts[1]).toBeCloseTo(1.02);
+    expect(starts[0]).toBeCloseTo(1.05);
+    expect(starts[1]).toBeCloseTo(1.07);
     expect(first.closed).toBe(true);
   });
 
-  it("starts at 'now' when playback has fallen behind the clock", async () => {
+  it("restarts with the playout delay when playback has fallen behind the clock", async () => {
     const { socket, ctx } = await downlink();
     ctx().currentTime = 1;
     socket.receiveBinary(opusFrame(9));
@@ -299,10 +299,10 @@ describe("downlink: scheduling", () => {
     decoded(decoder);
     ctx().currentTime = 5;
     decoded(decoder);
-    expect(ctx().bufferSources.map((source) => source.started[0])).toEqual([1, 5]);
+    expect(ctx().bufferSources.map((source) => source.started[0])).toEqual([1.05, 5.05]);
   });
 
-  it("schedules four 20 ms frames within the 80 ms play-ahead limit and resets instead of scheduling a fifth", async () => {
+  it("schedules four 20 ms frames within the play-ahead limit and resets instead of scheduling a fifth", async () => {
     const { socket, ctx } = await downlink();
     ctx().currentTime = 0;
     socket.receiveBinary(opusFrame(9));

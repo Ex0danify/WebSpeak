@@ -1,7 +1,12 @@
 import type { Ref } from "vue";
 import { useVoiceAudioStore } from "@/features/voice/stores/voiceAudioStore";
 import { useSessionStore } from "@/features/session";
-import { MAX_REMOTE_DECODE_QUEUE_FRAMES, MAX_REMOTE_PLAY_AHEAD_SECONDS, SPEAKING_HOLD_MS } from "@/features/voice/audioConstants";
+import {
+  MAX_REMOTE_DECODE_QUEUE_FRAMES,
+  MAX_REMOTE_PLAY_AHEAD_SECONDS,
+  REMOTE_PLAYOUT_DELAY_SECONDS,
+  SPEAKING_HOLD_MS,
+} from "@/features/voice/audioConstants";
 import type { SinkAudioContext } from "@/features/voice/voiceTypes";
 import type { MessageHandlers } from "@/features/session";
 
@@ -112,8 +117,10 @@ export function usePlayback(deps: PlaybackDeps) {
               },
               { once: true },
             );
-            let playTime = remotePlayTimes.get(clientId) ?? ctx.currentTime;
-            if (playTime < ctx.currentTime) playTime = ctx.currentTime;
+            // A new burst, or one that ran dry, restarts with the playout delay so the next late frame has a cushion.
+            const scheduledEnd = remotePlayTimes.get(clientId);
+            const playTime =
+              scheduledEnd !== undefined && scheduledEnd >= ctx.currentTime ? scheduledEnd : ctx.currentTime + REMOTE_PLAYOUT_DELAY_SECONDS;
             if (playTime + numberOfFrames / sampleRate > ctx.currentTime + MAX_REMOTE_PLAY_AHEAD_SECONDS) {
               source.disconnect();
               sources.delete(source);
