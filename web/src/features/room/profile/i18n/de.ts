@@ -1,7 +1,6 @@
 export const de: Record<string, string> = {
   profileMenu: "Dein Profil",
   profileSections: "Profilbereiche",
-  profileTab: "Profil",
   identityTab: "Identität",
   connectionTab: "Verbindung",
   connectionQualityLabel: "Verbindungsqualität",

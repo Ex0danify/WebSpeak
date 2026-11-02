@@ -54,7 +54,7 @@ describe("ProfileDialog connection", () => {
     expect(connection.measureLatency).not.toHaveBeenCalled();
     await selectTab("Connection");
     expect(connection.measureLatency).toHaveBeenCalledTimes(1);
-    await selectTab("Profile");
+    await selectTab("Identity");
     await wrapper.setProps({ modelValue: true });
     wrapper.unmount();
   });

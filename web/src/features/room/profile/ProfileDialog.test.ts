@@ -71,12 +71,6 @@ const status = () =>
 const savedLive = () => document.body.querySelector('[role="dialog"] .sr-only[aria-live="polite"]')?.textContent ?? "";
 const dialogText = () => document.body.querySelector('[role="dialog"]')?.textContent ?? "";
 
-async function identityTab(): Promise<void> {
-  const tab = Array.from(document.body.querySelectorAll('[role="tab"]')).find((el) => el.textContent?.trim() === "Identity");
-  tab?.dispatchEvent(new MouseEvent("mousedown", { bubbles: true, button: 0 }));
-  await nextTick();
-}
-
 async function type(id: string, value: string): Promise<void> {
   const input = document.getElementById(id) as HTMLInputElement;
   input.value = value;
@@ -85,10 +79,11 @@ async function type(id: string, value: string): Promise<void> {
 }
 
 describe("ProfileDialog", () => {
-  it("shows the titled dialog while open and closes with Done", async () => {
+  it("shows the titled dialog while open and closes with the close button", async () => {
     const wrapper = await open();
     expect(document.body.querySelector('[role="dialog"]')?.textContent).toContain("Your profile");
-    button("Done")?.click();
+    expect(button("Done")).toBeUndefined();
+    button("Close")?.click();
     expect(wrapper.emitted("update:modelValue")?.at(-1)).toEqual([false]);
     wrapper.unmount();
   });
@@ -96,14 +91,13 @@ describe("ProfileDialog", () => {
   it("keeps the own name and the identity state in a header above the tabs, the unique id on the identity tab", async () => {
     const wrapper = await open();
     const header = document.body.querySelector('[role="dialog"] header.sticky')!;
-    const [profilePanel, identityPanel] = Array.from(document.body.querySelectorAll('[role="tabpanel"]'));
+    const identityPanel = document.body.querySelector('[role="tabpanel"]')!;
     expect(header.textContent).toContain("roka");
     expect(header.textContent).toContain("Temporary");
     expect(header.compareDocumentPosition(document.body.querySelector('[role="tablist"]')!)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
-    expect(profilePanel!.textContent).not.toContain(member.uid);
-    expect(identityPanel!.textContent).not.toContain("roka");
-    expect(identityPanel!.textContent).toContain("Unique ID");
-    expect(identityPanel!.textContent).toContain(member.uid);
+    expect(identityPanel.textContent).not.toContain("roka");
+    expect(identityPanel.textContent).toContain("Unique ID");
+    expect(identityPanel.textContent).toContain(member.uid);
     wrapper.unmount();
   });
 
@@ -313,10 +307,9 @@ describe("ProfileDialog nickname", () => {
 describe("ProfileDialog identity", () => {
   it("says a temporary identity is temporary, with no name or field to edit one on the tab", async () => {
     const wrapper = await open();
-    await identityTab();
     expect(status()).toContain("Temporary");
-    const [, identityPanel] = Array.from(document.body.querySelectorAll('[role="tabpanel"]'));
-    expect(identityPanel!.querySelector("input")).toBeNull();
+    const identityPanel = document.body.querySelector('[role="tabpanel"]')!;
+    expect(identityPanel.querySelector("input")).toBeNull();
     expect(button("Rename")).toBeUndefined();
     expect(dialogText()).not.toContain("…");
     expect(dialogText()).toContain("Save this identity to keep using it on this device.");
@@ -333,7 +326,6 @@ describe("ProfileDialog identity", () => {
       return { ok: true, identity };
     });
     const wrapper = await open();
-    await identityTab();
     button("Save to this device")?.click();
     await flushPromises();
     expect(importIdentity).toHaveBeenCalledWith("secret-material", "roka");
@@ -347,7 +339,6 @@ describe("ProfileDialog identity", () => {
     store.list.value = [{ id: "id-9", label: "Desktop", privateMaterial: "remembered-key" }];
     const request = vi.fn();
     const wrapper = await open({ identityMaterial: "remembered-key", request });
-    await identityTab();
     expect(status()).toContain("Saved on this device");
     expect(request).not.toHaveBeenCalled();
     wrapper.unmount();
@@ -356,7 +347,6 @@ describe("ProfileDialog identity", () => {
   it("recognizes a temporary identity that was saved earlier in the session", async () => {
     store.list.value = [{ id: "id-1", label: "Laptop", privateMaterial: "secret-material" }];
     const wrapper = await open({ savedId: "id-1" });
-    await identityTab();
     expect(status()).toContain("Saved on this device");
     wrapper.unmount();
   });
@@ -364,7 +354,6 @@ describe("ProfileDialog identity", () => {
   it("treats a key that is already stored as saved and does not import it again", async () => {
     store.list.value = [{ id: "id-1", label: "Old", privateMaterial: "secret-material" }];
     const wrapper = await open();
-    await identityTab();
     button("Save to this device")?.click();
     await flushPromises();
     expect(importIdentity).not.toHaveBeenCalled();
@@ -375,7 +364,6 @@ describe("ProfileDialog identity", () => {
   it("asks for the key only when exporting, then warns about the private key", async () => {
     const request = vi.fn().mockResolvedValue("secret-material");
     const wrapper = await open({ request });
-    await identityTab();
     expect(request).not.toHaveBeenCalled();
     expect(document.body.textContent).not.toContain("private key");
     button("Export")?.click();
@@ -388,7 +376,6 @@ describe("ProfileDialog identity", () => {
 
   it("says so when the key cannot be fetched", async () => {
     const wrapper = await open({ request: () => Promise.reject(new Error("timeout")) });
-    await identityTab();
     button("Export")?.click();
     await flushPromises();
     expect(downloadIdentity).not.toHaveBeenCalled();

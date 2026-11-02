@@ -1,5 +1,5 @@
 <template>
-  <Dialog v-model="open" size="sm" :title="t('profileMenu')" :close-label="t('close')">
+  <Dialog v-model="open" size="sm" :title="t('profileMenu')" :close-label="t('close')" :class="anchorTop">
     <!-- Stays in view while a tab scrolls. The negative margin pulls it over the body's top padding, so it covers it. -->
     <header v-if="member" class="sticky top-0 z-10 -mt-3 flex flex-col items-center gap-3 bg-surface-1 pb-4 text-center">
       <Avatar :name="member.nickname" :src="member.avatar || undefined" size="xl" surface="surface-1" tint self />
@@ -60,12 +60,10 @@
     </header>
     <Tabs v-model="tab">
       <TabList :aria-label="t('profileSections')">
-        <Tab value="profile">{{ t("profileTab") }}</Tab>
         <Tab value="identity">{{ t("identityTab") }}</Tab>
         <Tab value="connection">{{ t("connectionTab") }}</Tab>
       </TabList>
-      <!-- Both panels share one minimum height, so the dialog keeps its size when switching tabs. -->
-      <TabPanel value="profile" :class="panelClass" />
+      <!-- A shared minimum height keeps the jump between tabs small. -->
       <TabPanel value="identity" :class="`${panelClass} flex flex-col gap-4`">
         <p v-if="!savedIdentity" class="m-0 text-sm text-fg-muted">{{ t("identityTemporary") }}</p>
         <div v-if="member?.uid" class="min-w-0">
@@ -94,9 +92,6 @@
       </TabPanel>
       <TabPanel value="connection" :class="panelClass"><ConnectionStats :stats="connectionStats" /></TabPanel>
     </Tabs>
-    <template #footer
-      ><Button @click="open = false">{{ t("done") }}</Button></template
-    >
   </Dialog>
 </template>
 
@@ -141,8 +136,10 @@ const savedId = defineModel<string | null>("savedId", { default: null });
 const { t } = useI18n();
 
 const panelClass = "min-h-64 pt-4";
+// Pinned below the top edge instead of centered, so only the lower part moves when a tab changes the height. Compact screens stay centered.
+const anchorTop = "mt-12 max-h-4/5 self-start max-compact:mt-0 max-compact:max-h-full max-compact:self-center";
 const manager = useIdentityManager();
-const tab = ref("profile");
+const tab = ref("identity");
 const connectionStats = useConnectionStats({
   session: props.connection,
   active: () => open.value && tab.value === "connection",
@@ -176,7 +173,7 @@ watch(
       failed.value = false;
       editing.value = false;
       nicknameStatus.reset();
-      tab.value = "profile";
+      tab.value = "identity";
     }
   },
   { immediate: true },

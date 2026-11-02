@@ -1,7 +1,6 @@
 export const en = {
   profileMenu: "Your profile",
   profileSections: "Profile sections",
-  profileTab: "Profile",
   identityTab: "Identity",
   connectionTab: "Connection",
   connectionQualityLabel: "Connection quality",
