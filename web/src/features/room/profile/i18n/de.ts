@@ -23,8 +23,7 @@ export const de: Record<string, string> = {
   voiceDropouts: "Aussetzer",
   voiceUplink: "Upload",
   voiceCodec: "Codec",
-  voiceWebSocketHint:
-    "WebRTC ist nicht aktiv, die Sprache läuft über den WebSocket-Ersatzweg. Er meldet weder Paketverlust, überbrücktes Audio, Bitrate noch Codec. Der Jitter wird aus dem ankommenden Audio geschätzt, Aussetzer zählen Lücken in der Wiedergabe.",
+  voiceWebSocketHint: "WebRTC ist nicht verfügbar. Nicht alle Werte können angezeigt werden.",
   nicknameInputLabel: "Name, 3 bis 30 Zeichen",
   nicknameChange: "Namen ändern",
   nicknameSave: "Speichern",
