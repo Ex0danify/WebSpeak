@@ -154,8 +154,9 @@ export function useScreenSharePeers() {
     sendScreenShareMessage({ type: "screenShareJoin", streamId, requestId: `screen-join-${screenShareRequestSequence}` });
   }
 
-  function leaveScreenShare(): void {
-    if (screenShareViewingStreamId.value) sendScreenShareMessage({ type: "screenShareLeave", streamId: screenShareViewingStreamId.value });
+  function leaveScreenShare(notifyGateway = true): void {
+    if (notifyGateway && screenShareViewingStreamId.value)
+      sendScreenShareMessage({ type: "screenShareLeave", streamId: screenShareViewingStreamId.value });
     closeAllScreenSharePeers();
     screenShareViewing.value = false;
     screenShareViewingStreamId.value = "";
@@ -273,7 +274,8 @@ export function useScreenSharePeers() {
       if (typeof msg.viewerPeerId === "string") closeScreenSharePeer(msg.viewerPeerId);
     },
     screenShareLeft: (msg) => {
-      if (screenShareViewingStreamId.value === String(msg.streamId || "")) leaveScreenShare();
+      // The gateway already dropped us, a second leave would be refused once we are in another channel.
+      if (screenShareViewingStreamId.value === String(msg.streamId || "")) leaveScreenShare(false);
     },
     screenShareError: (msg) => {
       screenShareErrorCode.value = typeof msg.code === "string" ? msg.code : "";
