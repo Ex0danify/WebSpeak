@@ -15,8 +15,16 @@ export const controlVariants = cva(
         true: "border-danger",
         false: "border-line-strong",
       },
+      // `inline` is for editing a label where it stands: no box, the text keeps the label's look and only an underline says it
+      // is a field. Focus is the thicker accent underline in place of the ring.
+      look: {
+        box: "",
+        inline:
+          "h-9 rounded-none border-0 border-b bg-transparent px-1 text-center text-base font-bold " +
+          "focus-visible:border-b-2 focus-visible:outline-none focus-visible:ring-0",
+      },
     },
-    defaultVariants: { invalid: false },
+    defaultVariants: { invalid: false, look: "box" },
   },
 );
 

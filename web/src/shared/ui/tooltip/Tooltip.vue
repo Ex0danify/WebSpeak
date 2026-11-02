@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { ref } from "vue";
 import { TooltipArrow, TooltipContent, TooltipPortal, TooltipProvider, TooltipRoot, TooltipTrigger } from "reka-ui";
 import { cn } from "@/shared/lib/cn";
 import { tooltipContentClass, tooltipKbdClass } from "@/shared/ui/tooltip/tooltip";
@@ -20,12 +21,31 @@ const props = withDefaults(
   }>(),
   { side: "top", align: "center", delay: 400 },
 );
+
+// Focus that code moved onto the trigger (a dialog or an edit giving it back) is no reason to show the label, it would stay
+// open until the next click. Hover and keyboard focus are, and a mouse click never leaves the trigger focus-visible.
+const trigger = ref<{ $el: HTMLElement } | null>(null);
+const open = ref(false);
+
+function wanted(): boolean {
+  const element = trigger.value?.$el;
+  if (!element?.matches) return true;
+  try {
+    return element.matches(":hover") || element.matches(":focus-visible");
+  } catch {
+    return true;
+  }
+}
+
+function onOpenChange(next: boolean): void {
+  open.value = next && wanted();
+}
 </script>
 
 <template>
   <TooltipProvider :delay-duration="delay" :disable-hoverable-content="true">
-    <TooltipRoot>
-      <TooltipTrigger as-child>
+    <TooltipRoot :open="open" @update:open="onOpenChange">
+      <TooltipTrigger ref="trigger" as-child>
         <slot />
       </TooltipTrigger>
       <TooltipPortal>
