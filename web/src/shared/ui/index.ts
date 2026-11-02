@@ -14,6 +14,7 @@ export * from "@/shared/ui/menu";
 export * from "@/shared/ui/meter";
 export * from "@/shared/ui/popover";
 export * from "@/shared/ui/radio";
+export * from "@/shared/ui/savedHint";
 export * from "@/shared/ui/select";
 export * from "@/shared/ui/separator";
 export * from "@/shared/ui/slider";

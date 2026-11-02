@@ -137,7 +137,6 @@ export const de: Record<string, string> = {
   welcomeLanguageHint: "Sprache auswählen und den jeweiligen Text bearbeiten. Leer lassen, um die Vorlage zu verwenden.",
   welcomeFallbackHint: "Ein leeres Feld verwendet automatisch die Vorlage dieser Sprache.",
   unknown: "Unbekannt",
-  savedStatus: "Gespeichert",
   privacyNoticeUrl: "Link zur Datenschutzerklärung",
   privacyNoticeUrlHint:
     "Wird Gästen als Link in der Fußzeile der Startseite angezeigt. Leer lassen für keinen. Erkläre dort, was du speicherst, wozu und wie lange.",

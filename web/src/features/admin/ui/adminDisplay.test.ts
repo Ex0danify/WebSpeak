@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { mount, RouterLinkStub } from "@vue/test-utils";
 import { registerAdminStores } from "@/features/admin/shell/adminStores";
 import { createAdminFormat } from "@/features/admin/core/adminFormat";
-import { createSaveStatus } from "@/features/admin/core/saveStatus";
+import { createSaveStatus } from "@/shared/lib/saveStatus";
 import type { AdminConnectionAudio, AdminConnectionRecord } from "@/features/admin/core/adminTypes";
 import { useAdminOverviewStore } from "@/features/admin/dashboard/adminOverview";
 import Metrics from "@/features/admin/dashboard/Metrics.vue";

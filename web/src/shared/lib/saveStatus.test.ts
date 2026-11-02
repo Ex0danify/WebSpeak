@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { createSaveStatus, SAVED_VISIBLE_MS } from "@/features/admin/core/saveStatus";
+import { createSaveStatus, SAVED_VISIBLE_MS } from "@/shared/lib/saveStatus";
 
 beforeEach(() => vi.useFakeTimers());
 afterEach(() => vi.useRealTimers());

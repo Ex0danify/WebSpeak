@@ -2,7 +2,7 @@ import { ref } from "vue";
 import { defineStore } from "pinia";
 import type { ApiError } from "@/features/admin/core/adminApi.js";
 import { createAdminFormat } from "@/features/admin/core/adminFormat.js";
-import { createSaveStatus, type SaveStatus } from "@/features/admin/core/saveStatus.js";
+import { createSaveStatus, type SaveStatus } from "@/shared/lib/saveStatus.js";
 import { toast } from "@/shared/composables/useToast";
 import { useI18n } from "@/shared/i18n/useI18n.js";
 

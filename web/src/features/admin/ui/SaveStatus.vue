@@ -21,7 +21,7 @@
 <script setup lang="ts">
 import { Icon } from "@/shared/ui/icon";
 import { useI18n } from "@/shared/i18n/useI18n";
-import type { SaveStatus } from "@/features/admin/core/saveStatus";
+import type { SaveStatus } from "@/shared/lib/saveStatus";
 
 defineProps<{ status: SaveStatus; quiet?: boolean }>();
 const { t } = useI18n();

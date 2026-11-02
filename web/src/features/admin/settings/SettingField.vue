@@ -3,7 +3,7 @@
     <template #label>
       <span class="flex items-baseline justify-between gap-2"
         ><span>{{ label }}</span
-        ><FieldSaved :status="fieldStatus(field)" class="leading-none"
+        ><SavedHint :status="fieldStatus(field)" dense
       /></span>
     </template>
     <slot />
@@ -12,7 +12,7 @@
 
 <script setup lang="ts">
 import { Field } from "@/shared/ui/field";
-import FieldSaved from "@/features/admin/ui/FieldSaved.vue";
+import { SavedHint } from "@/shared/ui/savedHint";
 import { useAdminServerSettingsStore } from "@/features/admin/settings/adminServerSettings";
 
 // A settings field: the label, the hint for a value that was not saved, and a mark next to the label when this field was saved.
