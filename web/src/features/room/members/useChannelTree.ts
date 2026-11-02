@@ -5,7 +5,7 @@ import { notifyEvent } from "@/features/room/shell/roomNotify";
 import { toast as raiseToast } from "@/shared/composables/useToast.js";
 import { useAway } from "@/features/room/members/useAway.js";
 import { channelNameText, type ChannelMember } from "@/features/session";
-import type { RoomSession, TreeChannel } from "@/features/room/roomTypes.js";
+import type { ChatTab, RoomSession, TreeChannel } from "@/features/room/roomTypes.js";
 import { buildChannelTree } from "@/features/room/members/buildChannelTree.js";
 
 /** How long the view waits for the member list to show you in the new channel after the gateway confirmed the join. */
@@ -21,7 +21,7 @@ export interface UseChannelTreeOptions {
   channel: Ref<string>;
   selectedChannelId: Ref<string>;
   /** Owned by RoomView (also read by useChat). */
-  chatTab: Ref<"channel" | "server" | "private" | "events">;
+  chatTab: Ref<ChatTab>;
   /** Owned by useMemberMenu. */
   memberMenu: Ref<{ member: ChannelMember; x: number; y: number } | null>;
 }

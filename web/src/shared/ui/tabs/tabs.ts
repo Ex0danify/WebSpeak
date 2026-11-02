@@ -6,12 +6,12 @@ export const tabListVariants = cva("flex max-w-full", {
       // Scrolls sideways instead of wrapping when German or Russian labels do not fit.
       underline: "gap-1 overflow-x-auto border-b border-line",
       segmented: "inline-flex gap-0.5 overflow-x-auto rounded-md bg-surface-2 p-0.5",
-      // Separate bordered chips with an icon and a label (the chat tabs). On a phone the list is a
-      // bar with a rule under it and no scrollbar.
       // Bottom navigation bar: equal columns, no track.
       bar: "grid flex-1 grid-cols-4 gap-0.5",
+      // Separate bordered chips with an icon and a label (the chat tabs). They wrap onto more rows instead of scrolling.
+      // On a phone the list is a bar with a rule under it.
       pills:
-        "items-center gap-1.5 overflow-x-auto pb-0.75 max-compact:flex-none max-compact:border-b max-compact:border-line max-compact:pt-2.5 max-compact:pb-2.25 max-compact:[scrollbar-width:none] max-compact:[&::-webkit-scrollbar]:hidden",
+        "flex-wrap items-center gap-1.5 pb-0.75 max-compact:flex-none max-compact:border-b max-compact:border-line max-compact:pt-2.5 max-compact:pb-2.25",
     },
     fill: { true: "w-full", false: "" },
   },

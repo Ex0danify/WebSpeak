@@ -1,10 +1,12 @@
 export const en = {
   channelChat: "{{channel}} chat",
-  messageCount: "{{count}} messages",
   chatStart: "This is the beginning of the chat",
   chatStartLead: "Send a message and say hello to your channel friends.",
   chatTabs: "Chat tabs",
   jumpToLatest: "Jump to latest",
+  unreadMessages: "Unread messages",
+  closePrivateChat: "Close chat",
+  eventLogUnread: "Event log, {{count}} new",
   serverChat: "Server",
   privateMessagePlaceholder: "Message privately…",
   serverMessagePlaceholder: "Message the server…",

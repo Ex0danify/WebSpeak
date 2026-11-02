@@ -103,6 +103,7 @@ import {
   useRoomShell,
   useScreenShareErrorNotice,
   useWhisper,
+  type ChatTab,
 } from "@/features/room";
 import PasswordDialog from "@/shared/components/PasswordDialog.vue";
 import { useAppearance } from "@/shared/composables/useAppearance";
@@ -145,7 +146,7 @@ const {
 } = session.audio;
 
 const selectedChannelId = ref("");
-const chatTab = ref<"channel" | "server" | "private" | "events">("channel");
+const chatTab = ref<ChatTab>("channel");
 
 const { t } = useI18n();
 const appearance = useAppearance();

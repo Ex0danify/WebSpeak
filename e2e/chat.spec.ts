@@ -3,7 +3,7 @@ import { expect, type Script, test } from "./fixtures";
 import { join, openMemberMenu, overflowScan, poll } from "./helpers";
 import type { Gateway } from "../test/support/gateway";
 
-// The chat panel of the connected view: the channel, server and private tabs, the event log and the
+// The chat panel of the connected view: the channel, server and private tabs, the event log popover and the
 // composer. Real gateway, fake TeamSpeak server. A message another person sends comes from a scripted
 // member (`script`); what the browser sends is read from the fake client's record of it.
 
@@ -13,7 +13,7 @@ async function openChat(page: Page): Promise<void> {
   if (await tab.isVisible()) await tab.click();
 }
 
-/** One tab of the chat panel (channel, server, a private conversation, or the event log). */
+/** One tab of the chat panel (channel, server or a private conversation). */
 const chatTab = (page: Page, name: string | RegExp): Locator => page.getByRole("tab", { name, exact: typeof name === "string" });
 
 /** One message: its sender, and the text. Nothing else in the page is an article with both. */
@@ -203,41 +203,44 @@ test.describe("private chat", () => {
     await openChat(page);
     other.say("private", "psst", BigInt(idOf(gateway, "pm-in-self")));
 
-    await expect(chatTab(page, "pm-in-other")).toBeVisible();
+    // The tab says there is something new in it, and stops saying so once it is open.
+    await expect(chatTab(page, /^pm-in-other\s+Unread messages$/)).toBeVisible();
     await expect(message(page, "pm-in-other", "psst")).toBeHidden();
-    await chatTab(page, "pm-in-other").click();
+    await chatTab(page, /^pm-in-other/).click();
     await expect(message(page, "pm-in-other", "psst")).toBeVisible();
+    await expect(chatTab(page, "pm-in-other")).toBeVisible();
     await chatTab(page, "Lobby").click();
     await expect(message(page, "pm-in-other", "psst")).toBeHidden();
   });
 });
 
 test.describe("event log", () => {
-  /** The entries of the log: articles with a time, which no message or card has. */
-  const entries = (page: Page): Locator => page.getByRole("article").filter({ has: page.locator("time") });
-
-  test("starts with the connection, lists members coming and going, and has no composer", async ({ page, script, isMobile }) => {
-    await join(page, "evt-self");
+  /** The entries of the log in the popover of the bell in the header. */
+  const entries = (page: Page): Locator => page.getByRole("listitem").filter({ has: page.locator("time") });
+  const openLog = async (page: Page): Promise<void> => {
     await openChat(page);
-    await chatTab(page, "Event log").click();
+    await page.getByRole("button", { name: /^Event log/ }).click();
+  };
+
+  test("starts with the connection and lists members coming and going", async ({ page, script }) => {
+    await join(page, "evt-self");
+    await openLog(page);
     await expect(entries(page)).toHaveCount(1);
-    if (!isMobile) await expect(page.getByText("1 events")).toBeVisible();
-    await expect(composer(page)).toHaveCount(0);
+    await expect(page.getByText("1 events")).toBeVisible();
 
     const visitor = script.member("evt-visitor");
     await expect(entries(page).filter({ hasText: "evt-visitor" })).toHaveCount(1);
     visitor.leave();
     await expect(entries(page).filter({ hasText: "evt-visitor" })).toHaveCount(2);
     await expect(entries(page)).toHaveCount(3);
-    if (!isMobile) await expect(page.getByText("3 events")).toBeVisible();
+    await expect(page.getByText("3 events")).toBeVisible();
   });
 
   // The gateway sends the kind and the nickname and the client builds the sentence itself with t() in the page's language.
   // `message` (Chinese) is only a fallback for an older gateway and is never shown while a translation exists.
   test("the entries follow the language of the page", async ({ page, script }) => {
     await join(page, "evt-en-self");
-    await openChat(page);
-    await chatTab(page, "Event log").click();
+    await openLog(page);
     await expect(entries(page)).toHaveCount(1);
     await expect(entries(page).first()).toContainText("Connected to the server");
     await expect(entries(page).first()).not.toContainText(/[\u4e00-\u9fff]/);
@@ -251,8 +254,7 @@ test.describe("event log", () => {
   test("a member who changes channel is announced too, with a translated sentence", async ({ page, script, gateway }) => {
     const visitor = script.member("evt-en-mover");
     await join(page, "evt-en-mover-self");
-    await openChat(page);
-    await chatTab(page, "Event log").click();
+    await openLog(page);
     const roomB = [...gateway.ts.channels.values()].find((channel) => channel.name === "Room B")!.id;
     visitor.moveTo(roomB);
     await expect(entries(page).filter({ hasText: "evt-en-mover moved to another channel" })).toHaveCount(1);

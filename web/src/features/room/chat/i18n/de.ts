@@ -1,10 +1,12 @@
 export const de: Record<string, string> = {
   channelChat: "Chat in {{channel}}",
-  messageCount: "{{count}} Nachrichten",
   chatStart: "Dies ist der Anfang des Chats",
   chatStartLead: "Sende eine Nachricht und begrüße deine Kanalmitglieder.",
   chatTabs: "Chat-Tabs",
   jumpToLatest: "Zu den neuesten",
+  unreadMessages: "Ungelesene Nachrichten",
+  closePrivateChat: "Chat schließen",
+  eventLogUnread: "Ereignisprotokoll, {{count}} neu",
   serverChat: "Server",
   privateMessagePlaceholder: "Private Nachricht senden…",
   serverMessagePlaceholder: "Nachricht an den Server senden…",

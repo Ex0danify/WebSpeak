@@ -1,6 +1,6 @@
 export { useRoomSession } from "@/features/room/useRoomSession";
 export { provideRoomSession, useRoomContext } from "@/features/room/useRoomContext";
-export type { RoomSession } from "@/features/room/roomTypes";
+export type { ChatTab, RoomSession } from "@/features/room/roomTypes";
 export { default as NetworkPerformancePanel } from "@/features/room/network/NetworkPerformancePanel.vue";
 export { useNetworkPerformance } from "@/features/room/network/useNetworkPerformance";
 export { default as RoomWorkspace } from "@/features/room/shell/RoomWorkspace.vue";

@@ -73,14 +73,6 @@ describe("visibleChatMessages", () => {
     await flushPromises();
     expect(vm.visibleChatMessages.map((m) => m.id)).toEqual(["1"]);
   });
-
-  it("shows nothing on the events tab", async () => {
-    const { vm, options, chatMessages } = await mountUseChat();
-    options.chatTab.value = "events";
-    chatMessages.push({ id: "1", scope: "channel", invokerName: "Ana", message: "channel", timestamp: 1 });
-    await flushPromises();
-    expect(vm.visibleChatMessages).toEqual([]);
-  });
 });
 
 describe("chat tab labels", () => {

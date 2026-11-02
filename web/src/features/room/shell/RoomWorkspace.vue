@@ -3,7 +3,8 @@
     <main :class="[workspaceClass, mobileSection === 'more' || mobileSection === 'channels' ? 'max-compact:hidden' : '']">
       <h1 v-if="!isMobileViewport || (mobileSection !== 'channels' && mobileSection !== 'more')" class="sr-only">{{ t("voiceSpace") }}</h1>
       <WorkspaceHeader
-        :current-channel-name="currentChannelName"
+        :server-name="serverName"
+        :online-count="members.length"
         :is-mobile-viewport="isMobileViewport"
         :microphone-muted="microphoneMuted"
         :theme-icon="themeIcon"
@@ -15,6 +16,9 @@
         @language-change="persistLanguage"
         @disconnect="doDisconnect"
       >
+        <template #event-log>
+          <EventLogPopover :events="serverEvents" :event-text="eventText" :format-time="formatTime" />
+        </template>
         <template #network-performance>
           <NetworkPerformancePanel
             :performance-panel-open="performancePanelOpen"
@@ -105,20 +109,19 @@
             :current-channel-name="currentChannelName"
             :private-conversations="privateConversations"
             :private-conversation-id="privateConversationId"
-            :chat-tab-label="chatTabLabel"
             :chat-title="chatTitle"
             :chat-placeholder="chatPlaceholder"
             :private-peer-name="privatePeerName"
-            :server-events="serverEvents"
             :visible-chat-messages="visibleChatMessages"
             :members="members"
-            :event-text="eventText"
             :format-time="formatTime"
             :set-list-element="setChatListElement"
+            :unread-tabs="unreadTabs"
             :at-bottom="atBottom"
             @open-private-chat="openPrivateChat"
             @submit="submitMessage"
             @jump-to-latest="scrollChatToEnd"
+            @close-private-chat="closePrivateChat"
           />
         </div>
       </div>
@@ -219,6 +222,7 @@ import AudioDock from "@/features/room/dock/AudioDock.vue";
 import { accompanimentAvailability } from "@/features/room/dock/accompanimentAvailability";
 import { audioLinkStatus } from "@/features/room/dock/audioLinkStatus";
 import type { useAudioSettingsPanel } from "@/features/room/audioSettings/useAudioSettingsPanel";
+import EventLogPopover from "@/features/room/events/EventLogPopover.vue";
 import ProfileDialog from "@/features/room/profile/ProfileDialog.vue";
 import { useNicknameChange } from "@/features/room/profile/useNicknameChange";
 import MemberPanel from "@/features/room/members/MemberPanel.vue";
@@ -230,7 +234,7 @@ import type { useNetworkPerformance } from "@/features/room/network/useNetworkPe
 import PokeStack from "@/features/room/whisper/PokeStack.vue";
 import WhisperStrip from "@/features/room/whisper/WhisperStrip.vue";
 import type { useWhisper } from "@/features/room/whisper/useWhisper";
-import type { RoomSession } from "@/features/room/roomTypes";
+import type { ChatTab, RoomSession } from "@/features/room/roomTypes";
 import RoomNoticeBanner from "@/features/room/shell/RoomNoticeBanner.vue";
 import MobileMorePanel from "@/features/room/shell/MobileMorePanel.vue";
 import MobileNav from "@/features/room/shell/MobileNav.vue";
@@ -245,7 +249,7 @@ const props = defineProps<{
   session: RoomSession;
   shell: ReturnType<typeof useRoomShell>;
   tree: ReturnType<typeof useChannelTree>;
-  chat: ReturnType<typeof useChat> & { chatTab: Ref<"channel" | "server" | "private" | "events"> };
+  chat: ReturnType<typeof useChat> & { chatTab: Ref<ChatTab> };
   screenShare: ReturnType<typeof useScreenShare>;
   audioPanel: ReturnType<typeof useAudioSettingsPanel>;
   whisper: ReturnType<typeof useWhisper>;
@@ -259,7 +263,7 @@ const props = defineProps<{
 const { t } = useI18n();
 const { state: voiceState, roomNotices, reconnectNow, requestIdentity, identityMaterial, setNickname } = props.session.session;
 const changeNickname = useNicknameChange({ setNickname });
-const { members, serverEvents, pokeNotifications, speakingIds, canSpeak, mutedMembers, whisperTargetIds, whisperActive } =
+const { members, serverEvents, serverName, pokeNotifications, speakingIds, canSpeak, mutedMembers, whisperTargetIds, whisperActive } =
   props.session.roster;
 const { microphoneMuted, outputMuted, toggleOutputMute, accompanimentActive, accompanimentSupported, webrtcActive, webrtcAvailable } =
   props.session.audio;
@@ -302,7 +306,8 @@ const {
   privateConversationId,
   privateConversations,
   visibleChatMessages,
-  chatTabLabel,
+  unreadTabs,
+  closePrivateChat,
   chatTitle,
   chatPlaceholder,
   privatePeerName,

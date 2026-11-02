@@ -41,6 +41,7 @@ export const en = {
   watching: "Watching",
   switchChannel: "Switch channel",
   serverBreadcrumb: "Server",
+  onlineShort: "{{count}} online",
   copyInvite: "Copy invite link",
   exit: "Exit",
   voiceSpace: "Voice space",

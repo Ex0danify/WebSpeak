@@ -20,3 +20,6 @@ type RoomSessionApi = ReturnType<typeof useRoomSession>;
 
 /** What `useRoomSession()` returns: six groups, no flat keys. */
 export type RoomSession = RoomSessionApi;
+
+/** The kinds of conversation the chat panel can show. A private chat is told apart by its conversation key. */
+export type ChatTab = "channel" | "server" | "private";

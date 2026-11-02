@@ -1,8 +1,8 @@
-import { computed, nextTick, onScopeDispose, ref, watch, type Ref } from "vue";
+import { computed, nextTick, onScopeDispose, reactive, ref, watch, type Ref } from "vue";
 import { useI18n } from "@/shared/i18n/useI18n.js";
 import { formatTime as formatTimestamp } from "@/shared/lib/format.js";
-import type { TreeChannel } from "@/features/room/roomTypes.js";
-import { nicknameText, privateConversationKey, type ChannelMember, type ServerEvent } from "@/features/session";
+import type { ChatTab, TreeChannel } from "@/features/room/roomTypes.js";
+import { nicknameText, privateConversationKey, type ChannelMember, type ChatMessage, type ServerEvent } from "@/features/session";
 import type { RoomSession } from "@/features/room/roomTypes.js";
 
 // Distance from the end that still counts as being at the bottom, and how long a smooth scroll to the end may take.
@@ -19,7 +19,7 @@ export interface UseChatOptions {
   selectedChannelId: Ref<string>;
   /** Owned by RoomView: also passed to useChannelTree, whose selectChannel() sets it back to
    *  "channel", so it can't be created here without a circular dependency between the two composables. */
-  chatTab: Ref<"channel" | "server" | "private" | "events">;
+  chatTab: Ref<ChatTab>;
   /** Owned by useMemberMenu: closed when a private chat is opened from the member menu. */
   memberMenu: Ref<{ member: ChannelMember; x: number; y: number } | null>;
   /** Owned by useRoomShell. */
@@ -40,6 +40,8 @@ export function useChat(options: UseChatOptions) {
   /** The key of the open private conversation (see privateConversationKey), "" when none is open. */
   const privateConversationId = ref("");
   const chatListEl = ref<HTMLElement | null>(null);
+  /** Private chats the reader closed, with the time of their last message then. */
+  const closedConversations = reactive(new Map<string, number>());
 
   function formatTime(timestamp: number) {
     return formatTimestamp(timestamp, language.value);
@@ -64,6 +66,10 @@ export function useChat(options: UseChatOptions) {
         lastMessage: Math.max(existing?.lastMessage ?? 0, message.timestamp),
       });
     }
+    // A closed chat stays away until the other person writes again.
+    for (const [id, closedAt] of closedConversations) {
+      if ((conversations.get(id)?.lastMessage ?? 0) <= closedAt) conversations.delete(id);
+    }
     // The chat just opened from the member menu has no message yet: list it under the member's name.
     const open = privateConversationId.value;
     if (open && !conversations.has(open)) {
@@ -79,36 +85,48 @@ export function useChat(options: UseChatOptions) {
     return privateConversations.value.find((conversation) => conversation.id === privateConversationId.value)?.name ?? t("privateMessage");
   });
 
-  const visibleChatMessages = computed(() => {
-    if (chatTab.value === "server") return chatMessages.filter((message) => message.scope === "server");
-    if (chatTab.value === "private")
-      return chatMessages.filter((message) => message.scope === "private" && message.conversationId === privateConversationId.value);
-    if (chatTab.value !== "channel") return [];
+  const isCurrentChannelMessage = (message: ChatMessage): boolean => {
     const channelId = currentChannel.value?.id;
-    return chatMessages.filter(
-      (message) =>
-        message.scope === "channel" && (!message.targetId || message.targetId === "0" || !channelId || message.targetId === channelId),
-    );
+    return message.scope === "channel" && (!message.targetId || message.targetId === "0" || !channelId || message.targetId === channelId);
+  };
+
+  /** The tab a message belongs to, in the keys ChatPanel uses, null for a message that has no tab. */
+  function tabOfMessage(message: ChatMessage): string | null {
+    if (message.scope === "server") return "server";
+    if (message.scope === "private") return message.conversationId ? `private-${message.conversationId}` : null;
+    return isCurrentChannelMessage(message) ? "channel" : null;
+  }
+
+  const activeTabKey = computed(() => (chatTab.value === "private" ? `private-${privateConversationId.value}` : chatTab.value));
+
+  const visibleChatMessages = computed(() => chatMessages.filter((message) => tabOfMessage(message) === activeTabKey.value));
+
+  // A message counts as read once its tab was on screen with it. Your own messages never count.
+  const readMessageIds = reactive(new Set<string>());
+  const chatOnScreen = computed(() => !isMobileViewport.value || mobileSection.value === "chat");
+  watch(
+    [visibleChatMessages, chatOnScreen],
+    () => {
+      if (chatOnScreen.value) for (const message of visibleChatMessages.value) readMessageIds.add(message.id);
+    },
+    { immediate: true },
+  );
+  const unreadTabs = computed(() => {
+    const keys = new Set<string>();
+    for (const message of chatMessages) {
+      if (message.isSelf || readMessageIds.has(message.id)) continue;
+      const key = tabOfMessage(message);
+      if (key) keys.add(key);
+    }
+    return keys;
   });
 
-  const chatTabLabel = computed(() =>
-    chatTab.value === "channel"
-      ? t("textChannel")
-      : chatTab.value === "server"
-        ? t("serverChat")
-        : chatTab.value === "private"
-          ? t("privateMessage")
-          : t("eventLog"),
-  );
   const chatTitle = computed(() =>
     chatTab.value === "channel"
       ? t("channelChat", { channel: currentChannelName.value })
       : chatTab.value === "server"
         ? t("serverChat")
-        : chatTab.value === "events"
-          ? t("eventLog")
-          : (privateConversations.value.find((conversation) => conversation.id === privateConversationId.value)?.name ??
-            t("privateMessage")),
+        : (privateConversations.value.find((conversation) => conversation.id === privateConversationId.value)?.name ?? t("privateMessage")),
   );
   const chatPlaceholder = computed(() =>
     chatTab.value === "private"
@@ -185,10 +203,20 @@ export function useChat(options: UseChatOptions) {
     if (typeof target === "number" && (!target || target === voiceState.tsClientId)) return;
     privateConversationId.value =
       typeof target === "string" ? target : privateConversationKey(members.find((candidate) => candidate.id === target)?.uid, target);
+    closedConversations.delete(privateConversationId.value);
     chatTab.value = "private";
     if (isMobileViewport.value) mobileSection.value = "chat";
     memberMenu.value = null;
     void nextTick(scrollChatToEnd);
+  }
+
+  /** Takes a private chat off the tab bar. It comes back with the next message from the other person. */
+  function closePrivateChat(id: string): void {
+    const conversation = privateConversations.value.find((candidate) => candidate.id === id);
+    closedConversations.set(id, conversation?.lastMessage ?? 0);
+    if (privateConversationId.value !== id) return;
+    privateConversationId.value = "";
+    chatTab.value = "channel";
   }
 
   // The gateway sends the kind and the names (an empty one with `unnamed`) and the sentence is built here, so the log follows
@@ -225,12 +253,13 @@ export function useChat(options: UseChatOptions) {
     chatListEl,
     privateConversations,
     visibleChatMessages,
-    chatTabLabel,
+    unreadTabs,
     chatTitle,
     chatPlaceholder,
     formatTime,
     submitMessage,
     openPrivateChat,
+    closePrivateChat,
     atBottom,
     scrollChatToEnd,
     setChatListElement,

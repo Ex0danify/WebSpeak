@@ -5,12 +5,13 @@
     <div class="flex min-w-0 items-center gap-2.25 text-md text-fg-muted max-compact:flex-auto max-compact:gap-1.5 max-compact:text-ui">
       <span class="hidden text-lg font-extrabold tracking-brand text-accent max-compact:inline"
         >{{ TEAMSPEAK_NAME }} <em class="font-medium text-fg not-italic">{{ WEB_LABEL }}</em></span
-      ><span class="max-compact:hidden">{{ t("serverBreadcrumb") }}</span
-      ><Icon name="chevron-right" :size="14" class="max-compact:hidden" /><strong class="truncate text-fg max-compact:hidden">{{
-        currentChannelName
-      }}</strong>
+      ><strong class="truncate text-fg max-compact:hidden">{{ serverName || t("serverBreadcrumb") }}</strong
+      ><span class="flex-none text-ui max-compact:hidden"
+        ><span aria-hidden="true">· </span>{{ t("onlineShort", { count: onlineCount }) }}</span
+      >
     </div>
     <div class="flex flex-nowrap items-center gap-2 max-compact:flex-none max-compact:gap-0.75">
+      <slot name="event-log" />
       <slot name="network-performance" />
       <Tooltip :text="t('copyInvite')"
         ><Button variant="ghost" size="sm" icon-only :class="headerActionClass" :aria-label="t('copyInvite')" @click="$emit('share')"
@@ -79,7 +80,8 @@ import LanguageSwitcher from "@/shared/components/LanguageSwitcher.vue";
 import { useI18n } from "@/shared/i18n/useI18n.js";
 
 defineProps<{
-  currentChannelName: string;
+  serverName: string;
+  onlineCount: number;
   isMobileViewport: boolean;
   microphoneMuted: boolean;
   themeIcon: "sun" | "moon";

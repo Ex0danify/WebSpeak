@@ -2,7 +2,7 @@ import { flushPromises, mount } from "@vue/test-utils";
 import { defineComponent, reactive, ref } from "vue";
 import { vi } from "vitest";
 import type { ChannelMember, ChatMessage, ServerEvent, VoiceState } from "@/features/session";
-import type { TreeChannel } from "@/features/room/roomTypes";
+import type { ChatTab, TreeChannel } from "@/features/room/roomTypes";
 
 export type Exposed = {
   messageDraft: string;
@@ -61,7 +61,7 @@ export async function mountUseChat(overrides: Record<string, unknown> = {}) {
     currentChannel: ref<TreeChannel | undefined>(channel("lobby", "Lobby")),
     currentChannelName: ref("Lobby"),
     selectedChannelId: ref(""),
-    chatTab: ref<"channel" | "server" | "private" | "events">("channel"),
+    chatTab: ref<ChatTab>("channel"),
     memberMenu: ref<{ member: ChannelMember; x: number; y: number } | null>(null),
     isMobileViewport: ref(false),
     mobileSection: ref<"channels" | "chat" | "voice" | "more">("channels"),

@@ -51,7 +51,12 @@ for (const language of discoveredLanguages().filter((code) => code !== "en")) {
           timestamp: Date.UTC(2026, 0, 15, 20, 15),
         },
       });
-      await page.getByRole("tab", { name: msg("chat", "en", "eventLog"), exact: true }).click();
+      // The event log is a popover that closes when the language menu is used, so it is opened again after each switch.
+      const showEventLog = async (lang: string): Promise<void> => {
+        const bell = page.getByRole("button", { name: new RegExp(`^${msg("chat", lang, "eventLog")}`) });
+        if ((await bell.getAttribute("aria-expanded")) !== "true") await bell.click();
+      };
+      await showEventLog("en");
       await expect(page.getByText(msg("screenShare", "en", "err_SCREEN_SHARE_ALREADY_ACTIVE")).first()).toBeVisible();
       await expect(page.getByText(msg("chat", "en", "eventMemberJoined", { nickname: "Zed" }))).toBeVisible();
       const connections = scripted.connections;
@@ -63,6 +68,7 @@ for (const language of discoveredLanguages().filter((code) => code !== "en")) {
           .getByRole("menuitem", { name: option })
           .or(page.getByRole("dialog").getByRole("button", { name: option }))
           .click();
+        await showEventLog(to);
         await expect(page.getByText(msg("chat", to, "eventMemberJoined", { nickname: "Zed" }))).toBeVisible();
         await expect(page.getByText(msg("screenShare", to, "err_SCREEN_SHARE_ALREADY_ACTIVE")).first()).toBeVisible();
       };
