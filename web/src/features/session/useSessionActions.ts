@@ -27,7 +27,10 @@ export function useSessionActions(deps: RoomActionsDeps) {
     { startedAt: number; resolve: (result: LatencyProbeResult | null) => void; timer: ReturnType<typeof setTimeout> }
   >();
   let commandSequence = 0;
-  const pendingCommands = new Map<string, { resolve: () => void; reject: (error: Error) => void; timer: ReturnType<typeof setTimeout> }>();
+  const pendingCommands = new Map<
+    string,
+    { resolve: (value?: string) => void; reject: (error: Error) => void; timer: ReturnType<typeof setTimeout> }
+  >();
 
   function sendCmd(type: string, payload: Record<string, unknown> = {}, requestId = ""): void {
     if (ws.value?.readyState === WebSocket.OPEN) ws.value.send(JSON.stringify({ type, payload, ...(requestId ? { requestId } : {}) }));
@@ -48,6 +51,21 @@ export function useSessionActions(deps: RoomActionsDeps) {
       }, timeoutMs);
       pendingCommands.set(requestId, { resolve, reject, timer });
       sendCmd(type, payload, requestId);
+    });
+  }
+
+  /** The private key of the identity in use. Asked for only when the user wants it, the gateway never pushes it. */
+  function requestIdentity(timeoutMs = 8_000): Promise<string> {
+    if (ws.value?.readyState !== WebSocket.OPEN)
+      return Promise.reject(new LocalizedError(text("voiceConnectionNotReady"), "VOICE_CONNECTION_NOT_READY"));
+    const requestId = nextRequestId();
+    return new Promise((resolve, reject) => {
+      const timer = setTimeout(() => {
+        pendingCommands.delete(requestId);
+        reject(new LocalizedError(text("commandTimeout"), "COMMAND_TIMEOUT"));
+      }, timeoutMs);
+      pendingCommands.set(requestId, { resolve: (identity) => resolve(identity ?? ""), reject, timer });
+      sendCmd("getIdentity", {}, requestId);
     });
   }
 
@@ -234,6 +252,14 @@ export function useSessionActions(deps: RoomActionsDeps) {
     talkState: (msg) => {
       canSpeak.value = msg.canSpeak !== false;
     },
+    identity: (msg) => {
+      const requestId = typeof msg.requestId === "string" ? msg.requestId : "";
+      const pending = requestId ? pendingCommands.get(requestId) : undefined;
+      if (!pending) return;
+      clearTimeout(pending.timer);
+      pendingCommands.delete(requestId);
+      pending.resolve(typeof msg.identity === "string" ? msg.identity : "");
+    },
     commandCompleted: (msg) => {
       const requestId = typeof msg.requestId === "string" ? msg.requestId : "";
       const pending = requestId ? pendingCommands.get(requestId) : undefined;
@@ -270,6 +296,7 @@ export function useSessionActions(deps: RoomActionsDeps) {
     pendingLatencyProbes,
     sendCmd,
     sendCommandAndWait,
+    requestIdentity,
     switchChannel,
     moveClient,
     measureLatency,

@@ -16,7 +16,8 @@ export interface ClientCommand {
     | "setOutputMuted"
     | "setAccompanimentActive"
     | "setMemberVolume"
-    | "latencyProbe";
+    | "latencyProbe"
+    | "getIdentity";
   requestId?: string;
   payload: Record<string, unknown>;
 }
@@ -51,6 +52,7 @@ export function parseClientCommand(raw: string): ClientCommandResult {
     "setAccompanimentActive",
     "setMemberVolume",
     "latencyProbe",
+    "getIdentity",
   ]);
   if (!supportedTypes.has(value.type)) {
     return { error: { code: "UNKNOWN_MESSAGE_TYPE", message: "Unsupported message type" } };

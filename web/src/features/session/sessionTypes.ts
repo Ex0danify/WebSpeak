@@ -171,6 +171,7 @@ export type ServerMessage =
   | { type: "pokeReceived"; invokerId: number; invokerUid: string; invokerName: string; message: string; timestamp: number }
   | { type: "channelSwitched"; requestId?: string; channelId: string | number }
   | { type: "commandCompleted"; requestId: string }
+  | { type: "identity"; requestId?: string; identity: string }
   | { type: "whisperTargets"; targetIds: number[]; active: boolean }
   | { type: "talkState"; canSpeak: boolean }
   | {

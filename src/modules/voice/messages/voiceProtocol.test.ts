@@ -26,6 +26,7 @@ const VALID: Record<ClientCommand["type"], Record<string, unknown>> = {
   setAccompanimentActive: { active: false },
   setMemberVolume: { clientId: 7, volume: 1 },
   latencyProbe: { sequence: "abc" },
+  getIdentity: {},
 };
 
 describe("parseClientCommand envelope", () => {

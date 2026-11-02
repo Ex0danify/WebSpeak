@@ -51,6 +51,15 @@ describe("the initial state", () => {
     expect(remembered.socket.messagesOfType("connected")[0]!.identity).toBe(remembered.client.getIdentityString());
   });
 
+  it("hands over the identity on request, also for a join that did not remember it", async () => {
+    const gateway = await gateways.start();
+    const { socket, client } = await joinVoice(gateway, { nickname: "forgetful" });
+    socket.send({ type: "getIdentity", requestId: "id1", payload: {} });
+    const reply = await socket.waitForMessage("identity");
+    expect(reply).toEqual({ type: "identity", requestId: "id1", identity: client.getIdentityString() });
+    expect(socket.messagesOfType("connected")[0]).not.toHaveProperty("identity");
+  });
+
   it("joins with the identity the ticket carries, so the UID is the same on every visit", async () => {
     const gateway = await gateways.start();
     const identity = generateIdentity(8);

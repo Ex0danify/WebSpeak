@@ -97,6 +97,7 @@ export function useRoomSession() {
   const {
     sendCmd,
     sendCommandAndWait,
+    requestIdentity,
     switchChannel,
     moveClient,
     measureLatency,
@@ -295,6 +296,7 @@ export function useRoomSession() {
       state,
       roomNotices,
       identityMaterial,
+      requestIdentity,
       connect,
       reconnectNow,
       disconnect,
