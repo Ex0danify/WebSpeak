@@ -20,6 +20,7 @@ export const de: Record<string, string> = {
   eventMemberJoined: "{{nickname}} ist dem Server beigetreten",
   eventMemberLeft: "{{nickname}} hat den Server verlassen",
   eventMemberMoved: "{{nickname}} ist in einen anderen Kanal gewechselt",
+  eventMemberRenamed: "{{previous}} heißt jetzt {{nickname}}",
   eventChannelCreated: "Kanal „{{channel}}“ wurde erstellt",
   eventChannelRenamed: "Kanal wurde in „{{channel}}“ umbenannt",
   eventChannelDeleted: "Kanal „{{channel}}“ wurde gelöscht",

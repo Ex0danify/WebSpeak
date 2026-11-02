@@ -47,11 +47,10 @@ describe("AudioDock identity", () => {
     expect(document.body.textContent).toContain("Connected");
   });
 
-  it("shows the name and avatar as plain content, not a button", () => {
-    mountDock();
-    const buttons = Array.from(document.body.querySelectorAll("button"));
-    expect(buttons.some((b) => b.textContent?.includes("roka") || b.getAttribute("aria-label")?.includes("roka"))).toBe(false);
-    expect(document.body.querySelector("[role=toolbar]")?.textContent).toContain("roka");
+  it("asks to open the profile from the name and avatar", () => {
+    const dock = mountDock();
+    button("Your profile: roka, Connected")?.click();
+    expect(dock.emitted("open-profile")).toHaveLength(1);
   });
 
   it("names the state of the voice link and colors it", async () => {

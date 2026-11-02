@@ -202,6 +202,28 @@ describe("away and mute", () => {
     expect(gateway.ts.members.get(session.id)).toMatchObject({ away: false, awayMessage: "" });
   });
 
+  it("renames the own client, tells the browser with `memberUpdate` and keeps the event log free of it", async () => {
+    const gateway = await gateways.start({ ts: newServer() });
+    const session = await alice(gateway);
+    expect(await ask(session, "setNickname", { nickname: "  alicia  " }, "nn")).toEqual({ type: "commandCompleted", requestId: "nn" });
+    expect(gateway.ts.members.get(session.id)!.nickname).toBe("alicia");
+    const update = await session.socket.waitForMessage("memberUpdate");
+    expect(update).toMatchObject({ type: "memberUpdate", id: session.id, nickname: "alicia" });
+    await ask(session, "setAway", { away: false }, "settled");
+    expect(session.socket.messagesOfType("serverEvent").some((message) => (message.event as { kind: string }).kind === "renamed")).toBe(
+      false,
+    );
+  });
+
+  it("answers NICKNAME_IN_USE when another user has the name", async () => {
+    const ts = newServer();
+    ts.addMember("bob", 2n);
+    const gateway = await gateways.start({ ts });
+    const session = await alice(gateway);
+    expect(errorOf(await ask(session, "setNickname", { nickname: "bob" }, "taken"))).toMatchObject({ code: "NICKNAME_IN_USE" });
+    expect(gateway.ts.members.get(session.id)!.nickname).toBe("alice");
+  });
+
   it("sets and clears the muted microphone flag on the server", async () => {
     const gateway = await gateways.start({ ts: newServer() });
     const session = await alice(gateway);

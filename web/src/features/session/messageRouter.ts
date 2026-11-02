@@ -45,6 +45,17 @@ export function createRosterHandlers(deps: { syncKnownMemberVolumes: () => void 
       }
       syncKnownMemberVolumes();
     },
+    memberUpdate: (msg) => {
+      const nickname = clampText(String(msg.nickname ?? ""), MAX_NICKNAME_LENGTH);
+      const uid = typeof msg.uid === "string" ? msg.uid : "";
+      const apply = (member: { id: number; uid?: string; nickname: string; unnamed?: boolean }) => {
+        if (member.id !== Number(msg.id) || (uid && member.uid && member.uid !== uid)) return;
+        member.nickname = nickname;
+        member.unnamed = msg.unnamed === true ? true : undefined;
+      };
+      members.forEach(apply);
+      for (const channel of channels) channel.members?.forEach(apply);
+    },
     memberAvatar: (msg) => {
       const clientId = Number(msg.id);
       const uid = typeof msg.uid === "string" ? msg.uid : "";

@@ -1,5 +1,9 @@
 import type { TeamSpeakProtocol } from "../../src/shared/teamSpeakProtocol.js";
-import type { TSChatScope, TSDirectoryClient as DirectoryClientInfo } from "../../src/modules/teamspeak/teamSpeakClient.js";
+import type {
+  TSChatScope,
+  TSDirectoryChannel as ChannelInfo,
+  TSDirectoryClient as DirectoryClientInfo,
+} from "../../src/modules/teamspeak/teamSpeakClient.js";
 import type { FakeTeamSpeakServer, FakeTSClient } from "./fakeTsClient.js";
 
 /** Scripting pieces of the fake server: options, default channels and FakeRemoteMember (a member without a bridge session). */
@@ -11,6 +15,7 @@ export type FakeOperation =
   | "sendTextMessage"
   | "poke"
   | "setAway"
+  | "setNickname"
   | "setInputMuted"
   | "setOutputMuted"
   | "execCommand"
@@ -43,6 +48,17 @@ export const DEFAULT_FAKE_CHANNELS: FakeChannel[] = [
   { id: 2n, name: "Room A" },
   { id: 3n, name: "Room B" },
 ];
+
+/** Channels as the directory lists them, each ordered after the previous one of its parent. */
+export function directoryChannels(channels: Iterable<FakeChannel>): ChannelInfo[] {
+  const lastByParent = new Map<bigint, bigint>();
+  return [...channels].map((channel) => {
+    const parentID = channel.parentId ?? 0n;
+    const info: ChannelInfo = { name: channel.name, description: "", id: channel.id, parentID, order: lastByParent.get(parentID) ?? 0n };
+    lastByParent.set(parentID, channel.id);
+    return info;
+  });
+}
 
 export class FakeRemoteMember {
   constructor(

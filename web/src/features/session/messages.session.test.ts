@@ -82,10 +82,10 @@ describe("chatMessage", () => {
 describe("serverEvent / pokeReceived", () => {
   it("appends a server event only when it has a string id", async () => {
     const socket = await connected();
-    await push(socket, { type: "serverEvent", event: { id: "e1", kind: "join" } });
+    await push(socket, { type: "serverEvent", event: { id: "e1", kind: "joined" } });
     await push(socket, { type: "serverEvent", event: { id: 5 } });
     await push(socket, { type: "serverEvent" });
-    expect(harness.voice.roster.serverEvents).toEqual([{ id: "e1", kind: "join" }]);
+    expect(harness.voice.roster.serverEvents).toEqual([{ id: "e1", kind: "joined" }]);
   });
 
   it("records a poke with defaults", async () => {

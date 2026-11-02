@@ -10,13 +10,15 @@ export interface ClientCommand {
     | "sendPrivateMessage"
     | "poke"
     | "setAway"
+    | "setNickname"
     | "setWhisperTargets"
     | "setWhisperActive"
     | "setMicrophoneMuted"
     | "setOutputMuted"
     | "setAccompanimentActive"
     | "setMemberVolume"
-    | "latencyProbe";
+    | "latencyProbe"
+    | "getIdentity";
   requestId?: string;
   payload: Record<string, unknown>;
 }
@@ -44,6 +46,7 @@ export function parseClientCommand(raw: string): ClientCommandResult {
     "sendPrivateMessage",
     "poke",
     "setAway",
+    "setNickname",
     "setWhisperTargets",
     "setWhisperActive",
     "setMicrophoneMuted",
@@ -51,6 +54,7 @@ export function parseClientCommand(raw: string): ClientCommandResult {
     "setAccompanimentActive",
     "setMemberVolume",
     "latencyProbe",
+    "getIdentity",
   ]);
   if (!supportedTypes.has(value.type)) {
     return { error: { code: "UNKNOWN_MESSAGE_TYPE", message: "Unsupported message type" } };
@@ -114,6 +118,13 @@ export function parseClientCommand(raw: string): ClientCommandResult {
       (value.payload.message !== undefined && (typeof value.payload.message !== "string" || value.payload.message.length > 200)))
   ) {
     return { error: { code: "INVALID_AWAY_STATUS", message: "Away status is invalid" } };
+  }
+  // The server enforces 3 to 30 characters as well, checking here saves a round trip and a refused command.
+  if (value.type === "setNickname") {
+    const nickname = typeof value.payload.nickname === "string" ? value.payload.nickname.trim() : "";
+    if (nickname.length < 3 || nickname.length > 30) {
+      return { error: { code: "INVALID_NICKNAME", message: "Nickname must be 3 to 30 characters long" } };
+    }
   }
   if (value.type === "setWhisperTargets") {
     const targetIds = value.payload.targetIds;

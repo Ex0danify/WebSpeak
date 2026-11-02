@@ -21,7 +21,7 @@ import { computed } from "vue";
 import { storeToRefs } from "pinia";
 import { Banner } from "@/shared/ui/banner";
 import { Card } from "@/shared/ui/card";
-import type { SaveStatus as SaveStatusState } from "@/features/admin/core/saveStatus";
+import type { SaveStatus as SaveStatusState } from "@/shared/lib/saveStatus";
 import { useAdminGatewayStore } from "@/features/admin/core/adminGateway";
 import SaveStatus from "@/features/admin/ui/SaveStatus.vue";
 

@@ -19,6 +19,7 @@ const VALID: Record<ClientCommand["type"], Record<string, unknown>> = {
   sendPrivateMessage: { clientId: 7, message: "hi" },
   poke: { clientId: 7, message: "hey" },
   setAway: { away: true },
+  setNickname: { nickname: "roka" },
   setWhisperTargets: { targetIds: [1, 2] },
   setWhisperActive: { active: true },
   setMicrophoneMuted: { muted: false },
@@ -26,6 +27,7 @@ const VALID: Record<ClientCommand["type"], Record<string, unknown>> = {
   setAccompanimentActive: { active: false },
   setMemberVolume: { clientId: 7, volume: 1 },
   latencyProbe: { sequence: "abc" },
+  getIdentity: {},
 };
 
 describe("parseClientCommand envelope", () => {
@@ -110,6 +112,11 @@ describe("parseClientCommand payload rules", () => {
     ["away is not boolean", "setAway", { away: "yes" }, "INVALID_AWAY_STATUS"],
     ["away message is a number", "setAway", { away: true, message: 1 }, "INVALID_AWAY_STATUS"],
     ["away message is over 200", "setAway", { away: true, message: "m".repeat(201) }, "INVALID_AWAY_STATUS"],
+    ["nickname is missing", "setNickname", {}, "INVALID_NICKNAME"],
+    ["nickname is not a string", "setNickname", { nickname: 5 }, "INVALID_NICKNAME"],
+    ["nickname is under 3 characters", "setNickname", { nickname: "ab" }, "INVALID_NICKNAME"],
+    ["nickname is blank", "setNickname", { nickname: "    " }, "INVALID_NICKNAME"],
+    ["nickname is over 30 characters", "setNickname", { nickname: "n".repeat(31) }, "INVALID_NICKNAME"],
     ["whisper targets is not an array", "setWhisperTargets", { targetIds: "1" }, "INVALID_WHISPER_TARGETS"],
     ["whisper targets has 9 entries", "setWhisperTargets", { targetIds: [1, 2, 3, 4, 5, 6, 7, 8, 9] }, "INVALID_WHISPER_TARGETS"],
     ["whisper targets has a bad id", "setWhisperTargets", { targetIds: [1, 0] }, "INVALID_WHISPER_TARGETS"],
@@ -138,6 +145,9 @@ describe("parseClientCommand payload rules", () => {
       ["sendTextMessage", { message: "" }],
       ["poke", { clientId: 1, message: "m".repeat(200) }],
       ["setAway", { away: false, message: "m".repeat(200) }],
+      ["setNickname", { nickname: "abc" }],
+      ["setNickname", { nickname: "n".repeat(30) }],
+      ["setNickname", { nickname: "  abc  " }],
       ["setWhisperTargets", { targetIds: [] }],
       ["setWhisperTargets", { targetIds: [1, 2, 3, 4, 5, 6, 7, 8] }],
       ["setMemberVolume", { clientId: 1, volume: 0 }],

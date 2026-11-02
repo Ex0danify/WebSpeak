@@ -103,6 +103,7 @@ import { Input } from "@/shared/ui/input";
 import { toast } from "@/shared/composables/useToast.js";
 import { useI18n } from "@/shared/i18n/useI18n.js";
 import type { StoredIdentity } from "@/shared/services/localPersistence.js";
+import { downloadIdentity } from "@/features/identity/downloadIdentity.js";
 import type { useIdentityManager } from "@/features/identity/useIdentityManager.js";
 import type { MessageKey } from "@/shared/i18n/messageKeys.js";
 
@@ -203,13 +204,7 @@ async function confirmDelete(id: string): Promise<void> {
 function exportIdentity(id: string): void {
   const record = props.manager.exportIdentity(id);
   if (!record) return;
-  const blob = new Blob([JSON.stringify(record, null, 2)], { type: "application/json" });
-  const url = URL.createObjectURL(blob);
-  const anchor = document.createElement("a");
-  anchor.href = url;
-  anchor.download = `${(record.label || "identity").replace(/[^\w.-]+/g, "-")}.webspeak-identity.json`;
-  anchor.click();
-  URL.revokeObjectURL(url);
+  downloadIdentity(record);
   exported.value = true;
   toast(t("identityExportedToast"));
 }

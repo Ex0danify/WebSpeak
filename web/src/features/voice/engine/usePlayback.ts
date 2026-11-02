@@ -1,4 +1,5 @@
 import type { Ref } from "vue";
+import { createArrivalJitter } from "@/features/voice/engine/arrivalJitter";
 import { useVoiceAudioStore } from "@/features/voice/stores/voiceAudioStore";
 import { useSessionStore } from "@/features/session";
 import {
@@ -35,6 +36,7 @@ export function usePlayback(deps: PlaybackDeps) {
   const remoteGains = new Map<number, GainNode>();
   const remoteDecodeTimestamps = new Map<number, number>();
   const speakingTimers = new Map<number, ReturnType<typeof setTimeout>>();
+  const arrivals = createArrivalJitter();
 
   function markSpeaking(clientId: number): void {
     if (!clientId) return;
@@ -119,8 +121,11 @@ export function usePlayback(deps: PlaybackDeps) {
             );
             // A new burst, or one that ran dry, restarts with the playout delay so the next late frame has a cushion.
             const scheduledEnd = remotePlayTimes.get(clientId);
-            const playTime =
-              scheduledEnd !== undefined && scheduledEnd >= ctx.currentTime ? scheduledEnd : ctx.currentTime + REMOTE_PLAYOUT_DELAY_SECONDS;
+            let playTime = scheduledEnd ?? ctx.currentTime + REMOTE_PLAYOUT_DELAY_SECONDS;
+            if (playTime < ctx.currentTime) {
+              if (arrivals.streaming(clientId, performance.now())) arrivals.glitch();
+              playTime = ctx.currentTime + REMOTE_PLAYOUT_DELAY_SECONDS;
+            }
             if (playTime + numberOfFrames / sampleRate > ctx.currentTime + MAX_REMOTE_PLAY_AHEAD_SECONDS) {
               source.disconnect();
               sources.delete(source);
@@ -197,6 +202,7 @@ export function usePlayback(deps: PlaybackDeps) {
     const clientId = (data[1] << 8) | data[2];
     if (clientId === state.tsClientId) return;
     markSpeaking(clientId);
+    arrivals.frame(clientId, performance.now());
     playAudioFrame(clientId, data.slice(3));
   }
 
@@ -209,6 +215,7 @@ export function usePlayback(deps: PlaybackDeps) {
     for (const gain of remoteGains.values()) gain.disconnect();
     remoteGains.clear();
     clearSpeakingState();
+    arrivals.reset();
   }
 
   const handlers: MessageHandlers = {
@@ -216,6 +223,7 @@ export function usePlayback(deps: PlaybackDeps) {
       const clientId = Number(msg.id);
       clearSpeaking(clientId);
       clearRemotePlayback(clientId);
+      arrivals.forget(clientId);
       const index = members.findIndex((member) => member.id === clientId);
       if (index >= 0) members.splice(index, 1);
     },
@@ -237,5 +245,7 @@ export function usePlayback(deps: PlaybackDeps) {
     clearRemotePlayback,
     handleAudioFrame,
     resetDownlink,
+    /** Jitter and glitches of the WebSocket downlink, the WebRTC one reports through its stats. */
+    arrivalStats: (now: number) => arrivals.snapshot(now),
   };
 }

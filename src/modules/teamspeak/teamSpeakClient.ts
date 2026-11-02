@@ -247,6 +247,12 @@ export class TSClient extends EventEmitter {
     await backend.command(clientUpdate({ away, awayMessage: message }), undefined, "background");
   }
 
+  /** A reconnect joins under the new name too, so it is kept in the options as well. */
+  async setNickname(nickname: string): Promise<void> {
+    await this.readyBackend().command(clientUpdate({ nickname }));
+    this.options.nickname = nickname;
+  }
+
   async setInputMuted(muted: boolean): Promise<void> {
     const backend = this.readyBackend();
     await this.inputMute.setMicMuted(muted, this.muteTarget(backend), () => this.backend === backend);

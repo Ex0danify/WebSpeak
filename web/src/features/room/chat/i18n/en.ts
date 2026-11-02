@@ -20,6 +20,7 @@ export const en = {
   eventMemberJoined: "{{nickname}} joined the server",
   eventMemberLeft: "{{nickname}} left the server",
   eventMemberMoved: "{{nickname}} moved to another channel",
+  eventMemberRenamed: "{{previous}} is now called {{nickname}}",
   eventChannelCreated: 'Channel "{{channel}}" was created',
   eventChannelRenamed: 'Channel renamed to "{{channel}}"',
   eventChannelDeleted: 'Channel "{{channel}}" was deleted',

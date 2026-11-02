@@ -8,6 +8,7 @@ export const en = {
   optional: "Optional",
   poke: "Poke",
   pokedYou: "poked you",
+  savedStatus: "Saved",
   send: "Send",
   serverAddress: "TeamSpeak server address",
   serverPassword: "Server password",

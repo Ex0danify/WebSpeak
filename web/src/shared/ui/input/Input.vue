@@ -12,11 +12,13 @@ const props = withDefaults(
   defineProps<{
     type?: string;
     invalid?: boolean;
+    /** `inline` edits a label in place, see `controlVariants`. */
+    look?: "box" | "inline";
     id?: string;
     class?: string;
     inputClass?: string;
   }>(),
-  { type: "text", invalid: false },
+  { type: "text", invalid: false, look: "box" },
 );
 
 // v-model.trim and v-model.number behave as on a native input.
@@ -41,7 +43,13 @@ const trailingEl = ref<HTMLElement | null>(null);
 const trailingWidth = ref(0);
 let observer: ResizeObserver | undefined;
 const measure = (): void => void (trailingWidth.value = trailingEl.value?.offsetWidth ?? 0);
-const inputStyle = computed(() => (trailingWidth.value ? { paddingRight: `${trailingWidth.value + 20}px` } : undefined));
+const inline = computed(() => props.look === "inline");
+// Inline text is centered, so the room is taken on both sides and the text stays where it would be without the trailing part.
+const inputStyle = computed(() => {
+  if (!trailingWidth.value) return undefined;
+  const room = `${trailingWidth.value + (inline.value ? 8 : 20)}px`;
+  return inline.value ? { paddingLeft: room, paddingRight: room } : { paddingRight: room };
+});
 
 onMounted(() => {
   if (trailingEl.value && typeof ResizeObserver !== "undefined") {
@@ -69,12 +77,12 @@ defineExpose({ focus: () => inputEl.value?.focus(), select: () => inputEl.value?
       :style="inputStyle"
       :aria-invalid="isInvalid ? 'true' : undefined"
       :aria-describedby="describedBy"
-      :class="cn(controlVariants({ invalid: isInvalid }), $slots.leading && 'pl-[38px]', inputClass)"
+      :class="cn(controlVariants({ invalid: isInvalid, look }), $slots.leading && 'pl-[38px]', inputClass)"
     />
     <span
       v-if="$slots.trailing"
       ref="trailingEl"
-      class="pointer-events-none absolute top-0 right-3 flex h-10 items-center max-compact:h-11"
+      :class="cn('pointer-events-none absolute top-0 flex items-center max-compact:h-11', inline ? 'right-1 h-9' : 'right-3 h-10')"
     >
       <slot name="trailing" />
     </span>

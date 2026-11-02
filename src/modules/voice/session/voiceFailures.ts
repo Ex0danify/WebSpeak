@@ -35,6 +35,8 @@ export function classifyOperationError(
     if (serverCode === "server_full") return { code: "CHANNEL_FULL", message: "This channel is full" };
     if (serverCode === "client_version_outdated")
       return { code: "CLIENT_VERSION_OUTDATED", message: "Client version is too old, the server rejected the operation" };
+    if (serverCode === "nickname_in_use") return { code: "NICKNAME_IN_USE", message: "This nickname is already in use" };
+    if (serverCode === "invalid_nickname") return { code: "INVALID_NICKNAME", message: "Nickname must be 3 to 30 characters long" };
     if (serverCode === "flooding") return { code: "FLOOD_PROTECTION", message: "Too many requests, try again later" };
     if (serverCode === "banned") return { code: "BANNED", message: "You are banned from this server" };
     if (serverCode === "connection_initialisation_failed")

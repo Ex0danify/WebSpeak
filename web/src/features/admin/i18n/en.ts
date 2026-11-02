@@ -134,7 +134,6 @@ export const en = {
   welcomeLanguageHint: "Switch languages to edit each message. Leave it blank to use the built-in template.",
   welcomeFallbackHint: "An empty field falls back to the built-in template for this language.",
   unknown: "Unknown",
-  savedStatus: "Saved",
   privacyNoticeUrl: "Privacy notice link",
   privacyNoticeUrlHint:
     "Shown to guests as a link in the footer of the join page. Leave empty for none. Say there what you store, why and for how long.",

@@ -1,6 +1,6 @@
 <template>
   <Checkbox v-if="lead" v-model="model" :class="`${choiceClass} relative`">
-    <FieldSaved :status="fieldStatus(field)" class="absolute top-2.5 right-2.5" />
+    <SavedHint :status="fieldStatus(field)" class="absolute top-2.5 right-2.5" />
     <span class="block text-xs font-bold">{{ title }}</span>
     <span class="mt-1 block text-2xs leading-[1.45] text-fg-muted">{{ lead }}</span>
   </Checkbox>
@@ -8,13 +8,13 @@
     <Checkbox v-model="model" class="min-w-0"
       ><strong class="block truncate text-xs">{{ title }}</strong></Checkbox
     >
-    <FieldSaved :status="fieldStatus(field)" />
+    <SavedHint :status="fieldStatus(field)" />
   </div>
 </template>
 
 <script setup lang="ts">
 import { Checkbox } from "@/shared/ui/checkbox";
-import FieldSaved from "@/features/admin/ui/FieldSaved.vue";
+import { SavedHint } from "@/shared/ui/savedHint";
 import { choiceClass } from "@/features/admin/ui/adminClasses";
 import { useAdminServerSettingsStore } from "@/features/admin/settings/adminServerSettings";
 

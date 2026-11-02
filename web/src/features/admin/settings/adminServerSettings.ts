@@ -19,7 +19,7 @@ import {
   type SettingsIssues,
   type SettingsSection,
 } from "@/features/admin/settings/adminServerDocument.js";
-import { createSaveStatus, type SaveStatus } from "@/features/admin/core/saveStatus.js";
+import { createSaveStatus, type SaveStatus } from "@/shared/lib/saveStatus.js";
 import type { ApiError } from "@/features/admin/core/adminApi.js";
 import { useAdminFeedbackStore } from "@/features/admin/core/adminFeedback.js";
 import { adminSiblings } from "@/features/admin/core/adminSiblings.js";

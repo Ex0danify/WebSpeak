@@ -7,6 +7,7 @@ export {
   type ImportResult,
   type ExportedIdentity,
 } from "@/features/identity/useIdentityManager";
+export { downloadIdentity } from "@/features/identity/downloadIdentity";
 export {
   mintIdentity,
   validateIdentity,

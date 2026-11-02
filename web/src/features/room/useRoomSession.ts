@@ -18,6 +18,7 @@ import {
   type AudioOutputDevice,
   type AudioPermission,
   type MicrophoneProcessingSettings,
+  useVoiceLinkStats,
 } from "@/features/voice";
 import type {
   ScreenShareCaptureStats,
@@ -97,6 +98,7 @@ export function useRoomSession() {
   const {
     sendCmd,
     sendCommandAndWait,
+    requestIdentity,
     switchChannel,
     moveClient,
     measureLatency,
@@ -107,6 +109,7 @@ export function useRoomSession() {
     sendPrivateMessage,
     sendPoke,
     setAway,
+    setNickname,
     setWhisperTargets,
     setWhisperActive,
     applyWhisperState,
@@ -232,6 +235,7 @@ export function useRoomSession() {
     getWebRtcMixMicGain,
     handlers: transportHandlers,
   } = transport;
+  const { collectVoiceStats } = useVoiceLinkStats({ state, transport, playback });
   const connection = useConnection({
     audioPreferencesReady,
     identityMaterial,
@@ -295,11 +299,14 @@ export function useRoomSession() {
       state,
       roomNotices,
       identityMaterial,
+      requestIdentity,
+      setNickname,
       connect,
       reconnectNow,
       disconnect,
       clearError,
       measureLatency,
+      collectVoiceStats,
     },
     roster: {
       members,

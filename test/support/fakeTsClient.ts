@@ -11,17 +11,17 @@ import type {
   TSClientOptions,
   TSDirectoryChannel as ChannelInfo,
   TSDirectoryClient as DirectoryClientInfo,
-  TSVoiceData,
 } from "../../src/modules/teamspeak/teamSpeakClient.js";
 import type { VoiceBridgeOptions } from "../../src/modules/voice/voiceBridge.js";
 import {
   DEFAULT_FAKE_CHANNELS,
+  directoryChannels,
   FakeRemoteMember,
   type FakeChannel,
   type FakeOperation,
   type FakeServerOptions,
 } from "./fakeTsClientScript.js";
-import { deliverChat } from "./fakeTsChat.js";
+import { deliverChat, deliverVoice } from "./fakeTsChat.js";
 
 const refused = (id: number, serverMessage: string) => new TeamSpeakServerError({ id, serverMessage });
 
@@ -98,14 +98,7 @@ export class FakeTeamSpeakServer {
   }
 
   snapshot(): { channels: ChannelInfo[]; clients: DirectoryClientInfo[] } {
-    const lastByParent = new Map<bigint, bigint>();
-    const channels = [...this.channels.values()].map((channel) => {
-      const parentID = channel.parentId ?? 0n;
-      const info: ChannelInfo = { name: channel.name, description: "", id: channel.id, parentID, order: lastByParent.get(parentID) ?? 0n };
-      lastByParent.set(parentID, channel.id);
-      return info;
-    });
-    return { channels, clients: [...this.members.values()].map((member) => ({ ...member })) };
+    return { channels: directoryChannels(this.channels.values()), clients: [...this.members.values()].map((member) => ({ ...member })) };
   }
 
   canMove(uid: string): boolean {
@@ -155,15 +148,8 @@ export class FakeTeamSpeakServer {
     deliverChat(this, from, scope, message, targetId);
   }
 
-  /** Voice reaches the sender's channel, or only `toIds` for a whisper. */
   deliverVoice(fromId: number, data: Buffer, codec: number, toIds?: number[]): void {
-    const from = this.members.get(fromId);
-    if (!from) return;
-    for (const [id, client] of this.connected) {
-      if (id === fromId) continue;
-      if (toIds ? !toIds.includes(id) : this.members.get(id)!.channelID !== from.channelID) continue;
-      client.emit("voiceData", { clientId: fromId, codec, data: Buffer.from(data) } satisfies TSVoiceData);
-    }
+    deliverVoice(this, fromId, data, codec, toIds);
   }
 
   /** @internal */
@@ -297,6 +283,15 @@ export class FakeTSClient extends EventEmitter {
     this.ready();
     await this.server.step("setAway");
     this.server.updateMember(this.clientId, { away, awayMessage: message });
+  }
+
+  async setNickname(nickname: string): Promise<void> {
+    this.ready();
+    await this.server.step("setNickname");
+    if ([...this.server.members.values()].some((member) => member.id !== this.clientId && member.nickname === nickname)) {
+      throw refused(513, "nickname is already in use");
+    }
+    this.server.updateMember(this.clientId, { nickname });
   }
 
   async setInputMuted(muted: boolean): Promise<void> {

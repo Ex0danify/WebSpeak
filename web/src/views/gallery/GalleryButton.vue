@@ -8,6 +8,8 @@
         <Button variant="ghost">Skip</Button>
         <Button variant="danger">Leave</Button><Button variant="soft">Soft</Button><Button variant="softDanger">Muted</Button
         ><Button variant="softWarning">Starting</Button><Button variant="softSuccess">Live</Button
+        ><Button variant="quietSuccess" icon-only size="sm" aria-label="Confirm"><Icon name="check" :size="16" /></Button
+        ><Button variant="quietDanger" icon-only size="sm" aria-label="Cancel"><Icon name="close" :size="14" /></Button
         ><Button variant="softOutline">Soft outline</Button><Button variant="accentSoft">Accent</Button
         ><Button variant="inverse">Inverse</Button><Button variant="warning">Away</Button><Button variant="tinted">Tinted</Button
         ><Button variant="dangerSoft">Stop</Button><Button variant="pill" size="xs">Pill</Button><Button variant="success">Talking</Button

@@ -4,7 +4,7 @@
       <label for="webrtc-enabled" class="min-w-0 cursor-pointer">
         <span class="flex items-baseline gap-2"
           ><span class="text-xs font-bold">{{ t("webrtcEnabled") }}</span
-          ><FieldSaved :status="fieldStatus('webRtcEnabled')" class="leading-none"
+          ><SavedHint :status="fieldStatus('webRtcEnabled')" dense
         /></span>
         <span class="mt-1 block text-2xs leading-snug text-fg-muted">{{ t("webrtcEnabledLead") }}</span>
       </label>
@@ -78,7 +78,7 @@ import { Icon } from "@/shared/ui/icon";
 import { Input } from "@/shared/ui/input";
 import { Switch } from "@/shared/ui/switch";
 import { storeToRefs } from "pinia";
-import FieldSaved from "@/features/admin/ui/FieldSaved.vue";
+import { SavedHint } from "@/shared/ui/savedHint";
 import SettingField from "@/features/admin/settings/SettingField.vue";
 import AdminSection from "@/features/admin/ui/AdminSection.vue";
 import { useAdminServerSettingsStore } from "@/features/admin/settings/adminServerSettings";

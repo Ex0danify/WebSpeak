@@ -35,6 +35,7 @@ export const iconNames = [
   "paperclip",
   "share",
   "copy",
+  "pencil",
   "lock",
   "user",
   "users",

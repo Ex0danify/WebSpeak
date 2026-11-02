@@ -119,6 +119,31 @@ describe("ServerMessage contract with the gateway", () => {
     expect(unsent, `ServerMessage has types no sender produces: ${unsent.join(", ")}`).toEqual([]);
   });
 
+  // The log sentence is picked by kind, so the browser needs the same list as the gateway sends.
+  it("lists the same server event kinds as the gateway", () => {
+    const literals = (node: ts.TypeNode | undefined, file: ts.SourceFile) =>
+      ts.isUnionTypeNode(node!) ? node.types.map((member) => member.getText(file).replaceAll('"', "")).sort() : [];
+    const gatewayFile = ts.createSourceFile(
+      "voiceTypes.ts",
+      readFileSync(resolve(gatewayRoot, "modules/voice/voiceTypes.ts"), "utf8"),
+      ts.ScriptTarget.Latest,
+      true,
+    );
+    const gatewayEvent = gatewayFile.statements.find(
+      (node): node is ts.InterfaceDeclaration => ts.isInterfaceDeclaration(node) && node.name.text === "ServerEvent",
+    );
+    const gatewayKind = gatewayEvent?.members.find(
+      (member): member is ts.PropertySignature => member.name?.getText(gatewayFile) === "kind",
+    );
+    const webKinds = sessionTypesFile.statements.find(
+      (node): node is ts.TypeAliasDeclaration => ts.isTypeAliasDeclaration(node) && node.name.text === "ServerEventKind",
+    );
+    expect(gatewayKind, "ServerEvent.kind in the gateway").toBeDefined();
+    expect(webKinds, "ServerEventKind in sessionTypes.ts").toBeDefined();
+    expect(literals(webKinds?.type, sessionTypesFile)).toEqual(literals(gatewayKind?.type, gatewayFile));
+    expect(literals(webKinds?.type, sessionTypesFile).length).toBeGreaterThan(5);
+  });
+
   it("declares each type once", () => {
     const all = unionTypes();
     expect(new Set(all).size).toBe(all.length);

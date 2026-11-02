@@ -25,6 +25,12 @@ export async function handleCommand(
     return;
   }
 
+  // Only on request, so a temporary identity's private key never leaves the gateway unless the user asks for it.
+  if (command.type === "getIdentity") {
+    sendJson({ type: "identity", requestId: command.requestId, identity: entry.tsClient.getIdentityString() });
+    return;
+  }
+
   if (command.type === "switchChannel") {
     const rawId = command.payload.channelId as string;
     const channelPassword = typeof command.payload.password === "string" ? command.payload.password : "";
@@ -124,6 +130,10 @@ export async function handleCommand(
         command.payload.away as boolean,
         typeof command.payload.message === "string" ? command.payload.message.trim() : "",
       );
+    } else if (command.type === "setNickname") {
+      const nickname = (command.payload.nickname as string).trim();
+      await entry.tsClient.setNickname(nickname);
+      entry.nickname = nickname;
     } else if (command.type === "setWhisperTargets") {
       const targetIds = command.payload.targetIds as number[];
       const selfId = entry.tsClient.getClientId();

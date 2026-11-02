@@ -179,6 +179,43 @@ describe("useIdentityManager", () => {
     expect(manager.identities.value.some((entry) => entry.privateMaterial === "valid-material")).toBe(true);
   });
 
+  it("keeps the stored default when a manager that never ran init() imports an identity", async () => {
+    await seed("a", "Alpha");
+    await seed("b", "Beta");
+    await useIdentityManager().init();
+    await useIdentityManager().setDefault("b");
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(
+        async () => new Response(JSON.stringify({ ok: true, level: 8 }), { status: 200, headers: { "content-type": "application/json" } }),
+      ),
+    );
+    const other = useIdentityManager();
+    await other.refresh();
+    const result = await other.importIdentity("valid-material", "Imported");
+    expect(result).toMatchObject({ ok: true });
+    expect((await loadLocalPreferences()).defaultIdentityId).toBe("b");
+    expect(other.defaultId.value).toBe("b");
+  });
+
+  it("adopts an imported identity as the default when the stored default no longer exists", async () => {
+    await seed("a", "Alpha");
+    const first = useIdentityManager();
+    await first.init();
+    await first.setDefault("gone");
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(
+        async () => new Response(JSON.stringify({ ok: true, level: 8 }), { status: 200, headers: { "content-type": "application/json" } }),
+      ),
+    );
+    const other = useIdentityManager();
+    await other.refresh();
+    const result = await other.importIdentity("valid-material", "Imported");
+    if (!result.ok) throw new Error("expected import to succeed");
+    expect((await loadLocalPreferences()).defaultIdentityId).toBe(result.identity.id);
+  });
+
   it("rejects invalid import material without storing it", async () => {
     vi.stubGlobal(
       "fetch",

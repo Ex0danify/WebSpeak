@@ -150,7 +150,7 @@ export function useChat(options: UseChatOptions) {
   }
 
   // The gateway sends the kind and the names (an empty one with `unnamed`) and the sentence is built here, so the log follows
-  // the language. `message` (English) is only shown for a kind this client does not know.
+  // the language. The switch covers every `ServerEventKind`, a new kind fails to compile until it has a sentence here.
   function eventText(event: ServerEvent): string {
     const nickname = nicknameText(event.nickname ?? "", t);
     const channel = event.channelName || t("unnamedChannel");
@@ -163,6 +163,8 @@ export function useChat(options: UseChatOptions) {
         return t("eventMemberLeft", { nickname });
       case "moved":
         return t("eventMemberMoved", { nickname });
+      case "renamed":
+        return t("eventMemberRenamed", { previous: nicknameText(event.previousNickname ?? "", t), nickname });
       case "poke":
         return `${nickname} ${t("pokedYou")}`;
       case "channelCreated":
@@ -171,8 +173,6 @@ export function useChat(options: UseChatOptions) {
         return t("eventChannelRenamed", { channel });
       case "channelDeleted":
         return t("eventChannelDeleted", { channel });
-      default:
-        return event.message;
     }
   }
 

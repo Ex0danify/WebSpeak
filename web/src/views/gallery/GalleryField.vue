@@ -1,5 +1,5 @@
 <template>
-  <GallerySection id="gallery-field" title="Field · Input · Select · Textarea" note="hint · error · leading icon · disabled">
+  <GallerySection id="gallery-field" title="Field · Input · Select · Textarea" note="hint · error · leading icon · inline · disabled">
     <div class="grid gap-5 narrow:grid-cols-2">
       <Field :label="fieldSamples[lang].nick" :hint="fieldSamples[lang].nickHint">
         <Input v-model="nickname" autocomplete="off" />
@@ -27,6 +27,9 @@
       </Field>
       <Field :label="fieldSamples[lang].nick" :hint="fieldSamples[lang].nickHint" class="narrow:col-span-2">
         <Textarea v-model="notes" :rows="3" maxlength="500" />
+      </Field>
+      <Field :hint="fieldSamples[lang].nickHint">
+        <Input v-model="nickname" look="inline" autocomplete="off" aria-label="Inline" />
       </Field>
       <div class="flex flex-col gap-1.5">
         <span class="text-ui font-medium">Without Field</span>

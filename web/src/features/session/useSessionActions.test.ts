@@ -106,6 +106,36 @@ describe("sendCommandAndWait", () => {
   });
 });
 
+describe("requestIdentity", () => {
+  it("rejects at once when the socket is not open", async () => {
+    const { actions } = setup(false);
+    await expect(actions.requestIdentity()).rejects.toThrow("The voice connection is not ready yet");
+  });
+
+  it("asks with getIdentity and resolves with the key of the matching reply", async () => {
+    const { actions } = setup();
+    const asked = actions.requestIdentity();
+    const [frame] = socket.sentJson;
+    expect(frame).toMatchObject({ type: "getIdentity", payload: {} });
+    actions.handlers.identity!({ type: "identity", requestId: "other", identity: "wrong" });
+    actions.handlers.identity!({ type: "identity", requestId: frame.requestId as string, identity: "private-key" });
+    await expect(asked).resolves.toBe("private-key");
+    expect(actions.pendingCommands.size).toBe(0);
+  });
+
+  it("times out and forgets the request", async () => {
+    vi.useFakeTimers();
+    const { actions } = setup();
+    const caught = actions.requestIdentity(500).then(
+      () => new Error("resolved"),
+      (error: Error) => error,
+    );
+    await vi.advanceTimersByTimeAsync(500);
+    expect((await caught).message).toBe("The operation timed out. Try again shortly");
+    expect(actions.pendingCommands.size).toBe(0);
+  });
+});
+
 describe("channel and roster commands", () => {
   it("switchChannel clears the error state and sends the password only when given", () => {
     const { session, actions } = setup();
