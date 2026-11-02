@@ -2,6 +2,7 @@ import { mount } from "@vue/test-utils";
 import { describe, expect, it } from "vitest";
 import MemberRow from "@/features/room/members/MemberRow.vue";
 import type { ChannelMember } from "@/features/session";
+import type { ScreenShareStream } from "@/features/screenShare";
 
 const member: ChannelMember = { id: 2, nickname: "Ana" };
 
@@ -62,5 +63,46 @@ describe("MemberRow away state", () => {
   it("shows the away message on the status line", () => {
     const wrapper = mountAway({ awayMessage: "back in 5" });
     expect(wrapper.text()).toContain("back in 5");
+  });
+});
+
+describe("MemberRow screen share", () => {
+  const stream: ScreenShareStream = {
+    streamId: "s1",
+    source: "browser",
+    ownerPeerId: "p1",
+    ownerClientId: 2,
+    ownerNickname: "Ana",
+    name: "Screen",
+    audio: false,
+    createdAt: 0,
+    viewerCount: 0,
+    viewers: [],
+  };
+
+  it("shows nothing without a stream", () => {
+    const wrapper = mountRow();
+    expect(wrapper.text()).not.toContain("Live");
+    expect(wrapper.find('[aria-label="Watch screen"]').exists()).toBe(false);
+  });
+
+  it("marks a sharing member as live and offers to watch", async () => {
+    const wrapper = mount(MemberRow, { props: { member, speaking: false, isMobileViewport: false, stream } });
+    expect(wrapper.text()).toContain("Live");
+    const watch = wrapper.get('button[aria-label="Watch screen"]');
+    expect(watch.attributes("aria-pressed")).toBe("false");
+    await watch.trigger("click");
+    expect(wrapper.emitted("toggle-screen-share")).toHaveLength(1);
+  });
+
+  it("reports the watching state as pressed", () => {
+    const wrapper = mount(MemberRow, { props: { member, speaking: false, isMobileViewport: false, stream, watching: true } });
+    expect(wrapper.get('button[aria-label="Watch screen"]').attributes("aria-pressed")).toBe("true");
+  });
+
+  it("does not offer to watch your own share", () => {
+    const wrapper = mount(MemberRow, { props: { member: { ...member, isSelf: true }, speaking: false, isMobileViewport: false, stream } });
+    expect(wrapper.text()).toContain("Live");
+    expect(wrapper.find('[aria-label="Watch screen"]').exists()).toBe(false);
   });
 });
