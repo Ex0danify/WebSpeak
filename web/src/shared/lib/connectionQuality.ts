@@ -6,7 +6,7 @@ export interface QualityInput {
   rttMs?: number | null;
   jitterMs?: number | null;
   lossPercent?: number | null;
-  /** Gaps in playback, heard as a crackle. */
+  /** Gaps in playback per minute of incoming speech, heard as a crackle. */
   dropoutsPerMinute?: number | null;
 }
 
@@ -15,7 +15,7 @@ const LIMITS = {
   rttMs: [50, 100, 200],
   jitterMs: [10, 30, 60],
   lossPercent: [0.5, 2, 5],
-  dropoutsPerMinute: [1, 4, 10],
+  dropoutsPerMinute: [15, 60, 240],
 } as const;
 
 function rank(value: number | null | undefined, limits: readonly number[]): number | null {

@@ -15,9 +15,11 @@ interface Speaker {
 export function createArrivalJitter() {
   const speakers = new Map<number, Speaker>();
   let glitchCount = 0;
+  let frameCount = 0;
 
   return {
     frame(clientId: number, now: number): void {
+      frameCount += 1;
       const speaker = speakers.get(clientId);
       if (!speaker || now - speaker.lastAt > PAUSE_MS) {
         speakers.set(clientId, { lastAt: now, jitter: 0, frames: 1 });
@@ -37,12 +39,12 @@ export function createArrivalJitter() {
       glitchCount += 1;
     },
     /** The worst speaker heard lately, null when nobody was. */
-    snapshot(now: number): { jitterMs: number | null; glitches: number } {
+    snapshot(now: number): { jitterMs: number | null; glitches: number; frames: number } {
       let worst: number | null = null;
       for (const speaker of speakers.values()) {
         if (now - speaker.lastAt <= STALE_MS) worst = Math.max(worst ?? 0, speaker.jitter);
       }
-      return { jitterMs: worst, glitches: glitchCount };
+      return { jitterMs: worst, glitches: glitchCount, frames: frameCount };
     },
     forget(clientId: number): void {
       speakers.delete(clientId);
@@ -50,6 +52,7 @@ export function createArrivalJitter() {
     reset(): void {
       speakers.clear();
       glitchCount = 0;
+      frameCount = 0;
     },
   };
 }

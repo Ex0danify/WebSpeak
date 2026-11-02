@@ -56,7 +56,7 @@ describe("createArrivalJitter", () => {
     jitter.glitch();
     expect(jitter.snapshot(0).glitches).toBe(2);
     jitter.reset();
-    expect(jitter.snapshot(0)).toEqual({ jitterMs: null, glitches: 0 });
+    expect(jitter.snapshot(0)).toEqual({ jitterMs: null, glitches: 0, frames: 0 });
   });
 
   it("forgets a speaker who left", () => {

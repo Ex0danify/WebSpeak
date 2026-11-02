@@ -11,6 +11,7 @@ export function voiceLink(over: Partial<VoiceLinkStats> = {}): VoiceLinkStats {
     uplinkKbps: 24,
     codec: "opus",
     glitches: null,
+    audioFrames: null,
     ...over,
   };
 }

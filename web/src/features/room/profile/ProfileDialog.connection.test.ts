@@ -100,6 +100,7 @@ describe("ProfileDialog connection", () => {
           uplinkKbps: null,
           codec: null,
           glitches: 3,
+          audioFrames: 6000,
         },
       }),
     );

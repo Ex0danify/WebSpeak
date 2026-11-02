@@ -64,22 +64,49 @@ describe("useConnectionStats", () => {
     expect(stats().quality).toBe("bad");
   });
 
-  it("rates dropouts per minute over a rolling window and lets the badge recover", async () => {
+  it("rates dropouts per minute of speech over a rolling window and lets the badge recover", async () => {
     let glitches = 0;
-    let step = 2;
+    let frames = 0;
+    let step = 20;
     const { stats } = mountStats(
       async () => probe(30),
-      async () => link({ transport: "websocket", jitterMs: 4, lossPercent: null, glitches: (glitches += step) }),
+      async () => {
+        frames += 100;
+        glitches += step;
+        return link({ transport: "websocket", jitterMs: 4, lossPercent: null, glitches, audioFrames: frames });
+      },
     );
     await vi.advanceTimersByTimeAsync(0);
     expect(stats().dropoutsPerMinute).toBeNull();
     await vi.advanceTimersByTimeAsync(10_000);
-    expect(stats().dropoutsPerMinute).toBeCloseTo(60);
+    expect(stats().dropoutsPerMinute).toBeCloseTo(600);
     expect(stats().quality).toBe("bad");
     step = 0;
     await vi.advanceTimersByTimeAsync(60_000);
     expect(stats().dropoutsPerMinute).toBe(0);
     expect(stats().quality).toBe("excellent");
+  });
+
+  it("rates a moderate crackle as poor and ignores silence", async () => {
+    let glitches = 0;
+    let frames = 0;
+    let talking = true;
+    const { stats } = mountStats(
+      async () => probe(30),
+      async () => {
+        if (talking) {
+          frames += 100;
+          glitches += 4;
+        }
+        return link({ transport: "websocket", jitterMs: 4, lossPercent: null, glitches, audioFrames: frames });
+      },
+    );
+    await vi.advanceTimersByTimeAsync(10_000);
+    expect(stats().dropoutsPerMinute).toBeCloseTo(120);
+    expect(stats().quality).toBe("poor");
+    talking = false;
+    await vi.advanceTimersByTimeAsync(40_000);
+    expect(stats().dropoutsPerMinute).toBeNull();
   });
 
   it("has no dropout rate on WebRTC", async () => {

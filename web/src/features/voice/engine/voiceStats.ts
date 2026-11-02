@@ -14,6 +14,8 @@ export interface VoiceLinkStats extends VoiceStats {
   transport: "webrtc" | "websocket";
   /** Times playback ran dry mid-sentence since connecting, only counted on the WebSocket downlink. */
   glitches: number | null;
+  /** Audio frames received since connecting, what the dropouts are measured against. */
+  audioFrames: number | null;
 }
 
 /** What the next sample is measured against, counters only grow. */

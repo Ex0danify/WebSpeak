@@ -7,9 +7,11 @@ import type { RoomSession } from "@/features/room/roomTypes";
 
 const INTERVAL_MS = 2_000;
 const WINDOW_SIZE = 20;
-// Dropouts are rated over the last half minute, so the badge recovers once the link does.
+// Dropouts are rated over the last half minute, so the badge recovers once the link does. They are counted per minute of
+// incoming speech (50 frames a second), so a quiet room neither hides nor inflates them.
 const DROPOUT_WINDOW_MS = 30_000;
-const DROPOUT_MIN_SPAN_S = 4;
+const DROPOUT_MIN_FRAMES = 50;
+const FRAMES_PER_MINUTE = 3_000;
 
 export interface ConnectionStatsData extends LatencySummary {
   voice: VoiceLinkStats | null;
@@ -31,7 +33,7 @@ export function useConnectionStats(options: UseConnectionStatsOptions) {
   const voice = ref<VoiceLinkStats | null>(null);
   const quality = ref<ConnectionQuality | null>(null);
   const dropoutsPerMinute = ref<number | null>(null);
-  const dropoutSamples: Array<{ at: number; glitches: number }> = [];
+  const dropoutSamples: Array<{ at: number; glitches: number; frames: number }> = [];
   const tracker = createQualityTracker();
   let timer: ReturnType<typeof setInterval> | null = null;
   let running = false;
@@ -45,17 +47,18 @@ export function useConnectionStats(options: UseConnectionStatsOptions) {
   }));
 
   function trackDropouts(link: VoiceLinkStats | null): void {
-    if (link?.glitches == null) {
+    if (link?.glitches == null || link.audioFrames == null) {
       dropoutSamples.length = 0;
       dropoutsPerMinute.value = null;
       return;
     }
     const at = Date.now();
-    dropoutSamples.push({ at, glitches: link.glitches });
+    dropoutSamples.push({ at, glitches: link.glitches, frames: link.audioFrames });
     while (dropoutSamples.length > 1 && at - dropoutSamples[0].at > DROPOUT_WINDOW_MS) dropoutSamples.shift();
-    const seconds = (at - dropoutSamples[0].at) / 1000;
+    const first = dropoutSamples[0];
+    const frames = link.audioFrames - first.frames;
     dropoutsPerMinute.value =
-      seconds >= DROPOUT_MIN_SPAN_S ? (Math.max(0, link.glitches - dropoutSamples[0].glitches) / seconds) * 60 : null;
+      frames >= DROPOUT_MIN_FRAMES ? (Math.max(0, link.glitches - first.glitches) / frames) * FRAMES_PER_MINUTE : null;
   }
 
   async function sample(current: number): Promise<void> {
