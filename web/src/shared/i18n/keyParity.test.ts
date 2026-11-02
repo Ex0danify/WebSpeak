@@ -171,6 +171,8 @@ const SAME_AS_ENGLISH = new Set<string>([
   "common.optional",
   "common.serverPortPlaceholder",
   "common.server",
+  "profile.voiceJitter",
+  "profile.voiceCodec",
 ]);
 
 const defaultLanguage = LANGUAGES[0]!;
