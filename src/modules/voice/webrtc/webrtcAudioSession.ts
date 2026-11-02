@@ -10,6 +10,7 @@ import { readIceInfo } from "./webrtcIceInfo.js";
 import { UplinkVoiceGate } from "./uplinkVoiceGate.js";
 
 const DEFAULT_WEBRTC_OPUS_PAYLOAD_TYPE = 111;
+const UINT32_RANGE = 4_294_967_296;
 const SPEAKER_ACTIVITY_INTERVAL_MS = 100;
 
 export interface WebRtcSessionDescription {
@@ -76,8 +77,8 @@ export class WebRtcAudioSession {
   private readonly activityTimer: ReturnType<typeof setInterval>;
   private readonly mixer: WebRtcMixer;
   private sequenceNumber = randomInt(0, 65_536);
-  private timestamp = randomInt(0, 0x1_0000_0000) >>> 0;
-  private readonly ssrc = randomInt(1, 0x1_0000_0000) >>> 0;
+  private timestamp = randomInt(0, UINT32_RANGE) >>> 0;
+  private readonly ssrc = randomInt(1, UINT32_RANGE) >>> 0;
   private outgoingPayloadType = DEFAULT_WEBRTC_OPUS_PAYLOAD_TYPE;
   private closed = false;
   private readonly createdAt = performance.now();

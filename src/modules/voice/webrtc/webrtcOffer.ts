@@ -13,85 +13,66 @@ const bumpGeneration = (entry: object): number => {
   return next;
 };
 
-export async function handleWebRtcOffer(
-  ctx: VoiceConnection,
-  offer: WebRtcSessionDescription,
-  getWebRtcOptions: () => WebRtcAudioOptions | undefined,
-): Promise<void> {
-  const { entry, sendJson } = ctx;
-  const generation = bumpGeneration(entry);
-  const overtaken = () => generations.get(entry) !== generation;
-  if (entry.webrtc) {
-    const previousWebRtc = entry.webrtc;
-    try {
-      await previousWebRtc.close();
-    } catch {
-      /* replace a retried offer */
-    }
-    Object.assign(entry.audio, previousWebRtc.getStats());
-    entry.webrtc = null;
-    if (overtaken()) return;
-  }
-  const config = getWebRtcOptions();
-  if (!config?.enabled) return;
-  const muted = offer.muted === true;
+/** An empty payload is how TeamSpeak learns the speaker stopped. */
+function sendUplink(entry: VoiceConnection["entry"], data: Buffer, codec: 4 | 5): void {
+  if (entry.whisperActive && entry.whisperTargetIds.size) entry.tsClient.sendWhisper(data, [...entry.whisperTargetIds], codec);
+  else entry.tsClient.sendVoice(data, codec);
+}
+
+function forwardUplinkFrame(ctx: VoiceConnection, data: Buffer, codec: 4 | 5): void {
+  const { entry } = ctx;
+  const audio = entry.audio;
+  const now = Date.now();
+  if (audio.ingressLastAt !== null) audio.ingressMaxGapMs = Math.max(audio.ingressMaxGapMs, now - audio.ingressLastAt);
+  audio.ingressFirstAt ??= now;
+  audio.ingressLastAt = now;
+  audio.ingressFrames++;
   try {
-    // The offer carries the browser's initial mute state. TS clients only see it once the gateway
-    // mutes its own TS client too.
-    await entry.tsClient.setInputMuted(muted);
+    sendUplink(entry, data, codec);
+    const sentAt = Date.now();
+    if (audio.tsSendLastAt !== null) audio.tsSendMaxGapMs = Math.max(audio.tsSendMaxGapMs, sentAt - audio.tsSendLastAt);
+    audio.tsSendFirstAt ??= sentAt;
+    audio.tsSendLastAt = sentAt;
+    audio.tsSendFrames++;
+    reportSelfActivity(ctx);
+  } catch {
+    audio.tsSendErrors++;
+    // A packet during session replacement is dropped, the WebRTC peer can still be closed on its own.
+  }
+}
+
+function endUplinkBurst(entry: VoiceConnection["entry"], codec: 4 | 5): void {
+  try {
+    sendUplink(entry, Buffer.alloc(0), codec);
+  } catch {
+    entry.audio.tsSendErrors++;
+  }
+}
+
+async function closePreviousSession(entry: VoiceConnection["entry"], previous: WebRtcAudioSession): Promise<void> {
+  try {
+    await previous.close();
+  } catch {
+    /* replace a retried offer */
+  }
+  Object.assign(entry.audio, previous.getStats());
+  entry.webrtc = null;
+}
+
+/** The offer carries the browser's initial mute state. TS clients only see it once the gateway mutes its own TS client too. */
+async function syncInitialMute(ctx: VoiceConnection, muted: boolean): Promise<void> {
+  try {
+    await ctx.entry.tsClient.setInputMuted(muted);
   } catch (error: unknown) {
     ctx.logger.warn(
-      { entryId: entry.id, muted, err: error instanceof Error ? error.message : String(error) },
+      { entryId: ctx.entry.id, muted, err: error instanceof Error ? error.message : String(error) },
       "Could not synchronize initial microphone mute state",
     );
   }
-  const publicAddresses = await resolveWebRtcPublicAddresses(entry.webrtcPublicHost);
-  // A stop or a newer offer may have arrived while the mute sync or the address lookup was pending. Creating the peer now would undo the stop
-  // or leave the older peer open next to the newer one.
-  if (overtaken()) return;
-  const peer = await WebRtcAudioSession.create({
-    connectionId: entry.id,
-    ...(publicAddresses.length ? { publicAddresses } : {}),
-    udpPortRange: config.udpPortRange,
-    logger: ctx.logger,
-    microphoneMuted: muted,
-    accompanimentActive: offer.accompanimentActive === true,
-    onVoiceFrame: (data, codec) => {
-      const now = Date.now();
-      if (entry.audio.ingressLastAt !== null)
-        entry.audio.ingressMaxGapMs = Math.max(entry.audio.ingressMaxGapMs, now - entry.audio.ingressLastAt);
-      entry.audio.ingressFirstAt ??= now;
-      entry.audio.ingressLastAt = now;
-      entry.audio.ingressFrames++;
-      try {
-        if (entry.whisperActive && entry.whisperTargetIds.size) entry.tsClient.sendWhisper(data, [...entry.whisperTargetIds], codec);
-        else entry.tsClient.sendVoice(data, codec);
-        const sentAt = Date.now();
-        if (entry.audio.tsSendLastAt !== null)
-          entry.audio.tsSendMaxGapMs = Math.max(entry.audio.tsSendMaxGapMs, sentAt - entry.audio.tsSendLastAt);
-        entry.audio.tsSendFirstAt ??= sentAt;
-        entry.audio.tsSendLastAt = sentAt;
-        entry.audio.tsSendFrames++;
-        reportSelfActivity(ctx);
-      } catch {
-        entry.audio.tsSendErrors++;
-        // A packet during session replacement is dropped, the WebRTC peer can still be closed on its own.
-      }
-    },
-    onVoiceEnd: (codec) => {
-      try {
-        // An empty payload is how TeamSpeak learns the speaker stopped.
-        if (entry.whisperActive && entry.whisperTargetIds.size) entry.tsClient.sendWhisper(Buffer.alloc(0), [...entry.whisperTargetIds], codec);
-        else entry.tsClient.sendVoice(Buffer.alloc(0), codec);
-      } catch {
-        entry.audio.tsSendErrors++;
-      }
-    },
-    onVoiceActivity: (clientIds) => {
-      if (entry.ws.readyState === WebSocket.OPEN) sendJson({ type: "voiceActivity", clientIds });
-    },
-  });
-  entry.webrtc = peer;
+}
+
+async function answerOffer(ctx: VoiceConnection, peer: WebRtcAudioSession, offer: WebRtcSessionDescription): Promise<void> {
+  const { entry, sendJson } = ctx;
   try {
     const answer = await peer.createAnswer({ type: offer.type, sdp: offer.sdp });
     if (entry.webrtc !== peer || entry.ws.readyState !== WebSocket.OPEN) return;
@@ -107,6 +88,43 @@ export async function handleWebRtcOffer(
     ctx.logger.warn({ entryId: entry.id, err: error instanceof Error ? error.message : String(error) }, "WebRTC audio negotiation failed");
     if (entry.ws.readyState === WebSocket.OPEN) sendJson({ type: "webrtcError", code: "WEBRTC_NEGOTIATION_FAILED" });
   }
+}
+
+export async function handleWebRtcOffer(
+  ctx: VoiceConnection,
+  offer: WebRtcSessionDescription,
+  getWebRtcOptions: () => WebRtcAudioOptions | undefined,
+): Promise<void> {
+  const { entry, sendJson } = ctx;
+  const generation = bumpGeneration(entry);
+  const overtaken = () => generations.get(entry) !== generation;
+  if (entry.webrtc) {
+    await closePreviousSession(entry, entry.webrtc);
+    if (overtaken()) return;
+  }
+  const config = getWebRtcOptions();
+  if (!config?.enabled) return;
+  const muted = offer.muted === true;
+  await syncInitialMute(ctx, muted);
+  const publicAddresses = await resolveWebRtcPublicAddresses(entry.webrtcPublicHost);
+  // A stop or a newer offer may have arrived while the mute sync or the address lookup was pending. Creating the peer now would undo the stop
+  // or leave the older peer open next to the newer one.
+  if (overtaken()) return;
+  const peer = await WebRtcAudioSession.create({
+    connectionId: entry.id,
+    ...(publicAddresses.length ? { publicAddresses } : {}),
+    udpPortRange: config.udpPortRange,
+    logger: ctx.logger,
+    microphoneMuted: muted,
+    accompanimentActive: offer.accompanimentActive === true,
+    onVoiceFrame: (data, codec) => forwardUplinkFrame(ctx, data, codec),
+    onVoiceEnd: (codec) => endUplinkBurst(entry, codec),
+    onVoiceActivity: (clientIds) => {
+      if (entry.ws.readyState === WebSocket.OPEN) sendJson({ type: "voiceActivity", clientIds });
+    },
+  });
+  entry.webrtc = peer;
+  await answerOffer(ctx, peer, offer);
 }
 
 export function handleWebRtcStop(ctx: VoiceConnection): void {
