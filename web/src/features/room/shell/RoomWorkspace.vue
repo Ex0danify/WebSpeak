@@ -50,7 +50,6 @@
       <div :class="[scrollClass, mobileSection === 'chat' && 'max-compact:overflow-hidden']">
         <div :class="mobileSection === 'chat' ? contentChatClass : contentClass">
           <section :class="['mt-8.5 max-compact:mt-5.25', mobileSection !== 'voice' && 'max-compact:hidden']">
-            <VoiceHeading :count="currentMembers.length" />
             <ScreenShareInlineError v-if="screenShareError" :text="screenShareErrorText" />
             <ScreenSharePlayer
               v-model:remote-volume="screenShareRemoteVolume"
@@ -67,23 +66,6 @@
               :set-player-element="setScreenSharePlayerElement"
               @leave="leaveScreenShare"
               @toggle-fullscreen="toggleScreenShareFullscreen"
-            />
-            <VoiceGrid
-              v-model:screen-share-settings-open="screenShareSettingsOpen"
-              :current-members="currentMembers"
-              :room-members="roomMembers"
-              :speaking-ids="speakingIds"
-              :muted-members="mutedMembers"
-              :is-mobile-viewport="isMobileViewport"
-              :screen-share-stream-for-member="screenShareStreamForMember"
-              :screen-share-active="screenShareActive"
-              :screen-share-starting="screenShareStarting"
-              :screen-share-viewing-stream-id="screenShareViewingStreamId"
-              :screen-share-indicator-bars="screenShareIndicatorBars"
-              @open-member-actions="openMemberActions"
-              @stop-screen-share="stopScreenShare"
-              @start-screen-share="startScreenShareWithSettings"
-              @toggle-screen-share="toggleScreenShareForMember"
             />
             <WhisperStrip
               :whisper-target-ids="whisperTargetIds"
@@ -243,8 +225,6 @@ import type { useChannelTree } from "@/features/room/members/useChannelTree";
 import type { useMemberMenu } from "@/features/room/members/useMemberMenu";
 import NetworkPerformancePanel from "@/features/room/network/NetworkPerformancePanel.vue";
 import type { useNetworkPerformance } from "@/features/room/network/useNetworkPerformance";
-import VoiceGrid from "@/features/room/voiceGrid/VoiceGrid.vue";
-import VoiceHeading from "@/features/room/voiceGrid/VoiceHeading.vue";
 import PokeStack from "@/features/room/whisper/PokeStack.vue";
 import WhisperStrip from "@/features/room/whisper/WhisperStrip.vue";
 import type { useWhisper } from "@/features/room/whisper/useWhisper";
@@ -300,8 +280,6 @@ const {
   toggleAway,
   currentChannel,
   currentChannelName,
-  currentMembers,
-  roomMembers,
   filteredMemberChannels,
   selectChannel,
   dragOverChannelId,

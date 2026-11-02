@@ -75,7 +75,6 @@ export function useChannelTree(options: UseChannelTreeOptions) {
     const source = currentChannel.value ? currentChannel.value.members : members;
     return source.map((member) => ({ ...member, isSelf: member.isSelf || member.id === voiceState.tsClientId }));
   });
-  const roomMembers = computed(() => currentMembers.value.slice(0, 4));
   const memberChannels = computed<TreeChannel[]>(() => {
     if (channelTree.value.length) return channelTree.value;
     return [
@@ -364,7 +363,6 @@ export function useChannelTree(options: UseChannelTreeOptions) {
     currentChannelName,
     currentChannelDescription,
     currentMembers,
-    roomMembers,
     memberChannels,
     filteredMemberChannels,
     selectChannel,

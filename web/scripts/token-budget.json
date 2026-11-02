@@ -63,9 +63,6 @@
     "src/features/room/shell/WorkspaceHeader.vue": {
       "arbitrary": 2
     },
-    "src/features/room/voiceGrid/VoiceGrid.vue": {
-      "arbitrary": 1
-    },
     "src/features/room/whisper/PokeStack.vue": {
       "arbitrary": 5
     },

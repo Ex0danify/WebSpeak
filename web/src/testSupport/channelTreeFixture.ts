@@ -14,7 +14,6 @@ export type Exposed = {
   currentChannelName: string;
   currentChannelDescription: string;
   currentMembers: ChannelMember[];
-  roomMembers: ChannelMember[];
   memberChannels: Array<ChannelInfo & { depth: number; members: ChannelMember[]; spacer?: Spacer }>;
   filteredMemberChannels: Array<ChannelInfo & { depth: number; members: ChannelMember[]; spacer?: Spacer }>;
   selectChannel: (item: ChannelInfo & { depth: number; members: ChannelMember[] }) => void;
