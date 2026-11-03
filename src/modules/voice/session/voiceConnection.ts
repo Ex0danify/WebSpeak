@@ -279,6 +279,8 @@ export function sendInitialState(ctx: VoiceConnection, hooks: VoiceConnectionDep
     whisperTargetIds: [...ctx.entry.whisperTargetIds],
     whisperActive: ctx.entry.whisperActive,
     canSpeak: ctx.entry.canSpeak,
+    canWriteChannel: ctx.entry.canWriteChannel,
+    canWriteServer: ctx.entry.canWriteServer,
     webrtcAvailable: hooks.getWebRtcOptions()?.enabled === true,
     screenShareIceServers: hooks.getScreenShareIceServers(),
     accelerated: Boolean(ctx.entry.acceleration),
@@ -300,6 +302,8 @@ function resetDirectoryForReconnect(ctx: VoiceConnection) {
   ctx.entry.whisperTargetIds.clear();
   ctx.entry.whisperActive = false;
   ctx.entry.canSpeak = true;
+  ctx.entry.canWriteChannel = true;
+  ctx.entry.canWriteServer = true;
 }
 
 function failReconnect(ctx: VoiceConnection, hooks: VoiceConnectionDeps, normalized: ReturnType<typeof normalizeTeamSpeakError>) {

@@ -62,6 +62,12 @@ export class FakeBackend extends EventEmitter<TeamSpeakBackendEvents> implements
     return this.talkAllowed;
   }
 
+  textAllowed = { channel: true, server: true };
+
+  canSendText(scope: "channel" | "server"): boolean {
+    return this.textAllowed[scope];
+  }
+
   command(request: CommandRequest | string): Promise<Record<string, string>[]> {
     const text = typeof request === "string" ? request : buildCommand(request.name, request.params, request);
     this.commands.push(text);

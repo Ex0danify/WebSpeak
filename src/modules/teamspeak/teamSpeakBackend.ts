@@ -45,6 +45,8 @@ export interface TeamSpeakBackendEvents {
   clientMoved: [TSClientMoved];
   clientUpdated: [TSDirectoryClient];
   kicked: [WebSpeakError];
+  /** Our own permissions changed, see `canSendText`. */
+  permissionsChanged: [];
   disconnected: [Error | undefined];
 }
 
@@ -76,6 +78,8 @@ export interface TeamSpeakBackend extends EventEmitter<TeamSpeakBackendEvents> {
   channelId(): bigint;
   /** Whether the server lets our voice through in the current channel. */
   canTalk(): boolean;
+  /** Whether the server lets us write to the channel or the server. True while it has not told us. */
+  canSendText(scope: "channel" | "server"): boolean;
   /**
    * Answer rows, rejects with the server's refusal. `background` commands run through the client's
    * scheduler after interactive ones and are retried after a flood refusal (the post-connect burst).

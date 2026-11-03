@@ -21,6 +21,7 @@ export function forwardConnectionEvents(source: EventSource, target: EventEmitte
   };
 
   source.on("welcomeComplete", snapshot);
+  source.on("permissionsUpdated", () => target.emit("permissionsChanged"));
   source.on("clientEnter", (event) => target.emit("clientEnter", directoryClient(event.client)));
   source.on("clientLeave", (event) =>
     target.emit("clientLeave", {

@@ -15,6 +15,16 @@ export function reportSelfActivity(ctx: VoiceConnection): void {
   ctx.sendJson({ type: "voiceActivity", clientIds: [state.selfId] });
 }
 
+/** Tells the browser when the server starts or stops letting us write to the channel or the server. */
+export function syncChatState(ctx: VoiceConnection): void {
+  const canWriteChannel = ctx.tsClient.canSendText("channel");
+  const canWriteServer = ctx.tsClient.canSendText("server");
+  if (canWriteChannel === ctx.entry.canWriteChannel && canWriteServer === ctx.entry.canWriteServer) return;
+  ctx.entry.canWriteChannel = canWriteChannel;
+  ctx.entry.canWriteServer = canWriteServer;
+  if (ctx.state.initialStateSent) ctx.sendJson({ type: "chatState", canWriteChannel, canWriteServer });
+}
+
 /** Tells the browser when our talk right in the current channel changes. Call it after the directory moved. */
 export function syncTalkState(ctx: VoiceConnection): void {
   const canSpeak = ctx.tsClient.canSpeak();

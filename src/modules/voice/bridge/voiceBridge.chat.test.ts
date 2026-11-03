@@ -193,3 +193,29 @@ describe("whisper targets", () => {
     });
   });
 });
+
+describe("chat permissions", () => {
+  it("allows every chat in the connected message while the server has said nothing", async () => {
+    const gateway = await gateways.start();
+    const session = await alice(gateway);
+    const connected = session.socket.messages.find((message) => message.type === "connected");
+    expect(connected).toMatchObject({ canWriteChannel: true, canWriteServer: true });
+  });
+
+  it("tells the browser when the server takes a write right away and gives it back", async () => {
+    const gateway = await gateways.start();
+    const session = await alice(gateway);
+
+    session.client.textAllowed.server = false;
+    session.client.emit("permissionsChanged");
+    await session.socket.waitForMessage(
+      (message) => message.type === "chatState" && message.canWriteChannel === true && message.canWriteServer === false,
+    );
+
+    session.client.textAllowed.server = true;
+    session.client.emit("permissionsChanged");
+    await session.socket.waitForMessage(
+      (message) => message.type === "chatState" && message.canWriteChannel === true && message.canWriteServer === true,
+    );
+  });
+});
