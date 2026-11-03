@@ -62,6 +62,7 @@
       <TabList :aria-label="t('profileSections')">
         <Tab value="identity">{{ t("identityTab") }}</Tab>
         <Tab value="connection">{{ t("connectionTab") }}</Tab>
+        <Tab value="permissions">{{ t("permissionsTab") }}</Tab>
       </TabList>
       <!-- A shared minimum height keeps the jump between tabs small. -->
       <TabPanel value="identity" :class="`${panelClass} flex flex-col gap-4`">
@@ -91,6 +92,7 @@
         <Banner v-if="failed" variant="danger">{{ t("identityRequestFailed") }}</Banner>
       </TabPanel>
       <TabPanel value="connection" :class="panelClass"><ConnectionStats :stats="connectionStats" /></TabPanel>
+      <TabPanel value="permissions" :class="panelClass"><PermissionList :permissions="permissions" /></TabPanel>
     </Tabs>
   </Dialog>
 </template>
@@ -116,7 +118,8 @@ import { createSaveStatus } from "@/shared/lib/saveStatus";
 import { useI18n } from "@/shared/i18n/useI18n.js";
 import { downloadIdentity, useIdentityManager } from "@/features/identity";
 import { useConnectionStats, type UseConnectionStatsOptions } from "@/features/room/profile/useConnectionStats";
-import { nicknameText, type ChannelMember } from "@/features/session";
+import PermissionList from "@/features/room/profile/PermissionList.vue";
+import { nicknameText, type ChannelMember, type PermissionEntry } from "@/features/session";
 
 const props = defineProps<{
   /** The local user. */
@@ -129,6 +132,8 @@ const props = defineProps<{
   changeNickname: (nickname: string) => Promise<void>;
   /** The room session's connection part, sampled while the Connection tab is showing. */
   connection: UseConnectionStatsOptions["session"];
+  /** Our permissions on this server, as the server reported them. */
+  permissions: PermissionEntry[];
 }>();
 const open = defineModel<boolean>({ required: true });
 // Kept by the room, so a temporary identity saved earlier still shows as saved after the dialog was closed.

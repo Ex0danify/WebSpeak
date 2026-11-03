@@ -216,6 +216,7 @@
       :request-identity="requestIdentity"
       :change-nickname="changeNickname"
       :connection="session.session"
+      :permissions="session.session.permissions.value"
     />
   </div>
 </template>

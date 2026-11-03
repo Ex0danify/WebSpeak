@@ -53,7 +53,7 @@ export type {
 export function useRoomSession() {
   const session = useSessionStore();
   session.reset();
-  const { ws, whisperActive, canSpeak, canWriteChannel, canWriteServer } = storeToRefs(session);
+  const { ws, whisperActive, canSpeak, canWriteChannel, canWriteServer, permissions } = storeToRefs(session);
   const audio = useVoiceAudioStore();
   audio.reset();
   const {
@@ -295,6 +295,7 @@ export function useRoomSession() {
       ws,
       state,
       roomNotices,
+      permissions,
       identityMaterial,
       requestIdentity,
       setNickname,

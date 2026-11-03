@@ -172,6 +172,29 @@ test.describe("chat permissions", () => {
     await expect(page.getByText("No permission to write here")).toBeVisible();
     await expect(page.getByText("Not delivered")).toBeHidden();
   });
+
+  test("the profile lists the permissions the server reports and follows a change", async ({ page, gateway, isMobile }) => {
+    await join(page, "perm-profile");
+    if (isMobile) await page.getByRole("tab", { name: "Voice" }).click();
+    const client = fakeClient(gateway, "perm-profile");
+    client.permissionEntries = [
+      { name: "b_client_channel_textmessage_send", value: 1 },
+      { name: "b_client_server_textmessage_send", value: 0 },
+    ];
+    client.emit("permissionsChanged");
+
+    await page.getByRole("button", { name: /^Your profile/ }).click();
+    await page.getByRole("tab", { name: "Permissions" }).click();
+    const row = (name: string) => page.getByRole("listitem").filter({ hasText: name });
+    await expect(row("b_client_channel_textmessage_send")).toContainText("Granted");
+    await expect(row("b_client_server_textmessage_send")).toContainText("Not granted");
+
+    client.permissionEntries = [{ name: "b_client_server_textmessage_send", value: 1 }];
+    client.emit("permissionsChanged");
+    await expect(row("b_client_server_textmessage_send")).toContainText("Granted");
+    await page.getByRole("searchbox", { name: "Search permissions" }).fill("channel");
+    await expect(page.getByText("No permission matches.")).toBeVisible();
+  });
 });
 
 test.describe("private chat", () => {

@@ -17,7 +17,7 @@ export interface RoomActionsDeps {
 
 export function useSessionActions(deps: RoomActionsDeps) {
   const session = useSessionStore();
-  const { ws, whisperActive, canSpeak, canWriteChannel, canWriteServer } = storeToRefs(session);
+  const { ws, whisperActive, canSpeak, canWriteChannel, canWriteServer, permissions } = storeToRefs(session);
   const { state, chatMessages, whisperTargetIds, members } = session;
   // A message of your own is flagged isSelf and rendered as "You"; the name only feeds avatars.
   const selfName = () => members.find((member) => member.isSelf)?.nickname ?? "";
@@ -260,6 +260,9 @@ export function useSessionActions(deps: RoomActionsDeps) {
     chatState: (msg) => {
       canWriteChannel.value = msg.canWriteChannel !== false;
       canWriteServer.value = msg.canWriteServer !== false;
+    },
+    permissions: (msg) => {
+      permissions.value = msg.entries;
     },
     identity: (msg) => {
       const requestId = typeof msg.requestId === "string" ? msg.requestId : "";

@@ -49,6 +49,7 @@ async function open(
       requestIdentity: options.request ?? (() => Promise.resolve("secret-material")),
       changeNickname: options.changeNickname ?? (() => Promise.resolve()),
       connection: fakeConnection() as never,
+      permissions: [],
     },
     attachTo: document.body,
     global: { stubs: { transition: false } },
