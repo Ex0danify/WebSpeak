@@ -45,8 +45,8 @@ async function selectTab(name: string): Promise<void> {
 
 const dialogText = () => document.body.querySelector('[role="dialog"]')?.textContent ?? "";
 const sectionText = (title: string) =>
-  Array.from(document.body.querySelectorAll("section"))
-    .find((section) => section.querySelector("h3")?.textContent === title)?.textContent ?? "";
+  Array.from(document.body.querySelectorAll("section")).find((section) => section.querySelector("h3")?.textContent === title)
+    ?.textContent ?? "";
 const live = () =>
   Array.from(document.body.querySelectorAll('[aria-live="polite"]'))
     .map((el) => el.textContent)

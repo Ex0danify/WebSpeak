@@ -7,8 +7,8 @@
         <Button variant="outline">Settings</Button>
         <Button variant="ghost">Skip</Button>
         <Button variant="danger">Leave</Button><Button variant="soft">Soft</Button><Button variant="softDanger">Muted</Button
-        ><Button variant="softNeutral">Unmuted</Button
-        ><Button variant="softWarning">Starting</Button><Button variant="softSuccess">Live</Button
+        ><Button variant="softNeutral">Unmuted</Button><Button variant="softWarning">Starting</Button
+        ><Button variant="softSuccess">Live</Button
         ><Button variant="quietSuccess" icon-only size="sm" aria-label="Confirm"><Icon name="check" :size="16" /></Button
         ><Button variant="quietDanger" icon-only size="sm" aria-label="Cancel"><Icon name="close" :size="14" /></Button
         ><Button variant="softOutline">Soft outline</Button><Button variant="accentSoft">Accent</Button
