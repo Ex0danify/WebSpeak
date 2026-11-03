@@ -51,6 +51,18 @@ describe("a refused channel switch", () => {
     expect(options.clearError).toHaveBeenCalled();
   });
 
+  it("shows the permission the refusal lacked as a note under the reason", async () => {
+    const { vm, voiceState } = await mountUseChannelTree();
+    vm.selectChannel(vm.channelTree.find((item) => item.id === "raid")!);
+    voiceState.error = text("err_PERMISSION_DENIED", { permission: "i_channel_join_power" });
+    voiceState.errorCode = "PERMISSION_DENIED";
+    await flushPromises();
+    expect(useToast().toasts.value.at(-1)).toMatchObject({
+      description: "You do not have permission to perform this action",
+      note: "i_channel_join_power",
+    });
+  });
+
   it("keeps the new channel once the move went through, even when a later error arrives", async () => {
     const { vm, options, voiceState, channels } = await mountUseChannelTree();
     vm.selectChannel(vm.channelTree.find((item) => item.id === "raid")!);

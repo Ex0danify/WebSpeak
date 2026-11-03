@@ -2,14 +2,14 @@ import { describe, expect, it } from "vitest";
 import { protocolErrorMessage } from "@/features/session/connectionMessages";
 
 describe("protocolErrorMessage for a refusal", () => {
-  it("names the permission the gateway says was missing", () => {
+  it("keeps the plain sentence and carries the permission the gateway named as a param", () => {
     expect(protocolErrorMessage("PERMISSION_DENIED", "x", { permission: "i_channel_join_power" })).toEqual({
-      key: "permissionDeniedNamed",
+      key: "err_PERMISSION_DENIED",
       params: { permission: "i_channel_join_power" },
     });
   });
 
-  it("falls back to the plain text without a name, or with something that is not a permission name", () => {
+  it("carries nothing without a name, or with something that is not a permission name", () => {
     expect(protocolErrorMessage("PERMISSION_DENIED", "x")).toEqual({ key: "err_PERMISSION_DENIED" });
     expect(protocolErrorMessage("PERMISSION_DENIED", "x", { permission: "<b>no</b>" })).toEqual({ key: "err_PERMISSION_DENIED" });
   });

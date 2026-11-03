@@ -43,6 +43,7 @@ const paused = reactive(new Set<number>());
       <span :class="toastIconVariants({ variant: t.variant })"><Icon :name="statusIconName[t.variant]" :size="16" /></span>
       <div class="min-w-0 flex-1 basis-40 break-words">
         <ToastTitle class="block font-semibold">{{ t.title }}</ToastTitle>
+        <span v-if="t.note" class="block text-ui text-fg-muted italic">{{ t.note }}</span>
         <ToastDescription v-if="t.description" class="block text-ui leading-[18px] text-fg-muted">{{ t.description }}</ToastDescription>
       </div>
       <ToastAction v-if="t.action" as-child :alt-text="t.action.altText ?? t.action.label">

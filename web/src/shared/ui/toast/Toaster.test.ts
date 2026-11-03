@@ -21,6 +21,16 @@ describe("Toaster", () => {
     wrapper.unmount();
   });
 
+  it("shows the note right under the title, muted and in italics", async () => {
+    const wrapper = mount(Toaster, { attachTo: document.body });
+    toast({ title: "Could not switch", description: "No permission", note: "i_channel_join_power" });
+    await nextTick();
+    const note = wrapper.findAll("span").find((span) => span.text() === "i_channel_join_power");
+    expect(note?.classes()).toEqual(expect.arrayContaining(["italic", "text-fg-muted"]));
+    expect(wrapper.text()).toMatch(/Could not switch\s*i_channel_join_power\s*No permission/);
+    wrapper.unmount();
+  });
+
   it("shows no bar for a toast kept open with duration 0", async () => {
     const wrapper = mount(Toaster, { attachTo: document.body });
     toast({ title: "sticky", progress: true, duration: 0 });

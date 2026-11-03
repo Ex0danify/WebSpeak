@@ -77,7 +77,6 @@ export const de: Record<string, string> = {
   opErr_FLOOD_PROTECTION: "Zu viele Anfragen. Versuche es gleich erneut",
   opErr_BANNED: "Du wurdest von diesem Server gebannt",
   err_PERMISSION_DENIED: "Du hast keine Berechtigung für diese Aktion",
-  permissionDeniedNamed: "Du hast keine Berechtigung für diese Aktion ({{permission}})",
   err_CLIENT_NOT_FOUND: "Das Mitglied ist offline",
   err_OPERATION_FAILED: "Operation fehlgeschlagen",
   connectionFailedUnknown: "TeamSpeak-Verbindung fehlgeschlagen (Fehlercode: {{code}}). Prüfe Eingaben, Netzwerk und Serverstatus",

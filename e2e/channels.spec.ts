@@ -55,6 +55,23 @@ test.describe("channel tree", () => {
     await expect(memberRow(page, "tree-count-walker")).toBeHidden();
   });
 
+  test("a refused switch names the missing permission right under the title, muted and in italics", async ({ page, gateway, script }) => {
+    script.channel("tree-denied");
+    await join(page, "tree-denied-self");
+    const client = gateway.ts.created.find((created) => created.options.nickname === "tree-denied-self")!;
+    client.switchChannel = () =>
+      Promise.reject(Object.assign(new Error("insufficient client permissions (id=2568)"), { failedPermissionId: 143 }));
+    await channelHeading(page, "tree-denied").click();
+
+    const toast = page.getByRole("region", { name: /Notifications/ });
+    const note = toast.getByText("i_channel_join_power", { exact: true });
+    await expect(note).toBeVisible();
+    await expect(note).toHaveCSS("font-style", "italic");
+    await expect(toast).toHaveText(
+      /Switching the channel failed\s*i_channel_join_power\s*You do not have permission to perform this action/,
+    );
+  });
+
   test("clicking a channel moves you there, under its heading", async ({ page, gateway, script }) => {
     script.channel("tree-click");
     await join(page, "tree-click-self");
