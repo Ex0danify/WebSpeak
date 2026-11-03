@@ -11,6 +11,8 @@ export const dialogPanelVariants = cva(
       size: {
         sm: "max-w-[25rem]",
         md: "max-w-[32rem]",
+        // Two columns of stats side by side.
+        wide: "max-w-176",
         // 920 px, the width of the existing settings dialog.
         lg: "max-w-[57.5rem]",
       },

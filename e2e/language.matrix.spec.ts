@@ -95,7 +95,7 @@ for (const language of discoveredLanguages()) {
           timestamp: Date.UTC(2026, 0, 15, 20, 15),
         },
       });
-      await page.getByRole("tab", { name: msg("chat", "eventLog"), exact: true }).click();
+      await page.getByRole("button", { name: new RegExp(`^${msg("chat", "eventLog")}`) }).click();
       await expect(page.getByText(msg("chat", "eventMemberJoined", { nickname: "Zed" }))).toBeVisible();
 
       await expectCleanPage(page, tag);

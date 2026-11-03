@@ -39,9 +39,6 @@
     "src/features/room/audioSettings/AudioSettingsDialog.vue": {
       "arbitrary": 2
     },
-    "src/features/room/chat/ChatPanel.vue": {
-      "arbitrary": 3
-    },
     "src/features/room/members/MemberContextMenu.vue": {
       "arbitrary": 1
     },
@@ -51,20 +48,11 @@
     "src/features/room/shell/MobileNav.vue": {
       "arbitrary": 1
     },
-    "src/features/room/shell/ReconnectBanner.vue": {
-      "arbitrary": 2
-    },
-    "src/features/room/shell/RoomNoticeBanner.vue": {
-      "arbitrary": 2
-    },
     "src/features/room/shell/RoomWorkspace.vue": {
-      "arbitrary": 14
+      "arbitrary": 12
     },
     "src/features/room/shell/WorkspaceHeader.vue": {
       "arbitrary": 2
-    },
-    "src/features/room/voiceGrid/VoiceGrid.vue": {
-      "arbitrary": 1
     },
     "src/features/room/whisper/PokeStack.vue": {
       "arbitrary": 5

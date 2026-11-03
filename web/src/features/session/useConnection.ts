@@ -43,7 +43,7 @@ export interface ConnectionDeps {
  *  teardown through `deps` (late-bound). Reads the session store directly, audio state comes in through `deps`. */
 export function useConnection(deps: ConnectionDeps) {
   const session = useSessionStore();
-  const { ws, whisperActive, canSpeak, canWriteChannel, canWriteServer, webrtcAvailable } = storeToRefs(session);
+  const { ws, whisperActive, canSpeak, canWriteChannel, canWriteServer, webrtcAvailable, serverName } = storeToRefs(session);
   const { state, members, channels, chatMessages, serverEvents, whisperTargetIds } = session;
   let connectionSequence = 0;
   // Set once connectionFailed has shown the person a message and code for this attempt. The gateway closes the socket right
@@ -284,8 +284,7 @@ export function useConnection(deps: ConnectionDeps) {
       state.errorCode = "";
       state.channelSwitchedChannelId = "";
       state.tsClientId = Number(msg.tsClientId) || 0;
-      // The mute preference is local to the browser, TeamSpeak shows the gateway's client_input_muted flag to others.
-      // Send it as soon as the session is ready so a muted reconnect shows for native users before WebRTC negotiates.
+      // The mute preference is local to the browser. Sending it now makes a muted reconnect show for native users before WebRTC negotiates.
       void syncMuteState(connectionSequence);
       setScreenShareIceServers(msg.screenShareIceServers);
       deps.applyWhisperState(msg.whisperTargetIds, msg.whisperActive);
@@ -293,6 +292,7 @@ export function useConnection(deps: ConnectionDeps) {
       canWriteChannel.value = msg.canWriteChannel !== false;
       canWriteServer.value = msg.canWriteServer !== false;
       webrtcAvailable.value = msg.webrtcAvailable === true;
+      serverName.value = typeof msg.serverName === "string" ? msg.serverName : "";
       if (Array.isArray(msg.members)) {
         members.length = 0;
         for (const member of msg.members) {

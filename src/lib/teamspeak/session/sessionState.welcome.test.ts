@@ -99,6 +99,7 @@ describe("welcome", () => {
         inputMuted: true,
         outputMuted: false,
         channelCommander: true,
+        streaming: false,
       },
     ]);
     // Plain copies, changing them does not touch the session.

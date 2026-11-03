@@ -27,6 +27,11 @@ export function useTheme() {
     saveTheme(themeMode.value);
   }
 
+  function selectTheme(mode: ThemeMode) {
+    themeMode.value = mode;
+    saveTheme(mode);
+  }
+
   onMounted(() => {
     prefersDark.value = isDarkTheme("system");
     stopWatchingSystemDark = watchSystemDark((dark) => {
@@ -39,5 +44,5 @@ export function useTheme() {
     stopWatchingSystemDark = null;
   });
 
-  return { themeMode, prefersDark, themeIcon, themeLabel, cycleTheme, setThemeMode };
+  return { themeMode, prefersDark, themeIcon, themeLabel, cycleTheme, selectTheme, setThemeMode };
 }

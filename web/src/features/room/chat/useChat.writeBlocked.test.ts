@@ -1,10 +1,11 @@
 import { flushPromises, mount } from "@vue/test-utils";
 import { defineComponent, reactive, ref, type Ref } from "vue";
 import { describe, expect, it, vi } from "vitest";
-import type { ChannelMember, ChatMessage, VoiceState } from "@/features/session";
+import type { ChannelMember, ChatMessage, ServerEvent, VoiceState } from "@/features/session";
+import type { ChatTab } from "@/features/room/roomTypes";
 import { useChat } from "@/features/room/chat/useChat";
 
-type Tab = "channel" | "server" | "private" | "events";
+type Tab = ChatTab;
 
 async function mountChat(allowed: { channel?: Ref<boolean>; server?: Ref<boolean> } = {}) {
   const chatTab = ref<Tab>("channel");
@@ -14,7 +15,7 @@ async function mountChat(allowed: { channel?: Ref<boolean>; server?: Ref<boolean
       setup: () =>
         useChat({
           session: { state: reactive({ tsClientId: 1 }) as VoiceState },
-          roster: { members: reactive<ChannelMember[]>([]) },
+          roster: { members: reactive<ChannelMember[]>([]), serverEvents: reactive<ServerEvent[]>([]) },
           chat: {
             chatMessages: reactive<ChatMessage[]>([]),
             sendTextMessage: sent.channel,

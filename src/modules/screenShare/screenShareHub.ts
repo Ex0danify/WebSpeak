@@ -65,10 +65,11 @@ export class ScreenShareHub {
     return undefined;
   }
 
-  listScreenStreamsFor(entry: ScreenShareParticipant): ScreenShareStreamDescription[] {
+  /** The streams in the entry's channel, or in `channelId` while the entry is still being moved there. */
+  listScreenStreamsFor(entry: ScreenShareParticipant, channelId: bigint = entry.tsClient.getChannelId()): ScreenShareStreamDescription[] {
     const targetKey = teamSpeakTargetKey(entry.target);
     return [...this.screenStreams.values()]
-      .filter((stream) => stream.targetKey === targetKey && stream.channelId === entry.tsClient.getChannelId())
+      .filter((stream) => stream.targetKey === targetKey && stream.channelId === channelId)
       .map((stream) => this.describeScreenStream(stream));
   }
 
@@ -225,13 +226,47 @@ export class ScreenShareHub {
         this.leaveScreenStream(entry, stream, true);
       }
     }
+    // The browser only asked for the list when it connected, so the shares of the new channel have to be pushed.
+    if (movedIsSelf) this.sendToEntry(entry.id, { type: "screenShareList", streams: this.listScreenStreamsFor(entry, targetChannelId) });
+    // A sharer who walks into our channel has to be asked again, their record was dropped above.
+    if (movedIsSelf) {
+      const selfId = entry.tsClient.getClientId();
+      for (const clientId of entry.members.keys()) {
+        if (clientId !== selfId && entry.clientChannelId?.(clientId) === targetChannelId) this.askForStream(entry, clientId);
+      }
+    } else if (targetChannelId === entry.tsClient.getChannelId()) {
+      this.askForStream(entry, movedClientId);
+    }
+  }
+
+  /**
+   * TeamSpeak announces a stream only to the channel it runs in, so whoever arrives later has to ask.
+   * The answer comes back as a regular stream notification.
+   */
+  private askForStream(entry: ScreenShareParticipant, clientId: number): void {
+    if (!entry.members.get(clientId)?.streaming) return;
+    entry.tsClient.sendProtocolCommand(`requeststreaminfo clid=${clientId}`).catch((error: unknown) => {
+      this.host.logger.debug(
+        { clientId, err: error instanceof Error ? error.message : String(error) },
+        "Could not query TeamSpeak screen stream",
+      );
+    });
+  }
+
+  /** The stop notification never reaches people outside the sharer's channel, the streaming flag does. */
+  reconcileNativeScreenShareAfterStreamingEnded(entry: ScreenShareParticipant, clientId: number): void {
+    this.stopNativeStreamsOf(entry, clientId, "source-stopped");
   }
 
   reconcileNativeScreenShareAfterClientLeave(entry: ScreenShareParticipant, clientId: number): void {
+    this.stopNativeStreamsOf(entry, clientId, "source-left");
+  }
+
+  private stopNativeStreamsOf(entry: ScreenShareParticipant, clientId: number, reason: string): void {
     const targetKey = teamSpeakTargetKey(entry.target);
     for (const stream of [...this.screenStreams.values()]) {
       if (stream.targetKey === targetKey && stream.source === "teamspeak" && stream.sourceClientId === clientId) {
-        this.stopScreenStream(stream, "source-left");
+        this.stopScreenStream(stream, reason);
       }
     }
   }

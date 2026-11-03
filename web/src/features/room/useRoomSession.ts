@@ -53,7 +53,7 @@ export type {
 export function useRoomSession() {
   const session = useSessionStore();
   session.reset();
-  const { ws, whisperActive, canSpeak, canWriteChannel, canWriteServer, permissions } = storeToRefs(session);
+  const { ws, whisperActive, canSpeak, canWriteChannel, canWriteServer, permissions, webrtcAvailable, serverName } = storeToRefs(session);
   const audio = useVoiceAudioStore();
   audio.reset();
   const {
@@ -91,7 +91,6 @@ export function useRoomSession() {
   } = storeToRefs(screenShare);
   const { screenShareStreams, screenShareWebRtcStats } = screenShare;
   const { state, members, channels, chatMessages, serverEvents, pokeNotifications, roomNotices, speakingIds, whisperTargetIds } = session;
-  const { webrtcAvailable } = storeToRefs(session);
   const {
     sendCmd,
     sendCommandAndWait,
@@ -316,6 +315,7 @@ export function useRoomSession() {
       whisperTargetIds,
       whisperActive,
       serverEvents,
+      serverName,
       pokeNotifications,
     },
     chat: {

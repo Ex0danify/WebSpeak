@@ -3,7 +3,7 @@ import { expect, type Script, test } from "./fixtures";
 import { join, openMemberMenu, overflowScan, poll } from "./helpers";
 import type { Gateway } from "../test/support/gateway";
 
-// The chat panel of the connected view: the channel, server and private tabs, the event log and the
+// The chat panel of the connected view: the channel, server and private tabs, the event log popover and the
 // composer. Real gateway, fake TeamSpeak server. A message another person sends comes from a scripted
 // member (`script`); what the browser sends is read from the fake client's record of it.
 
@@ -13,7 +13,7 @@ async function openChat(page: Page): Promise<void> {
   if (await tab.isVisible()) await tab.click();
 }
 
-/** One tab of the chat panel (channel, server, a private conversation, or the event log). */
+/** One tab of the chat panel (channel, server or a private conversation). */
 const chatTab = (page: Page, name: string | RegExp): Locator => page.getByRole("tab", { name, exact: typeof name === "string" });
 
 /** One message: its sender, and the text. Nothing else in the page is an article with both. */
@@ -102,8 +102,87 @@ test.describe("channel chat", () => {
     await join(page, "chat-scroll-self");
     await openChat(page);
     for (let i = 1; i <= 30; i++) other.say("channel", `scroll line ${i}`);
-    await expect(message(page, "chat-scroll-other", "scroll line 30")).toBeInViewport();
-    await expect(message(page, "chat-scroll-other", /^scroll line 1$/)).not.toBeInViewport();
+    await expect(page.getByText("scroll line 30", { exact: true })).toBeInViewport();
+    await expect(page.getByText("scroll line 1", { exact: true })).not.toBeInViewport();
+    // The page itself never scrolls, only the list does.
+    expect(await overflowScan(page)).toEqual({ clipped: [], pageScrolls: false });
+  });
+
+  test("a reader who scrolled up stays there and gets a way back to the latest message", async ({ page, script }) => {
+    const other = script.member("chat-up-other");
+    await join(page, "chat-up-self");
+    await openChat(page);
+    for (let i = 1; i <= 30; i++) other.say("channel", `up line ${i}`);
+    await expect(page.getByText("up line 30", { exact: true })).toBeInViewport();
+    const jump = page.getByRole("button", { name: "Jump to latest" });
+    await expect(jump).toHaveCount(0);
+
+    await page.getByText("up line 1", { exact: true }).scrollIntoViewIfNeeded();
+    await expect(jump).toBeVisible();
+    other.say("channel", "up line 31");
+    await expect(page.getByText("up line 31", { exact: true })).not.toBeInViewport();
+
+    await jump.click();
+    await expect(page.getByText("up line 31", { exact: true })).toBeInViewport();
+    await expect(jump).toHaveCount(0);
+  });
+
+  test("consecutive messages from one person share one header, and the list is a live log", async ({ page, script }) => {
+    const other = script.member("chat-group-other");
+    await join(page, "chat-group-self");
+    await openChat(page);
+    other.say("channel", "first of two");
+    other.say("channel", "second of two");
+    const group = message(page, "chat-group-other", "second of two");
+    await expect(group).toContainText("first of two");
+    await expect(page.getByRole("article")).toHaveCount(1);
+    await expect(group.getByText("chat-group-other", { exact: true })).toHaveCount(1);
+    await expect(page.getByRole("log")).toHaveAttribute("aria-live", "polite");
+  });
+});
+
+test.describe("channel notices", () => {
+  const log = (page: Page): Locator => page.getByRole("log");
+
+  test("who joins, leaves or moves in your channel shows up between the messages, other channels stay out", async ({
+    page,
+    script,
+    gateway,
+  }) => {
+    await join(page, "notice-self");
+    await openChat(page);
+    const roomA = [...gateway.ts.channels.values()].find((channel) => channel.name === "Room A")!.id;
+    const lobby = [...gateway.ts.channels.values()].find((channel) => channel.name === "Lobby")!.id;
+
+    // Somewhere else: nothing here.
+    const far = script.member("notice-far", roomA);
+    await expect(page.getByRole("tab", { name: "Lobby" })).toBeVisible();
+    far.say("channel", "unrelated");
+    const visitor = script.member("notice-visitor");
+    await expect(log(page)).toContainText("notice-visitor joined the server");
+    await expect(log(page)).not.toContainText("notice-far");
+
+    visitor.say("channel", "hello from the lobby");
+    await expect(message(page, "notice-visitor", "hello from the lobby")).toBeVisible();
+
+    visitor.moveTo(roomA);
+    await expect(log(page)).toContainText("notice-visitor moved to Room A");
+    far.moveTo(lobby);
+    await expect(log(page)).toContainText("notice-far joined this channel");
+  });
+
+  test("your own move is announced in the channel you land in, and the old notices stay behind", async ({ page, script, gateway }) => {
+    await join(page, "notice-mover");
+    await openChat(page);
+    const visitor = script.member("notice-old");
+    await expect(log(page)).toContainText("notice-old joined the server");
+    visitor.leave();
+    await expect(log(page)).toContainText("notice-old left the server");
+
+    const roomB = [...gateway.ts.channels.values()].find((channel) => channel.name === "Room B")!.id;
+    gateway.ts.moveMember(idOf(gateway, "notice-mover"), roomB);
+    await expect(log(page)).toContainText("You moved to Room B");
+    await expect(log(page)).not.toContainText("notice-old");
   });
 });
 
@@ -264,41 +343,44 @@ test.describe("private chat", () => {
     await openChat(page);
     other.say("private", "psst", BigInt(idOf(gateway, "pm-in-self")));
 
-    await expect(chatTab(page, "pm-in-other")).toBeVisible();
+    // The tab says there is something new in it, and stops saying so once it is open.
+    await expect(chatTab(page, /^pm-in-other\s+Unread messages$/)).toBeVisible();
     await expect(message(page, "pm-in-other", "psst")).toBeHidden();
-    await chatTab(page, "pm-in-other").click();
+    await chatTab(page, /^pm-in-other/).click();
     await expect(message(page, "pm-in-other", "psst")).toBeVisible();
+    await expect(chatTab(page, "pm-in-other")).toBeVisible();
     await chatTab(page, "Lobby").click();
     await expect(message(page, "pm-in-other", "psst")).toBeHidden();
   });
 });
 
 test.describe("event log", () => {
-  /** The entries of the log: articles with a time, which no message or card has. */
-  const entries = (page: Page): Locator => page.getByRole("article").filter({ has: page.locator("time") });
-
-  test("starts with the connection, lists members coming and going, and has no composer", async ({ page, script, isMobile }) => {
-    await join(page, "evt-self");
+  /** The entries of the log in the popover of the bell in the header. */
+  const entries = (page: Page): Locator => page.getByRole("listitem").filter({ has: page.locator("time") });
+  const openLog = async (page: Page): Promise<void> => {
     await openChat(page);
-    await chatTab(page, "Event log").click();
+    await page.getByRole("button", { name: /^Event log/ }).click();
+  };
+
+  test("starts with the connection and lists members coming and going", async ({ page, script }) => {
+    await join(page, "evt-self");
+    await openLog(page);
     await expect(entries(page)).toHaveCount(1);
-    if (!isMobile) await expect(page.getByText("1 events")).toBeVisible();
-    await expect(composer(page)).toHaveCount(0);
+    await expect(page.getByText("1 events")).toBeVisible();
 
     const visitor = script.member("evt-visitor");
     await expect(entries(page).filter({ hasText: "evt-visitor" })).toHaveCount(1);
     visitor.leave();
     await expect(entries(page).filter({ hasText: "evt-visitor" })).toHaveCount(2);
     await expect(entries(page)).toHaveCount(3);
-    if (!isMobile) await expect(page.getByText("3 events")).toBeVisible();
+    await expect(page.getByText("3 events")).toBeVisible();
   });
 
   // The gateway sends the kind and the nickname and the client builds the sentence itself with t() in the page's language.
   // `message` (Chinese) is only a fallback for an older gateway and is never shown while a translation exists.
   test("the entries follow the language of the page", async ({ page, script }) => {
     await join(page, "evt-en-self");
-    await openChat(page);
-    await chatTab(page, "Event log").click();
+    await openLog(page);
     await expect(entries(page)).toHaveCount(1);
     await expect(entries(page).first()).toContainText("Connected to the server");
     await expect(entries(page).first()).not.toContainText(/[\u4e00-\u9fff]/);
@@ -312,8 +394,7 @@ test.describe("event log", () => {
   test("a member who changes channel is announced too, with a translated sentence", async ({ page, script, gateway }) => {
     const visitor = script.member("evt-en-mover");
     await join(page, "evt-en-mover-self");
-    await openChat(page);
-    await chatTab(page, "Event log").click();
+    await openLog(page);
     const roomB = [...gateway.ts.channels.values()].find((channel) => channel.name === "Room B")!.id;
     visitor.moveTo(roomB);
     await expect(entries(page).filter({ hasText: "evt-en-mover moved to another channel" })).toHaveCount(1);

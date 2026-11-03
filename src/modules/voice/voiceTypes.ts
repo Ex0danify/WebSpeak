@@ -84,16 +84,22 @@ export interface ChannelMember {
   inputMuted?: boolean;
   outputMuted?: boolean;
   channelCommander?: boolean;
+  streaming?: boolean;
 }
 
 export interface ServerEvent {
   id: string;
-  kind: "joined" | "left" | "moved" | "renamed" | "poke" | "connection" | "channelCreated" | "channelRenamed" | "channelDeleted";
+  kind:
+    "joined" | "left" | "moved" | "selfMoved" | "renamed" | "poke" | "connection" | "channelCreated" | "channelRenamed" | "channelDeleted";
   message: string;
   // message is English and only a fallback, the browser renders event_<kind> and params repeat the values for it.
   nickname?: string;
   /** For `renamed`, the name before the change, `nickname` is the new one. */
   previousNickname?: string;
+  /** The channel the event happened in: where a member joined or left, where a member or you moved to. */
+  channelId?: string;
+  /** For `moved`, the channel the member came from. */
+  fromChannelId?: string;
   channelName?: string;
   params?: MessageParams;
   timestamp: number;

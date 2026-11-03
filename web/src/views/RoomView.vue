@@ -7,7 +7,6 @@
     :screen-share="screenShare"
     :audio-panel="audioPanel"
     :whisper="whisper"
-    :performance="performance"
     :member-menu="roomMemberMenu"
     :appearance="appearance"
     :do-share="doShare"
@@ -98,11 +97,11 @@ import {
   useChat,
   useGatewayErrorNotices,
   useMemberMenu,
-  useNetworkPerformance,
   useRoomContext,
   useRoomShell,
   useScreenShareErrorNotice,
   useWhisper,
+  type ChatTab,
 } from "@/features/room";
 import PasswordDialog from "@/shared/components/PasswordDialog.vue";
 import { useAppearance } from "@/shared/composables/useAppearance";
@@ -145,11 +144,11 @@ const {
 } = session.audio;
 
 const selectedChannelId = ref("");
-const chatTab = ref<"channel" | "server" | "private" | "events">("channel");
+const chatTab = ref<ChatTab>("channel");
 
 const { t } = useI18n();
 const appearance = useAppearance();
-const { nickname, channel } = storeToRefs(useJoinFormStore());
+const { nickname, channel, serverId, serverTarget } = storeToRefs(useJoinFormStore());
 const { doShare } = useShareInvite();
 
 function doDisconnect() {
@@ -202,6 +201,7 @@ const chat = useChat({
   memberMenu,
   isMobileViewport,
   mobileSection,
+  serverKey: () => serverId.value || serverTarget.value,
 });
 const { openPrivateChat } = chat;
 const roomChat = { ...chat, chatTab };
@@ -225,7 +225,6 @@ const {
 const whisper = useWhisper({ roster: session.roster, actions: session.actions });
 const { toggleWhisperTarget } = whisper;
 
-const performance = useNetworkPerformance({ session: session.session });
 useGatewayErrorNotices(voiceState);
 useScreenShareErrorNotice(screenShare.screenShareErrorText);
 </script>

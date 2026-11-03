@@ -111,14 +111,7 @@ export function useScreenSharePeers() {
       screenShareLocalStream = stream;
       screenShareRequestSequence = (screenShareRequestSequence + 1) % 1_000_000;
       screenSharePendingStartId = `screen-start-${screenShareRequestSequence}`;
-      for (const track of stream.getTracks())
-        track.addEventListener(
-          "ended",
-          () => {
-            void stopScreenShare();
-          },
-          { once: true },
-        );
+      for (const track of stream.getTracks()) track.addEventListener("ended", stopScreenShare, { once: true });
       sendScreenShareMessage({ type: "screenShareStart", requestId: screenSharePendingStartId, audio: stream.getAudioTracks().length > 0 });
     } catch (error: unknown) {
       if (startGeneration !== screenShareStartGeneration) return;

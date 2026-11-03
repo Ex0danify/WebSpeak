@@ -40,6 +40,7 @@ export const iconNames = [
   "user",
   "users",
   "message",
+  "message-off",
   "door",
   "waveform",
   "shield",

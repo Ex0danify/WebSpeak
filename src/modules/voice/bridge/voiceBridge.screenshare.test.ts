@@ -337,6 +337,18 @@ describe("ending a share", () => {
     });
   });
 
+  it("is pushed to a session that moves into the channel of a running share, and emptied when it moves away", async () => {
+    const gateway = await gateways.start();
+    const { owner, away } = await room(gateway);
+    const stream = await startShare(owner);
+    const mark = await markOf(away);
+    await ask(away, "switchChannel", { channelId: "1" });
+    expect((await away.socket.waitForMessage("screenShareList", { after: mark })).streams).toEqual([expect.objectContaining(stream)]);
+    const next = await markOf(away);
+    await ask(away, "switchChannel", { channelId: "3" });
+    expect((await away.socket.waitForMessage("screenShareList", { after: next })).streams).toEqual([]);
+  });
+
   it("does not need the viewer: a viewer who disconnects is dropped from the count", async () => {
     const gateway = await gateways.start();
     const { owner, viewer } = await room(gateway);

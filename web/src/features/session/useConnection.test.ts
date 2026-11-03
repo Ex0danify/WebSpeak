@@ -222,6 +222,7 @@ describe("mute sync", () => {
   const connectedMessage = {
     type: "connected" as const,
     tsClientId: 1,
+    serverName: "Lounge",
     members: [],
     serverEventLog: [],
     whisperTargetIds: [],
@@ -241,6 +242,13 @@ describe("mute sync", () => {
     expect(session.webrtcAvailable).toBe(false);
     connection.handlers.connected!({ ...connectedMessage, webrtcAvailable: true });
     expect(session.webrtcAvailable).toBe(true);
+  });
+
+  it("keeps the server name the gateway reported", async () => {
+    const { connection, session } = setup();
+    await connectAndOpen(connection);
+    connection.handlers.connected!(connectedMessage);
+    expect(session.serverName).toBe("Lounge");
   });
 
   it("reports a refusal and leaves the connection up", async () => {

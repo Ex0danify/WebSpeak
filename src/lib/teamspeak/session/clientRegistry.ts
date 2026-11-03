@@ -19,6 +19,8 @@ export interface ClientFields {
   channelCommander: boolean;
   prioritySpeaker: boolean;
   recording: boolean;
+  /** Shares a screen, in any channel. The stream itself is only announced to the sharer's channel. */
+  streaming: boolean;
   talkPower: number;
   /** Granted the right to talk in a moderated channel. The server clears it on a channel change. */
   talker: boolean;
@@ -49,6 +51,7 @@ const CLIENT_FIELDS: FieldSpec<ClientFields> = {
   channelCommander: ["client_is_channel_commander", flag, false],
   prioritySpeaker: ["client_is_priority_speaker", flag, false],
   recording: ["client_is_recording", flag, false],
+  streaming: ["client_is_streaming", flag, false],
   talkPower: ["client_talk_power", parseI32, 0],
   talker: ["client_is_talker", flag, false],
   description: ["client_description", text, ""],

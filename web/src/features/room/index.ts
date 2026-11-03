@@ -1,8 +1,6 @@
 export { useRoomSession } from "@/features/room/useRoomSession";
 export { provideRoomSession, useRoomContext } from "@/features/room/useRoomContext";
-export type { RoomSession } from "@/features/room/roomTypes";
-export { default as NetworkPerformancePanel } from "@/features/room/network/NetworkPerformancePanel.vue";
-export { useNetworkPerformance } from "@/features/room/network/useNetworkPerformance";
+export type { ChatTab, RoomSession } from "@/features/room/roomTypes";
 export { default as RoomWorkspace } from "@/features/room/shell/RoomWorkspace.vue";
 export { useRoomShell } from "@/features/room/shell/useRoomShell";
 export { useGatewayErrorNotices } from "@/features/room/shell/useGatewayErrorNotices";
@@ -28,5 +26,3 @@ export { default as MemberTree } from "@/features/room/members/MemberTree.vue";
 export { default as MemberContextMenu } from "@/features/room/members/MemberContextMenu.vue";
 export { useMemberMenu } from "@/features/room/members/useMemberMenu";
 export { useChannelTree } from "@/features/room/members/useChannelTree";
-export { default as VoiceGrid } from "@/features/room/voiceGrid/VoiceGrid.vue";
-export { default as VoiceHeading } from "@/features/room/voiceGrid/VoiceHeading.vue";

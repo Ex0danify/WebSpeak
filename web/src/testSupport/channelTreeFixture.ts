@@ -2,6 +2,7 @@ import { flushPromises, mount } from "@vue/test-utils";
 import { defineComponent, reactive, ref } from "vue";
 import { vi } from "vitest";
 import type { ChannelInfo, ChannelMember, VoiceState } from "@/features/session";
+import type { ChatTab } from "@/features/room/roomTypes";
 import type { Spacer } from "@/shared/lib/parseSpacer";
 
 export type Exposed = {
@@ -14,7 +15,6 @@ export type Exposed = {
   currentChannelName: string;
   currentChannelDescription: string;
   currentMembers: ChannelMember[];
-  roomMembers: ChannelMember[];
   memberChannels: Array<ChannelInfo & { depth: number; members: ChannelMember[]; spacer?: Spacer }>;
   filteredMemberChannels: Array<ChannelInfo & { depth: number; members: ChannelMember[]; spacer?: Spacer }>;
   selectChannel: (item: ChannelInfo & { depth: number; members: ChannelMember[] }) => void;
@@ -75,7 +75,7 @@ export async function mountUseChannelTree(overrides: Record<string, unknown> = {
     members,
     channel: ref(""),
     selectedChannelId: ref(""),
-    chatTab: ref<"channel" | "server" | "private" | "events">("server"),
+    chatTab: ref<ChatTab>("server"),
     memberMenu: ref<{ member: ChannelMember; x: number; y: number } | null>(null),
     switchChannel: vi.fn(),
     moveClient: vi.fn(async () => undefined),

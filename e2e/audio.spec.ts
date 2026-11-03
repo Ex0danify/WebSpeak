@@ -76,8 +76,8 @@ test.describe("microphone mute", () => {
     await join(page, "aud-mute-keep");
     await expect(await micButton(page, "off")).toBeVisible();
     await expectUplinkStops(session);
-    // The old client is gone (one client shows twice: on its row and on its voice card) and the new one carries the flag.
-    await expect(other.page.getByText("aud-mute-keep", { exact: true })).toHaveCount(2);
+    // The old client is gone and the new one carries the flag.
+    await expect(memberRow(other.page, "aud-mute-keep")).toHaveCount(1);
     await expect(memberRow(other.page, "aud-mute-keep").getByLabel("Microphone muted")).toHaveCount(1);
   });
 });

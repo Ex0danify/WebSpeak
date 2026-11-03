@@ -18,6 +18,8 @@ export const buttonVariants = cva(
         // `soft` in a status color, for an icon control that reports a state by its color (muted, starting, live). Hover dims the
         // color and adds no background, so it looks the same on any surface.
         softDanger: "border-transparent bg-transparent text-danger hover:text-danger/75",
+        // The off state of that icon control: plain until hovered, then brighter, with no background.
+        softNeutral: "border-transparent bg-transparent text-fg-muted hover:text-fg",
         softWarning: "border-transparent bg-transparent text-warning hover:text-warning/75",
         softSuccess: "border-transparent bg-transparent text-success hover:text-success/75",
         // Icon control that stays plain until it is hovered or focused, then takes the status color. No background or shape

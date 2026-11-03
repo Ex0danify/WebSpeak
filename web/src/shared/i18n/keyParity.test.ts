@@ -162,17 +162,16 @@ const SAME_AS_ENGLISH = new Set<string>([
   "room.memberOnline",
   "room.optimal",
   "room.mobileChat",
-  "room.browser",
-  "room.browserToGateway",
-  "room.gatewayToTeamSpeak",
-  "room.screenShareRtt",
-  "room.teamSpeakServer",
-  "room.webSpeakGateway",
   "common.optional",
   "common.serverPortPlaceholder",
   "common.server",
   "profile.voiceJitter",
   "profile.voiceCodec",
+  "profile.screenShareCodec",
+  "profile.screenShareJitter",
+  "profile.screenShareBitrate",
+  "profile.screenShareStream",
+  "room.themeSystem",
 ]);
 
 const defaultLanguage = LANGUAGES[0]!;

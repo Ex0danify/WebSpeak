@@ -40,6 +40,7 @@ describe("the initial state", () => {
     );
     expect(connected.serverEventLog).toEqual([expect.objectContaining({ kind: "connection", message: "Connected to the server" })]);
     expect(connected).toMatchObject({ whisperTargetIds: [], whisperActive: false, webrtcAvailable: false, accelerated: false });
+    expect(connected.serverName).toBe("Fake Server");
     expect(connected.screenShareIceServers).toEqual(expect.any(Array));
   });
 
@@ -114,7 +115,13 @@ describe("members after the initial state", () => {
     expect(memberNames(list, "Lobby")).toEqual(["alice"]);
     const event = await socket.waitForMessage("serverEvent", { after });
     // message is only a fallback, the browser builds its own sentence from kind and nickname.
-    expect(event.event).toMatchObject({ kind: "joined", message: "bob joined the server", nickname: "bob", params: { nickname: "bob" } });
+    expect(event.event).toMatchObject({
+      kind: "joined",
+      message: "bob joined the server",
+      nickname: "bob",
+      params: { nickname: "bob" },
+      channelId: "2",
+    });
   });
 
   it("announces a member who leaves with `memberLeave`, a fresh `channelList` and a server event", async () => {
@@ -133,6 +140,7 @@ describe("members after the initial state", () => {
       message: "bob left the server",
       nickname: "bob",
       params: { nickname: "bob" },
+      channelId: "2",
     });
   });
 
@@ -151,7 +159,24 @@ describe("members after the initial state", () => {
       kind: "moved",
       message: "bob moved to another channel",
       nickname: "bob",
-      params: { nickname: "bob" },
+      params: { nickname: "bob", channelName: "Room B" },
+      channelId: "3",
+      fromChannelId: "2",
+      channelName: "Room B",
+    });
+  });
+
+  it("logs your own move with the channel you moved to", async () => {
+    const gateway = await gateways.start();
+    const { socket, id } = await joinVoice(gateway, { nickname: "alice" });
+    const after = socket.mark();
+    gateway.ts.moveMember(id, 3n);
+    expect((await socket.waitForMessage("serverEvent", { after })).event).toMatchObject({
+      kind: "selfMoved",
+      message: "You moved to Room B",
+      channelId: "3",
+      channelName: "Room B",
+      params: { channelName: "Room B" },
     });
   });
 

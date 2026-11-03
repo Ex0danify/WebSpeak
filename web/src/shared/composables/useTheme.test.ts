@@ -37,6 +37,7 @@ async function mountUseTheme() {
     themeIcon: string;
     themeLabel: string;
     cycleTheme: () => void;
+    selectTheme: (mode: "system" | "light" | "dark") => void;
     setThemeMode: (mode: "system" | "light" | "dark") => void;
   };
   return { wrapper, vm: wrapper.vm as unknown as Exposed };
@@ -100,6 +101,18 @@ describe("cycleTheme", () => {
     os.dark = false;
     vm.cycleTheme();
     expect(vm.themeMode).toBe("dark");
+  });
+});
+
+describe("selectTheme", () => {
+  it("takes the chosen mode, persists it and applies it", async () => {
+    const { vm } = await mountUseTheme();
+    vm.selectTheme("dark");
+    expect(vm.themeMode).toBe("dark");
+    expect(localStorage.getItem(KEY)).toBe("dark");
+    expect(document.documentElement.dataset.theme).toBe("dark");
+    vm.selectTheme("system");
+    expect(localStorage.getItem(KEY)).toBe("system");
   });
 });
 

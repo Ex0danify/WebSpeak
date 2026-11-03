@@ -1,5 +1,5 @@
 <template>
-  <Dialog v-model="open" size="sm" :title="t('profileMenu')" :close-label="t('close')" :class="anchorTop">
+  <Dialog v-model="open" size="wide" :title="t('profileMenu')" :close-label="t('close')" :class="anchorTop">
     <!-- Stays in view while a tab scrolls. The negative margin pulls it over the body's top padding, so it covers it. -->
     <header v-if="member" class="sticky top-0 z-10 -mt-3 flex flex-col items-center gap-3 bg-surface-1 pb-4 text-center">
       <Avatar :name="member.nickname" :src="member.avatar || undefined" size="xl" surface="surface-1" tint self />
@@ -91,7 +91,22 @@
         <Banner v-if="exported" variant="warning">{{ t("identityExportWarning") }}</Banner>
         <Banner v-if="failed" variant="danger">{{ t("identityRequestFailed") }}</Banner>
       </TabPanel>
-      <TabPanel value="connection" :class="panelClass"><ConnectionStats :stats="connectionStats" /></TabPanel>
+      <TabPanel value="connection" :class="panelClass">
+        <div class="grid grid-cols-2 gap-x-6 max-compact:grid-cols-1 max-compact:gap-y-4">
+          <ConnectionStats :stats="connectionStats" />
+          <!-- The column takes the height of the connection one and scrolls inside it, so a stream per viewer never makes the dialog taller. -->
+          <div class="relative min-w-0 border-l border-line max-compact:border-t max-compact:border-l-0 max-compact:pt-4">
+            <div
+              tabindex="0"
+              role="region"
+              :aria-label="t('screenShareStatsLabel')"
+              class="absolute inset-0 overflow-y-auto pl-6 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent max-compact:static max-compact:pl-0"
+            >
+              <ScreenShareStats :stats="screenShareStats" />
+            </div>
+          </div>
+        </div>
+      </TabPanel>
       <TabPanel value="permissions" :class="panelClass"><PermissionList :permissions="permissions" /></TabPanel>
     </Tabs>
   </Dialog>
@@ -104,6 +119,7 @@ import { Banner } from "@/shared/ui/banner";
 import { Button } from "@/shared/ui/button";
 import { Chip } from "@/shared/ui/chip";
 import ConnectionStats from "@/features/room/profile/ConnectionStats.vue";
+import ScreenShareStats from "@/features/room/profile/ScreenShareStats.vue";
 import { Dialog } from "@/shared/ui/dialog";
 import { Field } from "@/shared/ui/field";
 import { Icon } from "@/shared/ui/icon";
@@ -119,6 +135,7 @@ import { useI18n } from "@/shared/i18n/useI18n.js";
 import { downloadIdentity, useIdentityManager } from "@/features/identity";
 import { useConnectionStats, type UseConnectionStatsOptions } from "@/features/room/profile/useConnectionStats";
 import PermissionList from "@/features/room/profile/PermissionList.vue";
+import type { ScreenShareWebRtcStats } from "@/features/screenShare";
 import { nicknameText, type ChannelMember, type PermissionEntry } from "@/features/session";
 
 const props = defineProps<{
@@ -132,6 +149,8 @@ const props = defineProps<{
   changeNickname: (nickname: string) => Promise<void>;
   /** The room session's connection part, sampled while the Connection tab is showing. */
   connection: UseConnectionStatsOptions["session"];
+  /** Live stats of the screen share streams, empty while none runs. */
+  screenShareStats: ScreenShareWebRtcStats;
   /** Our permissions on this server, as the server reported them. */
   permissions: PermissionEntry[];
 }>();

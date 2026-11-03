@@ -1,4 +1,4 @@
-import { toast } from "@/shared/composables/useToast.js";
+import { toast, type ToastAction } from "@/shared/composables/useToast.js";
 import { useDialog, type AlertOptions } from "@/shared/composables/useDialog.js";
 import { LocalizedError, resolveText, text, type MaybeLocalizedText } from "@/shared/i18n/localizedText.js";
 import { useI18n } from "@/shared/i18n/useI18n.js";
@@ -29,6 +29,8 @@ export interface EventOptions {
   reason?: string;
   /** What it means for the user, shown after the reason. */
   hint?: string;
+  /** One button on the toast, for a toast that has somewhere to take the user. */
+  action?: ToastAction;
   /** A technical detail on its own line under the reason. Defaults to the permission a refused `error` lacked. */
   note?: string;
 }
@@ -50,6 +52,7 @@ export function notifyEvent(title: string, options: EventOptions): void {
     title,
     ...(description ? { description } : {}),
     ...(note ? { note } : {}),
+    ...(options.action ? { action: options.action } : {}),
     variant: options.variant,
     duration: EVENT_TOAST_MS,
   });

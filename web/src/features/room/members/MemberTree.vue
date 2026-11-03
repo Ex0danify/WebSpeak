@@ -45,6 +45,9 @@
                   :talk-blocked="member.isSelf && !canSpeak"
                   :muted-locally="Boolean(mutedMembers[member.id])"
                   :is-mobile-viewport="isMobileViewport"
+                  :stream="streamForMember(member)"
+                  :watching="viewingStreamId !== '' && streamForMember(member)?.streamId === viewingStreamId"
+                  :indicator-bars="indicatorBars"
                   :class="{ dragging: draggedMemberId === member.id }"
                   :draggable="!member.isSelf"
                   @dragstart="$emit('member-drag-start', member, $event)"
@@ -55,6 +58,7 @@
                   @pointercancel="$emit('member-pointer-cancel', $event)"
                   @contextmenu.prevent="$emit('open-member-menu', member, $event)"
                   @open-actions="$emit('open-member-actions', member)"
+                  @toggle-screen-share="$emit('toggle-screen-share', member)"
                 />
               </div>
               <span v-else class="sr-only">{{ t("noMembersInChannel") }}</span>
@@ -77,6 +81,7 @@ import { useI18n } from "@/shared/i18n/useI18n.js";
 import { isSpeaking } from "@/features/session";
 import type { TreeChannel } from "@/features/room/roomTypes.js";
 import type { ChannelMember } from "@/features/session";
+import type { ScreenShareStream } from "@/features/screenShare";
 
 const props = defineProps<{
   channels: TreeChannel[];
@@ -87,9 +92,13 @@ const props = defineProps<{
   canSpeak: boolean;
   mutedMembers: Record<number, boolean>;
   isMobileViewport: boolean;
+  streamForMember: (member: ChannelMember) => ScreenShareStream | null;
+  viewingStreamId: string;
+  indicatorBars: number[];
 }>();
 
 defineEmits<{
+  (e: "toggle-screen-share", member: ChannelMember): void;
   (e: "select-channel", channel: TreeChannel): void;
   (e: "channel-drag-over", channel: TreeChannel, event: DragEvent): void;
   (e: "channel-drag-leave", channel: TreeChannel, event: DragEvent): void;

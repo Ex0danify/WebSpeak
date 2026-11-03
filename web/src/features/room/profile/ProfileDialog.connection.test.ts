@@ -26,6 +26,7 @@ async function open(connection = fakeConnection(), permissions: PermissionEntry[
       requestIdentity: () => Promise.resolve(""),
       changeNickname: () => Promise.resolve(),
       connection: connection as never,
+      screenShareStats: { updatedAt: null, capture: null, peers: [] },
       permissions,
     },
     attachTo: document.body,
@@ -43,6 +44,9 @@ async function selectTab(name: string): Promise<void> {
 }
 
 const dialogText = () => document.body.querySelector('[role="dialog"]')?.textContent ?? "";
+const sectionText = (title: string) =>
+  Array.from(document.body.querySelectorAll("section")).find((section) => section.querySelector("h3")?.textContent === title)
+    ?.textContent ?? "";
 const live = () =>
   Array.from(document.body.querySelectorAll('[aria-live="polite"]'))
     .map((el) => el.textContent)
@@ -106,12 +110,39 @@ describe("ProfileDialog connection", () => {
       }),
     );
     await selectTab("Connection");
-    const text = dialogText();
+    // The screen share column has its own packet loss and codec rows, so only the voice section counts here.
+    const text = sectionText("Voice");
     expect(text).toContain("Jitter (estimated)");
     expect(text).toContain("WebRTC is not available");
     expect(text).not.toContain("Packet loss");
     expect(text).not.toContain("Codec");
     expect(text).toContain("Dropouts");
+    wrapper.unmount();
+  });
+
+  it("shows the screen share column with dashes and an idle label while nothing is shared", async () => {
+    const { wrapper } = await open();
+    await selectTab("Connection");
+    const text = sectionText("Capture");
+    expect(text).toContain("Resolution");
+    expect(text).toContain("—");
+    expect(live()).toContain("Not running");
+    wrapper.unmount();
+  });
+
+  it("fills the screen share column and says sharing while a stream is sent", async () => {
+    const { wrapper } = await open();
+    await wrapper.setProps({
+      screenShareStats: {
+        updatedAt: 1,
+        capture: { width: 1920, height: 1080, frameRate: 30 },
+        peers: [{ peerId: "p1", direction: "outbound", connectionState: "connected", candidateType: "host", bitrateKbps: 2500 }],
+      } as never,
+    });
+    await selectTab("Connection");
+    expect(live()).toContain("Sharing");
+    expect(sectionText("Capture")).toMatch(/1920 × 1080 · 30\s*FPS/i);
+    expect(sectionText("Sending to viewer")).toContain("connected · host");
     wrapper.unmount();
   });
 

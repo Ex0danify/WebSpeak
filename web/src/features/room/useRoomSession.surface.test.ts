@@ -65,6 +65,7 @@ const EXPECTED_SURFACE: Record<string, Record<string, string>> = {
     members: "reactive-array",
     pokeNotifications: "reactive-array",
     serverEvents: "reactive-array",
+    serverName: "ref",
     speakingIds: "reactive-set",
     canSpeak: "ref",
     volumes: "reactive-object",
