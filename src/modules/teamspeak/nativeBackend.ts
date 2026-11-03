@@ -2,6 +2,7 @@ import { EventEmitter } from "node:events";
 import { lookup } from "node:dns/promises";
 import { isIP } from "node:net";
 import {
+  isBuiltinIconId,
   resolveAddress,
   TeamSpeakConnection,
   type CommandPriority,
@@ -17,12 +18,14 @@ import { detectTeamSpeakProtocol } from "./teamSpeakAdapter.js";
 import { forwardConnectionEvents } from "./nativeEvents.js";
 import {
   MAX_CLIENT_AVATAR_BYTES,
+  MAX_GROUP_ICON_BYTES,
   type SendOptions,
   type TeamSpeakBackend,
   type TeamSpeakBackendEvents,
   type TeamSpeakBackendOptions,
   type TSClientAvatar,
 } from "./teamSpeakBackend.js";
+import type { TSServerGroup } from "./teamSpeakMessages.js";
 
 const CONNECT_TIMEOUT_MS = 15_000;
 
@@ -149,6 +152,23 @@ export class NativeBackend extends EventEmitter<TeamSpeakBackendEvents> implemen
       priority: "background",
     });
     return avatar && avatar.data.length > 0 ? avatar : null;
+  }
+
+  serverGroups(): TSServerGroup[] {
+    const groups = [...(this.connection?.session.serverGroups.values() ?? [])];
+    return groups
+      .map(({ id, name, type, sortId, iconId }) => ({ id, name, type, sortId, iconId }))
+      .sort((a, b) => a.sortId - b.sortId || a.id - b.id);
+  }
+
+  async loadGroupIcon(iconId: number): Promise<Buffer | null> {
+    if (iconId === 0 || isBuiltinIconId(iconId)) return null;
+    const data = await this.live().downloadIcon(iconId, {
+      maxBytes: MAX_GROUP_ICON_BYTES,
+      host: this.options.serverHost,
+      priority: "background",
+    });
+    return data.length > 0 ? data : null;
   }
 
   async syncDirectory(): Promise<void> {

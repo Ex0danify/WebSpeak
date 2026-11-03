@@ -4,6 +4,7 @@ import { CommandScheduler, type CommandSchedulerOptions, type ScheduledCommandOp
 import { type CommandInput, CommandTracker, type CommandTrackerOptions, type ServerCommand } from "../command/commandTracker.js";
 import { TeamSpeakError, TeamSpeakTransportError } from "../errors/teamSpeakErrors.js";
 import { avatarDownloadPath } from "../fileTransfer/avatarFiles.js";
+import { iconDownloadPath } from "../fileTransfer/iconFiles.js";
 import { readDownload, type TcpConnect } from "../fileTransfer/fileDownload.js";
 import { type DownloadRequest, FileTransferTickets, ftInitDownload } from "../fileTransfer/fileTransferTickets.js";
 import { runHandshake, type HandshakeConnection, type HandshakeOptions } from "../handshake/handshake.js";
@@ -154,6 +155,11 @@ export class TeamSpeakConnection extends EventEmitter<ConnectionEventMap> {
     const cacheKey = client.avatar;
     const data = await this.downloadFile({ channelId: 0n, path: avatarDownloadPath(client.uid) }, options);
     return { cacheKey, data };
+  }
+
+  /** A server group icon by its id, see `SessionGroup.iconId`. Built-in ids (below 1000) have no file. */
+  async downloadIcon(iconId: number, options: DownloadFileOptions): Promise<Buffer> {
+    return this.downloadFile({ channelId: 0n, path: iconDownloadPath(iconId) }, options);
   }
 
   /** Opus frame to our channel. Dropped while not connected, like any lost voice packet. */

@@ -21,6 +21,7 @@ import type {
   TSDirectorySnapshot,
   TSPoke,
   TSRawNotification,
+  TSServerGroup,
   TSVoiceData,
 } from "./teamSpeakMessages.js";
 
@@ -33,6 +34,8 @@ export interface TSClientAvatar {
 // Room for avatars from the native client. The old 120 KiB limit rejected a 134 KiB PNG,
 // so every avatar silently fell back to its initial letter.
 export const MAX_CLIENT_AVATAR_BYTES = 256 * 1024;
+
+export const MAX_GROUP_ICON_BYTES = 128 * 1024;
 
 /** What TSClient re-emits, in the shapes the voice module reads. */
 export interface TeamSpeakBackendEvents {
@@ -48,6 +51,8 @@ export interface TeamSpeakBackendEvents {
   kicked: [WebSpeakError];
   /** Our own permissions changed, see `canSendText`. */
   permissionsChanged: [];
+  /** The server sent its group list, again after an edit. */
+  serverGroupsChanged: [];
   disconnected: [Error | undefined];
 }
 
@@ -96,6 +101,10 @@ export interface TeamSpeakBackend extends EventEmitter<TeamSpeakBackendEvents> {
   send(text: string, options?: SendOptions): Promise<void>;
   sendVoice(data: Buffer, codec: number): void;
   sendWhisper(data: Buffer, clientIds: number[], codec: number): void;
+  /** The server groups, in display order. Empty until the server sent the list. */
+  serverGroups(): TSServerGroup[];
+  /** Null for an icon without file, one that is built in or one the server refuses. */
+  loadGroupIcon(iconId: number): Promise<Buffer | null>;
   /** Null for a client without avatar, or one that is not `expectedUid` (any more). */
   loadAvatar(clientId: number, expectedUid: string): Promise<TSClientAvatar | null>;
   /** After channelsubscribeall: hands the full directory to the listeners. */

@@ -115,6 +115,34 @@ describe("NativeBackend on the loopback server", () => {
     });
   });
 
+  it("lists the server groups in display order and tells when the server sends them again", async () => {
+    const { backend, push } = await connected();
+    expect(backend.serverGroups()).toEqual([]);
+    const seen: unknown[] = [];
+    (backend as EventEmitter).on("serverGroupsChanged", () => seen.push(true));
+    await push(
+      cmd(
+        "notifyservergrouplist",
+        { sgid: 6, name: "Owner", type: 1, iconid: 2242180715, sortid: 2 },
+        { sgid: 3, name: "Server Admin", type: 0, iconid: 300, sortid: 1 },
+        { sgid: 8, name: "Guest", type: 1, iconid: 0, sortid: 2 },
+      ),
+      cmd("notifychannelgrouplist", { cgid: 1, name: "Admin", type: 1, iconid: 100, sortid: 0 }),
+    );
+    expect(backend.serverGroups()).toEqual([
+      { id: 3, name: "Server Admin", type: 0, sortId: 1, iconId: 300 },
+      { id: 6, name: "Owner", type: 1, sortId: 2, iconId: 2242180715 },
+      { id: 8, name: "Guest", type: 1, sortId: 2, iconId: 0 },
+    ]);
+    expect(seen).toHaveLength(1);
+  });
+
+  it("has no icon file to load for no icon and for a built-in one", async () => {
+    const { backend } = await connected();
+    expect(await backend.loadGroupIcon(0)).toBeNull();
+    expect(await backend.loadGroupIcon(300)).toBeNull();
+  });
+
   it("answers commands with plain rows and rejects a refusal with the server error", async () => {
     const { clock, backend } = await connected();
     const version = backend.command("version");

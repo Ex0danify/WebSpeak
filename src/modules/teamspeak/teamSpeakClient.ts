@@ -17,7 +17,7 @@ import {
 import type { TsClientVersion } from "../../config/env.js";
 import type { Logger } from "../../shared/logger.js";
 import { describeTeamSpeakError, normalizeTeamSpeakError } from "../../shared/errors.js";
-import type { TSChatScope } from "./teamSpeakMessages.js";
+import type { TSChatScope, TSServerGroup } from "./teamSpeakMessages.js";
 import { InputMuteSync } from "./inputMuteSync.js";
 import { OutputMuteSync } from "./outputMuteSync.js";
 import { sendStreamCommand } from "./teamSpeakStreamCommand.js";
@@ -62,6 +62,7 @@ const FORWARDED_EVENTS = [
   "clientUpdated",
   "kicked",
   "permissionsChanged",
+  "serverGroupsChanged",
 ] as const satisfies readonly (keyof TeamSpeakBackendEvents)[];
 
 const TEXT_TARGET_MODES = { private: TextMessageTarget.client, channel: TextMessageTarget.channel, server: TextMessageTarget.server };
@@ -186,6 +187,21 @@ export class TSClient extends EventEmitter {
     try {
       const avatar = await backend.loadAvatar(clientId, expectedUid);
       return this.backend === backend ? avatar : null;
+    } catch (error: unknown) {
+      if (this.backend !== backend) return null;
+      throw error;
+    }
+  }
+
+  serverGroups(): TSServerGroup[] {
+    return this.backend?.serverGroups() ?? [];
+  }
+
+  async getGroupIcon(iconId: number): Promise<Buffer | null> {
+    const backend = this.readyBackend();
+    try {
+      const icon = await backend.loadGroupIcon(iconId);
+      return this.backend === backend ? icon : null;
     } catch (error: unknown) {
       if (this.backend !== backend) return null;
       throw error;

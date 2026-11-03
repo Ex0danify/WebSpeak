@@ -19,6 +19,16 @@ export interface TSChatMessage {
   targetId: bigint;
 }
 
+/** A server group as the server lists it. `iconId` 0 means none, below 1000 a built-in icon. */
+export interface TSServerGroup {
+  id: number;
+  name: string;
+  /** 0 template, 1 regular, 2 query. */
+  type: number;
+  sortId: number;
+  iconId: number;
+}
+
 export interface TSClientInfo {
   id: number;
   nickname: string;
