@@ -95,6 +95,7 @@ export const en = {
   yourDevice: "Your device",
   memberOnline: "Online",
   memberStates: "Member states",
+  serverGroups: "Server groups",
   inputMuted: "Microphone muted",
   outputMuted: "Output muted",
   channelCommander: "Channel commander",

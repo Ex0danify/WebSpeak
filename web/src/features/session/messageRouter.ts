@@ -22,7 +22,8 @@ export type MessageHandlers = {
 /** Roster, chat, server event and poke frames. They only write the session store, so they belong to no
  *  audio or transport module. */
 export function createRosterHandlers(deps: { syncKnownMemberVolumes: () => void }): MessageHandlers {
-  const { state, members, channels, chatMessages, serverEvents, pokeNotifications } = useSessionStore();
+  const store = useSessionStore();
+  const { state, members, channels, chatMessages, serverEvents, pokeNotifications } = store;
   const { syncKnownMemberVolumes } = deps;
 
   return {
@@ -44,6 +45,19 @@ export function createRosterHandlers(deps: { syncKnownMemberVolumes: () => void 
         for (const channel of msg.channels) channels.push(channel);
       }
       syncKnownMemberVolumes();
+    },
+    serverGroups: (msg) => {
+      store.serverGroups = Array.isArray(msg.groups)
+        ? msg.groups.flatMap((group) =>
+            Number.isSafeInteger(group?.id) && typeof group.name === "string"
+              ? [{ id: group.id, name: clampText(group.name, MAX_NICKNAME_LENGTH), iconId: Number(group.iconId) || 0 }]
+              : [],
+          )
+        : [];
+    },
+    serverGroupIcon: (msg) => {
+      const icon = readAvatar(msg.icon);
+      if (icon && Number.isSafeInteger(msg.iconId)) store.groupIcons = { ...store.groupIcons, [msg.iconId]: icon };
     },
     memberUpdate: (msg) => {
       const nickname = clampText(String(msg.nickname ?? ""), MAX_NICKNAME_LENGTH);

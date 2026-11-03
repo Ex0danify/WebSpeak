@@ -145,6 +145,7 @@
         :stream-for-member="screenShareStreamForMember"
         :viewing-stream-id="screenShareViewingStreamId"
         :indicator-bars="screenShareIndicatorBars"
+        :groups-for-member="groupsForMember"
         @toggle-screen-share="toggleScreenShareForMember"
         @select-channel="selectChannel"
         @channel-drag-over="onChannelDragOver"
@@ -227,6 +228,7 @@ import ProfileDialog from "@/features/room/profile/ProfileDialog.vue";
 import { useNicknameChange } from "@/features/room/profile/useNicknameChange";
 import MemberPanel from "@/features/room/members/MemberPanel.vue";
 import MemberTree from "@/features/room/members/MemberTree.vue";
+import { useMemberGroups } from "@/features/room/members/useMemberGroups";
 import type { useChannelTree } from "@/features/room/members/useChannelTree";
 import type { useMemberMenu } from "@/features/room/members/useMemberMenu";
 import PokeStack from "@/features/room/whisper/PokeStack.vue";
@@ -265,6 +267,7 @@ const { state: voiceState, roomNotices, reconnectNow, requestIdentity, identityM
 const changeNickname = useNicknameChange({ setNickname });
 const { members, serverEvents, serverName, pokeNotifications, speakingIds, canSpeak, mutedMembers, whisperTargetIds, whisperActive } =
   props.session.roster;
+const groupsForMember = useMemberGroups();
 const { microphoneMuted, outputMuted, toggleOutputMute, accompanimentActive, accompanimentSupported, webrtcActive, webrtcAvailable } =
   props.session.audio;
 const {

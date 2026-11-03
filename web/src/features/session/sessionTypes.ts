@@ -43,6 +43,8 @@ export interface ChannelMember {
   inputMuted?: boolean;
   outputMuted?: boolean;
   channelCommander?: boolean;
+  /** Server group ids, resolved against the list of `serverGroups` frames. */
+  serverGroups?: number[];
   /** Shares a screen, in any channel. */
   streaming?: boolean;
   /** The gateway sends an empty nickname with this flag; the view renders `unnamedMember`. */
@@ -68,8 +70,16 @@ export interface ChannelInfo {
     inputMuted?: boolean;
     outputMuted?: boolean;
     channelCommander?: boolean;
+    serverGroups?: number[];
     streaming?: boolean;
   }[];
+}
+
+/** A server group as the server lists it, in display order. `iconId` 0 means no icon. */
+export interface ServerGroup {
+  id: number;
+  name: string;
+  iconId: number;
 }
 
 /** One of our own permissions as the server reported it, by its TeamSpeak name. */
@@ -180,6 +190,8 @@ export type ServerMessage =
   | { type: "memberAvatar"; id: number; uid?: string; avatar?: string }
   | { type: "memberUpdate"; id: number; uid?: string; nickname: string; unnamed?: boolean }
   | { type: "channelList"; channels: ChannelInfo[] }
+  | { type: "serverGroups"; groups: ServerGroup[] }
+  | { type: "serverGroupIcon"; iconId: number; icon: string }
   | {
       type: "chatMessage";
       scope: ChatMessage["scope"];

@@ -66,6 +66,24 @@ describe("MemberRow away state", () => {
   });
 });
 
+describe("MemberRow server groups", () => {
+  it("shows the icons of the member's groups, named for screen readers", () => {
+    const wrapper = mount(MemberRow, {
+      props: {
+        member,
+        speaking: false,
+        isMobileViewport: false,
+        serverGroups: [{ id: 6, name: "Owner", src: "data:image/png;base64,AAAA" }],
+      },
+    });
+    expect(wrapper.find('[role="img"][aria-label="Owner"]').exists()).toBe(true);
+  });
+
+  it("has no group container without icons", () => {
+    expect(mountRow().find('[aria-label="Server groups"]').exists()).toBe(false);
+  });
+});
+
 describe("MemberRow screen share", () => {
   const stream: ScreenShareStream = {
     streamId: "s1",

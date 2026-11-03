@@ -95,6 +95,7 @@ export const de: Record<string, string> = {
   yourDevice: "Dein Gerät",
   memberOnline: "Online",
   memberStates: "Mitgliederstatus",
+  serverGroups: "Servergruppen",
   inputMuted: "Mikrofon deaktiviert",
   outputMuted: "Lautsprecher deaktiviert",
   channelCommander: "Kanaladministrator",

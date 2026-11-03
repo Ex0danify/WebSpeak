@@ -13,6 +13,7 @@ export type {
   RoomNotice,
   ServerEvent,
   ServerEventKind,
+  ServerGroup,
   VoiceState,
 } from "@/features/session/sessionTypes";
 export {
