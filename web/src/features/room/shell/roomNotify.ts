@@ -31,13 +31,31 @@ export interface EventOptions {
   hint?: string;
   /** One button on the toast, for a toast that has somewhere to take the user. */
   action?: ToastAction;
+  /** A technical detail on its own line under the reason. Defaults to the permission a refused `error` lacked. */
+  note?: string;
 }
 
-/** A toast that names what happened, followed by the reason and an optional hint. */
+/** The permission a refusal lacked when the gateway named it, read from a thrown error or from its sentence. */
+export function failedPermission(source: unknown): string {
+  const sentence = source instanceof LocalizedError ? source.text : source;
+  const params = typeof sentence === "object" && sentence !== null && "params" in sentence ? sentence.params : undefined;
+  const permission = typeof params === "object" && params !== null && "permission" in params ? params.permission : undefined;
+  return typeof permission === "string" ? permission : "";
+}
+
+/** A toast that names what happened, followed by the reason, an optional hint and the failed permission. */
 export function notifyEvent(title: string, options: EventOptions): void {
   const reason = options.reason ?? failureReason(options.error);
   const description = [reason, options.hint].filter(Boolean).join(" ");
-  toast({ title, ...(description ? { description } : {}), variant: options.variant, duration: EVENT_TOAST_MS, ...(options.action ? { action: options.action } : {}) });
+  const note = options.note ?? failedPermission(options.error);
+  toast({
+    title,
+    ...(description ? { description } : {}),
+    ...(note ? { note } : {}),
+    ...(options.action ? { action: options.action } : {}),
+    variant: options.variant,
+    duration: EVENT_TOAST_MS,
+  });
 }
 
 export interface StateOptions {

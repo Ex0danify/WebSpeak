@@ -14,7 +14,10 @@ const AUTO_SCROLL_MS = 600;
 export interface UseChatOptions {
   session: Pick<RoomSession["session"], "state">;
   roster: Pick<RoomSession["roster"], "members" | "serverEvents">;
-  chat: Pick<RoomSession["chat"], "chatMessages" | "sendTextMessage" | "sendServerMessage" | "sendPrivateMessage">;
+  chat: Pick<
+    RoomSession["chat"],
+    "chatMessages" | "sendTextMessage" | "sendServerMessage" | "sendPrivateMessage" | "canWriteChannel" | "canWriteServer"
+  >;
   /** Owned by useChannelTree. */
   currentChannel: Ref<TreeChannel | undefined>;
   currentChannelName: Ref<string>;
@@ -37,7 +40,7 @@ export function useChat(options: UseChatOptions) {
   const { currentChannel, currentChannelName, selectedChannelId, chatTab, memberMenu, isMobileViewport, mobileSection } = options;
   const { state: voiceState } = options.session;
   const { members, serverEvents } = options.roster;
-  const { chatMessages, sendTextMessage, sendServerMessage, sendPrivateMessage } = options.chat;
+  const { chatMessages, sendTextMessage, sendServerMessage, sendPrivateMessage, canWriteChannel, canWriteServer } = options.chat;
   const { language, t } = useI18n();
 
   const messageDraft = ref("");
@@ -159,6 +162,13 @@ export function useChat(options: UseChatOptions) {
     atBottom.value = nearBottom;
   }
 
+  /** Why the composer is off, "" while writing is possible. Private chats are left to the server, it answers a refusal. */
+  const writeBlockedHint = computed(() => {
+    if (chatTab.value === "channel" && !canWriteChannel.value) return t("noChannelWritePermission");
+    if (chatTab.value === "server" && !canWriteServer.value) return t("noServerWritePermission");
+    return "";
+  });
+
   function scrollChatToEnd() {
     const list = chatListEl.value;
     if (!list) return;
@@ -190,7 +200,7 @@ export function useChat(options: UseChatOptions) {
   watch([chatTab, privateConversationId], () => nextTick(scrollChatToEnd));
 
   function submitMessage() {
-    if (!messageDraft.value.trim()) return;
+    if (!messageDraft.value.trim() || writeBlockedHint.value) return;
     if (chatTab.value === "channel") sendTextMessage(messageDraft.value, currentChannel.value?.id ?? selectedChannelId.value);
     else if (chatTab.value === "server") sendServerMessage(messageDraft.value);
     else if (chatTab.value === "private") {
@@ -331,6 +341,7 @@ export function useChat(options: UseChatOptions) {
     unreadTabs,
     chatTitle,
     chatPlaceholder,
+    writeBlockedHint,
     formatTime,
     submitMessage,
     openPrivateChat,

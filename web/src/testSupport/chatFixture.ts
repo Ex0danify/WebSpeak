@@ -67,6 +67,8 @@ export async function mountUseChat(overrides: Record<string, unknown> = {}) {
     memberMenu: ref<{ member: ChannelMember; x: number; y: number } | null>(null),
     isMobileViewport: ref(false),
     mobileSection: ref<"channels" | "chat" | "voice" | "more">("channels"),
+    canWriteChannel: ref(true),
+    canWriteServer: ref(true),
     sendTextMessage: vi.fn(),
     sendServerMessage: vi.fn(),
     sendPrivateMessage: vi.fn(),

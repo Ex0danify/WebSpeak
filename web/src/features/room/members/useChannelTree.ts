@@ -1,7 +1,7 @@
 import { computed, onScopeDispose, reactive, ref, watch, type Ref } from "vue";
 import { useI18n } from "@/shared/i18n/useI18n.js";
 import { resolveText } from "@/shared/i18n/localizedText.js";
-import { notifyEvent } from "@/features/room/shell/roomNotify";
+import { failedPermission, notifyEvent } from "@/features/room/shell/roomNotify";
 import { toast as raiseToast } from "@/shared/composables/useToast.js";
 import { useAway } from "@/features/room/members/useAway.js";
 import { channelNameText, type ChannelMember } from "@/features/session";
@@ -161,6 +161,7 @@ export function useChannelTree(options: UseChannelTreeOptions) {
         // The refusal (no permission, channel full, ...) is otherwise only kept in the session state, which nothing shows here.
         notifyEvent(t("failChannelSwitch"), {
           reason: code === "OPERATION_FAILED" ? "" : resolveText(voiceState.error),
+          note: failedPermission(voiceState.error),
           variant: "danger",
         });
         clearError();

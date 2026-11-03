@@ -215,6 +215,67 @@ test.describe("server chat", () => {
   });
 });
 
+test.describe("chat permissions", () => {
+  const fakeClient = (gateway: Gateway, nickname: string) => gateway.ts.created.find((client) => client.options.nickname === nickname)!;
+
+  test("a chat the server does not let you write to is disabled and says why, the others stay open", async ({ page, gateway }) => {
+    await join(page, "perm-self");
+    await openChat(page);
+    const client = fakeClient(gateway, "perm-self");
+    client.textAllowed.server = false;
+    client.emit("permissionsChanged");
+
+    await chatTab(page, "Server").click();
+    const blocked = page.getByRole("textbox", { name: "No permission to write to the server" });
+    await expect(blocked).toBeDisabled();
+    await expect(blocked).toHaveAttribute("placeholder", "No permission to write to the server");
+    await expect(sendButton(page)).toBeDisabled();
+
+    await chatTab(page, "Lobby").click();
+    await expect(composer(page)).toBeEnabled();
+    await expect(composer(page)).toHaveAttribute("placeholder", /Message/);
+
+    client.textAllowed.server = true;
+    client.emit("permissionsChanged");
+    await chatTab(page, "Server").click();
+    await expect(composer(page)).toBeEnabled();
+  });
+
+  test("a refused message says it lacked the permission, not that it was not delivered", async ({ page, gateway }) => {
+    await join(page, "perm-refused");
+    await openChat(page);
+    const client = fakeClient(gateway, "perm-refused");
+    client.sendTextMessage = () => Promise.reject(new Error("insufficient client permissions (id=2568)"));
+    await composer(page).fill("anyone there");
+    await sendButton(page).click();
+    await expect(page.getByText("No permission to write here")).toBeVisible();
+    await expect(page.getByText("Not delivered")).toBeHidden();
+  });
+
+  test("the profile lists the permissions the server reports and follows a change", async ({ page, gateway, isMobile }) => {
+    await join(page, "perm-profile");
+    if (isMobile) await page.getByRole("tab", { name: "Voice" }).click();
+    const client = fakeClient(gateway, "perm-profile");
+    client.permissionEntries = [
+      { name: "b_client_channel_textmessage_send", value: 1 },
+      { name: "b_client_server_textmessage_send", value: 0 },
+    ];
+    client.emit("permissionsChanged");
+
+    await page.getByRole("button", { name: /^Your profile/ }).click();
+    await page.getByRole("tab", { name: "Permissions" }).click();
+    const row = (name: string) => page.getByRole("listitem").filter({ hasText: name });
+    await expect(row("b_client_channel_textmessage_send")).toContainText("Granted");
+    await expect(row("b_client_server_textmessage_send")).toContainText("Not granted");
+
+    client.permissionEntries = [{ name: "b_client_server_textmessage_send", value: 1 }];
+    client.emit("permissionsChanged");
+    await expect(row("b_client_server_textmessage_send")).toContainText("Granted");
+    await page.getByRole("searchbox", { name: "Search permissions" }).fill("channel");
+    await expect(page.getByText("No permission matches.")).toBeVisible();
+  });
+});
+
 test.describe("private chat", () => {
   test("the member menu opens a private chat, and what you send goes to that person only", async ({ page, gateway, script, isMobile }) => {
     const other = script.member("pm-other");

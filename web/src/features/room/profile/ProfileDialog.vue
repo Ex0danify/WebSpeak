@@ -62,6 +62,7 @@
       <TabList :aria-label="t('profileSections')">
         <Tab value="identity">{{ t("identityTab") }}</Tab>
         <Tab value="connection">{{ t("connectionTab") }}</Tab>
+        <Tab value="permissions">{{ t("permissionsTab") }}</Tab>
       </TabList>
       <!-- A shared minimum height keeps the jump between tabs small. -->
       <TabPanel value="identity" :class="`${panelClass} flex flex-col gap-4`">
@@ -106,6 +107,7 @@
           </div>
         </div>
       </TabPanel>
+      <TabPanel value="permissions" :class="panelClass"><PermissionList :permissions="permissions" /></TabPanel>
     </Tabs>
   </Dialog>
 </template>
@@ -132,8 +134,9 @@ import { createSaveStatus } from "@/shared/lib/saveStatus";
 import { useI18n } from "@/shared/i18n/useI18n.js";
 import { downloadIdentity, useIdentityManager } from "@/features/identity";
 import { useConnectionStats, type UseConnectionStatsOptions } from "@/features/room/profile/useConnectionStats";
+import PermissionList from "@/features/room/profile/PermissionList.vue";
 import type { ScreenShareWebRtcStats } from "@/features/screenShare";
-import { nicknameText, type ChannelMember } from "@/features/session";
+import { nicknameText, type ChannelMember, type PermissionEntry } from "@/features/session";
 
 const props = defineProps<{
   /** The local user. */
@@ -148,6 +151,8 @@ const props = defineProps<{
   connection: UseConnectionStatsOptions["session"];
   /** Live stats of the screen share streams, empty while none runs. */
   screenShareStats: ScreenShareWebRtcStats;
+  /** Our permissions on this server, as the server reported them. */
+  permissions: PermissionEntry[];
 }>();
 const open = defineModel<boolean>({ required: true });
 // Kept by the room, so a temporary identity saved earlier still shows as saved after the dialog was closed.

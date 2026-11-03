@@ -10,7 +10,7 @@ function forward() {
   const source = Object.assign(new EventEmitter<ConnectionEventMap>(), { session: { snapshot: () => SNAPSHOT } as unknown as SessionView });
   const target = new EventEmitter<TeamSpeakBackendEvents>();
   const seen: [string, unknown][] = [];
-  const types = ["directorySnapshot", "clientLeave", "kicked", "disconnected"] as const;
+  const types = ["directorySnapshot", "clientLeave", "kicked", "disconnected", "permissionsChanged"] as const;
   for (const type of types) target.on(type, (payload: unknown) => seen.push([type, payload]));
   forwardConnectionEvents(source, target);
   return { source, seen };
@@ -52,6 +52,12 @@ describe("forwardConnectionEvents", () => {
       ["kicked", "kicked"],
       ["kicked", "banned"],
     ]);
+  });
+
+  it("tells that our permissions changed, without a snapshot", () => {
+    const { source, seen } = forward();
+    source.emit("permissionsUpdated", { type: "permissionsUpdated" });
+    expect(seen).toEqual([["permissionsChanged", undefined]]);
   });
 
   it("passes the transport error of a lost connection on", () => {

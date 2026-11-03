@@ -4,6 +4,7 @@ import { ChannelTree, type SessionChannel } from "./channelTree.js";
 import { ClientRegistry, type SessionClient } from "./clientRegistry.js";
 import { directoryChannel, directoryClient, type DirectorySnapshot } from "./directorySnapshot.js";
 import { applyNotification, type SessionParts } from "./notificationApply.js";
+import { PermissionTable, TextPermission, type PermissionEntry } from "./permissions.js";
 import { readServer, type SessionGroup, type SessionServer } from "./serverInfo.js";
 import type { SessionEvent } from "./sessionEvents.js";
 
@@ -15,12 +16,20 @@ export interface SessionSelf {
   client: SessionClient | undefined;
   /** Whether our voice is let through in this channel. True while we do not know better, the server decides in the end. */
   canTalk: boolean;
+  /** Whether the server lets us write to our channel. True while we do not know better, the server decides in the end. */
+  canSendChannelText: boolean;
+  /** Whether the server lets us write to the whole server, true while we do not know better. */
+  canSendServerText: boolean;
 }
 
 /** What the server told us so far, read only. */
 export interface SessionView {
   readonly welcomeComplete: boolean;
   readonly self: SessionSelf;
+  /** Our own permissions the server reported so far, see `PermissionTable`. */
+  readonly permissions: PermissionEntry[];
+  /** The name of a permission id, as the server's refusals give only the id. */
+  permissionName(id: number): string | undefined;
   readonly server: SessionServer;
   readonly serverGroups: ReadonlyMap<number, SessionGroup>;
   readonly channelGroups: ReadonlyMap<number, SessionGroup>;
@@ -44,6 +53,7 @@ export class SessionState implements SessionView {
     selfId: 0,
     channels: new ChannelTree(),
     clients: new ClientRegistry(),
+    permissions: new PermissionTable(),
     server: readServer({}, undefined).server,
     serverGroups: new Map(),
     channelGroups: new Map(),
@@ -61,7 +71,23 @@ export class SessionState implements SessionView {
     const client = this.#parts.clients.get(this.#parts.selfId);
     const channel = client && this.#parts.channels.get(client.channelId);
     const canTalk = !client || !channel || client.talker || client.talkPower >= channel.neededTalkPower;
-    return { clientId: this.#parts.selfId, channelId: client?.channelId ?? 0n, client, canTalk };
+    const { permissions } = this.#parts;
+    return {
+      clientId: this.#parts.selfId,
+      channelId: client?.channelId ?? 0n,
+      client,
+      canTalk,
+      canSendChannelText: permissions.granted(TextPermission.channel) ?? true,
+      canSendServerText: permissions.granted(TextPermission.server) ?? true,
+    };
+  }
+
+  get permissions(): PermissionEntry[] {
+    return this.#parts.permissions.entries();
+  }
+
+  permissionName(id: number): string | undefined {
+    return this.#parts.permissions.nameOf(id);
   }
 
   get server(): SessionServer {
@@ -106,6 +132,11 @@ export class SessionState implements SessionView {
     this.#started = true;
     this.#parts.selfId = clientId;
     this.#parts.server = readServer(initServer, undefined).server;
+  }
+
+  /** The rows a `permissionlist` answered with, for a server that answers instead of notifying. */
+  applyPermissionList(rows: readonly CommandRow[]): SessionEvent[] {
+    return this.#parts.permissions.setNames(rows) ? [{ type: "permissionsUpdated" }] : [];
   }
 
   /** A command from the server that is not an answer. Returns the events to emit, in order. */

@@ -15,6 +15,7 @@ import type { SessionTeardownReason } from "./voiceSessionManager.js";
 import type { VoiceConnection, WebClientEntry } from "../voiceTypes.js";
 import { refreshDirectory, scheduleMemberAvatarRefresh } from "../directory/voiceDirectory.js";
 import { publicFailureDetail } from "./voiceFailures.js";
+import { syncPermissions } from "../selfActivity.js";
 
 export interface VoiceConnectionDeps {
   teardown(entryId: string, reason: SessionTeardownReason): Promise<void>;
@@ -280,12 +281,15 @@ export function sendInitialState(ctx: VoiceConnection, hooks: VoiceConnectionDep
     whisperTargetIds: [...ctx.entry.whisperTargetIds],
     whisperActive: ctx.entry.whisperActive,
     canSpeak: ctx.entry.canSpeak,
+    canWriteChannel: ctx.entry.canWriteChannel,
+    canWriteServer: ctx.entry.canWriteServer,
     webrtcAvailable: hooks.getWebRtcOptions()?.enabled === true,
     screenShareIceServers: hooks.getScreenShareIceServers(),
     accelerated: Boolean(ctx.entry.acceleration),
     ...(ctx.entry.rememberIdentity ? { identity: ctx.tsClient.getIdentityString() } : {}),
   });
   ctx.sendJson({ type: "channelList", channels: ctx.entry.channelTree });
+  syncPermissions(ctx);
   if (wasReconnecting) ctx.sendJson({ type: "reconnected" });
   scheduleMemberAvatarRefresh(ctx);
 }
@@ -301,6 +305,9 @@ function resetDirectoryForReconnect(ctx: VoiceConnection) {
   ctx.entry.whisperTargetIds.clear();
   ctx.entry.whisperActive = false;
   ctx.entry.canSpeak = true;
+  ctx.entry.canWriteChannel = true;
+  ctx.entry.canWriteServer = true;
+  ctx.entry.permissionsSent = "";
 }
 
 function failReconnect(ctx: VoiceConnection, hooks: VoiceConnectionDeps, normalized: ReturnType<typeof normalizeTeamSpeakError>) {

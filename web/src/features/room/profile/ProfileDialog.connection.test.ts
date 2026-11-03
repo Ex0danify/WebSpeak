@@ -3,7 +3,7 @@ import { flushPromises, mount } from "@vue/test-utils";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { nextTick } from "vue";
 import ProfileDialog from "@/features/room/profile/ProfileDialog.vue";
-import type { ChannelMember } from "@/features/session";
+import type { ChannelMember, PermissionEntry } from "@/features/session";
 import { fakeConnection } from "@/testSupport/connectionFixture";
 
 vi.mock("@/features/identity", async () => {
@@ -17,7 +17,7 @@ afterEach(() => {
   document.body.innerHTML = "";
 });
 
-async function open(connection = fakeConnection()) {
+async function open(connection = fakeConnection(), permissions: PermissionEntry[] = []) {
   const wrapper = mount(ProfileDialog, {
     props: {
       modelValue: true,
@@ -27,6 +27,7 @@ async function open(connection = fakeConnection()) {
       changeNickname: () => Promise.resolve(),
       connection: connection as never,
       screenShareStats: { updatedAt: null, capture: null, peers: [] },
+      permissions,
     },
     attachTo: document.body,
     global: { stubs: { transition: false } },
@@ -149,6 +150,16 @@ describe("ProfileDialog connection", () => {
     const { wrapper } = await open(fakeConnection({ voice: null }));
     await selectTab("Connection");
     expect(dialogText()).toContain("—");
+    wrapper.unmount();
+  });
+});
+
+describe("ProfileDialog permissions", () => {
+  it("lists what the server granted on the Permissions tab", async () => {
+    const { wrapper } = await open(fakeConnection(), [{ name: "b_client_channel_textmessage_send", value: 1 }]);
+    await selectTab("Permissions");
+    expect(dialogText()).toContain("b_client_channel_textmessage_send");
+    expect(dialogText()).toContain("Granted");
     wrapper.unmount();
   });
 });

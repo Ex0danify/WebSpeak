@@ -1,6 +1,14 @@
 import { defineStore } from "pinia";
 import { reactive, ref, shallowRef } from "vue";
-import type { ChannelInfo, ChannelMember, ChatMessage, RoomNotice, ServerEvent, VoiceState } from "@/features/session/sessionTypes";
+import type {
+  ChannelInfo,
+  ChannelMember,
+  ChatMessage,
+  PermissionEntry,
+  RoomNotice,
+  ServerEvent,
+  VoiceState,
+} from "@/features/session/sessionTypes";
 
 export type PokeNotification = {
   id: string;
@@ -44,6 +52,11 @@ export const useSessionStore = defineStore("voiceSession", () => {
   const whisperActive = ref(false);
   /** False while the channel drops our voice (moderated, not enough talk power). Set by the gateway. */
   const canSpeak = ref(true);
+  // Whether TeamSpeak lets us write to the channel and the server. True until it says otherwise, it decides in the end.
+  const canWriteChannel = ref(true);
+  const canWriteServer = ref(true);
+  /** Our own permissions the server reported, by name. Empty until the gateway sends them. */
+  const permissions = ref<PermissionEntry[]>([]);
   /** False when the gateway has WebRTC switched off. Set from the connected message. */
   const webrtcAvailable = ref(true);
   /** The virtual server's own name, "" until the gateway reported it. */
@@ -82,6 +95,9 @@ export const useSessionStore = defineStore("voiceSession", () => {
     whisperTargetIds.clear();
     whisperActive.value = false;
     canSpeak.value = true;
+    canWriteChannel.value = true;
+    canWriteServer.value = true;
+    permissions.value = [];
     webrtcAvailable.value = true;
     serverName.value = "";
   }
@@ -102,6 +118,9 @@ export const useSessionStore = defineStore("voiceSession", () => {
     whisperTargetIds,
     whisperActive,
     canSpeak,
+    canWriteChannel,
+    canWriteServer,
+    permissions,
     webrtcAvailable,
     serverName,
     reset,

@@ -168,6 +168,54 @@ describe("after connect", () => {
     expect(connection.state).toBe("connected");
   });
 
+  it("asks for the permission names once the welcome is done, and reads them from the answer", async () => {
+    const seen: string[] = [];
+    const answer = (command: { name: string | undefined; rows: readonly Record<string, string>[] }) => {
+      if (command.name === undefined) return [];
+      seen.push(command.name);
+      return command.name === "permissionlist"
+        ? [
+            "permname=b_other permdesc=x|permname=b_client_channel_textmessage_send permdesc=y|permname=b_client_server_textmessage_send permdesc=z",
+            `error id=0 msg=ok return_code=${command.rows[0].return_code}`,
+          ]
+        : [];
+    };
+    const { clock, connection, server, events } = setup({ answer });
+    const updates: string[] = [];
+    connection.on("permissionsUpdated", () => updates.push("updated"));
+    await drain(connection.connect(), clock);
+    await run(clock, 500);
+    expect(seen).toContain("permissionlist");
+    expect(updates).toEqual(["updated"]);
+    server.handler.sendCommand(Buffer.from("notifyclientneededpermissions permid=2 permvalue=1"));
+    await run(clock, 100);
+    expect(updates).toHaveLength(2);
+    expect(connection.session.self).toMatchObject({ canSendChannelText: true, canSendServerText: false });
+    expect(events.some((event) => event.type === "notification")).toBe(false);
+  });
+
+  it("reads the permission names from a notification, the way TS6 answers", async () => {
+    const { clock, connection, server } = await connected();
+    server.handler.sendCommand(
+      Buffer.from("notifypermissionlist permname=b_other permdesc=x|permname=b_client_channel_textmessage_send permdesc=y"),
+    );
+    server.handler.sendCommand(Buffer.from("notifyclientneededpermissions permid=2 permvalue=0"));
+    await run(clock, 100);
+    expect(connection.session.self.canSendChannelText).toBe(false);
+  });
+
+  it("keeps the connection when the server refuses the permission list", async () => {
+    const answer = (command: { name: string | undefined; rows: readonly Record<string, string>[] }) =>
+      command.name === "permissionlist"
+        ? [`error id=2568 msg=insufficient\\sclient\\spermissions return_code=${command.rows[0].return_code}`]
+        : [];
+    const { clock, connection } = setup({ answer });
+    await drain(connection.connect(), clock);
+    await run(clock, 500);
+    expect(connection.state).toBe("connected");
+    expect(connection.session.self).toMatchObject({ canSendChannelText: true, canSendServerText: true });
+  });
+
   it("leaves with clientdisconnect and closes after the server confirms", async () => {
     const { clock, connection, server, events } = await connected();
     await drain(Promise.all([connection.disconnect({ reasonMessage: "see you" }), connection.disconnect()]), clock);

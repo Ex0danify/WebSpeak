@@ -193,3 +193,40 @@ describe("whisper targets", () => {
     });
   });
 });
+
+describe("chat permissions", () => {
+  it("allows every chat in the connected message while the server has said nothing", async () => {
+    const gateway = await gateways.start();
+    const session = await alice(gateway);
+    const connected = session.socket.messages.find((message) => message.type === "connected");
+    expect(connected).toMatchObject({ canWriteChannel: true, canWriteServer: true });
+  });
+
+  it("tells the browser when the server takes a write right away and gives it back", async () => {
+    const gateway = await gateways.start();
+    const session = await alice(gateway);
+
+    session.client.textAllowed.server = false;
+    session.client.emit("permissionsChanged");
+    await session.socket.waitForMessage(
+      (message) => message.type === "chatState" && message.canWriteChannel === true && message.canWriteServer === false,
+    );
+
+    session.client.textAllowed.server = true;
+    session.client.emit("permissionsChanged");
+    await session.socket.waitForMessage(
+      (message) => message.type === "chatState" && message.canWriteChannel === true && message.canWriteServer === true,
+    );
+  });
+
+  it("sends the permission list after the welcome and again when it changes", async () => {
+    const gateway = await gateways.start();
+    const session = await alice(gateway);
+    expect(session.socket.messages).toContainEqual({ type: "permissions", entries: [] });
+
+    const entries = [{ name: "b_client_channel_textmessage_send", value: 1 }];
+    session.client.permissionEntries = entries;
+    session.client.emit("permissionsChanged");
+    await session.socket.waitForMessage((message) => message.type === "permissions" && (message.entries as unknown[]).length === 1);
+  });
+});

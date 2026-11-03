@@ -9,6 +9,7 @@ export type {
   ChannelMember,
   ChatMessage,
   LatencyProbeResult,
+  PermissionEntry,
   RoomNotice,
   ServerEvent,
   ServerEventKind,

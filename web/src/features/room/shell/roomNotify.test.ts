@@ -28,6 +28,17 @@ describe("notifyEvent", () => {
     });
   });
 
+  it("puts the permission a refusal lacked in a note of its own, not in the sentence", () => {
+    const error = new LocalizedError(text("err_PERMISSION_DENIED", { permission: "i_channel_join_power" }), "PERMISSION_DENIED");
+    notifyEvent("Could not switch channel", { error, variant: "danger" });
+    expect(last()).toMatchObject({
+      description: "You do not have permission to perform this action",
+      note: "i_channel_join_power",
+    });
+    notifyEvent("Poke failed", { error: new LocalizedError(text("err_PERMISSION_DENIED"), "PERMISSION_DENIED"), variant: "danger" });
+    expect(last()?.note).toBeUndefined();
+  });
+
   it("leaves the generic gateway failure out, it adds nothing to the title", () => {
     notifyEvent("Poke failed", { error: new LocalizedError(text("err_OPERATION_FAILED"), "OPERATION_FAILED"), variant: "danger" });
     expect(last()?.title).toBe("Poke failed");

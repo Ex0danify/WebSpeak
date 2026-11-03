@@ -43,7 +43,7 @@ export interface ConnectionDeps {
  *  teardown through `deps` (late-bound). Reads the session store directly, audio state comes in through `deps`. */
 export function useConnection(deps: ConnectionDeps) {
   const session = useSessionStore();
-  const { ws, whisperActive, canSpeak, webrtcAvailable, serverName } = storeToRefs(session);
+  const { ws, whisperActive, canSpeak, canWriteChannel, canWriteServer, webrtcAvailable, serverName } = storeToRefs(session);
   const { state, members, channels, chatMessages, serverEvents, whisperTargetIds } = session;
   let connectionSequence = 0;
   // Set once connectionFailed has shown the person a message and code for this attempt. The gateway closes the socket right
@@ -290,6 +290,8 @@ export function useConnection(deps: ConnectionDeps) {
       setScreenShareIceServers(msg.screenShareIceServers);
       deps.applyWhisperState(msg.whisperTargetIds, msg.whisperActive);
       canSpeak.value = msg.canSpeak !== false;
+      canWriteChannel.value = msg.canWriteChannel !== false;
+      canWriteServer.value = msg.canWriteServer !== false;
       webrtcAvailable.value = msg.webrtcAvailable === true;
       serverName.value = typeof msg.serverName === "string" ? msg.serverName : "";
       if (Array.isArray(msg.members)) {

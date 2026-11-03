@@ -102,6 +102,7 @@
             :chat-title="chatTitle"
             :chat-placeholder="chatPlaceholder"
             :private-peer-name="privatePeerName"
+            :write-blocked-hint="writeBlockedHint"
             :visible-chat-messages="visibleChatMessages"
             :members="members"
             :format-time="formatTime"
@@ -204,6 +205,7 @@
       :change-nickname="changeNickname"
       :connection="session.session"
       :screen-share-stats="screenShareWebRtcStats"
+      :permissions="session.session.permissions.value"
     />
   </div>
 </template>
@@ -309,6 +311,7 @@ const {
   chatTitle,
   chatPlaceholder,
   privatePeerName,
+  writeBlockedHint,
   formatTime,
   submitMessage,
   openPrivateChat,

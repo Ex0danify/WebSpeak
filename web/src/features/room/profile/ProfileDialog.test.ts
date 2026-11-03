@@ -50,6 +50,7 @@ async function open(
       changeNickname: options.changeNickname ?? (() => Promise.resolve()),
       connection: fakeConnection() as never,
       screenShareStats: { updatedAt: null, capture: null, peers: [] },
+      permissions: [],
     },
     attachTo: document.body,
     global: { stubs: { transition: false } },
