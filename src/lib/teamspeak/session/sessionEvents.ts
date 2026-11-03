@@ -54,6 +54,8 @@ export type SessionEvent =
   | { type: "channelsUnsubscribed"; channels: readonly SessionChannel[]; clients: readonly SessionClient[] }
   | { type: "serverUpdated"; server: SessionServer; changed: readonly (keyof ServerFields)[]; invoker: Invoker | undefined }
   | { type: "groupsUpdated"; kind: "server" | "channel" }
+  /** Our own permissions changed, or their names arrived. */
+  | { type: "permissionsUpdated" }
   /** `targetMode` 1 private, 2 channel, 3 server. */
   | { type: "textMessage"; targetMode: number; targetClientId: number | undefined; message: string; invoker: Invoker }
   | { type: "poked"; message: string; invoker: Invoker }

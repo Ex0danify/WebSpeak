@@ -58,6 +58,11 @@ export function sendTextMessage(mode: TextMessageTargetMode, target: number | bi
   };
 }
 
+/** Names every permission, a permission id is the position of its name in the answer. */
+export function permissionList(): CommandRequest {
+  return { name: "permissionlist", params: [] };
+}
+
 export interface ClientUpdateProperties {
   nickname?: string;
   inputMuted?: boolean;
