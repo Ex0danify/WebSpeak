@@ -45,7 +45,7 @@
         ></Tooltip>
         <slot name="bar-end" />
       </div>
-      <Separator :class="[columnClass, 'mx-auto max-compact:hidden']" />
+      <Separator :class="`${columnClass} mx-auto max-compact:hidden`" />
       <TabPanel :ref="bindListElement" :value="activeTab" class="min-h-0 flex-1 overflow-y-auto overscroll-contain pt-4 max-compact:pt-2.5">
         <div
           role="log"
