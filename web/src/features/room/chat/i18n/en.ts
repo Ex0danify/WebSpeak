@@ -6,6 +6,8 @@ export const en = {
   jumpToLatest: "Jump to latest",
   unreadMessages: "Unread messages",
   closePrivateChat: "Close chat",
+  muteChat: "Mute notifications for this chat",
+  openChat: "Open",
   eventLogUnread: "Event log, {{count}} new",
   serverChat: "Server",
   privateMessagePlaceholder: "Message privately…",

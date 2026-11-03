@@ -148,7 +148,7 @@ const chatTab = ref<ChatTab>("channel");
 
 const { t } = useI18n();
 const appearance = useAppearance();
-const { nickname, channel } = storeToRefs(useJoinFormStore());
+const { nickname, channel, serverId, serverTarget } = storeToRefs(useJoinFormStore());
 const { doShare } = useShareInvite();
 
 function doDisconnect() {
@@ -201,6 +201,7 @@ const chat = useChat({
   memberMenu,
   isMobileViewport,
   mobileSection,
+  serverKey: () => serverId.value || serverTarget.value,
 });
 const { openPrivateChat } = chat;
 const roomChat = { ...chat, chatTab };

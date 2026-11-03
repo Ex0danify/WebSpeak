@@ -21,6 +21,17 @@
             ><UnreadMark :unread="unreadTabs.has(`private-${conversation.id}`)"
           /></Tab>
         </TabList>
+        <Tooltip :text="t('muteChat')"
+          ><Button
+            variant="soft"
+            size="sm"
+            icon-only
+            class="flex-none"
+            :aria-label="t('muteChat')"
+            :aria-pressed="muted"
+            @click="$emit('toggle-mute')"
+            ><Icon :name="muted ? 'bell-off' : 'bell'" :size="16" /></Button
+        ></Tooltip>
         <Tooltip v-if="chatTab === 'private'" :text="t('closePrivateChat')"
           ><Button
             variant="soft"
@@ -169,6 +180,8 @@ const props = defineProps<{
   setListElement: (element: unknown) => void;
   /** Keys of the tabs with messages the reader has not seen. */
   unreadTabs: Set<string>;
+  /** The open chat does not raise toasts for new messages. */
+  muted: boolean;
   /** The list shows its newest message. */
   atBottom: boolean;
 }>();
@@ -178,6 +191,7 @@ const emit = defineEmits<{
   (e: "submit"): void;
   (e: "jump-to-latest"): void;
   (e: "close-private-chat", id: string): void;
+  (e: "toggle-mute"): void;
 }>();
 
 const chatTab = defineModel<ChatTab>("chatTab", { default: "channel" });

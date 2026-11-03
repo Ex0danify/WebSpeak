@@ -6,6 +6,8 @@ export const de: Record<string, string> = {
   jumpToLatest: "Zu den neuesten",
   unreadMessages: "Ungelesene Nachrichten",
   closePrivateChat: "Chat schließen",
+  muteChat: "Benachrichtigungen für diesen Chat stummschalten",
+  openChat: "Öffnen",
   eventLogUnread: "Ereignisprotokoll, {{count}} neu",
   serverChat: "Server",
   privateMessagePlaceholder: "Private Nachricht senden…",

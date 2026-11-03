@@ -108,11 +108,13 @@
             :set-list-element="setChatListElement"
             :notices="channelNotices"
             :unread-tabs="unreadTabs"
+            :muted="activeChatMuted"
             :at-bottom="atBottom"
             @open-private-chat="openPrivateChat"
             @submit="submitMessage"
             @jump-to-latest="scrollChatToEnd"
             @close-private-chat="closePrivateChat"
+            @toggle-mute="toggleActiveChatMute"
           >
             <template v-if="isMobileViewport" #bar-end>
               <EventLogPopover :events="serverEvents" :event-text="eventText" :format-time="formatTime" />
@@ -301,6 +303,8 @@ const {
   visibleChatMessages,
   unreadTabs,
   closePrivateChat,
+  activeChatMuted,
+  toggleActiveChatMute,
   channelNotices,
   chatTitle,
   chatPlaceholder,

@@ -5,6 +5,7 @@ import type { ChatTab, TreeChannel } from "@/features/room/roomTypes.js";
 import type { Notice } from "@/features/room/chat/groupMessages.js";
 import { nicknameText, privateConversationKey, type ChannelMember, type ChatMessage, type ServerEvent } from "@/features/session";
 import type { RoomSession } from "@/features/room/roomTypes.js";
+import { useChatToasts } from "@/features/room/chat/useChatToasts.js";
 
 // Distance from the end that still counts as being at the bottom, and how long a smooth scroll to the end may take.
 const BOTTOM_SLACK_PX = 48;
@@ -26,6 +27,8 @@ export interface UseChatOptions {
   /** Owned by useRoomShell. */
   isMobileViewport: Ref<boolean>;
   mobileSection: Ref<"channels" | "chat" | "voice" | "more">;
+  /** Names the server the mute list belongs to. */
+  serverKey?: () => string;
 }
 
 /** The chat panel, with its channel, server, private and events tabs, the composer, private-conversation derivation, the event
@@ -220,6 +223,32 @@ export function useChat(options: UseChatOptions) {
     chatTab.value = "channel";
   }
 
+  function openTab(tabKey: string): void {
+    if (tabKey.startsWith("private-")) return openPrivateChat(tabKey.slice("private-".length));
+    chatTab.value = tabKey as "channel" | "server";
+    if (isMobileViewport.value) mobileSection.value = "chat";
+  }
+
+  function tabTitle(tabKey: string): string {
+    if (tabKey === "channel") return t("channelChat", { channel: currentChannelName.value });
+    if (tabKey === "server") return t("serverChat");
+    return privateConversations.value.find((conversation) => `private-${conversation.id}` === tabKey)?.name ?? t("privateMessage");
+  }
+
+  const { isMuted, toggleMute } = useChatToasts({
+    chatMessages,
+    tabOfMessage,
+    muteKeyOfTab: (tabKey) => (tabKey === "channel" ? `channel-${currentChannel.value?.id ?? ""}` : tabKey),
+    tabTitle,
+    activeTabKey,
+    chatOnScreen,
+    openTab,
+    openLabel: () => t("openChat"),
+    serverKey: options.serverKey ?? (() => ""),
+  });
+  const activeChatMuted = computed(() => isMuted(activeTabKey.value));
+  const toggleActiveChatMute = () => toggleMute(activeTabKey.value);
+
   // The gateway sends the kind and the names (an empty one with `unnamed`) and the sentence is built here, so the log follows
   // the language. The switch covers every `ServerEventKind`, a new kind fails to compile until it has a sentence here.
   function eventText(event: ServerEvent): string {
@@ -306,6 +335,8 @@ export function useChat(options: UseChatOptions) {
     submitMessage,
     openPrivateChat,
     closePrivateChat,
+    activeChatMuted,
+    toggleActiveChatMute,
     atBottom,
     scrollChatToEnd,
     setChatListElement,
