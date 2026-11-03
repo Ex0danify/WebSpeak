@@ -51,11 +51,18 @@ export async function handleCommand(
         sendJson({ type: "channelSwitched", requestId: command.requestId, channelId: rawId });
         return;
       }
-      const operation = classifyOperationError(error, "CHANNEL_SWITCH_FAILED", "Channel switch failed");
+      const operation = classifyOperationError(error, "CHANNEL_SWITCH_FAILED", "Channel switch failed", (id) =>
+        entry.tsClient.permissionName(id),
+      );
       sendJson({
         type: "error",
         requestId: command.requestId,
-        error: { code: operation.code, message: operation.message, recoverable: false },
+        error: {
+          code: operation.code,
+          message: operation.message,
+          ...(operation.params ? { params: operation.params } : {}),
+          recoverable: false,
+        },
       });
       return;
     }
@@ -176,11 +183,16 @@ export async function handleCommand(
     }
     if (command.requestId) sendJson({ type: "commandCompleted", requestId: command.requestId });
   } catch (error: unknown) {
-    const operation = classifyOperationError(error, "OPERATION_FAILED", "Operation failed");
+    const operation = classifyOperationError(error, "OPERATION_FAILED", "Operation failed", (id) => entry.tsClient.permissionName(id));
     sendJson({
       type: "error",
       requestId: command.requestId,
-      error: { code: operation.code, message: operation.message, recoverable: false },
+      error: {
+        code: operation.code,
+        message: operation.message,
+        ...(operation.params ? { params: operation.params } : {}),
+        recoverable: false,
+      },
     });
   }
 }

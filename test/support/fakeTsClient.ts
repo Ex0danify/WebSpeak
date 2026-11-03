@@ -346,6 +346,7 @@ export class FakeTSClient extends EventEmitter {
   canSendText = (scope: "channel" | "server"): boolean => this.textAllowed[scope];
   permissionEntries: PermissionEntry[] = [];
   permissions = (): PermissionEntry[] => this.permissionEntries;
+  permissionName = (id: number): string | undefined => (id === 143 ? "i_channel_join_power" : undefined);
   async execCommandWithResponse(command: string, _timeoutMs = 3000): Promise<Record<string, string>[]> {
     this.ready();
     await this.server.step("execCommand");

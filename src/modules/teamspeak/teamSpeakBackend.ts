@@ -83,6 +83,8 @@ export interface TeamSpeakBackend extends EventEmitter<TeamSpeakBackendEvents> {
   canSendText(scope: "channel" | "server"): boolean;
   /** Our own permissions the server reported so far. */
   permissions(): PermissionEntry[];
+  /** The name of a permission id, for a refusal that carries only the id. */
+  permissionName(id: number): string | undefined;
   /**
    * Answer rows, rejects with the server's refusal. `background` commands run through the client's
    * scheduler after interactive ones and are retried after a flood refusal (the post-connect burst).

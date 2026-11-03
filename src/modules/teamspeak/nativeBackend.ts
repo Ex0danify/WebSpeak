@@ -113,6 +113,10 @@ export class NativeBackend extends EventEmitter<TeamSpeakBackendEvents> implemen
     return this.connection?.session.permissions ?? [];
   }
 
+  permissionName(id: number): string | undefined {
+    return this.connection?.session.permissionName(id);
+  }
+
   async command(request: CommandRequest | string, timeoutMs = 10_000, priority?: CommandPriority): Promise<Record<string, string>[]> {
     const rows = await this.live().command(request, { timeoutMs, priority });
     return rows.map((row) => ({ ...row }));

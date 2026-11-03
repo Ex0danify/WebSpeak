@@ -28,6 +28,8 @@ export interface SessionView {
   readonly self: SessionSelf;
   /** Our own permissions the server reported so far, see `PermissionTable`. */
   readonly permissions: PermissionEntry[];
+  /** The name of a permission id, as the server's refusals give only the id. */
+  permissionName(id: number): string | undefined;
   readonly server: SessionServer;
   readonly serverGroups: ReadonlyMap<number, SessionGroup>;
   readonly channelGroups: ReadonlyMap<number, SessionGroup>;
@@ -82,6 +84,10 @@ export class SessionState implements SessionView {
 
   get permissions(): PermissionEntry[] {
     return this.#parts.permissions.entries();
+  }
+
+  permissionName(id: number): string | undefined {
+    return this.#parts.permissions.nameOf(id);
   }
 
   get server(): SessionServer {

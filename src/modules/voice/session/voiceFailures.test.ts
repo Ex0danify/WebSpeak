@@ -39,6 +39,22 @@ describe("classifyOperationError", () => {
     expect(classify(new Error(text)).code).toBe(code);
   });
 
+  describe("naming the failed permission", () => {
+    const refused = Object.assign(new Error("insufficient client permissions"), { failedPermissionId: 143 });
+    const names = (id: number) => (id === 143 ? "i_channel_join_power" : undefined);
+    const named = (error: unknown) => classifyOperationError(error, "FALLBACK" as never, "fallback", names);
+
+    it("adds the name to a permission refusal", () => {
+      expect(named(refused).params).toEqual({ permission: "i_channel_join_power" });
+    });
+
+    it("adds nothing when the id is missing or unknown, or the refusal is another kind", () => {
+      expect(named(new Error("insufficient client permissions")).params).toBeUndefined();
+      expect(named(Object.assign(new Error("insufficient client permissions"), { failedPermissionId: 5 })).params).toBeUndefined();
+      expect(named(Object.assign(new Error("channel is full"), { failedPermissionId: 143 })).params).toBeUndefined();
+    });
+  });
+
   it("keeps the text of the matched rule", () => {
     expect(classify(new Error("permission denied"))).toEqual({
       code: "PERMISSION_DENIED",

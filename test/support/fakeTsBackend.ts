@@ -74,6 +74,10 @@ export class FakeBackend extends EventEmitter<TeamSpeakBackendEvents> implements
     return this.permissionEntries;
   }
 
+  permissionName(): string | undefined {
+    return undefined;
+  }
+
   command(request: CommandRequest | string): Promise<Record<string, string>[]> {
     const text = typeof request === "string" ? request : buildCommand(request.name, request.params, request);
     this.commands.push(text);

@@ -103,4 +103,12 @@ describe("text permissions", () => {
     feed(list(...NAMES));
     expect(session.permissions).toEqual([{ name: TextPermission.channel, value: 1 }]);
   });
+
+  it("names a permission by its id, once the names are known", () => {
+    const { session, feed } = welcomed();
+    expect(session.permissionName(CHANNEL)).toBeUndefined();
+    feed(list(...NAMES));
+    expect(session.permissionName(CHANNEL)).toBe(TextPermission.channel);
+    expect(session.permissionName(99)).toBeUndefined();
+  });
 });

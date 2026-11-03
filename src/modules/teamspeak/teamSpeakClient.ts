@@ -325,6 +325,10 @@ export class TSClient extends EventEmitter {
     return this.backend?.permissions() ?? [];
   }
 
+  permissionName(id: number): string | undefined {
+    return this.backend?.permissionName(id);
+  }
+
   isConnected(): boolean {
     return this.connected;
   }

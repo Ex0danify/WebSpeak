@@ -53,6 +53,12 @@ export class PermissionTable {
     return (this.#values.get(id) ?? 0) !== 0;
   }
 
+  /** The name of a permission id, for an error that only carries the id. Undefined while the names are unknown. */
+  nameOf(id: number): string | undefined {
+    for (const [name, known] of this.#ids) if (known === id) return name;
+    return undefined;
+  }
+
   /** Every permission the server reported a value for, in id order. Ids without a known name are left out. */
   entries(): PermissionEntry[] {
     const entries: PermissionEntry[] = [];

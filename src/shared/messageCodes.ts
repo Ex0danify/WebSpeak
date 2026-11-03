@@ -43,7 +43,7 @@ const OPERATION_CODES = {
   CANNOT_MOVE_SELF: {} as NoParams,
   CLIENT_NOT_FOUND: {} as NoParams,
   NO_WHISPER_TARGETS: {} as NoParams,
-  PERMISSION_DENIED: {} as NoParams,
+  PERMISSION_DENIED: {} as { permission?: string },
   NICKNAME_IN_USE: {} as NoParams,
   CHANNEL_PASSWORD_REQUIRED: {} as NoParams,
   CHANNEL_FULL: {} as NoParams,
