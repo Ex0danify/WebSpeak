@@ -252,7 +252,10 @@ const props = defineProps<{
   audioPanel: ReturnType<typeof useAudioSettingsPanel>;
   whisper: ReturnType<typeof useWhisper>;
   memberMenu: Pick<ReturnType<typeof useMemberMenu>, "openMemberMenu" | "openMemberActions">;
-  appearance: Pick<ReturnType<typeof useAppearance>, "themeMode" | "themeIcon" | "themeLabel" | "cycleTheme" | "selectTheme" | "persistLanguage">;
+  appearance: Pick<
+    ReturnType<typeof useAppearance>,
+    "themeMode" | "themeIcon" | "themeLabel" | "cycleTheme" | "selectTheme" | "persistLanguage"
+  >;
   doShare: () => void;
   doDisconnect: () => void;
 }>();

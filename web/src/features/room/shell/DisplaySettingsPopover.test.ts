@@ -45,7 +45,9 @@ describe("DisplaySettingsPopover", () => {
     const trigger = document.body.querySelector<HTMLElement>('[role="combobox"]')!;
     trigger.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, button: 0, pointerType: "mouse" }));
     await nextTick();
-    const option = Array.from(document.body.querySelectorAll<HTMLElement>('[role="option"]')).find((el) => el.textContent?.includes("Deutsch"));
+    const option = Array.from(document.body.querySelectorAll<HTMLElement>('[role="option"]')).find((el) =>
+      el.textContent?.includes("Deutsch"),
+    );
     option?.dispatchEvent(new PointerEvent("pointerup", { bubbles: true, button: 0, pointerType: "mouse" }));
     await nextTick();
     expect(language.value).toBe("de");

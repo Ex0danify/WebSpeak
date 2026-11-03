@@ -9,7 +9,13 @@
       <section :aria-labelledby="themeId">
         <h3 :id="themeId" :class="sectionTitle">{{ t("themeLabel") }}</h3>
         <Segmented v-model="theme" fill :aria-labelledby="themeId">
-          <Segment v-for="option in themeOptions" :key="option.value" :value="option.value" :aria-label="option.label" :title="option.label">
+          <Segment
+            v-for="option in themeOptions"
+            :key="option.value"
+            :value="option.value"
+            :aria-label="option.label"
+            :title="option.label"
+          >
             <Icon :name="option.icon" :size="18" />
           </Segment>
         </Segmented>
@@ -55,11 +61,14 @@ const themeId = useId();
 
 const sectionTitle = "m-0 mb-1.5 text-xs font-semibold tracking-wide text-fg-muted uppercase";
 
-const themeOptions = computed(() => [
-  { value: "system", label: t("themeSystem"), icon: "monitor" },
-  { value: "light", label: t("themeLight"), icon: "sun" },
-  { value: "dark", label: t("themeDark"), icon: "moon" },
-] as const);
+const themeOptions = computed(
+  () =>
+    [
+      { value: "system", label: t("themeSystem"), icon: "monitor" },
+      { value: "light", label: t("themeLight"), icon: "sun" },
+      { value: "dark", label: t("themeDark"), icon: "moon" },
+    ] as const,
+);
 
 const theme = computed({
   get: () => props.themeMode,
