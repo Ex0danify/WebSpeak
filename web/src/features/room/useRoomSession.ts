@@ -111,7 +111,7 @@ export function useRoomSession() {
     setWhisperActive,
     applyWhisperState,
     handlers: roomHandlers,
-  } = useSessionActions({ protocolErrorMessage: (code, fallback) => connection.protocolErrorMessage(code, fallback) });
+  } = useSessionActions({ protocolErrorMessage: (code, fallback, params) => connection.protocolErrorMessage(code, fallback, params) });
   const {
     effectiveOutputVolume,
     applyOutputVolume,

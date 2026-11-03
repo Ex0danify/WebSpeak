@@ -74,6 +74,7 @@ export const en = {
   opErr_FLOOD_PROTECTION: "Too many requests. Try again shortly",
   opErr_BANNED: "You are banned from this server",
   err_PERMISSION_DENIED: "You do not have permission to perform this action",
+  permissionDeniedNamed: "You do not have permission to perform this action ({{permission}})",
   err_CLIENT_NOT_FOUND: "This member is offline",
   err_OPERATION_FAILED: "The operation failed",
   voiceConnectionClosed: "The voice connection was closed",

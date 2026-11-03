@@ -12,7 +12,7 @@ import type { MessageHandlers } from "@/features/session/messageRouter";
  *  poke, away and whisper. Reads the session store directly. The pending maps are returned so the
  *  message router can settle them. */
 export interface RoomActionsDeps {
-  protocolErrorMessage: (code: string, fallback: string) => LocalizedText;
+  protocolErrorMessage: (code: string, fallback: string, params?: Record<string, unknown>) => LocalizedText;
 }
 
 export function useSessionActions(deps: RoomActionsDeps) {
@@ -283,7 +283,7 @@ export function useSessionActions(deps: RoomActionsDeps) {
     },
     error: (msg) => {
       const code = normalizedClientErrorCode(msg.error?.code, "OPERATION_FAILED");
-      const message = deps.protocolErrorMessage(code, String(msg.error?.message || msg.message || ""));
+      const message = deps.protocolErrorMessage(code, String(msg.error?.message || msg.message || ""), msg.error?.params);
       const requestId = typeof msg.requestId === "string" ? msg.requestId : "";
       // Once joined, an error that answers no request is shown by the room and must not look like the answer to a pending
       // channel switch. Before that the join screen reads it from the state.
