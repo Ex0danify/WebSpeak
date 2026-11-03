@@ -15,11 +15,20 @@ export function publicFailureDetail(error: ReturnType<typeof normalizeTeamSpeakE
   return safe || undefined;
 }
 
+/** A refusal for a missing permission names it when the server gave its id and we know the name. */
 export function classifyOperationError(
   error: unknown,
   fallbackCode: MessageCode,
   fallbackMessage: string,
-): { code: MessageCode; message: string } {
+  permissionName?: (id: number) => string | undefined,
+): { code: MessageCode; message: string; params?: MessageParams } {
+  const operation = classifyCode(error, fallbackCode, fallbackMessage);
+  const id = isRecord(error) ? error.failedPermissionId : undefined;
+  const permission = operation.code === "PERMISSION_DENIED" && typeof id === "number" ? permissionName?.(id) : undefined;
+  return permission ? { ...operation, params: { permission } } : operation;
+}
+
+function classifyCode(error: unknown, fallbackCode: MessageCode, fallbackMessage: string): { code: MessageCode; message: string } {
   const text = error instanceof Error ? error.message : String(error);
   const normalized = text.toLowerCase();
   // A server error id is authoritative when the SDK kept it, so it goes before the keyword rules

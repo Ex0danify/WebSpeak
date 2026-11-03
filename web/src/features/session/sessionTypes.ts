@@ -69,6 +69,12 @@ export interface ChannelInfo {
   }[];
 }
 
+/** One of our own permissions as the server reported it, by its TeamSpeak name. */
+export interface PermissionEntry {
+  name: string;
+  value: number;
+}
+
 export interface ChatMessage {
   id: string;
   scope: "channel" | "server" | "private" | "system";
@@ -184,6 +190,7 @@ export type ServerMessage =
   | { type: "whisperTargets"; targetIds: number[]; active: boolean }
   | { type: "talkState"; canSpeak: boolean }
   | { type: "chatState"; canWriteChannel: boolean; canWriteServer: boolean }
+  | { type: "permissions"; entries: PermissionEntry[] }
   | {
       type: "error";
       requestId?: string;

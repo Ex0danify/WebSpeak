@@ -59,6 +59,17 @@ describe("switching channels", () => {
     expect(session.client.getChannelId()).toBe(4n);
   });
 
+  it("names the permission a refused switch lacked, resolved from the id the server gave", async () => {
+    const gateway = await gateways.start({ ts: newServer() });
+    const session = await alice(gateway);
+    const refusal = { id: 2568, serverMessage: "insufficient client permissions", failedPermissionId: 143 };
+    session.client.switchChannel = () => Promise.reject(new TeamSpeakServerError(refusal));
+    expect(await ask(session, "switchChannel", { channelId: "3" }, "join")).toMatchObject({
+      type: "error",
+      error: { code: "PERMISSION_DENIED", params: { permission: "i_channel_join_power" } },
+    });
+  });
+
   // TS answers a switch to a deleted channel with error 768 invalid channelID, which the classifier reads
   // as a password problem. Moving another member already answers CHANNEL_NOT_FOUND, so do the same here.
   it("a switch to a channel that does not exist answers CHANNEL_NOT_FOUND, not a password request", async () => {

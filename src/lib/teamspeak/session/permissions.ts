@@ -7,6 +7,12 @@ export const TextPermission = {
   server: "b_client_server_textmessage_send",
 } as const;
 
+/** One of our own permissions with the value the server reported for it. */
+export interface PermissionEntry {
+  name: string;
+  value: number;
+}
+
 /**
  * Our own permissions as the server reports them. It names none of them: `permissionlist` gives the names
  * and a permission id is the position of its name in that list, starting at 1. The values come with the
@@ -45,5 +51,21 @@ export class PermissionTable {
     const id = this.#ids.get(name);
     if (id === undefined || !this.#valuesReceived) return undefined;
     return (this.#values.get(id) ?? 0) !== 0;
+  }
+
+  /** The name of a permission id, for an error that only carries the id. Undefined while the names are unknown. */
+  nameOf(id: number): string | undefined {
+    for (const [name, known] of this.#ids) if (known === id) return name;
+    return undefined;
+  }
+
+  /** Every permission the server reported a value for, in id order. Ids without a known name are left out. */
+  entries(): PermissionEntry[] {
+    const entries: PermissionEntry[] = [];
+    for (const [name, id] of this.#ids) {
+      const value = this.#values.get(id);
+      if (value !== undefined) entries.push({ name, value });
+    }
+    return entries;
   }
 }

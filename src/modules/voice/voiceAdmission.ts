@@ -211,6 +211,7 @@ export function admitConnection(deps: AdmissionDeps, ws: WebSocket, req: Incomin
     canSpeak: true,
     canWriteChannel: true,
     canWriteServer: true,
+    permissionsSent: "",
     selfActivityAt: 0,
     isAlive: true,
     reconnectTimer: null,

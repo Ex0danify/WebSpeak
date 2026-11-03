@@ -29,13 +29,30 @@ export interface EventOptions {
   reason?: string;
   /** What it means for the user, shown after the reason. */
   hint?: string;
+  /** A technical detail on its own line under the reason. Defaults to the permission a refused `error` lacked. */
+  note?: string;
 }
 
-/** A toast that names what happened, followed by the reason and an optional hint. */
+/** The permission a refusal lacked when the gateway named it, read from a thrown error or from its sentence. */
+export function failedPermission(source: unknown): string {
+  const sentence = source instanceof LocalizedError ? source.text : source;
+  const params = typeof sentence === "object" && sentence !== null && "params" in sentence ? sentence.params : undefined;
+  const permission = typeof params === "object" && params !== null && "permission" in params ? params.permission : undefined;
+  return typeof permission === "string" ? permission : "";
+}
+
+/** A toast that names what happened, followed by the reason, an optional hint and the failed permission. */
 export function notifyEvent(title: string, options: EventOptions): void {
   const reason = options.reason ?? failureReason(options.error);
   const description = [reason, options.hint].filter(Boolean).join(" ");
-  toast({ title, ...(description ? { description } : {}), variant: options.variant, duration: EVENT_TOAST_MS });
+  const note = options.note ?? failedPermission(options.error);
+  toast({
+    title,
+    ...(description ? { description } : {}),
+    ...(note ? { note } : {}),
+    variant: options.variant,
+    duration: EVENT_TOAST_MS,
+  });
 }
 
 export interface StateOptions {

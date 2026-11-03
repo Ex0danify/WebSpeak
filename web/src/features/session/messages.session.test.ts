@@ -174,6 +174,17 @@ describe("chatState", () => {
   });
 });
 
+describe("permissions", () => {
+  it("starts empty and follows what the gateway sends", async () => {
+    const socket = await connected();
+    expect(harness.voice.session.permissions.value).toEqual([]);
+    await push(socket, { type: "permissions", entries: [{ name: "b_client_channel_textmessage_send", value: 1 }] });
+    expect(harness.voice.session.permissions.value).toEqual([{ name: "b_client_channel_textmessage_send", value: 1 }]);
+    await push(socket, { type: "permissions", entries: [] });
+    expect(harness.voice.session.permissions.value).toEqual([]);
+  });
+});
+
 describe("voiceActivity", () => {
   it("marks positive integer ids as speaking and lets them expire", async () => {
     vi.useFakeTimers();

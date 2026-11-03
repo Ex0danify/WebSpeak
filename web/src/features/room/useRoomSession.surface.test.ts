@@ -50,6 +50,7 @@ const EXPECTED_SURFACE: Record<string, Record<string, string>> = {
     connect: "function",
     disconnect: "function",
     identityMaterial: "ref",
+    permissions: "ref",
     measureLatency: "function",
     collectVoiceStats: "function",
     reconnectNow: "function",

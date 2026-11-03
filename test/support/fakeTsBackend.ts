@@ -1,5 +1,5 @@
 import { EventEmitter } from "node:events";
-import { buildCommand, type CommandRequest } from "../../src/lib/teamspeak/index.js";
+import { buildCommand, type CommandRequest, type PermissionEntry } from "../../src/lib/teamspeak/index.js";
 import type { Logger } from "../../src/shared/logger.js";
 import type {
   SendOptions,
@@ -66,6 +66,16 @@ export class FakeBackend extends EventEmitter<TeamSpeakBackendEvents> implements
 
   canSendText(scope: "channel" | "server"): boolean {
     return this.textAllowed[scope];
+  }
+
+  permissionEntries: PermissionEntry[] = [];
+
+  permissions(): PermissionEntry[] {
+    return this.permissionEntries;
+  }
+
+  permissionName(): string | undefined {
+    return undefined;
   }
 
   command(request: CommandRequest | string): Promise<Record<string, string>[]> {

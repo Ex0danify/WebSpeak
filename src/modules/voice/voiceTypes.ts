@@ -127,6 +127,8 @@ export interface WebClientEntry {
   /** Whether the server lets us write to the channel and to the server, see `syncChatState`. */
   canWriteChannel: boolean;
   canWriteServer: boolean;
+  /** The permission list the browser got last, serialized, see `syncPermissions`. */
+  permissionsSent: string;
   selfActivityAt: number;
   isAlive: boolean;
   reconnectTimer: ReturnType<typeof setTimeout> | null;

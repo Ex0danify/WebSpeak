@@ -6,6 +6,7 @@ import {
   TeamSpeakConnection,
   type CommandPriority,
   type CommandRequest,
+  type PermissionEntry,
   type TeamSpeakConnectionOptions,
   type UdpAddress,
 } from "../../lib/teamspeak/index.js";
@@ -106,6 +107,14 @@ export class NativeBackend extends EventEmitter<TeamSpeakBackendEvents> implemen
   canSendText(scope: "channel" | "server"): boolean {
     const self = this.connection?.session.self;
     return (scope === "channel" ? self?.canSendChannelText : self?.canSendServerText) ?? true;
+  }
+
+  permissions(): PermissionEntry[] {
+    return this.connection?.session.permissions ?? [];
+  }
+
+  permissionName(id: number): string | undefined {
+    return this.connection?.session.permissionName(id);
   }
 
   async command(request: CommandRequest | string, timeoutMs = 10_000, priority?: CommandPriority): Promise<Record<string, string>[]> {

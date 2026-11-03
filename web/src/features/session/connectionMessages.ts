@@ -116,10 +116,14 @@ export function closeReason(code: number, reason = ""): LocalizedText {
   return connectionFailureMessage(failureCode);
 }
 
-export function protocolErrorMessage(code: string, fallback: string): LocalizedText {
+export function protocolErrorMessage(code: string, fallback: string, params?: Record<string, unknown>): LocalizedText {
   const normalized = normalizedClientErrorCode(code, "OPERATION_FAILED");
   if (OPERATION_ERROR_CODES.has(normalized)) {
-    return text(errorKey(normalized, OPERATION_CODES_WITH_OWN_TEXT.has(normalized) ? "opErr" : "err"));
+    const key = errorKey(normalized, OPERATION_CODES_WITH_OWN_TEXT.has(normalized) ? "opErr" : "err");
+    // The gateway names the permission a refusal lacked. It rides along as a param for whoever shows the refusal.
+    const permission = params?.permission;
+    const named = normalized === "PERMISSION_DENIED" && typeof permission === "string" && /^[a-z0-9_]{1,80}$/.test(permission);
+    return named ? text(key, { permission }) : text(key);
   }
   const safeCode = safeClientErrorCode(normalized);
   const safeFallback = safeClientErrorDetail(fallback);

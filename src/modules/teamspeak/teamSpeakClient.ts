@@ -10,6 +10,7 @@ import {
   TextMessageTarget,
   VERSION_PROFILES,
   type Identity,
+  type PermissionEntry,
   type VersionProfile,
   type VersionProfileName,
 } from "../../lib/teamspeak/index.js";
@@ -318,6 +319,14 @@ export class TSClient extends EventEmitter {
   /** False once the server told us we may not write there. The server still decides in the end. */
   canSendText(scope: "channel" | "server"): boolean {
     return this.backend?.canSendText(scope) ?? true;
+  }
+
+  permissions(): PermissionEntry[] {
+    return this.backend?.permissions() ?? [];
+  }
+
+  permissionName(id: number): string | undefined {
+    return this.backend?.permissionName(id);
   }
 
   isConnected(): boolean {

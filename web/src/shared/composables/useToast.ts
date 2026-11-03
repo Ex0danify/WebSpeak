@@ -15,6 +15,8 @@ export interface ToastAction {
 export interface ToastOptions {
   title: string;
   description?: string;
+  /** A technical detail under the description, shown muted and italic (an identifier, a permission name). */
+  note?: string;
   variant?: StatusVariant;
   /** Milliseconds until it closes itself, 0 keeps it until dismissed. Default 5000, 10000 with an action. */
   duration?: number;
@@ -26,6 +28,7 @@ export interface ToastOptions {
 export interface ToastItem extends Required<Pick<ToastOptions, "title" | "variant" | "duration">> {
   id: number;
   description?: string;
+  note?: string;
   action?: ToastAction;
   progress?: boolean;
 }
@@ -43,6 +46,7 @@ export function toast(options: ToastOptions | string): number {
     id,
     title: o.title,
     description: o.description,
+    note: o.note,
     variant: o.variant ?? "info",
     duration: o.duration ?? (o.action ? 10000 : 5000),
     action: o.action,
