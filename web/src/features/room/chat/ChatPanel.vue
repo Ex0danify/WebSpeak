@@ -23,14 +23,15 @@
         </TabList>
         <Tooltip :text="t('muteChat')"
           ><Button
-            variant="soft"
+            :variant="muted ? 'softDanger' : 'softNeutral'"
             size="sm"
             icon-only
-            class="flex-none"
+            pressed-tone="none"
+            class="size-8.5 flex-none max-compact:size-11"
             :aria-label="t('muteChat')"
-            :aria-pressed="muted"
+            :pressed="muted"
             @click="$emit('toggle-mute')"
-            ><Icon :name="muted ? 'bell-off' : 'bell'" :size="16" /></Button
+            ><Icon :name="muted ? 'message-off' : 'message'" :size="20" /></Button
         ></Tooltip>
         <Tooltip v-if="chatTab === 'private'" :text="t('closePrivateChat')"
           ><Button
