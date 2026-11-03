@@ -227,6 +227,8 @@ describe("mute sync", () => {
     whisperTargetIds: [],
     whisperActive: false,
     canSpeak: true,
+    canWriteChannel: true,
+    canWriteServer: true,
     webrtcAvailable: false,
     screenShareIceServers: [],
     accelerated: false,

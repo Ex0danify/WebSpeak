@@ -191,7 +191,7 @@ describe("chat", () => {
     expect(session.chatMessages[0].id).toMatch(/^self-/);
   });
 
-  it("a message is delivered once the gateway completes the command, and failed when it refuses or stays silent", async () => {
+  it("a message is delivered once the gateway completes the command, denied when TeamSpeak lacks the permission, failed when it stays silent", async () => {
     vi.useFakeTimers();
     const { session, actions } = setup();
     actions.sendServerMessage("one");
@@ -201,7 +201,16 @@ describe("chat", () => {
     actions.handlers.commandCompleted!({ type: "commandCompleted", requestId: one });
     actions.handlers.error!({ type: "error", requestId: two, error: { code: "PERMISSION_DENIED", message: "no", recoverable: false } });
     await vi.advanceTimersByTimeAsync(8_000);
-    expect(session.chatMessages.map((message) => message.status)).toEqual([undefined, "failed", "failed"]);
+    expect(session.chatMessages.map((message) => message.status)).toEqual([undefined, "denied", "failed"]);
+  });
+
+  it("a refusal for another reason is a plain failure", async () => {
+    const { session, actions } = setup();
+    actions.sendServerMessage("one");
+    const [requestId] = socket.sentJson.map((frame) => frame.requestId as string);
+    actions.handlers.error!({ type: "error", requestId, error: { code: "OPERATION_FAILED", message: "no", recoverable: false } });
+    await Promise.resolve();
+    expect(session.chatMessages[0]?.status).toBe("failed");
   });
 
   it("a message sent while the socket is closed is shown as not delivered", async () => {

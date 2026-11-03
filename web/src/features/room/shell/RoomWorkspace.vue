@@ -127,6 +127,7 @@
             :chat-title="chatTitle"
             :chat-placeholder="chatPlaceholder"
             :private-peer-name="privatePeerName"
+            :write-blocked-hint="writeBlockedHint"
             :server-events="serverEvents"
             :visible-chat-messages="visibleChatMessages"
             :members="members"
@@ -322,6 +323,7 @@ const {
   chatTitle,
   chatPlaceholder,
   privatePeerName,
+  writeBlockedHint,
   formatTime,
   submitMessage,
   openPrivateChat,

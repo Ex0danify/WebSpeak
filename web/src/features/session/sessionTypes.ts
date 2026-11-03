@@ -80,8 +80,8 @@ export interface ChatMessage {
   message: string;
   timestamp: number;
   isSelf?: boolean;
-  /** Your own message until the gateway confirmed it, or after it refused or timed out. Absent for a delivered or received one. */
-  status?: "pending" | "failed";
+  /** Your own message until the gateway confirmed it, or after it refused (`denied` when TeamSpeak lacked the permission) or timed out. Absent for a delivered or received one. */
+  status?: "pending" | "failed" | "denied";
   /** On a private message of your own: the recipient's nickname when it was sent, to name the chat after they have left. */
   peerName?: string;
 }
@@ -149,6 +149,8 @@ export type ServerMessage =
       whisperTargetIds: number[];
       whisperActive: boolean;
       canSpeak: boolean;
+      canWriteChannel: boolean;
+      canWriteServer: boolean;
       webrtcAvailable: boolean;
       screenShareIceServers: unknown;
       accelerated: boolean;
@@ -181,6 +183,7 @@ export type ServerMessage =
   | { type: "identity"; requestId?: string; identity: string }
   | { type: "whisperTargets"; targetIds: number[]; active: boolean }
   | { type: "talkState"; canSpeak: boolean }
+  | { type: "chatState"; canWriteChannel: boolean; canWriteServer: boolean }
   | {
       type: "error";
       requestId?: string;

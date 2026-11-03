@@ -44,6 +44,9 @@ export const useSessionStore = defineStore("voiceSession", () => {
   const whisperActive = ref(false);
   /** False while the channel drops our voice (moderated, not enough talk power). Set by the gateway. */
   const canSpeak = ref(true);
+  // Whether TeamSpeak lets us write to the channel and the server. True until it says otherwise, it decides in the end.
+  const canWriteChannel = ref(true);
+  const canWriteServer = ref(true);
   /** False when the gateway has WebRTC switched off. Set from the connected message. */
   const webrtcAvailable = ref(true);
 
@@ -80,6 +83,8 @@ export const useSessionStore = defineStore("voiceSession", () => {
     whisperTargetIds.clear();
     whisperActive.value = false;
     canSpeak.value = true;
+    canWriteChannel.value = true;
+    canWriteServer.value = true;
     webrtcAvailable.value = true;
   }
 
@@ -99,6 +104,8 @@ export const useSessionStore = defineStore("voiceSession", () => {
     whisperTargetIds,
     whisperActive,
     canSpeak,
+    canWriteChannel,
+    canWriteServer,
     webrtcAvailable,
     reset,
   };

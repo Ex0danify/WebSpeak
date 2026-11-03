@@ -157,6 +157,23 @@ describe("talkState", () => {
   });
 });
 
+describe("chatState", () => {
+  it("allows both chats until the gateway says otherwise", async () => {
+    await connected();
+    expect(harness.voice.chat.canWriteChannel.value).toBe(true);
+    expect(harness.voice.chat.canWriteServer.value).toBe(true);
+  });
+
+  it("follows the connected message and later changes", async () => {
+    const socket = await connected({ canWriteChannel: true, canWriteServer: false });
+    expect(harness.voice.chat.canWriteChannel.value).toBe(true);
+    expect(harness.voice.chat.canWriteServer.value).toBe(false);
+    await push(socket, { type: "chatState", canWriteChannel: false, canWriteServer: true });
+    expect(harness.voice.chat.canWriteChannel.value).toBe(false);
+    expect(harness.voice.chat.canWriteServer.value).toBe(true);
+  });
+});
+
 describe("voiceActivity", () => {
   it("marks positive integer ids as speaking and lets them expire", async () => {
     vi.useFakeTimers();
