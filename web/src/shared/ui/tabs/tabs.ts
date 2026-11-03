@@ -34,8 +34,8 @@ export const tabItemVariants = cva(
           "h-7 rounded-sm px-3 text-ui hover:text-fg aria-selected:bg-surface-1 aria-selected:text-fg aria-selected:shadow-sm aria-checked:bg-surface-1 aria-checked:text-fg aria-checked:shadow-sm",
         bar: "h-auto min-h-13 flex-col justify-start gap-3 rounded-lg px-1 pt-1.375 text-xs font-normal max-compact:h-auto aria-selected:bg-accent-soft aria-selected:font-bold aria-selected:text-accent",
         pills:
-          "gap-1.25 rounded-sm border border-transparent bg-surface-0 px-2.5 py-1.75 text-caption font-normal hover:bg-surface-2 hover:text-accent " +
-          "aria-selected:border-line aria-selected:bg-accent-soft aria-selected:font-bold aria-selected:text-accent",
+          "gap-1.5 rounded-sm border border-line bg-surface-1 px-3.5 py-2.5 text-ui font-normal hover:bg-surface-2 hover:text-accent " +
+          "aria-selected:border-accent aria-selected:bg-accent-soft aria-selected:font-bold aria-selected:text-accent",
       },
     },
     defaultVariants: { variant: "underline" },

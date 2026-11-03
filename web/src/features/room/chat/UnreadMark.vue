@@ -1,6 +1,6 @@
 <template>
   <template v-if="unread">
-    <span class="size-2 flex-none rounded-full bg-accent" aria-hidden="true"></span>
+    <span class="size-2.5 flex-none rounded-full bg-unread" aria-hidden="true"></span>
     <span class="sr-only">{{ t("unreadMessages") }}</span>
   </template>
 </template>

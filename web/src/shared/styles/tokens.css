@@ -21,6 +21,7 @@
   --color-success: var(--ws-success);
   --color-warning: var(--ws-warning);
   --color-danger: var(--ws-danger);
+  --color-unread: var(--ws-unread);
   --color-accent-soft: var(--ws-accent-soft);
   --color-success-soft: var(--ws-success-soft);
   --color-warning-soft: var(--ws-warning-soft);
@@ -210,6 +211,7 @@
   --ws-success: #237347;
   --ws-warning: #96590a;
   --ws-danger: #b83c37;
+  --ws-unread: #e8746e;
   /* Control borders need 3:1 contrast (WCAG 1.4.11), --ws-line is decorative only. */
   --ws-line-strong: color-mix(in srgb, var(--ws-fg-muted) 80%, var(--ws-surface-1));
   /* Soft tints (chip, banner and toast backgrounds) and the modal scrim. Derived, so they follow the theme with no per-theme copies. */
@@ -234,6 +236,7 @@
   --ws-success: #6ddc8b;
   --ws-warning: #e5b567;
   --ws-danger: #f0837c;
+  --ws-unread: #f0837c;
 }
 
 /* Dark, system preference (data-theme="system" or no attribute) */
@@ -251,6 +254,7 @@
     --ws-success: #6ddc8b;
     --ws-warning: #e5b567;
     --ws-danger: #f0837c;
+    --ws-unread: #f0837c;
   }
 }
 
