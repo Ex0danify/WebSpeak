@@ -67,6 +67,8 @@ async function mountUseChat(overrides: Record<string, unknown> = {}) {
     sendTextMessage: vi.fn(),
     sendServerMessage: vi.fn(),
     sendPrivateMessage: vi.fn(),
+    canWriteChannel: ref(true),
+    canWriteServer: ref(true),
     ...overrides,
   };
   const wrapper = mount(

@@ -113,13 +113,13 @@ describe.skipIf(!hasSessions)("captured welcomes", () => {
       selfId: 1,
       clients: [1],
       top: [3n, 4n, 5n, 1n, 7n, 6n, 2n],
-      unapplied: ["notifyclientneededpermissions"],
+      unapplied: [],
     },
     [FIXTURES.ts6Session]: {
       selfId: 133,
       clients: [129, 133],
       top: [1n, 10n, 11n, 12n, 2n, 3n, 4n, 5n, 6n, 7n, 8n, 9n],
-      unapplied: ["notifyclientneededpermissions", "notifyeffectivepermissions"],
+      unapplied: ["notifyeffectivepermissions"],
     },
   } as const;
 

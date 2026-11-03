@@ -60,6 +60,7 @@ const FORWARDED_EVENTS = [
   "clientLeave",
   "clientUpdated",
   "kicked",
+  "permissionsChanged",
 ] as const satisfies readonly (keyof TeamSpeakBackendEvents)[];
 
 const TEXT_TARGET_MODES = { private: TextMessageTarget.client, channel: TextMessageTarget.channel, server: TextMessageTarget.server };
@@ -312,6 +313,11 @@ export class TSClient extends EventEmitter {
   /** False in a moderated channel without talk power. The server drops our voice there without an answer. */
   canSpeak(): boolean {
     return this.backend?.canTalk() ?? true;
+  }
+
+  /** False once the server told us we may not write there. The server still decides in the end. */
+  canSendText(scope: "channel" | "server"): boolean {
+    return this.backend?.canSendText(scope) ?? true;
   }
 
   isConnected(): boolean {

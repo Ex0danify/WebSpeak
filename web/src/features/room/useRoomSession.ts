@@ -1,11 +1,8 @@
 import { ref } from "vue";
 import { storeToRefs } from "pinia";
 import { notifyMuteSyncFailure } from "@/features/room/shell/roomNotify";
-import { useSessionActions } from "@/features/session";
-import { createMessageRouter, createRosterHandlers } from "@/features/session";
-import { useConnection } from "@/features/session";
+import { createMessageRouter, createRosterHandlers, useConnection, useSessionActions, useSessionStore } from "@/features/session";
 import { useScreenSharePeers, useScreenShareStore } from "@/features/screenShare";
-import { useSessionStore } from "@/features/session";
 import {
   useAudioOutput,
   usePlayback,
@@ -56,7 +53,7 @@ export type {
 export function useRoomSession() {
   const session = useSessionStore();
   session.reset();
-  const { ws, whisperActive, canSpeak } = storeToRefs(session);
+  const { ws, whisperActive, canSpeak, canWriteChannel, canWriteServer } = storeToRefs(session);
   const audio = useVoiceAudioStore();
   audio.reset();
   const {
@@ -322,6 +319,8 @@ export function useRoomSession() {
     },
     chat: {
       chatMessages,
+      canWriteChannel,
+      canWriteServer,
       sendTextMessage,
       sendServerMessage,
       sendPrivateMessage,

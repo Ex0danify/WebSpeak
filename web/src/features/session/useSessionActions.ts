@@ -17,7 +17,7 @@ export interface RoomActionsDeps {
 
 export function useSessionActions(deps: RoomActionsDeps) {
   const session = useSessionStore();
-  const { ws, whisperActive, canSpeak } = storeToRefs(session);
+  const { ws, whisperActive, canSpeak, canWriteChannel, canWriteServer } = storeToRefs(session);
   const { state, chatMessages, whisperTargetIds, members } = session;
   // A message of your own is flagged isSelf and rendered as "You"; the name only feeds avatars.
   const selfName = () => members.find((member) => member.isSelf)?.nickname ?? "";
@@ -116,7 +116,7 @@ export function useSessionActions(deps: RoomActionsDeps) {
     }
   }
 
-  /** Shows the message at once as pending, then marks it failed if the gateway refuses it or does not answer. */
+  /** Shows the message at once as pending, then marks it failed if the gateway refuses it or does not answer, denied if TeamSpeak lacks the permission. */
   function sendChat(
     type: string,
     payload: Record<string, unknown>,
@@ -130,7 +130,7 @@ export function useSessionActions(deps: RoomActionsDeps) {
     };
     sendCommandAndWait(type, payload).then(
       () => settle(undefined),
-      () => settle("failed"),
+      (error: unknown) => settle(error instanceof LocalizedError && error.code === "PERMISSION_DENIED" ? "denied" : "failed"),
     );
   }
 
@@ -256,6 +256,10 @@ export function useSessionActions(deps: RoomActionsDeps) {
     },
     talkState: (msg) => {
       canSpeak.value = msg.canSpeak !== false;
+    },
+    chatState: (msg) => {
+      canWriteChannel.value = msg.canWriteChannel !== false;
+      canWriteServer.value = msg.canWriteServer !== false;
     },
     identity: (msg) => {
       const requestId = typeof msg.requestId === "string" ? msg.requestId : "";

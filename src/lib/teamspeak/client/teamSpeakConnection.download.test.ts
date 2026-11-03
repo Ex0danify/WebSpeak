@@ -150,7 +150,7 @@ describe("downloadAvatar", () => {
     const avatar = await settle(connection.downloadAvatar(9, { maxBytes: AVATAR.length }), clock);
     expect(avatar?.cacheKey).toBe("957a5bf1626328596e72a93e8ca010ad");
     expect(avatar?.data.equals(AVATAR)).toBe(true);
-    expect(server.received.filter((text) => !text.startsWith("ftinitdownload"))).toEqual([]);
+    expect(server.received.filter((text) => !/^(ftinitdownload|permissionlist)/.test(text))).toEqual([]);
     expect(server.received.at(-1)).toContain(`name=\\/avatar_${"pl".repeat(20)} `);
   });
 
@@ -162,7 +162,7 @@ describe("downloadAvatar", () => {
     server.handler.sendCommand(Buffer.from(cmd("notifyclientupdated", { clid: 9, client_flag_avatar: "abc" })));
     await deliver(clock);
     expect(connection.session.client(9)?.avatar).toBe("abc");
-    expect(server.received).toEqual([]);
+    expect(server.received.filter((text) => !text.startsWith("permissionlist"))).toEqual([]);
   });
 
   it("refuses clients out of view and works only while connected", async () => {

@@ -248,6 +248,7 @@ describe("the TeamSpeak listener order", () => {
         "on:voiceData",
         // registerVoiceChat
         "on:textMessage",
+        "on:permissionsChanged",
         "on:poked",
         // registerVoiceConnection
         "on:kicked",

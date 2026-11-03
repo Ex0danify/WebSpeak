@@ -3,6 +3,7 @@ import type { CommandRow } from "../wire/commandRows.js";
 import { parseI32, parseU16, parseU64, parseU8 } from "../wire/commandValues.js";
 import type { ChannelTree, SessionChannel } from "./channelTree.js";
 import { type ClientRegistry, clientIdOf } from "./clientRegistry.js";
+import type { PermissionTable } from "./permissions.js";
 import { type Invoker, invokerOf } from "./propertyFields.js";
 import { readGroups, readServer, type SessionGroup, type SessionServer } from "./serverInfo.js";
 import type { SessionEvent } from "./sessionEvents.js";
@@ -12,6 +13,7 @@ export interface SessionParts {
   selfId: number;
   readonly channels: ChannelTree;
   readonly clients: ClientRegistry;
+  readonly permissions: PermissionTable;
   server: SessionServer;
   serverGroups: ReadonlyMap<number, SessionGroup>;
   channelGroups: ReadonlyMap<number, SessionGroup>;
@@ -156,6 +158,8 @@ const APPLY: Readonly<Record<string, Apply>> = {
     parts.channelGroups = readGroups(rows, "cgid");
     return [{ type: "groupsUpdated", kind: "channel" }];
   },
+  notifyclientneededpermissions: (parts, rows) => (parts.permissions.setValues(rows) ? [{ type: "permissionsUpdated" }] : []),
+  notifypermissionlist: (parts, rows) => (parts.permissions.setNames(rows) ? [{ type: "permissionsUpdated" }] : []),
   notifytextmessage: textMessage,
   notifyclientpoke: poked,
 };

@@ -1,5 +1,6 @@
 import type { VoiceConnection } from "../voiceTypes.js";
 import { addServerEvent } from "../directory/voiceDirectory.js";
+import { syncChatState } from "../selfActivity.js";
 
 /** Registers the chat and poke listeners, call it before connect(). */
 export function registerVoiceChat(ctx: VoiceConnection): void {
@@ -21,6 +22,8 @@ export function registerVoiceChat(ctx: VoiceConnection): void {
       message: message.message,
     });
   });
+
+  ctx.tsClient.on("permissionsChanged", () => syncChatState(ctx));
 
   ctx.tsClient.on("poked", (event) => {
     ctx.sendJson({

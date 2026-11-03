@@ -72,6 +72,8 @@ const EXPECTED_SURFACE: Record<string, Record<string, string>> = {
     whisperTargetIds: "reactive-set",
   },
   chat: {
+    canWriteChannel: "ref",
+    canWriteServer: "ref",
     chatMessages: "reactive-array",
     sendPoke: "function",
     sendPrivateMessage: "function",

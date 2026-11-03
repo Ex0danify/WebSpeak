@@ -209,6 +209,8 @@ export function admitConnection(deps: AdmissionDeps, ws: WebSocket, req: Incomin
     whisperTargetIds: new Set(),
     whisperActive: false,
     canSpeak: true,
+    canWriteChannel: true,
+    canWriteServer: true,
     selfActivityAt: 0,
     isAlive: true,
     reconnectTimer: null,

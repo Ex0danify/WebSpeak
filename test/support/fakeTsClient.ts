@@ -344,6 +344,8 @@ export class FakeTSClient extends EventEmitter {
   }
   isConnected = (): boolean => this.isUp;
   canSpeak = (): boolean => true;
+  textAllowed = { channel: true, server: true };
+  canSendText = (scope: "channel" | "server"): boolean => this.textAllowed[scope];
 
   async execCommandWithResponse(command: string, _timeoutMs = 3000): Promise<Record<string, string>[]> {
     this.ready();

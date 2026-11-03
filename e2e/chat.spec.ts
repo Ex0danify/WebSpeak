@@ -136,6 +136,44 @@ test.describe("server chat", () => {
   });
 });
 
+test.describe("chat permissions", () => {
+  const fakeClient = (gateway: Gateway, nickname: string) => gateway.ts.created.find((client) => client.options.nickname === nickname)!;
+
+  test("a chat the server does not let you write to is disabled and says why, the others stay open", async ({ page, gateway }) => {
+    await join(page, "perm-self");
+    await openChat(page);
+    const client = fakeClient(gateway, "perm-self");
+    client.textAllowed.server = false;
+    client.emit("permissionsChanged");
+
+    await chatTab(page, "Server").click();
+    const blocked = page.getByRole("textbox", { name: "No permission to write to the server" });
+    await expect(blocked).toBeDisabled();
+    await expect(blocked).toHaveAttribute("placeholder", "No permission to write to the server");
+    await expect(sendButton(page)).toBeDisabled();
+
+    await chatTab(page, "Lobby").click();
+    await expect(composer(page)).toBeEnabled();
+    await expect(composer(page)).toHaveAttribute("placeholder", /Message/);
+
+    client.textAllowed.server = true;
+    client.emit("permissionsChanged");
+    await chatTab(page, "Server").click();
+    await expect(composer(page)).toBeEnabled();
+  });
+
+  test("a refused message says it lacked the permission, not that it was not delivered", async ({ page, gateway }) => {
+    await join(page, "perm-refused");
+    await openChat(page);
+    const client = fakeClient(gateway, "perm-refused");
+    client.sendTextMessage = () => Promise.reject(new Error("insufficient client permissions (id=2568)"));
+    await composer(page).fill("anyone there");
+    await sendButton(page).click();
+    await expect(page.getByText("No permission to write here")).toBeVisible();
+    await expect(page.getByText("Not delivered")).toBeHidden();
+  });
+});
+
 test.describe("private chat", () => {
   test("the member menu opens a private chat, and what you send goes to that person only", async ({ page, gateway, script, isMobile }) => {
     const other = script.member("pm-other");

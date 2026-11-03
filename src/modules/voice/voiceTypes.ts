@@ -124,6 +124,9 @@ export interface WebClientEntry {
   whisperActive: boolean;
   /** Whether the channel we are in lets our voice through, see `syncTalkState`. */
   canSpeak: boolean;
+  /** Whether the server lets us write to the channel and to the server, see `syncChatState`. */
+  canWriteChannel: boolean;
+  canWriteServer: boolean;
   selfActivityAt: number;
   isAlive: boolean;
   reconnectTimer: ReturnType<typeof setTimeout> | null;

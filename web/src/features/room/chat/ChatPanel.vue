@@ -85,12 +85,12 @@
                 v-if="message.status"
                 :class="[
                   'mt-1 text-caption',
-                  message.status === 'failed' ? 'text-danger' : 'text-fg-muted',
+                  message.status === 'pending' ? 'text-fg-muted' : 'text-danger',
                   message.isSelf && 'text-right',
                 ]"
-                :role="message.status === 'failed' ? 'alert' : undefined"
+                :role="message.status === 'pending' ? undefined : 'alert'"
               >
-                {{ message.status === "failed" ? t("messageNotDelivered") : t("messageSending") }}
+                {{ statusText(message.status) }}
               </div>
             </div>
           </article>
@@ -108,9 +108,9 @@
       <Input
         v-model="messageDraft"
         maxlength="500"
-        :placeholder="chatPlaceholder"
-        :disabled="Boolean(privatePeerName)"
-        :aria-label="t('send')"
+        :placeholder="writeBlockedHint || chatPlaceholder"
+        :disabled="Boolean(privatePeerName) || Boolean(writeBlockedHint)"
+        :aria-label="writeBlockedHint || t('send')"
         class="flex-1"
         input-class="h-9 border-0 bg-transparent px-0 text-md max-compact:text-sm"
       />
@@ -119,7 +119,7 @@
           type="submit"
           icon-only
           class="size-8.5 shrink-0"
-          :disabled="!messageDraft.trim() || Boolean(privatePeerName)"
+          :disabled="!messageDraft.trim() || Boolean(privatePeerName) || Boolean(writeBlockedHint)"
           :aria-label="t('send')"
           ><Icon name="send" :size="18" /></Button
       ></Tooltip>
@@ -150,6 +150,8 @@ const props = defineProps<{
   chatPlaceholder: string;
   /** The name of the person the open private chat is with while they are away, "" otherwise. */
   privatePeerName: string;
+  /** Why writing is not possible in this chat, "" while it is. */
+  writeBlockedHint: string;
   serverEvents: ServerEvent[];
   visibleChatMessages: ChatMessage[];
   members: ChannelMember[];
@@ -167,6 +169,9 @@ const chatTab = defineModel<"channel" | "server" | "private" | "events">("chatTa
 const messageDraft = defineModel<string>("messageDraft", { default: "" });
 
 const { t } = useI18n();
+
+const statusText = (status: ChatMessage["status"]) =>
+  status === "denied" ? t("messageNoPermission") : status === "failed" ? t("messageNotDelivered") : t("messageSending");
 
 // One tab key per tab: the three fixed ones and `private-<id>` per conversation.
 const activeTab = computed({

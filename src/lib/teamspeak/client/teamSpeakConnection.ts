@@ -1,5 +1,5 @@
 import { EventEmitter } from "node:events";
-import { clientDisconnect } from "../command/clientCommands.js";
+import { clientDisconnect, permissionList } from "../command/clientCommands.js";
 import { CommandScheduler, type CommandSchedulerOptions, type ScheduledCommandOptions } from "../command/commandScheduler.js";
 import { type CommandInput, CommandTracker, type CommandTrackerOptions, type ServerCommand } from "../command/commandTracker.js";
 import { TeamSpeakError, TeamSpeakTransportError } from "../errors/teamSpeakErrors.js";
@@ -226,6 +226,7 @@ export class TeamSpeakConnection extends EventEmitter<ConnectionEventMap> {
         { step: "welcome", channels: this.#session.channels().length, clients: this.#session.clients().length },
         "TeamSpeak welcome complete",
       );
+      this.#requestPermissionNames();
     } catch (error) {
       this.#state = "closed";
       this.#handler?.close();
@@ -235,6 +236,16 @@ export class TeamSpeakConnection extends EventEmitter<ConnectionEventMap> {
       signal?.removeEventListener("abort", onAbort);
       this.#connectAbort = undefined;
     }
+  }
+
+  // The server sends the permission values on its own but not what they are called. A failure only leaves the chat unchecked.
+  #requestPermissionNames(): void {
+    this.command(permissionList(), { priority: "background" }).then(
+      (rows) => {
+        for (const event of this.#session.applyPermissionList(rows)) this.#emit(event);
+      },
+      (error: unknown) => this.#logger?.debug({ err: error }, "TeamSpeak permission list failed"),
+    );
   }
 
   #waitForWelcome(remainingMs: number, signal: AbortSignal): Promise<void> {
