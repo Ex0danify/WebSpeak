@@ -2,7 +2,7 @@
   <section :class="[panel, mobileSection === 'chat' ? panelMobile : 'max-compact:hidden']">
     <h2 class="sr-only">{{ chatTitle }}</h2>
     <Tabs v-model="activeTab" variant="pills" class="contents">
-      <div :class="[columnClass, 'flex min-h-12 flex-none items-start gap-2 pt-2.5 max-compact:pt-0']">
+      <div :class="[columnClass, 'flex min-h-12 flex-none items-start gap-2 pt-2.5 pb-2.5 max-compact:pt-0 max-compact:pb-0']">
         <TabList :aria-label="t('chatTabs')" class="min-w-0 flex-1 max-compact:flex-1">
           <Tab value="channel"
             ><Icon name="hash" :size="15" /><span class="truncate">{{ currentChannelName }}</span
@@ -44,6 +44,7 @@
         ></Tooltip>
         <slot name="bar-end" />
       </div>
+      <Separator :class="[columnClass, 'mx-auto max-compact:hidden']" />
       <TabPanel :ref="bindListElement" :value="activeTab" class="min-h-0 flex-1 overflow-y-auto overscroll-contain pt-4 max-compact:pt-2.5">
         <div
           role="log"
@@ -155,6 +156,7 @@ import { Button } from "@/shared/ui/button";
 import { Tooltip } from "@/shared/ui/tooltip";
 import { Icon } from "@/shared/ui/icon";
 import { Input } from "@/shared/ui/input";
+import { Separator } from "@/shared/ui/separator";
 import { Tab, TabList, TabPanel, Tabs } from "@/shared/ui/tabs";
 import UnreadMark from "@/features/room/chat/UnreadMark.vue";
 import { buildTimeline, splitAroundName, type Notice } from "@/features/room/chat/groupMessages";
