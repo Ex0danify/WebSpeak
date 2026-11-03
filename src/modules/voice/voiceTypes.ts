@@ -85,6 +85,8 @@ export interface ChannelMember {
   outputMuted?: boolean;
   channelCommander?: boolean;
   streaming?: boolean;
+  /** Server group ids, in the order the client has them. */
+  serverGroups?: number[];
 }
 
 export interface ServerEvent {
@@ -122,6 +124,11 @@ export interface WebClientEntry {
   members: Map<number, ChannelMember>;
   clientChannelId?(clientId: number): bigint | undefined;
   avatarCache: Map<string, string | null>;
+  /** Server group icons by icon id, null for one that could not be loaded. */
+  groupIconCache: Map<number, string | null>;
+  groupIconRequests: Set<number>;
+  /** The group list the browser got last, serialized, see `syncServerGroups`. */
+  serverGroupsSent: string;
   eventLog: ServerEvent[];
   opusEncoder: OpusCodec | null;
   opusEncoderWarnedAt: number; // time of the last "Opus encoder unavailable" warning, used to rate-limit it

@@ -121,6 +121,7 @@ describe("names the gateway fills in (voiceDirectoryView)", () => {
           channelID: 1n,
           nickname: "",
           uid: "",
+          serverGroups: [],
           away: false,
           awayMessage: "",
           inputMuted: false,

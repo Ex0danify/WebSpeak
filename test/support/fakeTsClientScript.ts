@@ -19,7 +19,8 @@ export type FakeOperation =
   | "setInputMuted"
   | "setOutputMuted"
   | "execCommand"
-  | "avatar";
+  | "avatar"
+  | "groupIcon";
 
 export interface FakeChannel {
   id: bigint;

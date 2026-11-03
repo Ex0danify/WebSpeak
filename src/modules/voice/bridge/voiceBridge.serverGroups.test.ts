@@ -1,0 +1,80 @@
+import { describe, expect, it, vi } from "vitest";
+import { useGateway } from "../../../../test/support/gateway.js";
+import { joinVoice } from "../../../../test/support/voice.js";
+import type { JsonMessage } from "../../../../test/support/wsClient.js";
+
+const gateways = useGateway();
+
+const PNG = Buffer.concat([Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]), Buffer.from("pixels")]);
+const GROUPS = [
+  { id: 6, name: "Owner", type: 1, sortId: 0, iconId: 2242180715 },
+  { id: 3, name: "Server Admin", type: 0, sortId: 1, iconId: 300 },
+  { id: 8, name: "Guest", type: 1, sortId: 2, iconId: 0 },
+];
+
+type Member = { id: number; serverGroups?: number[] };
+const roomMembers = (message: JsonMessage) =>
+  (message.channels as { name: string; members: Member[] }[]).find((channel) => channel.name === "Room A")!.members;
+
+describe("server groups", () => {
+  it("sends the group list after the welcome and the group ids of every member", async () => {
+    const gateway = await gateways.start();
+    gateway.ts.serverGroups = GROUPS;
+    const bob = gateway.ts.addMember("bob", 2n);
+    gateway.ts.members.get(bob.id)!.serverGroups = ["6", "8"];
+    gateway.ts.addMember("carol", 2n);
+    const { socket } = await joinVoice(gateway, { nickname: "alice" });
+    expect(socket.messagesOfType("serverGroups")).toEqual([
+      {
+        type: "serverGroups",
+        groups: [
+          { id: 6, name: "Owner", iconId: 2242180715 },
+          { id: 3, name: "Server Admin", iconId: 300 },
+          { id: 8, name: "Guest", iconId: 0 },
+        ],
+      },
+    ]);
+    const members = roomMembers(socket.messagesOfType("channelList").at(-1)!);
+    expect(members.find((member) => member.id === bob.id)?.serverGroups).toEqual([6, 8]);
+    expect(members.filter((member) => "serverGroups" in member)).toHaveLength(1);
+  });
+
+  it("downloads each icon file once, skips built-in and missing ones, and sends it as a data URL", async () => {
+    const gateway = await gateways.start();
+    gateway.ts.serverGroups = [
+      ...GROUPS,
+      { id: 9, name: "Friend", type: 1, sortId: 3, iconId: 2242180715 },
+      { id: 10, name: "Gone", type: 1, sortId: 4, iconId: 1234567 },
+    ];
+    gateway.ts.groupIcons.set(2242180715, PNG);
+    const step = vi.spyOn(gateway.ts, "step");
+    const { socket } = await joinVoice(gateway, { nickname: "alice" });
+    await socket.waitForMessage("serverGroupIcon");
+    await vi.waitFor(() => expect(step.mock.calls.filter(([operation]) => operation === "groupIcon")).toHaveLength(3));
+    expect(socket.messagesOfType("serverGroupIcon")).toEqual([
+      { type: "serverGroupIcon", iconId: 2242180715, icon: `data:image/png;base64,${PNG.toString("base64")}` },
+    ]);
+  });
+
+  it("sends the list again when the server edits it, and only then", async () => {
+    const gateway = await gateways.start();
+    gateway.ts.serverGroups = GROUPS;
+    const session = await joinVoice(gateway, { nickname: "alice" });
+    session.client.emit("serverGroupsChanged");
+    gateway.ts.serverGroups = GROUPS.map((group) => (group.id === 8 ? { ...group, name: "Visitor" } : group));
+    session.client.emit("serverGroupsChanged");
+    await session.socket.waitForMessage(
+      (message) => message.type === "serverGroups" && (message.groups as { name: string }[]).some((group) => group.name === "Visitor"),
+    );
+    expect(session.socket.messagesOfType("serverGroups")).toHaveLength(2);
+  });
+
+  it("keeps joining when an icon cannot be downloaded", async () => {
+    const gateway = await gateways.start();
+    gateway.ts.serverGroups = GROUPS;
+    gateway.ts.failNext("groupIcon", new Error("no file transfer"));
+    const { socket } = await joinVoice(gateway, { nickname: "alice" });
+    await socket.waitForMessage("serverGroups");
+    expect(socket.messagesOfType("serverGroupIcon")).toEqual([]);
+  });
+});

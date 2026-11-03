@@ -9,6 +9,12 @@ export function isChannelRecord(value: unknown): value is { id: string; name: st
   );
 }
 
+/** The browser gets numbers, only members that have a group carry the field. */
+export function memberGroups(serverGroups: readonly string[]): { serverGroups?: number[] } {
+  const ids = serverGroups.map(Number).filter((id) => Number.isSafeInteger(id) && id > 0);
+  return ids.length ? { serverGroups: ids } : {};
+}
+
 export function mapChannelTree(snapshot: TSDirectorySnapshot, avatarCache = new Map<string, string | null>()): unknown[] {
   return snapshot.channels.map((channel) => ({
     id: String(channel.id),
@@ -33,6 +39,7 @@ export function mapChannelTree(snapshot: TSDirectorySnapshot, avatarCache = new 
           outputMuted: client.outputMuted,
           channelCommander: client.channelCommander,
           streaming: client.streaming,
+          ...memberGroups(client.serverGroups),
         };
       }),
   }));

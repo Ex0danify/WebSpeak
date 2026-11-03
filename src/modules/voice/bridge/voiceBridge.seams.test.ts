@@ -249,6 +249,7 @@ describe("the TeamSpeak listener order", () => {
         // registerVoiceChat
         "on:textMessage",
         "on:permissionsChanged",
+        "on:serverGroupsChanged",
         "on:poked",
         // registerVoiceConnection
         "on:kicked",

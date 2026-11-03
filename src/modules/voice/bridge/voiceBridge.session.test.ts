@@ -19,11 +19,11 @@ const channel = (message: JsonMessage, name: string) => channelsOf(message).find
 const memberNames = (message: JsonMessage, name: string) => channel(message, name).members.map((member) => member.nickname);
 
 describe("the initial state", () => {
-  it("sends `connected`, `channelList` and the permissions, and nothing else first", async () => {
+  it("sends `connected`, `channelList`, the permissions and the server groups, and nothing else first", async () => {
     const gateway = await gateways.start();
     const socket = await gateway.openVoice(gateway.ticket({ nickname: "alice" }));
     await socket.waitForMessage("channelList");
-    expect(socket.messages.map((message) => message.type)).toEqual(["connected", "channelList", "permissions"]);
+    expect(socket.messages.map((message) => message.type)).toEqual(["connected", "channelList", "permissions", "serverGroups"]);
   });
 
   it("puts the session's own client id, every member and one connection event into `connected`", async () => {
