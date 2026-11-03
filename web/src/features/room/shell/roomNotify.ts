@@ -1,4 +1,4 @@
-import { toast } from "@/shared/composables/useToast.js";
+import { toast, type ToastAction } from "@/shared/composables/useToast.js";
 import { useDialog, type AlertOptions } from "@/shared/composables/useDialog.js";
 import { LocalizedError, resolveText, text, type MaybeLocalizedText } from "@/shared/i18n/localizedText.js";
 import { useI18n } from "@/shared/i18n/useI18n.js";
@@ -29,13 +29,15 @@ export interface EventOptions {
   reason?: string;
   /** What it means for the user, shown after the reason. */
   hint?: string;
+  /** One button on the toast, for a toast that has somewhere to take the user. */
+  action?: ToastAction;
 }
 
 /** A toast that names what happened, followed by the reason and an optional hint. */
 export function notifyEvent(title: string, options: EventOptions): void {
   const reason = options.reason ?? failureReason(options.error);
   const description = [reason, options.hint].filter(Boolean).join(" ");
-  toast({ title, ...(description ? { description } : {}), variant: options.variant, duration: EVENT_TOAST_MS });
+  toast({ title, ...(description ? { description } : {}), variant: options.variant, duration: EVENT_TOAST_MS, ...(options.action ? { action: options.action } : {}) });
 }
 
 export interface StateOptions {

@@ -15,6 +15,7 @@ export const iconNames = [
   "volume-off",
   "search",
   "bell",
+  "bell-off",
   "clock",
   "help",
   "info",
