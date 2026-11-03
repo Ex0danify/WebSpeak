@@ -25,7 +25,6 @@ import { deliverChat, deliverVoice } from "./fakeTsChat.js";
 
 const refused = (id: number, serverMessage: string) => new TeamSpeakServerError({ id, serverMessage });
 export { DEFAULT_FAKE_CHANNELS, FakeRemoteMember, type FakeChannel, type FakeOperation, type FakeServerOptions };
-
 /**
  * In-memory TS server and clients for voice bridge tests, with the real event order and the server's errors.
  * Models passwords, bans, kicks and guest permissions. Unchecked against a real server (layer 5): senders get no copy of their own text.
