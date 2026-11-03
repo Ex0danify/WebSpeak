@@ -218,4 +218,15 @@ describe("chat permissions", () => {
       (message) => message.type === "chatState" && message.canWriteChannel === true && message.canWriteServer === true,
     );
   });
+
+  it("sends the permission list after the welcome and again when it changes", async () => {
+    const gateway = await gateways.start();
+    const session = await alice(gateway);
+    expect(session.socket.messages).toContainEqual({ type: "permissions", entries: [] });
+
+    const entries = [{ name: "b_client_channel_textmessage_send", value: 1 }];
+    session.client.permissionEntries = entries;
+    session.client.emit("permissionsChanged");
+    await session.socket.waitForMessage((message) => message.type === "permissions" && (message.entries as unknown[]).length === 1);
+  });
 });

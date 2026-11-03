@@ -82,4 +82,25 @@ describe("text permissions", () => {
     feed(values([CHANNEL, 1]));
     expect(session.self).toMatchObject({ canSendChannelText: true, canSendServerText: false });
   });
+
+  it("lists the reported permissions by name in id order, revoked ones with 0", () => {
+    const { session, feed } = welcomed();
+    expect(session.permissions).toEqual([]);
+    feed(list(...NAMES));
+    feed(values([SERVER, 1], [CHANNEL, 7]));
+    expect(session.permissions).toEqual([
+      { name: TextPermission.channel, value: 7 },
+      { name: TextPermission.server, value: 1 },
+    ]);
+    feed(values([SERVER, 0]));
+    expect(session.permissions.at(-1)).toEqual({ name: TextPermission.server, value: 0 });
+  });
+
+  it("leaves out values whose name is not known", () => {
+    const { session, feed } = welcomed();
+    feed(values([CHANNEL, 1], [99, 1]));
+    expect(session.permissions).toEqual([]);
+    feed(list(...NAMES));
+    expect(session.permissions).toEqual([{ name: TextPermission.channel, value: 1 }]);
+  });
 });

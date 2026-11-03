@@ -1,6 +1,6 @@
 import { EventEmitter } from "node:events";
 import { createHash } from "node:crypto";
-import { generateIdentity, TeamSpeakServerError, type Identity } from "../../src/lib/teamspeak/index.js";
+import { generateIdentity, TeamSpeakServerError, type Identity, type PermissionEntry } from "../../src/lib/teamspeak/index.js";
 import { normalizeTeamSpeakKickedReason } from "../../src/shared/errors.js";
 import type { TeamSpeakProtocol } from "../../src/shared/teamSpeakProtocol.js";
 import type {
@@ -24,14 +24,12 @@ import {
 import { deliverChat, deliverVoice } from "./fakeTsChat.js";
 
 const refused = (id: number, serverMessage: string) => new TeamSpeakServerError({ id, serverMessage });
-
 export { DEFAULT_FAKE_CHANNELS, FakeRemoteMember, type FakeChannel, type FakeOperation, type FakeServerOptions };
 
 /**
  * In-memory TS server and clients for voice bridge tests, with the real event order and the server's errors.
  * Models passwords, bans, kicks and guest permissions. Unchecked against a real server (layer 5): senders get no copy of their own text.
  */
-
 export class FakeTeamSpeakServer {
   readonly channels = new Map<bigint, FakeChannel>();
   readonly members = new Map<number, DirectoryClientInfo>();
@@ -346,7 +344,8 @@ export class FakeTSClient extends EventEmitter {
   canSpeak = (): boolean => true;
   textAllowed = { channel: true, server: true };
   canSendText = (scope: "channel" | "server"): boolean => this.textAllowed[scope];
-
+  permissionEntries: PermissionEntry[] = [];
+  permissions = (): PermissionEntry[] => this.permissionEntries;
   async execCommandWithResponse(command: string, _timeoutMs = 3000): Promise<Record<string, string>[]> {
     this.ready();
     await this.server.step("execCommand");

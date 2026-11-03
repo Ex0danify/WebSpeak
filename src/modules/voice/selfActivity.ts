@@ -25,6 +25,16 @@ export function syncChatState(ctx: VoiceConnection): void {
   if (ctx.state.initialStateSent) ctx.sendJson({ type: "chatState", canWriteChannel, canWriteServer });
 }
 
+/** Sends the browser our permissions when they differ from what it was told last. */
+export function syncPermissions(ctx: VoiceConnection): void {
+  if (!ctx.state.initialStateSent) return;
+  const entries = ctx.tsClient.permissions();
+  const signature = JSON.stringify(entries);
+  if (signature === ctx.entry.permissionsSent) return;
+  ctx.entry.permissionsSent = signature;
+  ctx.sendJson({ type: "permissions", entries });
+}
+
 /** Tells the browser when our talk right in the current channel changes. Call it after the directory moved. */
 export function syncTalkState(ctx: VoiceConnection): void {
   const canSpeak = ctx.tsClient.canSpeak();

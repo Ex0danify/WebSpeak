@@ -3,6 +3,7 @@ import type {
   CommandPriority,
   CommandRequest,
   Identity,
+  PermissionEntry,
   ScheduledCommandOptions,
   VersionProfile,
   VersionProfileName,
@@ -80,6 +81,8 @@ export interface TeamSpeakBackend extends EventEmitter<TeamSpeakBackendEvents> {
   canTalk(): boolean;
   /** Whether the server lets us write to the channel or the server. True while it has not told us. */
   canSendText(scope: "channel" | "server"): boolean;
+  /** Our own permissions the server reported so far. */
+  permissions(): PermissionEntry[];
   /**
    * Answer rows, rejects with the server's refusal. `background` commands run through the client's
    * scheduler after interactive ones and are retried after a flood refusal (the post-connect burst).

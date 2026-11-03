@@ -4,7 +4,7 @@ import { ChannelTree, type SessionChannel } from "./channelTree.js";
 import { ClientRegistry, type SessionClient } from "./clientRegistry.js";
 import { directoryChannel, directoryClient, type DirectorySnapshot } from "./directorySnapshot.js";
 import { applyNotification, type SessionParts } from "./notificationApply.js";
-import { PermissionTable, TextPermission } from "./permissions.js";
+import { PermissionTable, TextPermission, type PermissionEntry } from "./permissions.js";
 import { readServer, type SessionGroup, type SessionServer } from "./serverInfo.js";
 import type { SessionEvent } from "./sessionEvents.js";
 
@@ -26,6 +26,8 @@ export interface SessionSelf {
 export interface SessionView {
   readonly welcomeComplete: boolean;
   readonly self: SessionSelf;
+  /** Our own permissions the server reported so far, see `PermissionTable`. */
+  readonly permissions: PermissionEntry[];
   readonly server: SessionServer;
   readonly serverGroups: ReadonlyMap<number, SessionGroup>;
   readonly channelGroups: ReadonlyMap<number, SessionGroup>;
@@ -76,6 +78,10 @@ export class SessionState implements SessionView {
       canSendChannelText: permissions.granted(TextPermission.channel) ?? true,
       canSendServerText: permissions.granted(TextPermission.server) ?? true,
     };
+  }
+
+  get permissions(): PermissionEntry[] {
+    return this.#parts.permissions.entries();
   }
 
   get server(): SessionServer {
