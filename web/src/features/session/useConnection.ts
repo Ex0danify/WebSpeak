@@ -284,8 +284,7 @@ export function useConnection(deps: ConnectionDeps) {
       state.errorCode = "";
       state.channelSwitchedChannelId = "";
       state.tsClientId = Number(msg.tsClientId) || 0;
-      // The mute preference is local to the browser, TeamSpeak shows the gateway's client_input_muted flag to others.
-      // Send it as soon as the session is ready so a muted reconnect shows for native users before WebRTC negotiates.
+      // The mute preference is local to the browser. Sending it now makes a muted reconnect show for native users before WebRTC negotiates.
       void syncMuteState(connectionSequence);
       setScreenShareIceServers(msg.screenShareIceServers);
       deps.applyWhisperState(msg.whisperTargetIds, msg.whisperActive);
