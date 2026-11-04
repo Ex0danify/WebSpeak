@@ -9,6 +9,7 @@ import type {
   TeamSpeakBackendOptions,
   TSClientAvatar,
 } from "../../src/modules/teamspeak/teamSpeakBackend.js";
+import type { TSGroup } from "../../src/modules/teamspeak/teamSpeakMessages.js";
 
 export const silentLogger: Logger = {
   debug() {},
@@ -36,6 +37,9 @@ export class FakeBackend extends EventEmitter<TeamSpeakBackendEvents> implements
   onConnect: () => Promise<void> = async () => undefined;
   /** Runs for every command, throw to refuse it. */
   onCommand: (text: string) => Promise<Record<string, string>[]> = async () => [];
+  groupList: TSGroup[] = [];
+  channelGroupList: TSGroup[] = [];
+  onGroupIcon: (iconId: number) => Promise<Buffer | null> = async () => null;
   onAvatar: (clientId: number, expectedUid: string) => Promise<TSClientAvatar | null> = async () => null;
 
   constructor(readonly options: TeamSpeakBackendOptions) {
@@ -93,6 +97,18 @@ export class FakeBackend extends EventEmitter<TeamSpeakBackendEvents> implements
   sendVoice(): void {}
 
   sendWhisper(): void {}
+
+  serverGroups(): TSGroup[] {
+    return this.groupList;
+  }
+
+  channelGroups(): TSGroup[] {
+    return this.channelGroupList;
+  }
+
+  loadGroupIcon(iconId: number): Promise<Buffer | null> {
+    return this.onGroupIcon(iconId);
+  }
 
   loadAvatar(clientId: number, expectedUid: string): Promise<TSClientAvatar | null> {
     return this.onAvatar(clientId, expectedUid);

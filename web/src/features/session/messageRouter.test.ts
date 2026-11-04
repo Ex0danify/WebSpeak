@@ -56,6 +56,7 @@ describe("roster handlers", () => {
 
   it("claims exactly the roster, chat, event and poke types", () => {
     expect(Object.keys(setup().handlers).sort()).toEqual([
+      "channelGroups",
       "channelList",
       "chatMessage",
       "memberAvatar",
@@ -63,6 +64,8 @@ describe("roster handlers", () => {
       "memberUpdate",
       "pokeReceived",
       "serverEvent",
+      "serverGroupIcon",
+      "serverGroups",
     ]);
   });
 
@@ -82,6 +85,47 @@ describe("roster handlers", () => {
     handlers.channelList!({});
     expect(session.channels).toHaveLength(0);
     expect(sync).toHaveBeenCalledTimes(2);
+  });
+
+  it("serverGroups replaces the list and drops entries without an id or a name", () => {
+    const { handlers, session } = setup();
+    handlers.serverGroups!({
+      groups: [
+        { id: 7, name: "Normal", iconId: 600 },
+        { id: "7", name: "Bad id", iconId: 1 },
+        { id: 8, name: 5, iconId: 1 },
+        { id: 8, name: "Guest" },
+        null,
+      ],
+    });
+    expect(session.serverGroups).toEqual([
+      { id: 7, name: "Normal", iconId: 600, isDefault: false },
+      { id: 8, name: "Guest", iconId: 0, isDefault: false },
+    ]);
+    handlers.serverGroups!({});
+    expect(session.serverGroups).toEqual([]);
+  });
+
+  it("channelGroups fills its own list and leaves the server groups alone", () => {
+    const { handlers, session } = setup();
+    handlers.serverGroups!({ groups: [{ id: 6, name: "Server Admin", iconId: 300 }] });
+    handlers.channelGroups!({
+      groups: [
+        { id: 5, name: "Channel Admin", iconId: 100, isDefault: true },
+        { id: "x", name: "Bad" },
+      ],
+    });
+    expect(session.channelGroups).toEqual([{ id: 5, name: "Channel Admin", iconId: 100, isDefault: true }]);
+    expect(session.serverGroups).toEqual([{ id: 6, name: "Server Admin", iconId: 300, isDefault: false }]);
+  });
+
+  it("serverGroupIcon keeps the icons by id and ignores a frame that is not a usable image", () => {
+    const { handlers, session } = setup();
+    handlers.serverGroupIcon!({ iconId: 5000, icon: "data:image/png;base64,AAAA" });
+    handlers.serverGroupIcon!({ iconId: 6000, icon: "data:image/gif;base64,BBBB" });
+    handlers.serverGroupIcon!({ iconId: "7000", icon: "data:image/png;base64,CCCC" });
+    handlers.serverGroupIcon!({ iconId: 8000, icon: 42 });
+    expect(session.groupIcons).toEqual({ 5000: "data:image/png;base64,AAAA", 6000: "data:image/gif;base64,BBBB" });
   });
 
   it("memberAvatar updates the roster and the channel tree, matching the uid when given", () => {

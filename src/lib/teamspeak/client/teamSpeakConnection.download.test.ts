@@ -128,6 +128,22 @@ describe("downloadFile", () => {
   });
 });
 
+describe("downloadIcon", () => {
+  it("asks channel 0 for the icon file by its id", async () => {
+    fileServer = await startFileServer(sendFile(AVATAR));
+    const port = fileServer.port;
+    const { clock, connection, server } = await connected((command, ok) => [ok, startDownload(command, port)]);
+    const data = await settle(connection.downloadIcon(2242180715, { maxBytes: AVATAR.length }), clock);
+    expect(data.equals(AVATAR)).toBe(true);
+    expect(server.received.at(-1)).toMatch(/^ftinitdownload clientftfid=1 name=\\\/icon_2242180715 cid=0 /);
+  });
+
+  it("has no file for a built-in id", async () => {
+    const { connection } = await connected(() => []);
+    await expect(connection.downloadIcon(300, { maxBytes: 1000 })).rejects.toThrow(RangeError);
+  });
+});
+
 describe("downloadAvatar", () => {
   const UID = Buffer.alloc(20, 0xfb).toString("base64");
   const enter = (clid: number, avatar: string) =>

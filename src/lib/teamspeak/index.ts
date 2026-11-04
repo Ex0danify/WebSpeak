@@ -104,6 +104,7 @@ export {
   type TeamSpeakConnectionOptions,
 } from "./client/teamSpeakConnection.js";
 export { avatarDeletePath, avatarDownloadPath, avatarFileKey } from "./fileTransfer/avatarFiles.js";
+export { iconDownloadPath, isBuiltinIconId } from "./fileTransfer/iconFiles.js";
 export { type TcpConnect } from "./fileTransfer/fileDownload.js";
 export { type DownloadRequest } from "./fileTransfer/fileTransferTickets.js";
 export {

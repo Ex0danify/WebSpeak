@@ -2,11 +2,13 @@ import { EventEmitter } from "node:events";
 import { lookup } from "node:dns/promises";
 import { isIP } from "node:net";
 import {
+  isBuiltinIconId,
   resolveAddress,
   TeamSpeakConnection,
   type CommandPriority,
   type CommandRequest,
   type PermissionEntry,
+  type SessionGroup,
   type TeamSpeakConnectionOptions,
   type UdpAddress,
 } from "../../lib/teamspeak/index.js";
@@ -17,12 +19,14 @@ import { detectTeamSpeakProtocol } from "./teamSpeakAdapter.js";
 import { forwardConnectionEvents } from "./nativeEvents.js";
 import {
   MAX_CLIENT_AVATAR_BYTES,
+  MAX_GROUP_ICON_BYTES,
   type SendOptions,
   type TeamSpeakBackend,
   type TeamSpeakBackendEvents,
   type TeamSpeakBackendOptions,
   type TSClientAvatar,
 } from "./teamSpeakBackend.js";
+import type { TSGroup } from "./teamSpeakMessages.js";
 
 const CONNECT_TIMEOUT_MS = 15_000;
 
@@ -41,6 +45,12 @@ async function resolveTarget(host: string, port: number): Promise<UdpAddress> {
   const [candidate] = await resolveAddress(host, { port });
   const address = await lookup(candidate?.host ?? host);
   return { host: address.address, port: candidate?.port ?? port };
+}
+
+function displayOrder(groups: ReadonlyMap<number, SessionGroup> | undefined, defaultId: number | undefined): TSGroup[] {
+  return [...(groups?.values() ?? [])]
+    .map(({ id, name, type, sortId, iconId }) => ({ id, name, isDefault: id === defaultId, type, sortId, iconId }))
+    .sort((a, b) => a.sortId - b.sortId || a.id - b.id);
 }
 
 /** TSClient on the own TeamSpeak client in lib/teamspeak. */
@@ -149,6 +159,26 @@ export class NativeBackend extends EventEmitter<TeamSpeakBackendEvents> implemen
       priority: "background",
     });
     return avatar && avatar.data.length > 0 ? avatar : null;
+  }
+
+  serverGroups(): TSGroup[] {
+    const session = this.connection?.session;
+    return displayOrder(session?.serverGroups, session?.server.defaultServerGroupId);
+  }
+
+  channelGroups(): TSGroup[] {
+    const session = this.connection?.session;
+    return displayOrder(session?.channelGroups, session?.server.defaultChannelGroupId);
+  }
+
+  async loadGroupIcon(iconId: number): Promise<Buffer | null> {
+    if (iconId === 0 || isBuiltinIconId(iconId)) return null;
+    const data = await this.live().downloadIcon(iconId, {
+      maxBytes: MAX_GROUP_ICON_BYTES,
+      host: this.options.serverHost,
+      priority: "background",
+    });
+    return data.length > 0 ? data : null;
   }
 
   async syncDirectory(): Promise<void> {

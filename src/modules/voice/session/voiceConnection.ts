@@ -16,6 +16,7 @@ import type { VoiceConnection, WebClientEntry } from "../voiceTypes.js";
 import { refreshDirectory, scheduleMemberAvatarRefresh } from "../directory/voiceDirectory.js";
 import { publicFailureDetail } from "./voiceFailures.js";
 import { syncPermissions } from "../selfActivity.js";
+import { syncGroups } from "../directory/voiceGroups.js";
 
 export interface VoiceConnectionDeps {
   teardown(entryId: string, reason: SessionTeardownReason): Promise<void>;
@@ -290,6 +291,7 @@ export function sendInitialState(ctx: VoiceConnection, hooks: VoiceConnectionDep
   });
   ctx.sendJson({ type: "channelList", channels: ctx.entry.channelTree });
   syncPermissions(ctx);
+  syncGroups(ctx);
   if (wasReconnecting) ctx.sendJson({ type: "reconnected" });
   scheduleMemberAvatarRefresh(ctx);
 }
@@ -308,6 +310,7 @@ function resetDirectoryForReconnect(ctx: VoiceConnection) {
   ctx.entry.canWriteChannel = true;
   ctx.entry.canWriteServer = true;
   ctx.entry.permissionsSent = "";
+  ctx.entry.groupsSent = { serverGroups: "", channelGroups: "" };
 }
 
 function failReconnect(ctx: VoiceConnection, hooks: VoiceConnectionDeps, normalized: ReturnType<typeof normalizeTeamSpeakError>) {

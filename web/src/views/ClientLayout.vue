@@ -9,10 +9,12 @@
 </template>
 
 <script setup lang="ts">
+import { storeToRefs } from "pinia";
 import { computed, onMounted, onUnmounted, watch } from "vue";
 import { RouterView, useRouter } from "vue-router";
 import { useServerVisit } from "@/features/join";
 import { provideRoomSession, useRoomSession, useRoomSounds } from "@/features/room";
+import { useSessionStore } from "@/features/session";
 import { useAppearance } from "@/shared/composables/useAppearance";
 import { isLanguage, useI18n } from "@/shared/i18n/useI18n";
 import { loadLocalPreferences } from "@/shared/services/localPersistence";
@@ -29,12 +31,15 @@ const { language, setThemeMode } = useAppearance();
 
 // Connection lifecycle: owned here so it survives the join page being replaced by the room.
 const { state: voiceState } = room.session;
+const { serverGroups, channelGroups } = storeToRefs(useSessionStore());
 useRoomSounds({
   voiceState,
   channels: room.roster.channels,
   roomNotices: room.session.roomNotices,
   chatMessages: room.chat.chatMessages,
   pokeNotifications: room.roster.pokeNotifications,
+  serverGroups,
+  channelGroups,
   playNotification: room.audio.playNotification,
 });
 useServerVisit({ voiceState });

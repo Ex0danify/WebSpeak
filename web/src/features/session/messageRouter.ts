@@ -11,7 +11,24 @@ import {
   pushBounded,
   readAvatar,
 } from "@/features/session/sessionLimits";
-import type { ServerEvent, ServerMessage, ServerMessageType } from "@/features/session/sessionTypes";
+import type { ServerEvent, ServerGroup, ServerMessage, ServerMessageType } from "@/features/session/sessionTypes";
+
+/** Group lists replace the one before. Entries without an id or a name are dropped. */
+function readGroups(groups: unknown): ServerGroup[] {
+  if (!Array.isArray(groups)) return [];
+  return groups.flatMap((group: ServerGroup | null) =>
+    Number.isSafeInteger(group?.id) && typeof group?.name === "string"
+      ? [
+          {
+            id: group.id,
+            name: clampText(group.name, MAX_NICKNAME_LENGTH),
+            iconId: Number(group.iconId) || 0,
+            isDefault: group.isDefault === true,
+          },
+        ]
+      : [],
+  );
+}
 
 /** Gateway control frame handlers, keyed by `type`; each one receives the matching `ServerMessage` variant.
  *  The JSON is parsed but not validated at runtime, so handlers still guard fields the gateway may omit. */
@@ -22,7 +39,8 @@ export type MessageHandlers = {
 /** Roster, chat, server event and poke frames. They only write the session store, so they belong to no
  *  audio or transport module. */
 export function createRosterHandlers(deps: { syncKnownMemberVolumes: () => void }): MessageHandlers {
-  const { state, members, channels, chatMessages, serverEvents, pokeNotifications } = useSessionStore();
+  const store = useSessionStore();
+  const { state, members, channels, chatMessages, serverEvents, pokeNotifications } = store;
   const { syncKnownMemberVolumes } = deps;
 
   return {
@@ -44,6 +62,16 @@ export function createRosterHandlers(deps: { syncKnownMemberVolumes: () => void 
         for (const channel of msg.channels) channels.push(channel);
       }
       syncKnownMemberVolumes();
+    },
+    serverGroups: (msg) => {
+      store.serverGroups = readGroups(msg.groups);
+    },
+    channelGroups: (msg) => {
+      store.channelGroups = readGroups(msg.groups);
+    },
+    serverGroupIcon: (msg) => {
+      const icon = readAvatar(msg.icon);
+      if (icon && Number.isSafeInteger(msg.iconId)) store.groupIcons = { ...store.groupIcons, [msg.iconId]: icon };
     },
     memberUpdate: (msg) => {
       const nickname = clampText(String(msg.nickname ?? ""), MAX_NICKNAME_LENGTH);

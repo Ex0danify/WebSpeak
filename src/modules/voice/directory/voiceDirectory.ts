@@ -3,7 +3,7 @@ import type { TSDirectorySnapshot } from "../../teamspeak/index.js";
 import type { MessageParams } from "../../../shared/messageCodes.js";
 import type { ServerEvent, VoiceConnection, WebClientEntry } from "../voiceTypes.js";
 import { syncTalkState } from "../selfActivity.js";
-import { avatarDataUrl, isChannelRecord, mapChannelTree, normalizeDirectorySnapshot } from "./voiceDirectoryView.js";
+import { avatarDataUrl, isChannelRecord, mapChannelTree, memberGroups, normalizeDirectorySnapshot } from "./voiceDirectoryView.js";
 
 export interface VoiceDirectoryDeps {
   sendInitialState(ctx: VoiceConnection): void;
@@ -197,6 +197,7 @@ export function refreshDirectory(ctx: VoiceConnection) {
       outputMuted: client.outputMuted,
       channelCommander: client.channelCommander,
       streaming: client.streaming,
+      ...memberGroups(client),
     });
   }
   for (const clientId of ctx.entry.whisperTargetIds) {

@@ -1,12 +1,14 @@
 import { defineStore } from "pinia";
 import { reactive, ref, shallowRef } from "vue";
 import type {
+  ChannelGroup,
   ChannelInfo,
   ChannelMember,
   ChatMessage,
   PermissionEntry,
   RoomNotice,
   ServerEvent,
+  ServerGroup,
   VoiceState,
 } from "@/features/session/sessionTypes";
 
@@ -61,6 +63,11 @@ export const useSessionStore = defineStore("voiceSession", () => {
   const webrtcAvailable = ref(true);
   /** The virtual server's own name, "" until the gateway reported it. */
   const serverName = ref("");
+  /** The server groups in display order, empty until the gateway sent them. */
+  const serverGroups = ref<ServerGroup[]>([]);
+  const channelGroups = ref<ChannelGroup[]>([]);
+  /** Downloaded group icons as data URLs, by icon id. */
+  const groupIcons = ref<Record<number, string>>({});
 
   function setRoomNotice(notice: RoomNotice): void {
     for (let i = roomNotices.length - 1; i >= 0; i--) {
@@ -100,6 +107,9 @@ export const useSessionStore = defineStore("voiceSession", () => {
     permissions.value = [];
     webrtcAvailable.value = true;
     serverName.value = "";
+    serverGroups.value = [];
+    channelGroups.value = [];
+    groupIcons.value = {};
   }
 
   return {
@@ -123,6 +133,9 @@ export const useSessionStore = defineStore("voiceSession", () => {
     permissions,
     webrtcAvailable,
     serverName,
+    serverGroups,
+    channelGroups,
+    groupIcons,
     reset,
   };
 });

@@ -13,6 +13,7 @@ export {
   type TSClientOptions,
   type TSDirectoryClient,
   type TSDirectorySnapshot,
+  type TSGroup,
   type TSPoke,
   type TSRawNotification,
   type TSVoiceData,

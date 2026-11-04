@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { TSDirectorySnapshot } from "../../teamspeak/index.js";
-import { avatarDataUrl, isChannelRecord, mapChannelTree, normalizeDirectorySnapshot } from "./voiceDirectoryView.js";
+import { avatarDataUrl, isChannelRecord, mapChannelTree, memberGroups, normalizeDirectorySnapshot } from "./voiceDirectoryView.js";
 
 function snapshot(channels: Array<Record<string, unknown>>, clients: Array<Record<string, unknown>>): TSDirectorySnapshot {
   return { channels, clients } as unknown as TSDirectorySnapshot;
@@ -43,6 +43,7 @@ describe("mapChannelTree", () => {
         id: 7,
         nickname: "",
         uid: "u7",
+        serverGroups: ["6", "8"],
         channelID: 1n,
         away: false,
         awayMessage: "",
@@ -54,6 +55,7 @@ describe("mapChannelTree", () => {
         id: 8,
         nickname: "Bob",
         uid: "",
+        serverGroups: [],
         channelID: 2n,
         away: true,
         awayMessage: "brb",
@@ -82,14 +84,28 @@ describe("mapChannelTree", () => {
         inputMuted: false,
         outputMuted: false,
         channelCommander: false,
+        serverGroups: [6, 8],
       },
     ]);
     expect((tree[1]!.members as Array<Record<string, unknown>>)[0]).not.toHaveProperty("avatar");
+    expect((tree[1]!.members as Array<Record<string, unknown>>)[0]).not.toHaveProperty("serverGroups");
   });
 
   it("omits the avatar when the cache holds null", () => {
     const tree = mapChannelTree(snap, new Map([["u7", null]])) as Array<{ members: Array<Record<string, unknown>> }>;
     expect(tree[0]!.members[0]).not.toHaveProperty("avatar");
+  });
+});
+
+describe("memberGroups", () => {
+  it("turns the ids into numbers and leaves the fields out without groups", () => {
+    expect(memberGroups({ serverGroups: ["6", "10"], channelGroupId: 5 })).toEqual({ serverGroups: [6, 10], channelGroupId: 5 });
+    expect(memberGroups({ serverGroups: [], channelGroupId: 0 })).toEqual({});
+    expect(memberGroups({ serverGroups: [] })).toEqual({});
+  });
+
+  it("drops what is not a group id", () => {
+    expect(memberGroups({ serverGroups: ["0", "-3", "x", "", "2.5", "7"] })).toEqual({ serverGroups: [7] });
   });
 });
 

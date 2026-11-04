@@ -82,7 +82,9 @@ describe("welcome", () => {
   it("gives a snapshot in the gateway's shape", () => {
     const { session, feed } = startSession(5);
     for (const text of WELCOME_CHANNELS) feed(text);
-    feed(enter(5, 2, "Me", { client_servergroups: "8", client_input_muted: 1, client_is_channel_commander: 1 }));
+    feed(
+      enter(5, 2, "Me", { client_servergroups: "8", client_channel_group_id: 4, client_input_muted: 1, client_is_channel_commander: 1 }),
+    );
     feed(cmd("notifychanneledited", { cid: 2, channel_topic: "Topic" }));
     const snapshot = session.snapshot();
     expect(snapshot.channels).toContainEqual({ id: 2n, parentID: 1n, order: 0n, name: "Talk", description: "Topic" });
@@ -92,6 +94,7 @@ describe("welcome", () => {
         nickname: "Me",
         uid: "",
         serverGroups: ["8"],
+        channelGroupId: 4,
         channelID: 2n,
         type: 0,
         away: false,

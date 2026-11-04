@@ -66,6 +66,30 @@ describe("MemberRow away state", () => {
   });
 });
 
+describe("MemberRow server groups", () => {
+  it("shows the icons of the member's server and channel group, named for screen readers", () => {
+    const wrapper = mount(MemberRow, {
+      props: {
+        member,
+        speaking: false,
+        isMobileViewport: false,
+        groups: {
+          server: [{ id: 7, name: "Normal", src: "data:image/png;base64,AAAA" }],
+          channel: { id: 5, name: "Channel Admin", builtin: { icon: "star", tone: "text-warning" } },
+        },
+      },
+    });
+    expect(wrapper.find('[role="img"][aria-label="Normal"]').exists()).toBe(true);
+    expect(wrapper.find('[role="img"][aria-label="Channel Admin"]').exists()).toBe(true);
+  });
+
+  it("has no group container without icons", () => {
+    const row = mountRow();
+    expect(row.find('[aria-label="Server groups"]').exists()).toBe(false);
+    expect(row.find('[aria-label="Channel group"]').exists()).toBe(false);
+  });
+});
+
 describe("MemberRow screen share", () => {
   const stream: ScreenShareStream = {
     streamId: "s1",

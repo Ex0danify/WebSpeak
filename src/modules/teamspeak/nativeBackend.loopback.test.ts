@@ -115,6 +115,48 @@ describe("NativeBackend on the loopback server", () => {
     });
   });
 
+  it("lists the server and channel groups in display order, marks the defaults, and tells for every list the server sends", async () => {
+    const { backend, push } = await connected({
+      initServerFields: {
+        virtualserver_version: "3.13.7 [Build: 1654598422]",
+        virtualserver_default_server_group: 8,
+        virtualserver_default_channel_group: 8,
+      },
+    });
+    expect(backend.serverGroups()).toEqual([]);
+    const seen: unknown[] = [];
+    (backend as EventEmitter).on("groupsChanged", () => seen.push(true));
+    await push(
+      cmd(
+        "notifyservergrouplist",
+        { sgid: 7, name: "Normal", type: 1, iconid: 600, sortid: 2 },
+        { sgid: 3, name: "Server Admin", type: 0, iconid: 300, sortid: 1 },
+        { sgid: 8, name: "Guest", type: 1, iconid: 0, sortid: 2 },
+      ),
+      cmd(
+        "notifychannelgrouplist",
+        { cgid: 5, name: "Channel Admin", type: 1, iconid: 100, sortid: 0 },
+        { cgid: 8, name: "Guest", type: 1, iconid: 0, sortid: 1 },
+      ),
+    );
+    expect(backend.serverGroups()).toEqual([
+      { id: 3, name: "Server Admin", isDefault: false, type: 0, sortId: 1, iconId: 300 },
+      { id: 7, name: "Normal", isDefault: false, type: 1, sortId: 2, iconId: 600 },
+      { id: 8, name: "Guest", isDefault: true, type: 1, sortId: 2, iconId: 0 },
+    ]);
+    expect(backend.channelGroups()).toEqual([
+      { id: 5, name: "Channel Admin", isDefault: false, type: 1, sortId: 0, iconId: 100 },
+      { id: 8, name: "Guest", isDefault: true, type: 1, sortId: 1, iconId: 0 },
+    ]);
+    expect(seen).toHaveLength(2);
+  });
+
+  it("has no icon file to load for no icon and for a built-in one", async () => {
+    const { backend } = await connected();
+    expect(await backend.loadGroupIcon(0)).toBeNull();
+    expect(await backend.loadGroupIcon(300)).toBeNull();
+  });
+
   it("answers commands with plain rows and rejects a refusal with the server error", async () => {
     const { clock, backend } = await connected();
     const version = backend.command("version");
