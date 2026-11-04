@@ -156,7 +156,10 @@ describe("group sounds", () => {
     await nextTick();
     expect(playNotification).toHaveBeenCalledOnce();
     expect(playNotification).toHaveBeenCalledWith("groupAssigned");
-    expect(useToast().toasts.value.map((item) => item.title)).toEqual(["Server group revoked: Server Admin", "Channel group assigned: Operator"]);
+    expect(useToast().toasts.value.map((item) => item.title)).toEqual([
+      "Server group revoked: Server Admin",
+      "Channel group assigned: Operator",
+    ]);
   });
 
   it("stays quiet about the groups of others", async () => {
