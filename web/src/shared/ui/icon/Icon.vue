@@ -123,7 +123,6 @@
     </template>
     <path v-else-if="name === 'check'" d="m5 12 4 4L19 6" />
     <path v-else-if="name === 'star'" d="m12 3 2.7 5.5 6 .9-4.35 4.25 1 6L12 17.8 6.65 20.6l1-6L3.3 9.4l6-.9z" />
-    <!-- A stage microphone, drawn upright and turned, filled like github. The slot is a hole in the handle. -->
     <g v-else-if="name === 'mic-handheld'" transform="rotate(45 12 12)" fill="currentColor" stroke="none" fill-rule="evenodd">
       <circle cx="12" cy="5.8" r="4.8" />
       <path d="M8.8 11.4h6.4l-1.4 11.2h-3.6zM10.9 13.8a1.1 1.1 0 0 1 2.2 0v4.4a1.1 1.1 0 0 1-2.2 0z" />
