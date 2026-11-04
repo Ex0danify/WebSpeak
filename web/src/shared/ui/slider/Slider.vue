@@ -4,6 +4,8 @@ import { SliderRange, SliderRoot, SliderThumb, SliderTrack } from "reka-ui";
 import { cn } from "@/shared/lib/cn";
 import {
   sliderBubbleClass,
+  sliderLevelClass,
+  sliderLevelGradient,
   sliderRangeClass,
   sliderRootClass,
   sliderThumbClass,
@@ -20,6 +22,9 @@ import {
 // close to it lands exactly on it, and a double click or Enter on the thumb resets to it. The tick is decoration. The
 // snap is for the pointer only, since with the arrow keys it would trap the thumb next to the value. Enter is the keyboard
 // route to the reset, so nothing here is reachable by pointer alone.
+// `live` adds a level strip to the track, for a threshold the user sets against a signal (the mic gate). Call `setLevel()`
+// with the signal on the slider's own scale (0 to 1 of min..max). It writes a custom property on the strip directly, so a
+// 50 Hz audio callback never re-renders Vue. The strip is decoration, print the number elsewhere if it matters.
 defineOptions({ inheritAttrs: false });
 
 const props = withDefaults(
@@ -32,6 +37,9 @@ const props = withDefaults(
     bubble?: string;
     bubbleShown?: boolean;
     neutral?: number;
+    live?: boolean;
+    /** The thicker track of a live slider, for a neighbour that should line up with it. */
+    thick?: boolean;
     id?: string;
     class?: string;
   }>(),
@@ -39,6 +47,12 @@ const props = withDefaults(
 );
 
 const model = defineModel<number>({ default: 0 });
+
+const levelStrip = ref<HTMLElement | null>(null);
+function setLevel(share: number) {
+  levelStrip.value?.style.setProperty("--level", String(Number.isFinite(share) ? Math.min(1, Math.max(0, share)) : 0));
+}
+defineExpose({ setLevel });
 const values = computed(() => [model.value]);
 
 // How close to the neutral value a drag counts as aiming at it, as a share of the whole range.
@@ -102,7 +116,15 @@ onBeforeUnmount(() => {
     @dblclick="reset"
     @update:model-value="onUpdate"
   >
-    <SliderTrack :class="sliderTrackClass"><SliderRange :class="sliderRangeClass" /></SliderTrack>
+    <SliderTrack :class="cn(sliderTrackClass, (live || thick) && 'h-2')"
+      ><SliderRange :class="cn(sliderRangeClass, live && 'bg-accent/30')" /><span
+        v-if="live"
+        ref="levelStrip"
+        aria-hidden="true"
+        :class="sliderLevelClass"
+        :style="{ backgroundImage: sliderLevelGradient }"
+      ></span
+    ></SliderTrack>
     <span v-if="tickStyle" aria-hidden="true" :class="sliderTickClass" :style="tickStyle"></span>
     <SliderThumb
       :id="id"

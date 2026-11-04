@@ -1,5 +1,7 @@
 import { mount } from "@vue/test-utils";
-import { describe, expect, it } from "vitest";
+import { defineComponent } from "vue";
+import { describe, expect, it, vi } from "vitest";
+import { provideContextMenu } from "@/features/room/contextMenuApi";
 import MemberRow from "@/features/room/members/MemberRow.vue";
 import type { ChannelMember } from "@/features/session";
 import type { ScreenShareStream } from "@/features/screenShare";
@@ -134,5 +136,63 @@ describe("MemberRow screen share", () => {
     const wrapper = mount(MemberRow, { props: { member: { ...member, isSelf: true }, speaking: false, isMobileViewport: false, stream } });
     expect(wrapper.text()).toContain("Live");
     expect(wrapper.find('[aria-label="Watch screen"]').exists()).toBe(false);
+  });
+});
+
+describe("MemberRow cursor", () => {
+  const row = () => mount(MemberRow, { props: { member, speaking: false, isMobileViewport: false }, attrs: { draggable: "true" } });
+  const press = (button: number) => {
+    const wrapper = row();
+    return wrapper.trigger("pointerdown", { button }).then(() => wrapper);
+  };
+
+  it("shows the grab cursor only while the primary button is held on a draggable row", async () => {
+    const wrapper = await press(0);
+    expect(wrapper.classes()).toContain("cursor-grabbing");
+    await wrapper.trigger("pointerup");
+    expect(wrapper.classes()).toContain("cursor-context-menu");
+  });
+
+  it("keeps the context-menu cursor on a right click", async () => {
+    const wrapper = await press(2);
+    expect(wrapper.classes()).toContain("cursor-context-menu");
+    expect(wrapper.classes()).not.toContain("cursor-grabbing");
+  });
+
+  it("keeps the context-menu cursor on a row that cannot be dragged", async () => {
+    const wrapper = mount(MemberRow, { props: { member, speaking: false, isMobileViewport: false } });
+    await wrapper.trigger("pointerdown", { button: 0 });
+    expect(wrapper.classes()).toContain("cursor-context-menu");
+  });
+});
+
+describe("MemberRow context menu", () => {
+  function mountWithMenu(overrides: Partial<ChannelMember> = {}, isMobileViewport = false) {
+    const open = vi.fn();
+    const Host = defineComponent({
+      components: { MemberRow },
+      setup: () => provideContextMenu(open),
+      data: () => ({ member: { ...member, ...overrides }, isMobileViewport }),
+      template: '<MemberRow :member="member" :speaking="false" :is-mobile-viewport="isMobileViewport" />',
+    });
+    return { wrapper: mount(Host), open };
+  }
+
+  it("opens the member menu on a right click", async () => {
+    const { wrapper, open } = mountWithMenu();
+    await wrapper.get("[data-member-id]").trigger("contextmenu");
+    expect(open).toHaveBeenCalledWith("member", { member }, expect.any(Event));
+  });
+
+  it("opens the self menu on your own row", async () => {
+    const { wrapper, open } = mountWithMenu({ isSelf: true });
+    await wrapper.get("[data-member-id]").trigger("contextmenu");
+    expect(open).toHaveBeenCalledWith("self", { member: { ...member, isSelf: true } }, expect.any(Event));
+  });
+
+  it("opens the menu anchored to the row from the mobile more button", async () => {
+    const { wrapper, open } = mountWithMenu({}, true);
+    await wrapper.get('button[aria-label="More member options"]').trigger("click");
+    expect(open).toHaveBeenCalledWith("member", { member }, wrapper.get("[data-member-id]").element);
   });
 });

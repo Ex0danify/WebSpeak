@@ -5,6 +5,13 @@ export const sliderRootClass =
 
 export const sliderTrackClass = "relative h-1 grow overflow-hidden rounded-full bg-line-strong";
 
+/** Green to yellow to red along the track, a background image so the level strip needs no arbitrary class. */
+export const sliderLevelGradient = "linear-gradient(90deg, var(--color-success) 0 55%, var(--color-warning) 78%, var(--color-danger) 100%)";
+
+/** The live level of a `live` slider: the whole track, cut by `clip-path` to --level (0 to 1) like the Meter fill. The gradient
+ *  is anchored to the track, so a level always shows the same colors. */
+export const sliderLevelClass = "pointer-events-none absolute inset-0 [clip-path:inset(0_calc((1-var(--level,0))*100%)_0_0)]";
+
 export const sliderRangeClass = "absolute h-full rounded-full bg-accent";
 
 export const sliderThumbClass =

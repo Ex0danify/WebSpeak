@@ -1,9 +1,11 @@
 import { onMounted, onUnmounted, ref, type Ref } from "vue";
 import { showToast } from "@/shared/composables/useToast";
+import { copyToClipboard } from "@/shared/composables/copyToClipboard";
 import { useDialog } from "@/shared/composables/useDialog";
 import { useI18n } from "@/shared/i18n/useI18n";
 import { notifyEvent } from "@/features/room/shell/roomNotify";
-import type { ChannelMember, PokeNotification } from "@/features/session";
+import { channelNameText, type ChannelMember, type PokeNotification } from "@/features/session";
+import type { TreeChannel } from "@/features/room/roomTypes";
 
 export interface UseRoomShellOptions {
   memberMenu: Ref<{ member: ChannelMember; x: number; y: number } | null>;
@@ -71,10 +73,11 @@ export function useRoomShell({
   }
 
   function copyMemberName(member: ChannelMember): void {
-    navigator.clipboard?.writeText(member.nickname).then(
-      () => showToast(t("copiedNickname")),
-      () => showToast(t("copyFailedToast"), "danger"),
-    );
+    copyToClipboard(member.nickname, { copied: t("copiedNickname"), failed: t("copyFailedToast") });
+  }
+
+  function copyChannelName(channel: TreeChannel): void {
+    copyToClipboard(channelNameText(channel, t), { copied: t("copiedChannelName"), failed: t("copyFailedToast") });
   }
 
   function dismissPoke(id: string): void {
@@ -82,5 +85,5 @@ export function useRoomShell({
     if (index >= 0) pokeNotifications.splice(index, 1);
   }
 
-  return { mobileSection, isMobileViewport, pokeMember, copyMemberName, dismissPoke };
+  return { mobileSection, isMobileViewport, pokeMember, copyMemberName, copyChannelName, dismissPoke };
 }

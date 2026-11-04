@@ -12,7 +12,15 @@
         :style="{ width: 'calc(var(--spacing-tree-step) / 2)' }"
       ></span>
     </template>
-    <Button variant="soft" size="row" :class="buttonClass" :aria-current="active ? 'true' : undefined" :title="t('switchChannel')">
+    <Button
+      variant="soft"
+      size="row"
+      :class="buttonClass"
+      :data-channel-id="channel.id"
+      :aria-current="active ? 'true' : undefined"
+      :title="t('switchChannel')"
+      @contextmenu.prevent="openContextMenu('channel', { channel }, $event)"
+    >
       <Icon name="volume" :size="sub ? 14 : 16" />
       <span :class="['min-w-0 flex-1 truncate', sub ? ['text-ui', occupied ? 'font-bold' : 'font-medium'] : 'text-md font-bold']">{{
         channelNameText(channel, t)
@@ -26,6 +34,7 @@
 import { computed } from "vue";
 import { Button } from "@/shared/ui/button";
 import { Icon } from "@/shared/ui/icon";
+import { useContextMenuOpener } from "@/features/room/contextMenuApi.js";
 import { useI18n } from "@/shared/i18n/useI18n.js";
 import { channelNameText } from "@/features/session";
 import type { TreeChannel } from "@/features/room/roomTypes.js";
@@ -42,6 +51,7 @@ const props = defineProps<{
 }>();
 
 const { t } = useI18n();
+const openContextMenu = useContextMenuOpener();
 
 // Who is in the channel sets how prominent its name is: full text colour and weight when occupied, the muted colour when empty.
 const occupied = computed(() => props.channel.members.length > 0);
