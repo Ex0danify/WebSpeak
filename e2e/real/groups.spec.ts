@@ -12,8 +12,16 @@ test("the gateway marks exactly the groups the server names as its defaults", as
   const channelRows = await query.call("channelgrouplist");
   const client = await connectAs(server, GUEST_IDENTITY, "real-groups-defaults");
   try {
-    const serverGroups = await poll(async () => client.serverGroups(), (groups) => groups.length > 0, { message: "the server group list" });
-    const channelGroups = await poll(async () => client.channelGroups(), (groups) => groups.length > 0, { message: "the channel group list" });
+    const serverGroups = await poll(
+      async () => client.serverGroups(),
+      (groups) => groups.length > 0,
+      { message: "the server group list" },
+    );
+    const channelGroups = await poll(
+      async () => client.channelGroups(),
+      (groups) => groups.length > 0,
+      { message: "the channel group list" },
+    );
 
     const nameOf = (rows: Record<string, string>[], key: string, id: string) => rows.find((row) => row[key] === id)?.name;
     const defaultServer = serverGroups.filter((group) => group.isDefault);
