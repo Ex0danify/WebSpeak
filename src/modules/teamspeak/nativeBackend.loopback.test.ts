@@ -115,8 +115,14 @@ describe("NativeBackend on the loopback server", () => {
     });
   });
 
-  it("lists the server and channel groups in display order and tells for every list the server sends", async () => {
-    const { backend, push } = await connected();
+  it("lists the server and channel groups in display order, marks the defaults, and tells for every list the server sends", async () => {
+    const { backend, push } = await connected({
+      initServerFields: {
+        virtualserver_version: "3.13.7 [Build: 1654598422]",
+        virtualserver_default_server_group: 8,
+        virtualserver_default_channel_group: 1,
+      },
+    });
     expect(backend.serverGroups()).toEqual([]);
     const seen: unknown[] = [];
     (backend as EventEmitter).on("groupsChanged", () => seen.push(true));
@@ -130,11 +136,11 @@ describe("NativeBackend on the loopback server", () => {
       cmd("notifychannelgrouplist", { cgid: 1, name: "Admin", type: 1, iconid: 100, sortid: 0 }),
     );
     expect(backend.serverGroups()).toEqual([
-      { id: 3, name: "Server Admin", type: 0, sortId: 1, iconId: 300 },
-      { id: 6, name: "Owner", type: 1, sortId: 2, iconId: 2242180715 },
-      { id: 8, name: "Guest", type: 1, sortId: 2, iconId: 0 },
+      { id: 3, name: "Server Admin", isDefault: false, type: 0, sortId: 1, iconId: 300 },
+      { id: 6, name: "Owner", isDefault: false, type: 1, sortId: 2, iconId: 2242180715 },
+      { id: 8, name: "Guest", isDefault: true, type: 1, sortId: 2, iconId: 0 },
     ]);
-    expect(backend.channelGroups()).toEqual([{ id: 1, name: "Admin", type: 1, sortId: 0, iconId: 100 }]);
+    expect(backend.channelGroups()).toEqual([{ id: 1, name: "Admin", isDefault: true, type: 1, sortId: 0, iconId: 100 }]);
     expect(seen).toHaveLength(2);
   });
 

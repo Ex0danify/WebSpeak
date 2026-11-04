@@ -15,7 +15,7 @@ export function syncGroups(ctx: VoiceConnection): void {
   );
 }
 
-const summarize = (groups: readonly TSGroup[]) => groups.map(({ id, name, iconId }) => ({ id, name, iconId }));
+const summarize = (groups: readonly TSGroup[]) => groups.map(({ id, name, iconId, isDefault }) => ({ id, name, iconId, isDefault }));
 
 function changed(ctx: VoiceConnection, kind: "serverGroups" | "channelGroups", groups: unknown): boolean {
   const signature = JSON.stringify(groups);

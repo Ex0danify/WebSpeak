@@ -23,6 +23,8 @@ export interface TSChatMessage {
 export interface TSGroup {
   id: number;
   name: string;
+  /** The group the server gives everyone, losing the last other group hands it back. */
+  isDefault: boolean;
   /** 0 template, 1 regular, 2 query. */
   type: number;
   sortId: number;

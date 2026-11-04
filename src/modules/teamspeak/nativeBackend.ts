@@ -47,9 +47,9 @@ async function resolveTarget(host: string, port: number): Promise<UdpAddress> {
   return { host: address.address, port: candidate?.port ?? port };
 }
 
-function displayOrder(groups: ReadonlyMap<number, SessionGroup> | undefined): TSGroup[] {
+function displayOrder(groups: ReadonlyMap<number, SessionGroup> | undefined, defaultId: number | undefined): TSGroup[] {
   return [...(groups?.values() ?? [])]
-    .map(({ id, name, type, sortId, iconId }) => ({ id, name, type, sortId, iconId }))
+    .map(({ id, name, type, sortId, iconId }) => ({ id, name, isDefault: id === defaultId, type, sortId, iconId }))
     .sort((a, b) => a.sortId - b.sortId || a.id - b.id);
 }
 
@@ -162,11 +162,13 @@ export class NativeBackend extends EventEmitter<TeamSpeakBackendEvents> implemen
   }
 
   serverGroups(): TSGroup[] {
-    return displayOrder(this.connection?.session.serverGroups);
+    const session = this.connection?.session;
+    return displayOrder(session?.serverGroups, session?.server.defaultServerGroupId);
   }
 
   channelGroups(): TSGroup[] {
-    return displayOrder(this.connection?.session.channelGroups);
+    const session = this.connection?.session;
+    return displayOrder(session?.channelGroups, session?.server.defaultChannelGroupId);
   }
 
   async loadGroupIcon(iconId: number): Promise<Buffer | null> {

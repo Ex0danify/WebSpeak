@@ -7,9 +7,9 @@ const gateways = useGateway();
 
 const PNG = Buffer.concat([Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]), Buffer.from("pixels")]);
 const GROUPS = [
-  { id: 6, name: "Owner", type: 1, sortId: 0, iconId: 2242180715 },
-  { id: 3, name: "Server Admin", type: 0, sortId: 1, iconId: 300 },
-  { id: 8, name: "Guest", type: 1, sortId: 2, iconId: 0 },
+  { id: 6, name: "Owner", isDefault: false, type: 1, sortId: 0, iconId: 2242180715 },
+  { id: 3, name: "Server Admin", isDefault: false, type: 0, sortId: 1, iconId: 300 },
+  { id: 8, name: "Guest", isDefault: true, type: 1, sortId: 2, iconId: 0 },
 ];
 
 type Member = { id: number; serverGroups?: number[]; channelGroupId?: number };
@@ -28,9 +28,9 @@ describe("server groups", () => {
       {
         type: "serverGroups",
         groups: [
-          { id: 6, name: "Owner", iconId: 2242180715 },
-          { id: 3, name: "Server Admin", iconId: 300 },
-          { id: 8, name: "Guest", iconId: 0 },
+          { id: 6, name: "Owner", iconId: 2242180715, isDefault: false },
+          { id: 3, name: "Server Admin", iconId: 300, isDefault: false },
+          { id: 8, name: "Guest", iconId: 0, isDefault: true },
         ],
       },
     ]);
@@ -42,8 +42,8 @@ describe("server groups", () => {
   it("sends the channel group list and each member's channel group, and follows a change", async () => {
     const gateway = await gateways.start();
     gateway.ts.groups.channel = [
-      { id: 5, name: "Channel Admin", type: 1, sortId: 0, iconId: 100 },
-      { id: 8, name: "Guest", type: 1, sortId: 1, iconId: 0 },
+      { id: 5, name: "Channel Admin", isDefault: false, type: 1, sortId: 0, iconId: 100 },
+      { id: 8, name: "Guest", isDefault: true, type: 1, sortId: 1, iconId: 0 },
     ];
     const bob = gateway.ts.addMember("bob", 2n);
     gateway.ts.updateMember(bob.id, { channelGroupId: 5 });
@@ -52,8 +52,8 @@ describe("server groups", () => {
       {
         type: "channelGroups",
         groups: [
-          { id: 5, name: "Channel Admin", iconId: 100 },
-          { id: 8, name: "Guest", iconId: 0 },
+          { id: 5, name: "Channel Admin", iconId: 100, isDefault: false },
+          { id: 8, name: "Guest", iconId: 0, isDefault: true },
         ],
       },
     ]);
@@ -71,8 +71,8 @@ describe("server groups", () => {
     const gateway = await gateways.start();
     gateway.ts.groups.server = [
       ...GROUPS,
-      { id: 9, name: "Friend", type: 1, sortId: 3, iconId: 2242180715 },
-      { id: 10, name: "Gone", type: 1, sortId: 4, iconId: 1234567 },
+      { id: 9, name: "Friend", isDefault: false, type: 1, sortId: 3, iconId: 2242180715 },
+      { id: 10, name: "Gone", isDefault: false, type: 1, sortId: 4, iconId: 1234567 },
     ];
     gateway.ts.groups.icons.set(2242180715, PNG);
     const step = vi.spyOn(gateway.ts, "step");
