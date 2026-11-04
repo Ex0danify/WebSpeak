@@ -120,7 +120,7 @@ describe("NativeBackend on the loopback server", () => {
       initServerFields: {
         virtualserver_version: "3.13.7 [Build: 1654598422]",
         virtualserver_default_server_group: 8,
-        virtualserver_default_channel_group: 1,
+        virtualserver_default_channel_group: 8,
       },
     });
     expect(backend.serverGroups()).toEqual([]);
@@ -129,18 +129,25 @@ describe("NativeBackend on the loopback server", () => {
     await push(
       cmd(
         "notifyservergrouplist",
-        { sgid: 6, name: "Owner", type: 1, iconid: 2242180715, sortid: 2 },
+        { sgid: 7, name: "Normal", type: 1, iconid: 600, sortid: 2 },
         { sgid: 3, name: "Server Admin", type: 0, iconid: 300, sortid: 1 },
         { sgid: 8, name: "Guest", type: 1, iconid: 0, sortid: 2 },
       ),
-      cmd("notifychannelgrouplist", { cgid: 1, name: "Admin", type: 1, iconid: 100, sortid: 0 }),
+      cmd(
+        "notifychannelgrouplist",
+        { cgid: 5, name: "Channel Admin", type: 1, iconid: 100, sortid: 0 },
+        { cgid: 8, name: "Guest", type: 1, iconid: 0, sortid: 1 },
+      ),
     );
     expect(backend.serverGroups()).toEqual([
       { id: 3, name: "Server Admin", isDefault: false, type: 0, sortId: 1, iconId: 300 },
-      { id: 6, name: "Owner", isDefault: false, type: 1, sortId: 2, iconId: 2242180715 },
+      { id: 7, name: "Normal", isDefault: false, type: 1, sortId: 2, iconId: 600 },
       { id: 8, name: "Guest", isDefault: true, type: 1, sortId: 2, iconId: 0 },
     ]);
-    expect(backend.channelGroups()).toEqual([{ id: 1, name: "Admin", isDefault: true, type: 1, sortId: 0, iconId: 100 }]);
+    expect(backend.channelGroups()).toEqual([
+      { id: 5, name: "Channel Admin", isDefault: false, type: 1, sortId: 0, iconId: 100 },
+      { id: 8, name: "Guest", isDefault: true, type: 1, sortId: 1, iconId: 0 },
+    ]);
     expect(seen).toHaveLength(2);
   });
 

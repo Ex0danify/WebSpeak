@@ -98,14 +98,14 @@ describe("error sounds", () => {
 describe("group sounds", () => {
   const own = (serverGroups: number[], channelGroupId = 0) => ({ id: 1, nickname: "me", serverGroups, channelGroupId });
   const setupGroups = (channelId = "a") => {
-    const started = setup([{ ...channel(channelId, []), members: [own([8], 9)] }, channel("b", [3])], {
+    const started = setup([{ ...channel(channelId, []), members: [own([8], 8)] }, channel("b", [3])], {
       server: [
-        { id: 6, name: "Owner", iconId: 0, isDefault: false },
+        { id: 6, name: "Server Admin", iconId: 0, isDefault: false },
         { id: 8, name: "Guest", iconId: 0, isDefault: true },
       ],
       channel: [
-        { id: 5, name: "Operator", iconId: 0, isDefault: false },
-        { id: 9, name: "Guest", iconId: 0, isDefault: true },
+        { id: 6, name: "Operator", iconId: 0, isDefault: false },
+        { id: 8, name: "Guest", iconId: 0, isDefault: true },
       ],
     });
     return { ...started, me: () => started.channels[0]!.members![0]! };
@@ -118,7 +118,7 @@ describe("group sounds", () => {
     await nextTick();
     expect(playNotification).toHaveBeenCalledOnce();
     expect(playNotification).toHaveBeenCalledWith("groupAssigned");
-    expect(lastToast()).toMatchObject({ variant: "success", title: "Server group assigned: Owner" });
+    expect(lastToast()).toMatchObject({ variant: "success", title: "Server group assigned: Server Admin" });
   });
 
   it("plays the revoked cue with a warning toast when you lose one, and the default group coming back stays unnoticed", async () => {
@@ -130,16 +130,16 @@ describe("group sounds", () => {
     await nextTick();
     expect(playNotification).toHaveBeenCalledOnce();
     expect(playNotification).toHaveBeenCalledWith("groupRevoked");
-    expect(lastToast()).toMatchObject({ variant: "warning", title: "Server group revoked: Owner" });
+    expect(lastToast()).toMatchObject({ variant: "warning", title: "Server group revoked: Server Admin" });
   });
 
   it("treats a channel group like a server group, and falling back to the default as a revoke", async () => {
     const { playNotification, me } = setupGroups();
-    me().channelGroupId = 5;
+    me().channelGroupId = 6;
     await nextTick();
     expect(playNotification).toHaveBeenLastCalledWith("groupAssigned");
     expect(lastToast()).toMatchObject({ variant: "success", title: "Channel group assigned: Operator" });
-    me().channelGroupId = 9;
+    me().channelGroupId = 8;
     await nextTick();
     expect(playNotification).toHaveBeenLastCalledWith("groupRevoked");
     expect(lastToast()).toMatchObject({ variant: "warning", title: "Channel group revoked: Operator" });
@@ -152,16 +152,16 @@ describe("group sounds", () => {
     playNotification.mockClear();
     useToast().dismiss();
     me().serverGroups = [];
-    me().channelGroupId = 5;
+    me().channelGroupId = 6;
     await nextTick();
     expect(playNotification).toHaveBeenCalledOnce();
     expect(playNotification).toHaveBeenCalledWith("groupAssigned");
-    expect(useToast().toasts.value.map((item) => item.title)).toEqual(["Server group revoked: Owner", "Channel group assigned: Operator"]);
+    expect(useToast().toasts.value.map((item) => item.title)).toEqual(["Server group revoked: Server Admin", "Channel group assigned: Operator"]);
   });
 
   it("stays quiet about the groups of others", async () => {
     const { playNotification, channels } = setupGroups();
-    channels[1]!.members![0] = { id: 3, nickname: "other", serverGroups: [6], channelGroupId: 5 } as never;
+    channels[1]!.members![0] = { id: 3, nickname: "other", serverGroups: [6], channelGroupId: 6 } as never;
     await nextTick();
     expect(playNotification).not.toHaveBeenCalled();
     expect(lastToast()).toBeUndefined();
@@ -169,7 +169,7 @@ describe("group sounds", () => {
 
   it("plays only the switch cue when a move brings another channel group", async () => {
     const { playNotification, channels, me } = setupGroups();
-    const moved = { ...me(), channelGroupId: 5 };
+    const moved = { ...me(), channelGroupId: 6 };
     channels[0]!.members!.pop();
     channels[1]!.members!.push(moved);
     await nextTick();
@@ -183,7 +183,7 @@ describe("group sounds", () => {
     serverGroups.value = [];
     channelGroups.value = [];
     me().serverGroups = [8, 6];
-    me().channelGroupId = 5;
+    me().channelGroupId = 6;
     await nextTick();
     expect(playNotification).not.toHaveBeenCalled();
     expect(lastToast()).toBeUndefined();
@@ -193,7 +193,7 @@ describe("group sounds", () => {
     const { playNotification, me } = setupGroups();
     me().channelGroupId = 0;
     await nextTick();
-    me().channelGroupId = 5;
+    me().channelGroupId = 6;
     await nextTick();
     expect(playNotification).not.toHaveBeenCalled();
   });

@@ -74,12 +74,12 @@ describe("MemberRow server groups", () => {
         speaking: false,
         isMobileViewport: false,
         groups: {
-          server: [{ id: 6, name: "Owner", src: "data:image/png;base64,AAAA" }],
+          server: [{ id: 7, name: "Normal", src: "data:image/png;base64,AAAA" }],
           channel: { id: 5, name: "Channel Admin", builtin: { icon: "star", tone: "text-warning" } },
         },
       },
     });
-    expect(wrapper.find('[role="img"][aria-label="Owner"]').exists()).toBe(true);
+    expect(wrapper.find('[role="img"][aria-label="Normal"]').exists()).toBe(true);
     expect(wrapper.find('[role="img"][aria-label="Channel Admin"]').exists()).toBe(true);
   });
 

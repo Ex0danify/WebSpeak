@@ -7,15 +7,14 @@ import { useSessionStore, type ServerGroup } from "@/features/session";
 beforeEach(() => setActivePinia(createPinia()));
 
 const GROUPS: ServerGroup[] = [
-  { id: 3, name: "Server Admin", iconId: 300, isDefault: false },
-  { id: 6, name: "Owner", iconId: 2242180715, isDefault: false },
-  { id: 8, name: "Guest", iconId: 0, isDefault: false },
-  { id: 9, name: "Friend", iconId: 2303737790, isDefault: false },
+  { id: 6, name: "Server Admin", iconId: 300, isDefault: false },
+  { id: 7, name: "Normal", iconId: 5000, isDefault: false },
+  { id: 8, name: "Guest", iconId: 0, isDefault: true },
 ];
 const CHANNEL_GROUPS: ServerGroup[] = [
   { id: 5, name: "Channel Admin", iconId: 100, isDefault: false },
-  { id: 6, name: "Guest", iconId: 0, isDefault: false },
-  { id: 7, name: "Regular", iconId: 4000000000, isDefault: false },
+  { id: 7, name: "Voice", iconId: 6000, isDefault: false },
+  { id: 8, name: "Guest", iconId: 0, isDefault: true },
 ];
 
 function setup(icons: Record<number, string>) {
@@ -28,38 +27,38 @@ function setup(icons: Record<number, string>) {
 
 describe("server groups", () => {
   it("lists the groups of a member in the server's order, with built-in and downloaded icons", () => {
-    const { groups } = setup({ 2242180715: "data:image/png;base64,AAAA" });
-    const { server } = groups.groupsFor({ serverGroups: [6, 3] });
-    expect(server.map((group) => group.name)).toEqual(["Server Admin", "Owner"]);
+    const { groups } = setup({ 5000: "data:image/png;base64,AAAA" });
+    const { server } = groups.groupsFor({ serverGroups: [7, 6] });
+    expect(server.map((group) => group.name)).toEqual(["Server Admin", "Normal"]);
     expect(server[0]!.builtin).toEqual(builtinGroupIcon(300));
     expect(server[1]!.src).toBe("data:image/png;base64,AAAA");
   });
 
   it("leaves out groups without an icon, with an icon still loading, and ids the list does not know", () => {
     const { groups } = setup({});
-    expect(groups.groupsFor({ serverGroups: [8, 6, 9, 77] }).server).toEqual([]);
+    expect(groups.groupsFor({ serverGroups: [8, 7, 9, 77] }).server).toEqual([]);
     expect(groups.groupsFor({}).server).toEqual([]);
   });
 
   it("follows the icons as they arrive", () => {
     const { groups, session } = setup({});
-    expect(groups.groupsFor({ serverGroups: [9] }).server).toEqual([]);
-    session.groupIcons = { 2303737790: "data:image/png;base64,BBBB" };
-    expect(groups.groupsFor({ serverGroups: [9] }).server.map((group) => group.name)).toEqual(["Friend"]);
+    expect(groups.groupsFor({ serverGroups: [7] }).server).toEqual([]);
+    session.groupIcons = { 5000: "data:image/png;base64,BBBB" };
+    expect(groups.groupsFor({ serverGroups: [7] }).server.map((group) => group.name)).toEqual(["Normal"]);
   });
 });
 
 describe("channel group", () => {
   it("is looked up in its own list, where ids may repeat the server group ids", () => {
-    const { groups } = setup({ 4000000000: "data:image/png;base64,CCCC", 2242180715: "data:image/png;base64,AAAA" });
+    const { groups } = setup({ 6000: "data:image/png;base64,CCCC", 5000: "data:image/png;base64,AAAA" });
     expect(groups.groupsFor({ channelGroupId: 5 }).channel).toMatchObject({ name: "Channel Admin", builtin: builtinGroupIcon(100) });
-    expect(groups.groupsFor({ channelGroupId: 7 }).channel).toMatchObject({ name: "Regular", src: "data:image/png;base64,CCCC" });
-    expect(groups.groupsFor({ serverGroups: [6], channelGroupId: 5 }).server.map((group) => group.name)).toEqual(["Owner"]);
+    expect(groups.groupsFor({ channelGroupId: 7 }).channel).toMatchObject({ name: "Voice", src: "data:image/png;base64,CCCC" });
+    expect(groups.groupsFor({ serverGroups: [6], channelGroupId: 5 }).server.map((group) => group.name)).toEqual(["Server Admin"]);
   });
 
   it("is left out without an icon, for a member without one and for an id the list does not know", () => {
     const { groups } = setup({});
-    expect(groups.groupsFor({ channelGroupId: 6 }).channel).toBeUndefined();
+    expect(groups.groupsFor({ channelGroupId: 8 }).channel).toBeUndefined();
     expect(groups.groupsFor({ channelGroupId: 7 }).channel).toBeUndefined();
     expect(groups.groupsFor({}).channel).toBeUndefined();
     expect(groups.groupsFor({ channelGroupId: 99 })).toEqual({ server: [] });
@@ -67,7 +66,7 @@ describe("channel group", () => {
 });
 
 describe("builtinGroupIcon", () => {
-  it.each([0, -1, 1000, 2242180715, 1.5])("has no built-in icon for %s", (id) => {
+  it.each([0, -1, 1000, 5000, 1.5])("has no built-in icon for %s", (id) => {
     expect(builtinGroupIcon(id)).toBeUndefined();
   });
 

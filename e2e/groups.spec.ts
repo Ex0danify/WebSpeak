@@ -3,16 +3,16 @@ import { join, memberRow } from "./helpers";
 import type { Gateway } from "../test/support/gateway";
 
 // Server and channel groups on the real gateway and the fake TeamSpeak server: the icons in a member row and what you are told
-// when one of your own groups changes. Built-in icon ids (300, 100) need no file, so no transfer is faked.
+// when one of your own groups changes. Built-in icon ids (300, 600, 200) need no file, so no transfer is faked.
 
 const SERVER_GROUPS = [
-  { id: 3, name: "Server Admin", isDefault: false, type: 1, sortId: 0, iconId: 300 },
-  { id: 6, name: "Owner", isDefault: false, type: 1, sortId: 1, iconId: 300 },
+  { id: 6, name: "Server Admin", isDefault: false, type: 1, sortId: 0, iconId: 300 },
+  { id: 7, name: "Normal", isDefault: false, type: 1, sortId: 1, iconId: 600 },
   { id: 8, name: "Guest", isDefault: true, type: 1, sortId: 2, iconId: 0 },
 ];
 const CHANNEL_GROUPS = [
-  { id: 5, name: "Operator", isDefault: false, type: 1, sortId: 0, iconId: 100 },
-  { id: 9, name: "Guest", isDefault: true, type: 1, sortId: 1, iconId: 0 },
+  { id: 6, name: "Operator", isDefault: false, type: 1, sortId: 0, iconId: 200 },
+  { id: 8, name: "Guest", isDefault: true, type: 1, sortId: 1, iconId: 0 },
 ];
 
 function provide(gateway: Gateway) {
@@ -28,7 +28,7 @@ test.describe("server and channel groups", () => {
     provide(gateway);
     const channel = script.channel("groups-row");
     const admin = script.member("groups-row-admin", channel);
-    gateway.ts.updateMember(admin.id, { serverGroups: ["3", "6", "8"], channelGroupId: 5 });
+    gateway.ts.updateMember(admin.id, { serverGroups: ["6", "7", "8"], channelGroupId: 6 });
     script.member("groups-row-plain", channel);
     await join(page, "groups-row-self");
 
@@ -37,6 +37,7 @@ test.describe("server and channel groups", () => {
     const channelGroup = row.getByRole("group", { name: "Channel group" });
     await expect(servers.getByRole("img")).toHaveCount(2);
     await expect(servers.getByRole("img", { name: "Server Admin" })).toBeVisible();
+    await expect(servers.getByRole("img", { name: "Normal" })).toBeVisible();
     await expect(channelGroup.getByRole("img", { name: "Operator" })).toBeVisible();
     // Left to right: server groups, then the channel group.
     const [serversBox, channelBox] = [await servers.boundingBox(), await channelGroup.boundingBox()];
@@ -54,11 +55,11 @@ test.describe("server and channel groups", () => {
     await join(page, "groups-own-server");
     const id = ownId(gateway, "groups-own-server");
 
-    gateway.ts.updateMember(id, { serverGroups: ["8", "6"] });
-    await expect(page.getByText("Server group assigned: Owner")).toBeVisible();
+    gateway.ts.updateMember(id, { serverGroups: ["8", "7"] });
+    await expect(page.getByText("Server group assigned: Normal")).toBeVisible();
 
     gateway.ts.updateMember(id, { serverGroups: ["8"] });
-    await expect(page.getByText("Server group revoked: Owner")).toBeVisible();
+    await expect(page.getByText("Server group revoked: Normal")).toBeVisible();
   });
 
   test("tells you about your channel group, falling back to the default being a revoke", async ({ page, gateway }) => {
@@ -66,13 +67,13 @@ test.describe("server and channel groups", () => {
     await join(page, "groups-own-channel");
     const id = ownId(gateway, "groups-own-channel");
     // The first channel group of a session is no change, so give the default one before the real change.
-    gateway.ts.updateMember(id, { channelGroupId: 9 });
+    gateway.ts.updateMember(id, { channelGroupId: 8 });
     await expect(memberRow(page, "groups-own-channel")).toBeVisible();
 
-    gateway.ts.updateMember(id, { channelGroupId: 5 });
+    gateway.ts.updateMember(id, { channelGroupId: 6 });
     await expect(page.getByText("Channel group assigned: Operator")).toBeVisible();
 
-    gateway.ts.updateMember(id, { channelGroupId: 9 });
+    gateway.ts.updateMember(id, { channelGroupId: 8 });
     await expect(page.getByText("Channel group revoked: Operator")).toBeVisible();
   });
 
@@ -81,8 +82,8 @@ test.describe("server and channel groups", () => {
     const channel = script.channel("groups-others");
     const other = script.member("groups-others-bob", channel);
     await join(page, "groups-others-self");
-    gateway.ts.updateMember(other.id, { serverGroups: ["6"], channelGroupId: 5 });
-    await expect(memberRow(page, "groups-others-bob").getByRole("img", { name: "Owner" })).toBeVisible();
+    gateway.ts.updateMember(other.id, { serverGroups: ["7"], channelGroupId: 6 });
+    await expect(memberRow(page, "groups-others-bob").getByRole("img", { name: "Normal" })).toBeVisible();
     await expect(page.getByText(/group (assigned|revoked)/)).toHaveCount(0);
   });
 });

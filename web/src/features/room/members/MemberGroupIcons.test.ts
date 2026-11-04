@@ -4,8 +4,8 @@ import MemberGroupIcons from "@/features/room/members/MemberGroupIcons.vue";
 import { builtinGroupIcon } from "@/features/room/members/builtinGroupIcons";
 
 const server = [
-  { id: 3, name: "Server Admin", builtin: builtinGroupIcon(300) },
-  { id: 6, name: "Owner", src: "data:image/png;base64,AAAA" },
+  { id: 6, name: "Server Admin", builtin: builtinGroupIcon(300) },
+  { id: 7, name: "Normal", src: "data:image/png;base64,AAAA" },
 ];
 const channel = { id: 5, name: "Channel Admin", builtin: builtinGroupIcon(100) };
 
@@ -14,7 +14,7 @@ describe("MemberGroupIcons", () => {
     const wrapper = mount(MemberGroupIcons, { props: { groups: { server, channel } } });
     const servers = wrapper.get('[role="group"][aria-label="Server groups"]');
     const channels = wrapper.get('[role="group"][aria-label="Channel group"]');
-    expect(servers.findAll('[role="img"]').map((icon) => icon.attributes("aria-label"))).toEqual(["Server Admin", "Owner"]);
+    expect(servers.findAll('[role="img"]').map((icon) => icon.attributes("aria-label"))).toEqual(["Server Admin", "Normal"]);
     expect(channels.findAll('[role="img"]').map((icon) => icon.attributes("aria-label"))).toEqual(["Channel Admin"]);
   });
 

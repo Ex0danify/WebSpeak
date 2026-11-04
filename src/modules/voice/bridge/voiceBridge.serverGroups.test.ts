@@ -7,7 +7,7 @@ const gateways = useGateway();
 
 const PNG = Buffer.concat([Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]), Buffer.from("pixels")]);
 const GROUPS = [
-  { id: 6, name: "Owner", isDefault: false, type: 1, sortId: 0, iconId: 2242180715 },
+  { id: 7, name: "Normal", isDefault: false, type: 1, sortId: 0, iconId: 600 },
   { id: 3, name: "Server Admin", isDefault: false, type: 0, sortId: 1, iconId: 300 },
   { id: 8, name: "Guest", isDefault: true, type: 1, sortId: 2, iconId: 0 },
 ];
@@ -21,21 +21,21 @@ describe("server groups", () => {
     const gateway = await gateways.start();
     gateway.ts.groups.server = GROUPS;
     const bob = gateway.ts.addMember("bob", 2n);
-    gateway.ts.members.get(bob.id)!.serverGroups = ["6", "8"];
+    gateway.ts.members.get(bob.id)!.serverGroups = ["7", "8"];
     gateway.ts.addMember("carol", 2n);
     const { socket } = await joinVoice(gateway, { nickname: "alice" });
     expect(socket.messagesOfType("serverGroups")).toEqual([
       {
         type: "serverGroups",
         groups: [
-          { id: 6, name: "Owner", iconId: 2242180715, isDefault: false },
+          { id: 7, name: "Normal", iconId: 600, isDefault: false },
           { id: 3, name: "Server Admin", iconId: 300, isDefault: false },
           { id: 8, name: "Guest", iconId: 0, isDefault: true },
         ],
       },
     ]);
     const members = roomMembers(socket.messagesOfType("channelList").at(-1)!);
-    expect(members.find((member) => member.id === bob.id)?.serverGroups).toEqual([6, 8]);
+    expect(members.find((member) => member.id === bob.id)?.serverGroups).toEqual([7, 8]);
     expect(members.filter((member) => "serverGroups" in member)).toHaveLength(1);
   });
 
@@ -71,16 +71,17 @@ describe("server groups", () => {
     const gateway = await gateways.start();
     gateway.ts.groups.server = [
       ...GROUPS,
-      { id: 9, name: "Friend", isDefault: false, type: 1, sortId: 3, iconId: 2242180715 },
-      { id: 10, name: "Gone", isDefault: false, type: 1, sortId: 4, iconId: 1234567 },
+      { id: 4, name: "Normal", isDefault: false, type: 0, sortId: 3, iconId: 5000 },
+      { id: 5, name: "Guest", isDefault: false, type: 0, sortId: 4, iconId: 6000 },
+      { id: 2, name: "Admin Server Query", isDefault: false, type: 2, sortId: 5, iconId: 5000 },
     ];
-    gateway.ts.groups.icons.set(2242180715, PNG);
+    gateway.ts.groups.icons.set(5000, PNG);
     const step = vi.spyOn(gateway.ts, "step");
     const { socket } = await joinVoice(gateway, { nickname: "alice" });
     await socket.waitForMessage("serverGroupIcon");
-    await vi.waitFor(() => expect(step.mock.calls.filter(([operation]) => operation === "groupIcon")).toHaveLength(3));
+    await vi.waitFor(() => expect(step.mock.calls.filter(([operation]) => operation === "groupIcon")).toHaveLength(4));
     expect(socket.messagesOfType("serverGroupIcon")).toEqual([
-      { type: "serverGroupIcon", iconId: 2242180715, icon: `data:image/png;base64,${PNG.toString("base64")}` },
+      { type: "serverGroupIcon", iconId: 5000, icon: `data:image/png;base64,${PNG.toString("base64")}` },
     ]);
   });
 
