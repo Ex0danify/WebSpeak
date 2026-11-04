@@ -76,11 +76,33 @@ const chat = [
   },
 ];
 
+// The groups a TeamSpeak 6 server has by default, with their built-in icon ids. Normal wears a downloaded icon here, as a
+// server admin can give any group one, so the shot shows both kinds.
+const GROUP_ICON = { id: 5000, dataUrl: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAAh0lEQVR4nO3UwQ2AMAxD0Q7KRuzLFSaAxI5dqiqReoT/GgnG6AHnPK776/wWtkHQsBRSjZcQqjiFUMchROZFbyNBMGEEYo+XEKp4hLDfntqCOg5voQENWBYw7TN0bEH2J2QQ8O2VCDoeASJI5tkQkEUwJxV3IaC4GkHFVYhSvAKRhVGILbztPOTPy8pJVsSrAAAAAElFTkSuQmCC" };
+const serverGroups = [
+  { id: 6, name: "Server Admin", iconId: 300, isDefault: false },
+  { id: 7, name: "Normal", iconId: GROUP_ICON.id, isDefault: false },
+  { id: 8, name: "Guest", iconId: 0, isDefault: true },
+];
+const channelGroups = [
+  { id: 5, name: "Channel Admin", iconId: 100, isDefault: false },
+  { id: 6, name: "Operator", iconId: 200, isDefault: false },
+  { id: 7, name: "Voice", iconId: 600, isDefault: false },
+  { id: 8, name: "Guest", iconId: 0, isDefault: true },
+];
+const memberGroups: Record<number, { serverGroups: number[]; channelGroupId: number }> = {
+  1: { serverGroups: [8], channelGroupId: 8 },
+  2: { serverGroups: [6, 8], channelGroupId: 6 },
+  3: { serverGroups: [7, 8], channelGroupId: 7 },
+  4: { serverGroups: [6, 7, 8], channelGroupId: 5 },
+  5: { serverGroups: [8], channelGroupId: 8 },
+};
+
 /** The scenarios the snapshot harness takes a shot of. */
 export const connectedScenarios = ["connected", "poke", "reconnecting", "reconnect-failed", "audio-notice"] as const;
 
 /** Every scenario `apply` knows: the snapshot ones plus the states only the specs look at. */
-export type ScriptedScenario = (typeof connectedScenarios)[number] | "pokes" | "reconnected";
+export type ScriptedScenario = (typeof connectedScenarios)[number] | "groups" | "pokes" | "reconnected";
 
 /**
  * Install the fixture on a browser context before the first navigation. Returns a handle to drive a scenario once the page
@@ -178,7 +200,19 @@ export async function installVoiceFixture(context: BrowserContext, options: Scri
     startSpeaking,
     apply(scenario) {
       if (scenario === "connected") startSpeaking([2]);
-      else if (scenario === "poke") {
+      else if (scenario === "groups") {
+        send({ type: "serverGroups", groups: serverGroups });
+        send({ type: "channelGroups", groups: channelGroups });
+        send({ type: "serverGroupIcon", iconId: GROUP_ICON.id, icon: GROUP_ICON.dataUrl });
+        send({
+          type: "channelList",
+          channels: channels.map((channel) => ({
+            ...channel,
+            members: channel.members.map((member) => ({ ...member, ...memberGroups[member.id] })),
+          })),
+        });
+        startSpeaking([2]);
+      } else if (scenario === "poke") {
         startSpeaking([2]);
         send({
           type: "pokeReceived",

@@ -56,6 +56,8 @@ for (const theme of themes) {
     }[] = [
       ...connectedScenarios.map((scenario) => ({ state: scenario, scenario, tab: "Voice" })),
       { state: "channels", scenario: "connected", phoneOnly: true },
+      // The member list with the group icons, on a phone it is the channels tab.
+      { state: "groups", scenario: "groups" },
       { state: "chat", scenario: "connected", tab: "Chat", phoneOnly: true },
       { state: "more", scenario: "connected", tab: "More", phoneOnly: true },
       { state: "away-dialog", scenario: "connected", desktopOnly: true, openAway: true },
@@ -75,6 +77,8 @@ for (const theme of themes) {
           if (tab && project.name === "mobile") await page.getByRole("tab", { name: tab }).click();
           const text = scenarioText[scenario];
           if (text) await expect(page.getByText(text).first()).toBeVisible();
+          // The downloaded icon is the last one to arrive.
+          if (scenario === "groups") await expect(page.locator('img[src^="data:image/png"]').first()).toBeVisible();
           if (openAway) {
             await page.getByRole("button", { name: "Available" }).click();
             await expect(page.getByRole("dialog", { name: "Set away message" })).toBeVisible();
