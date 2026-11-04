@@ -21,7 +21,7 @@ import type {
   TSDirectorySnapshot,
   TSPoke,
   TSRawNotification,
-  TSServerGroup,
+  TSGroup,
   TSVoiceData,
 } from "./teamSpeakMessages.js";
 
@@ -51,8 +51,8 @@ export interface TeamSpeakBackendEvents {
   kicked: [WebSpeakError];
   /** Our own permissions changed, see `canSendText`. */
   permissionsChanged: [];
-  /** The server sent its group list, again after an edit. */
-  serverGroupsChanged: [];
+  /** The server sent a server or channel group list, again after an edit. */
+  groupsChanged: [];
   disconnected: [Error | undefined];
 }
 
@@ -102,7 +102,8 @@ export interface TeamSpeakBackend extends EventEmitter<TeamSpeakBackendEvents> {
   sendVoice(data: Buffer, codec: number): void;
   sendWhisper(data: Buffer, clientIds: number[], codec: number): void;
   /** The server groups, in display order. Empty until the server sent the list. */
-  serverGroups(): TSServerGroup[];
+  serverGroups(): TSGroup[];
+  channelGroups(): TSGroup[];
   /** Null for an icon without file, one that is built in or one the server refuses. */
   loadGroupIcon(iconId: number): Promise<Buffer | null>;
   /** Null for a client without avatar, or one that is not `expectedUid` (any more). */

@@ -10,7 +10,7 @@ function forward() {
   const source = Object.assign(new EventEmitter<ConnectionEventMap>(), { session: { snapshot: () => SNAPSHOT } as unknown as SessionView });
   const target = new EventEmitter<TeamSpeakBackendEvents>();
   const seen: [string, unknown][] = [];
-  const types = ["directorySnapshot", "clientLeave", "kicked", "disconnected", "permissionsChanged", "serverGroupsChanged"] as const;
+  const types = ["directorySnapshot", "clientLeave", "kicked", "disconnected", "permissionsChanged", "groupsChanged"] as const;
   for (const type of types) target.on(type, (payload: unknown) => seen.push([type, payload]));
   forwardConnectionEvents(source, target);
   return { source, seen };
@@ -60,11 +60,14 @@ describe("forwardConnectionEvents", () => {
     expect(seen).toEqual([["permissionsChanged", undefined]]);
   });
 
-  it("tells that the server group list changed, but not for channel groups", () => {
+  it("tells that a server or channel group list changed, without a snapshot", () => {
     const { source, seen } = forward();
     source.emit("groupsUpdated", { type: "groupsUpdated", kind: "channel" });
     source.emit("groupsUpdated", { type: "groupsUpdated", kind: "server" });
-    expect(seen).toEqual([["serverGroupsChanged", undefined]]);
+    expect(seen).toEqual([
+      ["groupsChanged", undefined],
+      ["groupsChanged", undefined],
+    ]);
   });
 
   it("passes the transport error of a lost connection on", () => {

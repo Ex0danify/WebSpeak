@@ -8,6 +8,7 @@ import {
   type CommandPriority,
   type CommandRequest,
   type PermissionEntry,
+  type SessionGroup,
   type TeamSpeakConnectionOptions,
   type UdpAddress,
 } from "../../lib/teamspeak/index.js";
@@ -25,7 +26,7 @@ import {
   type TeamSpeakBackendOptions,
   type TSClientAvatar,
 } from "./teamSpeakBackend.js";
-import type { TSServerGroup } from "./teamSpeakMessages.js";
+import type { TSGroup } from "./teamSpeakMessages.js";
 
 const CONNECT_TIMEOUT_MS = 15_000;
 
@@ -44,6 +45,12 @@ async function resolveTarget(host: string, port: number): Promise<UdpAddress> {
   const [candidate] = await resolveAddress(host, { port });
   const address = await lookup(candidate?.host ?? host);
   return { host: address.address, port: candidate?.port ?? port };
+}
+
+function displayOrder(groups: ReadonlyMap<number, SessionGroup> | undefined): TSGroup[] {
+  return [...(groups?.values() ?? [])]
+    .map(({ id, name, type, sortId, iconId }) => ({ id, name, type, sortId, iconId }))
+    .sort((a, b) => a.sortId - b.sortId || a.id - b.id);
 }
 
 /** TSClient on the own TeamSpeak client in lib/teamspeak. */
@@ -154,11 +161,12 @@ export class NativeBackend extends EventEmitter<TeamSpeakBackendEvents> implemen
     return avatar && avatar.data.length > 0 ? avatar : null;
   }
 
-  serverGroups(): TSServerGroup[] {
-    const groups = [...(this.connection?.session.serverGroups.values() ?? [])];
-    return groups
-      .map(({ id, name, type, sortId, iconId }) => ({ id, name, type, sortId, iconId }))
-      .sort((a, b) => a.sortId - b.sortId || a.id - b.id);
+  serverGroups(): TSGroup[] {
+    return displayOrder(this.connection?.session.serverGroups);
+  }
+
+  channelGroups(): TSGroup[] {
+    return displayOrder(this.connection?.session.channelGroups);
   }
 
   async loadGroupIcon(iconId: number): Promise<Buffer | null> {

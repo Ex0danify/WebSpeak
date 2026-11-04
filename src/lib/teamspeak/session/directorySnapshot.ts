@@ -17,6 +17,8 @@ export interface DirectoryClient {
   nickname: string;
   uid: string;
   serverGroups: string[];
+  /** The group the client has in its current channel, 0 when the server did not say. */
+  channelGroupId: number;
   channelID: bigint;
   type: number;
   away: boolean;
@@ -45,6 +47,7 @@ export const directoryClient = (client: SessionClient): DirectoryClient => ({
   nickname: client.nickname,
   uid: client.uid,
   serverGroups: client.serverGroups.map(String),
+  channelGroupId: client.channelGroupId,
   channelID: client.channelId,
   type: client.type,
   away: client.away,

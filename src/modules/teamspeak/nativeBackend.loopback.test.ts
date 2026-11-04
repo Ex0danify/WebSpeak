@@ -115,11 +115,11 @@ describe("NativeBackend on the loopback server", () => {
     });
   });
 
-  it("lists the server groups in display order and tells when the server sends them again", async () => {
+  it("lists the server and channel groups in display order and tells for every list the server sends", async () => {
     const { backend, push } = await connected();
     expect(backend.serverGroups()).toEqual([]);
     const seen: unknown[] = [];
-    (backend as EventEmitter).on("serverGroupsChanged", () => seen.push(true));
+    (backend as EventEmitter).on("groupsChanged", () => seen.push(true));
     await push(
       cmd(
         "notifyservergrouplist",
@@ -134,7 +134,8 @@ describe("NativeBackend on the loopback server", () => {
       { id: 6, name: "Owner", type: 1, sortId: 2, iconId: 2242180715 },
       { id: 8, name: "Guest", type: 1, sortId: 2, iconId: 0 },
     ]);
-    expect(seen).toHaveLength(1);
+    expect(backend.channelGroups()).toEqual([{ id: 1, name: "Admin", type: 1, sortId: 0, iconId: 100 }]);
+    expect(seen).toHaveLength(2);
   });
 
   it("has no icon file to load for no icon and for a built-in one", async () => {

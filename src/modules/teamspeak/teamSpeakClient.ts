@@ -17,7 +17,7 @@ import {
 import type { TsClientVersion } from "../../config/env.js";
 import type { Logger } from "../../shared/logger.js";
 import { describeTeamSpeakError, normalizeTeamSpeakError } from "../../shared/errors.js";
-import type { TSChatScope, TSServerGroup } from "./teamSpeakMessages.js";
+import type { TSChatScope, TSGroup } from "./teamSpeakMessages.js";
 import { InputMuteSync } from "./inputMuteSync.js";
 import { OutputMuteSync } from "./outputMuteSync.js";
 import { sendStreamCommand } from "./teamSpeakStreamCommand.js";
@@ -62,7 +62,7 @@ const FORWARDED_EVENTS = [
   "clientUpdated",
   "kicked",
   "permissionsChanged",
-  "serverGroupsChanged",
+  "groupsChanged",
 ] as const satisfies readonly (keyof TeamSpeakBackendEvents)[];
 
 const TEXT_TARGET_MODES = { private: TextMessageTarget.client, channel: TextMessageTarget.channel, server: TextMessageTarget.server };
@@ -193,8 +193,12 @@ export class TSClient extends EventEmitter {
     }
   }
 
-  serverGroups(): TSServerGroup[] {
+  serverGroups(): TSGroup[] {
     return this.backend?.serverGroups() ?? [];
+  }
+
+  channelGroups(): TSGroup[] {
+    return this.backend?.channelGroups() ?? [];
   }
 
   async getGroupIcon(iconId: number): Promise<Buffer | null> {
