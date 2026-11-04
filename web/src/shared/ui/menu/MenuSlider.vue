@@ -33,6 +33,10 @@ const props = withDefaults(
     bubble?: string;
     /** The value that means "unchanged": marked on the slider, snapped to by a drag, and restored by Enter or a double click. */
     neutral?: number;
+    /** A live level strip in the track, fed through `setLevel()` (see Slider). */
+    live?: boolean;
+    /** The live slider's track thickness without the strip (see Slider). */
+    thick?: boolean;
     class?: string;
   }>(),
   { min: 0, max: 100, step: 1 },
@@ -46,6 +50,8 @@ const rowClass = computed(() =>
 );
 
 const item = ref<{ $el: HTMLElement } | null>(null);
+const slider = ref<InstanceType<typeof Slider> | null>(null);
+defineExpose({ setLevel: (share: number) => slider.value?.setLevel(share) });
 
 watch(
   item,
@@ -95,6 +101,7 @@ function onFocusin(event: FocusEvent) {
       <slot name="action" />
     </div>
     <Slider
+      ref="slider"
       v-model="model"
       :min="min"
       :max="max"
@@ -102,6 +109,8 @@ function onFocusin(event: FocusEvent) {
       :value-text="valueText"
       :bubble="bubble"
       :neutral="neutral"
+      :live="live"
+      :thick="thick"
       :aria-label="label"
     />
   </div>
@@ -124,12 +133,15 @@ function onFocusin(event: FocusEvent) {
       <slot name="action" />
     </div>
     <Slider
+      ref="slider"
       v-model="model"
       :min="min"
       :max="max"
       :step="step"
       :bubble="bubble"
       :neutral="neutral"
+      :live="live"
+      :thick="thick"
       :bubble-shown="keying"
       aria-hidden="true"
       tabindex="-1"

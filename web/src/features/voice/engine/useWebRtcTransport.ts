@@ -2,6 +2,7 @@ import type { Ref } from "vue";
 import { storeToRefs } from "pinia";
 import { useVoiceAudioStore } from "@/features/voice/stores/voiceAudioStore";
 import { useSessionStore } from "@/features/session";
+import { MIC_LEVEL_GAIN } from "@/features/voice/audioConstants";
 import { safeClientErrorCode } from "@/features/session";
 import type { LocalizedText, TextParams } from "@/shared/i18n/localizedText";
 import type { SinkAudioContext, SinkAudioElement } from "@/features/voice/voiceTypes";
@@ -285,7 +286,7 @@ export function useWebRtcTransport(deps: WebRtcTransportDeps) {
         let sum = 0;
         for (const sample of samples) sum += sample * sample;
         const rms = Math.sqrt(sum / samples.length);
-        micLevel.value = Math.min(1, rms * 6);
+        micLevel.value = Math.min(1, rms * MIC_LEVEL_GAIN);
       }, 50);
     } catch {
       stopWebRtcMicMonitor(false);

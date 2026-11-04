@@ -60,16 +60,16 @@
     />
     <div class="flex items-center justify-between gap-3">
       <Label for="vox-threshold">{{ t("voxThreshold") }}</Label
-      ><strong class="text-ui text-accent">{{ (voxThreshold * 100).toFixed(1) }}%</strong>
+      ><strong class="text-ui text-accent">{{ formatVoxDb(voxDb) }}</strong>
     </div>
     <Slider
       id="vox-threshold"
-      :model-value="Math.round(voxThreshold * 1000)"
-      :min="1"
-      :max="80"
-      :value-text="`${(voxThreshold * 100).toFixed(1)}%`"
+      :model-value="voxDb"
+      :min="VOX_DB_MIN"
+      :max="VOX_DB_MAX"
+      :value-text="formatVoxDb(voxDb)"
       class="mb-2"
-      @update:model-value="$emit('set-vox-threshold', $event / 1000)"
+      @update:model-value="$emit('set-vox-threshold', dbToVox($event))"
     />
     <div class="mt-2.5 flex items-center justify-between gap-3 text-xs text-fg-muted">
       <span>{{ t("micLevel") }}</span
@@ -106,6 +106,7 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from "vue";
 import { Button } from "@/shared/ui/button";
 import { Chip } from "@/shared/ui/chip";
 import { Field, Hint, Label } from "@/shared/ui/field";
@@ -116,9 +117,9 @@ import { Slider } from "@/shared/ui/slider";
 import { Switch } from "@/shared/ui/switch";
 import { useI18n } from "@/shared/i18n/useI18n.js";
 import { resolveText, type MaybeLocalizedText } from "@/shared/i18n/localizedText.js";
-import type { AudioInputDevice, AudioPermission } from "@/features/voice";
+import { VOX_DB_MAX, VOX_DB_MIN, dbToVox, formatVoxDb, voxToDb, type AudioInputDevice, type AudioPermission } from "@/features/voice";
 
-defineProps<{
+const props = defineProps<{
   audioSettingsError: MaybeLocalizedText;
   selectedInputDeviceId: string;
   inputDevices: AudioInputDevice[];
@@ -145,4 +146,5 @@ defineEmits<{
 }>();
 
 const { t } = useI18n();
+const voxDb = computed(() => voxToDb(props.voxThreshold));
 </script>
