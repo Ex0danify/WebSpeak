@@ -23,6 +23,6 @@ export { translations as chatMessages } from "@/features/room/chat/i18n/index.js
 export { translations as profileMessages } from "@/features/room/profile/i18n/index.js";
 export { default as MemberPanel } from "@/features/room/members/MemberPanel.vue";
 export { default as MemberTree } from "@/features/room/members/MemberTree.vue";
-export { default as MemberContextMenu } from "@/features/room/members/MemberContextMenu.vue";
-export { useMemberMenu } from "@/features/room/members/useMemberMenu";
+export { default as ContextMenuLayer } from "@/features/room/contextMenu/ContextMenuLayer.vue";
+export { useContextMenu } from "@/features/room/contextMenu/useContextMenu";
 export { useChannelTree } from "@/features/room/members/useChannelTree";

@@ -136,3 +136,30 @@ describe("MemberRow screen share", () => {
     expect(wrapper.find('[aria-label="Watch screen"]').exists()).toBe(false);
   });
 });
+
+describe("MemberRow cursor", () => {
+  const row = () => mount(MemberRow, { props: { member, speaking: false, isMobileViewport: false }, attrs: { draggable: "true" } });
+  const press = (button: number) => {
+    const wrapper = row();
+    return wrapper.trigger("pointerdown", { button }).then(() => wrapper);
+  };
+
+  it("shows the grab cursor only while the primary button is held on a draggable row", async () => {
+    const wrapper = await press(0);
+    expect(wrapper.classes()).toContain("cursor-grabbing");
+    await wrapper.trigger("pointerup");
+    expect(wrapper.classes()).toContain("cursor-context-menu");
+  });
+
+  it("keeps the context-menu cursor on a right click", async () => {
+    const wrapper = await press(2);
+    expect(wrapper.classes()).toContain("cursor-context-menu");
+    expect(wrapper.classes()).not.toContain("cursor-grabbing");
+  });
+
+  it("keeps the context-menu cursor on a row that cannot be dragged", async () => {
+    const wrapper = mount(MemberRow, { props: { member, speaking: false, isMobileViewport: false } });
+    await wrapper.trigger("pointerdown", { button: 0 });
+    expect(wrapper.classes()).toContain("cursor-context-menu");
+  });
+});
