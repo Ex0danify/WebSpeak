@@ -43,15 +43,29 @@ test.describe("menu", () => {
     await expect(menu).toContainText("menu-other");
   });
 
-  test("has none for yourself", async ({ page, isMobile }) => {
+  test("offers the voice activation threshold and output volume for yourself, with no member actions", async ({ page, isMobile }) => {
     await join(page, "menu-alone");
     const row = memberRow(page, "menu-alone");
-    if (isMobile) {
-      await expect(row.getByRole("button", { name: "More member options" })).toHaveCount(0);
-    } else {
-      await row.click({ button: "right" });
-      await expect(page.getByRole("menu")).toHaveCount(0);
-    }
+    // A phone has no "..." button on your own row, a long press raises the `contextmenu` event there as well.
+    if (isMobile) await row.dispatchEvent("contextmenu");
+    else await row.click({ button: "right" });
+    const menu = page.getByRole(isMobile ? "dialog" : "menu", { name: "menu-alone" });
+    await expect(menu).toBeVisible();
+    await expect(menu.getByText("Voice activation threshold")).toBeVisible();
+    await expect(menu.getByText("Output volume")).toBeVisible();
+    await expect(action(menu, "Poke")).toHaveCount(0);
+  });
+
+  test("a channel offers to switch to it and to copy its name", async ({ page, isMobile }) => {
+    await join(page, "menu-channel");
+    const channel = page.locator("[data-channel-id]").first();
+    if (isMobile) await channel.dispatchEvent("contextmenu");
+    else await channel.click({ button: "right" });
+    const menu = page.getByRole(isMobile ? "dialog" : "menu").last();
+    await expect(action(menu, "Switch channel")).toBeVisible();
+    await expect(action(menu, "Copy channel name")).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(menu).toBeHidden();
   });
 
   test("Esc closes it", async ({ page, script }) => {

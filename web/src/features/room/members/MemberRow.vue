@@ -1,8 +1,15 @@
 <template>
   <div
     :data-member-id="member.id"
-    :tabindex="isMobileViewport || member.isSelf ? undefined : 0"
-    class="group/row relative -mx-1.5 -my-0.5 flex min-w-0 items-center gap-2 rounded-md px-1.5 py-0.5 transition-[background-color,box-shadow] duration-150 focus-within:bg-accent-soft focus-within:shadow-sm hover:bg-accent-soft hover:shadow-sm max-compact:m-0 max-compact:min-h-14.5 max-compact:gap-2.25 max-compact:rounded-lg max-compact:p-1.75 [&.dragging]:opacity-45 [&[draggable=true]]:cursor-grab [&[draggable=true]]:touch-none [&[draggable=true]:active]:cursor-grabbing"
+    :tabindex="isMobileViewport ? undefined : 0"
+    :class="[
+      'group/row relative -mx-1.5 -my-0.5 flex min-w-0 items-center gap-2 rounded-md px-1.5 py-0.5 transition-[background-color,box-shadow] duration-150 focus-within:bg-accent-soft focus-within:shadow-sm hover:bg-accent-soft hover:shadow-sm max-compact:m-0 max-compact:min-h-14.5 max-compact:gap-2.25 max-compact:rounded-lg max-compact:p-1.75 [&.dragging]:opacity-45 [&[draggable=true]]:touch-none',
+      grabbing ? 'cursor-grabbing' : 'cursor-context-menu',
+    ]"
+    @pointerdown="onPointerDown"
+    @pointerup="grabbing = false"
+    @pointercancel="grabbing = false"
+    @dragend="grabbing = false"
   >
     <span class="relative shrink-0"
       ><Avatar
@@ -85,6 +92,7 @@
 </template>
 
 <script setup lang="ts">
+import { ref } from "vue";
 import MemberGroupIcons from "@/features/room/members/MemberGroupIcons.vue";
 import type { MemberGroups } from "@/features/room/members/useMemberGroups.js";
 import { Avatar, AvatarMuteBadge } from "@/shared/ui/avatar";
@@ -122,6 +130,12 @@ defineEmits<{
 }>();
 
 const { t } = useI18n();
+
+// CSS :active also matches a right click, which would flash the grab cursor before the context menu opens.
+const grabbing = ref(false);
+function onPointerDown(e: PointerEvent) {
+  grabbing.value = e.button === 0 && (e.currentTarget as HTMLElement).getAttribute("draggable") === "true";
+}
 
 const liveBadge =
   "inline-flex flex-none items-center gap-1 rounded-full border border-accent/25 bg-accent/8 py-px pr-1.5 pl-1 text-2xs leading-tight font-bold text-accent";

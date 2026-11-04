@@ -33,6 +33,7 @@
               :drag-over="dragOverChannelId === channelItem.id"
               :elbow="rails.get(channelItem.id)?.elbow"
               @click="$emit('select-channel', channelItem)"
+              @contextmenu.prevent="$emit('open-channel-menu', channelItem, $event)"
             />
             <div :class="['relative', (channelItem.members.length || rails.get(channelItem.id)?.descent) && 'pb-1.5']">
               <ChannelRails v-if="rails.get(channelItem.id)?.descent" :lines="[{ column: 1, tone: rails.get(channelItem.id)!.descent! }]" />
@@ -50,7 +51,7 @@
                   :indicator-bars="indicatorBars"
                   :groups="groupsFor(member)"
                   :class="{ dragging: draggedMemberId === member.id }"
-                  :draggable="!member.isSelf"
+                  draggable="true"
                   @dragstart="$emit('member-drag-start', member, $event)"
                   @dragend="$emit('member-drag-end')"
                   @pointerdown="$emit('member-pointer-down', member, $event)"
@@ -113,6 +114,7 @@ defineEmits<{
   (e: "member-pointer-cancel", event: PointerEvent): void;
   (e: "open-member-menu", member: ChannelMember, event: MouseEvent): void;
   (e: "open-member-actions", member: ChannelMember): void;
+  (e: "open-channel-menu", channel: TreeChannel, event: MouseEvent): void;
 }>();
 
 const { t } = useI18n();

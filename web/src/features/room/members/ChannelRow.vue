@@ -12,7 +12,14 @@
         :style="{ width: 'calc(var(--spacing-tree-step) / 2)' }"
       ></span>
     </template>
-    <Button variant="soft" size="row" :class="buttonClass" :aria-current="active ? 'true' : undefined" :title="t('switchChannel')">
+    <Button
+      variant="soft"
+      size="row"
+      :class="buttonClass"
+      :data-channel-id="channel.id"
+      :aria-current="active ? 'true' : undefined"
+      :title="t('switchChannel')"
+    >
       <Icon name="volume" :size="sub ? 14 : 16" />
       <span :class="['min-w-0 flex-1 truncate', sub ? ['text-ui', occupied ? 'font-bold' : 'font-medium'] : 'text-md font-bold']">{{
         channelNameText(channel, t)

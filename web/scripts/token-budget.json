@@ -39,7 +39,7 @@
     "src/features/room/audioSettings/AudioSettingsDialog.vue": {
       "arbitrary": 2
     },
-    "src/features/room/members/MemberContextMenu.vue": {
+    "src/features/room/contextMenu/MemberMenuItems.vue": {
       "arbitrary": 1
     },
     "src/features/room/members/MemberRow.vue": {

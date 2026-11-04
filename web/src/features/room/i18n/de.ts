@@ -79,6 +79,8 @@ export const de: Record<string, string> = {
   muteSyncHintOutputMuted: "Andere sehen evtl. nicht, dass dein Ton aus ist. Für dich bleibt er aus.",
   muteSyncHintOutputUnmuted: "Andere sehen deinen Ton evtl. noch als aus.",
   copyNickname: "Namen kopieren",
+  copyChannelName: "Kanalnamen kopieren",
+  copiedChannelName: "Kanalname kopiert",
   moveMemberMenu: "Verschieben nach",
   moveMemberMyChannel: "Mein Kanal",
   moveMemberNoChannels: "Keine verfügbaren Kanäle",

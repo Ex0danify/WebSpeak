@@ -251,10 +251,17 @@ describe("channel password dialog", () => {
 });
 
 describe("moveMemberDirect", () => {
-  it("does nothing for the local member", async () => {
+  it("switches channel instead of moving the local member", async () => {
     const { vm, options } = await mountUseChannelTree();
     await vm.moveMemberDirect({ ...member(1, "Lucas"), isSelf: true }, "raid");
     expect(options.moveClient).not.toHaveBeenCalled();
+    expect(options.switchChannel).toHaveBeenCalledWith("raid");
+  });
+
+  it("does not switch when the local member is dropped on their own channel", async () => {
+    const { vm, options } = await mountUseChannelTree();
+    await vm.moveMemberDirect({ ...member(1, "Lucas"), isSelf: true }, "lobby");
+    expect(options.switchChannel).not.toHaveBeenCalled();
   });
 
   it("clears the member menu without moving when already in the target channel", async () => {
@@ -299,12 +306,11 @@ describe("drag and drop", () => {
     expect(vm.draggedMember).toBeNull();
   });
 
-  it("onMemberDragStart prevents dragging the local member", async () => {
+  it("onMemberDragStart lets the local member be dragged to switch channel", async () => {
     const { vm } = await mountUseChannelTree();
-    const event = dragEvent();
-    vm.onMemberDragStart({ ...member(1, "Lucas"), isSelf: true }, event);
-    expect(event.preventDefault).toHaveBeenCalled();
-    expect(vm.draggedMember).toBeNull();
+    const self = { ...member(1, "Lucas"), isSelf: true };
+    vm.onMemberDragStart(self, dragEvent());
+    expect(vm.draggedMember).toEqual(self);
   });
 
   it("onChannelDragOver highlights a channel that isn't the dragged member's own", async () => {
