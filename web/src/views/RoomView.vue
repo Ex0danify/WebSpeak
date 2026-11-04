@@ -7,7 +7,6 @@
     :screen-share="screenShare"
     :audio-panel="audioPanel"
     :whisper="whisper"
-    :context-menu="roomContextMenu"
     :appearance="appearance"
     :do-share="doShare"
     :do-disconnect="doDisconnect"
@@ -16,19 +15,8 @@
   <ContextMenuLayer
     :target="contextTarget"
     :menu-style="menuStyle"
-    :current-channel-id="currentChannel?.id"
-    :move-current-channel="memberMoveMenuCurrentChannel"
-    :move-current-same-channel="memberMoveMenuCurrentSameChannel"
-    :move-other-channels="memberMoveMenuOtherChannels"
     @close="closeContextMenu"
     @close-auto-focus="onContextMenuCloseAutoFocus"
-    @private-message="openPrivateChat"
-    @poke="pokeMember"
-    @toggle-whisper="toggleWhisperTarget"
-    @copy-name="copyMemberName"
-    @move="moveMemberDirect"
-    @switch-channel="selectChannel"
-    @copy-channel-name="copyChannelName"
   />
 
   <!-- Protected channel password modal -->
@@ -85,7 +73,7 @@
 
 <script setup lang="ts">
 import { storeToRefs } from "pinia";
-import { ref } from "vue";
+import { computed, ref } from "vue";
 import {
   AudioSettingsDialog,
   ContextMenuLayer,
@@ -95,6 +83,8 @@ import {
   useChat,
   useGatewayErrorNotices,
   useContextMenu,
+  provideContextActions,
+  provideContextMenu,
   useRoomContext,
   useRoomShell,
   useScreenShareErrorNotice,
@@ -156,13 +146,11 @@ const {
   target: contextTarget,
   memberMenu,
   menuStyle,
-  openMemberMenu,
-  openChannelMenu,
-  openMemberActions,
+  open: openContextMenu,
   close: closeContextMenu,
   onCloseAutoFocus: onContextMenuCloseAutoFocus,
 } = useContextMenu();
-const roomContextMenu = { openMemberMenu, openChannelMenu, openMemberActions };
+provideContextMenu(openContextMenu);
 const shell = useRoomShell({
   memberMenu,
   pokeNotifications,
@@ -230,6 +218,20 @@ const {
 
 const whisper = useWhisper({ roster: session.roster, actions: session.actions });
 const { toggleWhisperTarget } = whisper;
+
+provideContextActions({
+  currentChannelId: computed(() => currentChannel.value?.id),
+  moveCurrentChannel: memberMoveMenuCurrentChannel,
+  moveCurrentSameChannel: memberMoveMenuCurrentSameChannel,
+  moveOtherChannels: memberMoveMenuOtherChannels,
+  openPrivateChat,
+  pokeMember,
+  toggleWhisperTarget,
+  copyMemberName,
+  moveMemberDirect,
+  switchChannel: selectChannel,
+  copyChannelName,
+});
 
 useGatewayErrorNotices(voiceState);
 useScreenShareErrorNotice(screenShare.screenShareErrorText);

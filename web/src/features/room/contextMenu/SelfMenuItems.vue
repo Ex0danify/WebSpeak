@@ -1,5 +1,4 @@
 <template>
-  <MenuLabel plain>{{ nicknameText(member.nickname, t, member.unnamed) }}</MenuLabel>
   <MenuSlider
     ref="gate"
     live
@@ -26,9 +25,9 @@
 
 <script setup lang="ts">
 import { computed, ref, watch } from "vue";
-import { MenuLabel, MenuSlider } from "@/shared/ui/menu";
+import { MenuSlider } from "@/shared/ui/menu";
 import { useI18n } from "@/shared/i18n/useI18n.js";
-import { nicknameText, type ChannelMember } from "@/features/session";
+import type { ChannelMember } from "@/features/session";
 import {
   DEFAULT_VOX_THRESHOLD,
   MIC_LEVEL_GAIN,

@@ -25,4 +25,5 @@ export { default as MemberPanel } from "@/features/room/members/MemberPanel.vue"
 export { default as MemberTree } from "@/features/room/members/MemberTree.vue";
 export { default as ContextMenuLayer } from "@/features/room/contextMenu/ContextMenuLayer.vue";
 export { useContextMenu } from "@/features/room/contextMenu/useContextMenu";
+export { provideContextActions, provideContextMenu, useContextMenuOpener } from "@/features/room/contextMenuApi";
 export { useChannelTree } from "@/features/room/members/useChannelTree";
