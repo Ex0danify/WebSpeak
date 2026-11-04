@@ -99,8 +99,8 @@ describe("roster handlers", () => {
       ],
     });
     expect(session.serverGroups).toEqual([
-      { id: 6, name: "Owner", iconId: 2242180715 },
-      { id: 9, name: "No icon", iconId: 0 },
+      { id: 6, name: "Owner", iconId: 2242180715, isDefault: false },
+      { id: 9, name: "No icon", iconId: 0, isDefault: false },
     ]);
     handlers.serverGroups!({});
     expect(session.serverGroups).toEqual([]);
@@ -111,12 +111,12 @@ describe("roster handlers", () => {
     handlers.serverGroups!({ groups: [{ id: 6, name: "Owner", iconId: 0 }] });
     handlers.channelGroups!({
       groups: [
-        { id: 5, name: "Channel Admin", iconId: 100 },
+        { id: 5, name: "Channel Admin", iconId: 100, isDefault: true },
         { id: "x", name: "Bad" },
       ],
     });
-    expect(session.channelGroups).toEqual([{ id: 5, name: "Channel Admin", iconId: 100 }]);
-    expect(session.serverGroups).toEqual([{ id: 6, name: "Owner", iconId: 0 }]);
+    expect(session.channelGroups).toEqual([{ id: 5, name: "Channel Admin", iconId: 100, isDefault: true }]);
+    expect(session.serverGroups).toEqual([{ id: 6, name: "Owner", iconId: 0, isDefault: false }]);
   });
 
   it("serverGroupIcon keeps the icons by id and ignores a frame that is not a usable image", () => {

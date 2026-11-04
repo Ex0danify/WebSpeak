@@ -294,13 +294,15 @@ describe("playNotification", () => {
       "channelSwitched",
       "away",
       "returned",
+      "groupAssigned",
+      "groupRevoked",
     ] as const) {
       ctx.oscillators.length = 0;
       output.playNotification(kind);
       expect(ctx.oscillators.length).toBeGreaterThan(0);
       sequences.add(ctx.oscillators.map((oscillator) => oscillator.frequencies[0]).join());
     }
-    expect(sequences.size).toBe(11);
+    expect(sequences.size).toBe(13);
   });
 
   it("is silent when muted or at zero notification volume", () => {

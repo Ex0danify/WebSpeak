@@ -1,7 +1,8 @@
 // Sound design of the cues, to keep new ones in the same family:
 // - Voice: soft FM bell, low-passed and in a short dark room. No pitch sweeps, no high or metallic partials, no plain beeps.
 // - Pitch: C4 to B4, from the C major pentatonic (C D E G A). Poke's B4 is the one exception.
-// - Direction: rising opens or arrives, falling closes or leaves. userLeft is userJoined played backwards, returned is away.
+// - Direction: rising opens or arrives, falling closes or leaves. userLeft is userJoined played backwards, returned is away,
+//   groupRevoked is groupAssigned played backwards.
 // - Weight: cues about you run at full level, other people's events at about 0.6.
 // - Length: notes ring longer than their spacing so they overlap. Roster cues stay under a second, state cues up to 1.5 s.
 // - Identity: every cue needs a pitch sequence no other cue has. Error is the only single note, poke the only
@@ -29,7 +30,9 @@ export type NotificationSound =
   | "userLeft"
   | "channelSwitched"
   | "away"
-  | "returned";
+  | "returned"
+  | "groupAssigned"
+  | "groupRevoked";
 
 // Pentatonic pitches in a low register keep every cue consonant and warm, whatever plays next to it.
 const C4 = 261.63;
@@ -88,6 +91,18 @@ export const NOTIFICATION_SOUNDS: Record<NotificationSound, readonly Note[]> = {
   returned: [
     { frequency: C4, at: 0, duration: 0.6, level: 0.8 },
     { frequency: G4, at: 0.12, duration: 1, level: 1 },
+  ],
+  // About you, so full level: a short rising run, you gained a group. The same for server and channel groups.
+  groupAssigned: [
+    { frequency: E4, at: 0, duration: 0.7, level: 0.8 },
+    { frequency: G4, at: 0.1, duration: 0.7, level: 0.8 },
+    { frequency: A4, at: 0.2, duration: 1.1 },
+  ],
+  // The same run backwards, you lost one.
+  groupRevoked: [
+    { frequency: A4, at: 0, duration: 0.7, level: 0.8 },
+    { frequency: G4, at: 0.1, duration: 0.7, level: 0.8 },
+    { frequency: E4, at: 0.2, duration: 1.1, level: 0.9 },
   ],
   // A small arch, up and back to where it started.
   channelSwitched: [

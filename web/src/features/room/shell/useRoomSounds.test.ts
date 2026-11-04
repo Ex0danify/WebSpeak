@@ -1,23 +1,29 @@
-import { describe, expect, it, vi } from "vitest";
-import { nextTick, reactive } from "vue";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { nextTick, reactive, ref } from "vue";
 import { useRoomSounds } from "@/features/room/shell/useRoomSounds";
-import { dismissToast, toast } from "@/shared/composables/useToast";
-import type { ChannelInfo, RoomNotice } from "@/features/session";
+import { dismissToast, toast, useToast } from "@/shared/composables/useToast";
+import type { ChannelGroup, ChannelInfo, RoomNotice, ServerGroup } from "@/features/session";
 
-function setup(channels: ChannelInfo[]) {
+afterEach(() => dismissToast());
+
+function setup(channels: ChannelInfo[], groups: { server?: ServerGroup[]; channel?: ChannelGroup[] } = {}) {
   const playNotification = vi.fn();
   const voiceState = reactive({ connected: true, reconnecting: false, reconnectFailed: false, tsClientId: 1 });
   const reactiveChannels = reactive(channels);
   const roomNotices = reactive<RoomNotice[]>([]);
+  const serverGroups = ref(groups.server ?? []);
+  const channelGroups = ref(groups.channel ?? []);
   useRoomSounds({
     voiceState,
     channels: reactiveChannels,
     roomNotices,
     chatMessages: reactive([]),
     pokeNotifications: reactive([]),
+    serverGroups,
+    channelGroups,
     playNotification,
   });
-  return { playNotification, channels: reactiveChannels, roomNotices };
+  return { playNotification, channels: reactiveChannels, roomNotices, serverGroups, channelGroups };
 }
 
 const member = (id: number) => ({ id, nickname: `user${id}` });
@@ -86,5 +92,109 @@ describe("error sounds", () => {
     roomNotices.push({ code: "OTHER", text: "x", title: "x", variant: "info" });
     await nextTick();
     expect(playNotification).toHaveBeenCalledOnce();
+  });
+});
+
+describe("group sounds", () => {
+  const own = (serverGroups: number[], channelGroupId = 0) => ({ id: 1, nickname: "me", serverGroups, channelGroupId });
+  const setupGroups = (channelId = "a") => {
+    const started = setup([{ ...channel(channelId, []), members: [own([8], 9)] }, channel("b", [3])], {
+      server: [
+        { id: 6, name: "Owner", iconId: 0, isDefault: false },
+        { id: 8, name: "Guest", iconId: 0, isDefault: true },
+      ],
+      channel: [
+        { id: 5, name: "Operator", iconId: 0, isDefault: false },
+        { id: 9, name: "Guest", iconId: 0, isDefault: true },
+      ],
+    });
+    return { ...started, me: () => started.channels[0]!.members![0]! };
+  };
+  const lastToast = () => useToast().toasts.value.at(-1);
+
+  it("plays the assigned cue with a success toast when you are given a server group", async () => {
+    const { playNotification, me } = setupGroups();
+    me().serverGroups = [8, 6];
+    await nextTick();
+    expect(playNotification).toHaveBeenCalledOnce();
+    expect(playNotification).toHaveBeenCalledWith("groupAssigned");
+    expect(lastToast()).toMatchObject({ variant: "success", title: "Server group assigned: Owner" });
+  });
+
+  it("plays the revoked cue with a warning toast when you lose one, and the default group coming back stays unnoticed", async () => {
+    const { playNotification, me } = setupGroups();
+    me().serverGroups = [6];
+    await nextTick();
+    playNotification.mockClear();
+    me().serverGroups = [8];
+    await nextTick();
+    expect(playNotification).toHaveBeenCalledOnce();
+    expect(playNotification).toHaveBeenCalledWith("groupRevoked");
+    expect(lastToast()).toMatchObject({ variant: "warning", title: "Server group revoked: Owner" });
+  });
+
+  it("treats a channel group like a server group, and falling back to the default as a revoke", async () => {
+    const { playNotification, me } = setupGroups();
+    me().channelGroupId = 5;
+    await nextTick();
+    expect(playNotification).toHaveBeenLastCalledWith("groupAssigned");
+    expect(lastToast()).toMatchObject({ variant: "success", title: "Channel group assigned: Operator" });
+    me().channelGroupId = 9;
+    await nextTick();
+    expect(playNotification).toHaveBeenLastCalledWith("groupRevoked");
+    expect(lastToast()).toMatchObject({ variant: "warning", title: "Channel group revoked: Operator" });
+  });
+
+  it("plays one cue for several changes at once, assigned winning, and a toast for each", async () => {
+    const { playNotification, me } = setupGroups();
+    me().serverGroups = [6];
+    await nextTick();
+    playNotification.mockClear();
+    useToast().dismiss();
+    me().serverGroups = [];
+    me().channelGroupId = 5;
+    await nextTick();
+    expect(playNotification).toHaveBeenCalledOnce();
+    expect(playNotification).toHaveBeenCalledWith("groupAssigned");
+    expect(useToast().toasts.value.map((item) => item.title)).toEqual(["Server group revoked: Owner", "Channel group assigned: Operator"]);
+  });
+
+  it("stays quiet about the groups of others", async () => {
+    const { playNotification, channels } = setupGroups();
+    channels[1]!.members![0] = { id: 3, nickname: "other", serverGroups: [6], channelGroupId: 5 } as never;
+    await nextTick();
+    expect(playNotification).not.toHaveBeenCalled();
+    expect(lastToast()).toBeUndefined();
+  });
+
+  it("plays only the switch cue when a move brings another channel group", async () => {
+    const { playNotification, channels, me } = setupGroups();
+    const moved = { ...me(), channelGroupId: 5 };
+    channels[0]!.members!.pop();
+    channels[1]!.members!.push(moved);
+    await nextTick();
+    expect(playNotification).toHaveBeenCalledOnce();
+    expect(playNotification).toHaveBeenCalledWith("channelSwitched");
+    expect(lastToast()).toBeUndefined();
+  });
+
+  it("stays quiet about a group the list does not know yet", async () => {
+    const { playNotification, me, serverGroups, channelGroups } = setupGroups();
+    serverGroups.value = [];
+    channelGroups.value = [];
+    me().serverGroups = [8, 6];
+    me().channelGroupId = 5;
+    await nextTick();
+    expect(playNotification).not.toHaveBeenCalled();
+    expect(lastToast()).toBeUndefined();
+  });
+
+  it("stays quiet while the first channel group of your session arrives", async () => {
+    const { playNotification, me } = setupGroups();
+    me().channelGroupId = 0;
+    await nextTick();
+    me().channelGroupId = 5;
+    await nextTick();
+    expect(playNotification).not.toHaveBeenCalled();
   });
 });

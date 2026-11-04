@@ -18,7 +18,14 @@ function readGroups(groups: unknown): ServerGroup[] {
   if (!Array.isArray(groups)) return [];
   return groups.flatMap((group: ServerGroup | null) =>
     Number.isSafeInteger(group?.id) && typeof group?.name === "string"
-      ? [{ id: group.id, name: clampText(group.name, MAX_NICKNAME_LENGTH), iconId: Number(group.iconId) || 0 }]
+      ? [
+          {
+            id: group.id,
+            name: clampText(group.name, MAX_NICKNAME_LENGTH),
+            iconId: Number(group.iconId) || 0,
+            isDefault: group.isDefault === true,
+          },
+        ]
       : [],
   );
 }

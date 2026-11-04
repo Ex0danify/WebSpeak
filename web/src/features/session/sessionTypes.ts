@@ -83,6 +83,8 @@ export interface ServerGroup {
   id: number;
   name: string;
   iconId: number;
+  /** The group the server gives everyone, losing the last other one hands it back. */
+  isDefault: boolean;
 }
 
 /** Channel groups come in the same shape, but hold per channel and one per member. */
