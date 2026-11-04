@@ -204,7 +204,7 @@ export function admitConnection(deps: AdmissionDeps, ws: WebSocket, req: Incomin
     avatarCache: new Map(),
     groupIconCache: new Map(),
     groupIconRequests: new Set(),
-    serverGroupsSent: "",
+    groupsSent: { serverGroups: "", channelGroups: "" },
     eventLog: [],
     opusEncoder: null,
     opusEncoderWarnedAt: 0,

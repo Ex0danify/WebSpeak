@@ -22,7 +22,7 @@ import {
   type FakeServerOptions,
 } from "./fakeTsClientScript.js";
 import { deliverChat, deliverVoice } from "./fakeTsChat.js";
-import { fakeAvatar, fakeGroupIcon } from "./fakeTsFiles.js";
+import { FakeGroups, fakeAvatar, fakeGroupIcon } from "./fakeTsFiles.js";
 
 const refused = (id: number, serverMessage: string) => new TeamSpeakServerError({ id, serverMessage });
 export { DEFAULT_FAKE_CHANNELS, FakeRemoteMember, type FakeChannel, type FakeOperation, type FakeServerOptions };
@@ -39,8 +39,7 @@ export class FakeTeamSpeakServer {
   readonly bannedUids = new Set<string>();
   readonly adminUids = new Set<string>();
   readonly avatars = new Map<string, TSClientAvatar>();
-  serverGroups: ReturnType<TSClient["serverGroups"]> = [];
-  readonly groupIcons = new Map<number, Buffer>();
+  readonly groups = new FakeGroups();
   serverPassword: string;
   guestsCanMove: boolean;
   protocol: TeamSpeakProtocol;
@@ -349,7 +348,8 @@ export class FakeTSClient extends EventEmitter {
   canSendText = (scope: "channel" | "server"): boolean => this.textAllowed[scope];
   permissionEntries: PermissionEntry[] = [];
   permissions = (): PermissionEntry[] => this.permissionEntries;
-  serverGroups = () => this.server.serverGroups;
+  serverGroups = () => this.server.groups.server;
+  channelGroups = () => this.server.groups.channel;
   getGroupIcon = (iconId: number): Promise<Buffer | null> => fakeGroupIcon(this, iconId);
   permissionName = (id: number): string | undefined => (id === 143 ? "i_channel_join_power" : undefined);
   async execCommandWithResponse(command: string, _timeoutMs = 3000): Promise<Record<string, string>[]> {

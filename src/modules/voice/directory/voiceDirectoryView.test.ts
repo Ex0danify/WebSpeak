@@ -98,13 +98,14 @@ describe("mapChannelTree", () => {
 });
 
 describe("memberGroups", () => {
-  it("turns the ids into numbers and leaves the field out without groups", () => {
-    expect(memberGroups(["6", "10"])).toEqual({ serverGroups: [6, 10] });
-    expect(memberGroups([])).toEqual({});
+  it("turns the ids into numbers and leaves the fields out without groups", () => {
+    expect(memberGroups({ serverGroups: ["6", "10"], channelGroupId: 5 })).toEqual({ serverGroups: [6, 10], channelGroupId: 5 });
+    expect(memberGroups({ serverGroups: [], channelGroupId: 0 })).toEqual({});
+    expect(memberGroups({ serverGroups: [] })).toEqual({});
   });
 
   it("drops what is not a group id", () => {
-    expect(memberGroups(["0", "-3", "x", "", "2.5", "7"])).toEqual({ serverGroups: [7] });
+    expect(memberGroups({ serverGroups: ["0", "-3", "x", "", "2.5", "7"] })).toEqual({ serverGroups: [7] });
   });
 });
 

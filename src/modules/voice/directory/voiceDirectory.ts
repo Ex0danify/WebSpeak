@@ -197,7 +197,7 @@ export function refreshDirectory(ctx: VoiceConnection) {
       outputMuted: client.outputMuted,
       channelCommander: client.channelCommander,
       streaming: client.streaming,
-      ...memberGroups(client.serverGroups),
+      ...memberGroups(client),
     });
   }
   for (const clientId of ctx.entry.whisperTargetIds) {

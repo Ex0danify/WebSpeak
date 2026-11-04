@@ -1,19 +1,27 @@
+import type { TSGroup } from "../../teamspeak/index.js";
 import type { VoiceConnection } from "../voiceTypes.js";
 import { avatarDataUrl } from "./voiceDirectoryView.js";
 
-/** Sends the browser the server group list when it differs from the last one, then the icons it names. */
-export function syncServerGroups(ctx: VoiceConnection): void {
+/** Sends the browser the server and channel group lists when they differ from the last ones, then the icons they name. */
+export function syncGroups(ctx: VoiceConnection): void {
   if (!ctx.state.initialStateSent) return;
-  const groups = ctx.tsClient.serverGroups().map(({ id, name, iconId }) => ({ id, name, iconId }));
-  const signature = JSON.stringify(groups);
-  if (signature !== ctx.entry.serverGroupsSent) {
-    ctx.entry.serverGroupsSent = signature;
-    ctx.sendJson({ type: "serverGroups", groups });
-  }
+  const serverGroups = summarize(ctx.tsClient.serverGroups());
+  const channelGroups = summarize(ctx.tsClient.channelGroups());
+  if (changed(ctx, "serverGroups", serverGroups)) ctx.sendJson({ type: "serverGroups", groups: serverGroups });
+  if (changed(ctx, "channelGroups", channelGroups)) ctx.sendJson({ type: "channelGroups", groups: channelGroups });
   void loadGroupIcons(
     ctx,
-    groups.map((group) => group.iconId),
+    [...serverGroups, ...channelGroups].map((group) => group.iconId),
   );
+}
+
+const summarize = (groups: readonly TSGroup[]) => groups.map(({ id, name, iconId }) => ({ id, name, iconId }));
+
+function changed(ctx: VoiceConnection, kind: "serverGroups" | "channelGroups", groups: unknown): boolean {
+  const signature = JSON.stringify(groups);
+  if (signature === ctx.entry.groupsSent[kind]) return false;
+  ctx.entry.groupsSent[kind] = signature;
+  return true;
 }
 
 /** Icons are shared between groups and keyed by content, so each id is fetched once per connection. */
