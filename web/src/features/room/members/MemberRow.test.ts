@@ -1,5 +1,7 @@
 import { mount } from "@vue/test-utils";
-import { describe, expect, it } from "vitest";
+import { defineComponent } from "vue";
+import { describe, expect, it, vi } from "vitest";
+import { provideContextMenu } from "@/features/room/contextMenuApi";
 import MemberRow from "@/features/room/members/MemberRow.vue";
 import type { ChannelMember } from "@/features/session";
 import type { ScreenShareStream } from "@/features/screenShare";
@@ -161,5 +163,36 @@ describe("MemberRow cursor", () => {
     const wrapper = mount(MemberRow, { props: { member, speaking: false, isMobileViewport: false } });
     await wrapper.trigger("pointerdown", { button: 0 });
     expect(wrapper.classes()).toContain("cursor-context-menu");
+  });
+});
+
+describe("MemberRow context menu", () => {
+  function mountWithMenu(overrides: Partial<ChannelMember> = {}, isMobileViewport = false) {
+    const open = vi.fn();
+    const Host = defineComponent({
+      components: { MemberRow },
+      setup: () => provideContextMenu(open),
+      data: () => ({ member: { ...member, ...overrides }, isMobileViewport }),
+      template: '<MemberRow :member="member" :speaking="false" :is-mobile-viewport="isMobileViewport" />',
+    });
+    return { wrapper: mount(Host), open };
+  }
+
+  it("opens the member menu on a right click", async () => {
+    const { wrapper, open } = mountWithMenu();
+    await wrapper.get("[data-member-id]").trigger("contextmenu");
+    expect(open).toHaveBeenCalledWith("member", { member }, expect.any(Event));
+  });
+
+  it("opens the self menu on your own row", async () => {
+    const { wrapper, open } = mountWithMenu({ isSelf: true });
+    await wrapper.get("[data-member-id]").trigger("contextmenu");
+    expect(open).toHaveBeenCalledWith("self", { member: { ...member, isSelf: true } }, expect.any(Event));
+  });
+
+  it("opens the menu anchored to the row from the mobile more button", async () => {
+    const { wrapper, open } = mountWithMenu({}, true);
+    await wrapper.get('button[aria-label="More member options"]').trigger("click");
+    expect(open).toHaveBeenCalledWith("member", { member }, wrapper.get("[data-member-id]").element);
   });
 });

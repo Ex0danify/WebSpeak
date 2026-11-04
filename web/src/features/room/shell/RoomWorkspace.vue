@@ -156,9 +156,6 @@
         @member-pointer-move="onMemberPointerMove"
         @member-pointer-up="onMemberPointerUp"
         @member-pointer-cancel="onMemberPointerCancel"
-        @open-member-menu="openMemberMenu"
-        @open-member-actions="openMemberActions"
-        @open-channel-menu="openChannelMenu"
       />
       <template #footer>
         <AudioDock
@@ -229,7 +226,6 @@ import { useNicknameChange } from "@/features/room/profile/useNicknameChange";
 import MemberPanel from "@/features/room/members/MemberPanel.vue";
 import MemberTree from "@/features/room/members/MemberTree.vue";
 import type { useChannelTree } from "@/features/room/members/useChannelTree";
-import type { useContextMenu } from "@/features/room/contextMenu/useContextMenu";
 import PokeStack from "@/features/room/whisper/PokeStack.vue";
 import WhisperStrip from "@/features/room/whisper/WhisperStrip.vue";
 import type { useWhisper } from "@/features/room/whisper/useWhisper";
@@ -252,7 +248,6 @@ const props = defineProps<{
   screenShare: ReturnType<typeof useScreenShare>;
   audioPanel: ReturnType<typeof useAudioSettingsPanel>;
   whisper: ReturnType<typeof useWhisper>;
-  contextMenu: Pick<ReturnType<typeof useContextMenu>, "openMemberMenu" | "openChannelMenu" | "openMemberActions">;
   appearance: Pick<
     ReturnType<typeof useAppearance>,
     "themeMode" | "themeIcon" | "themeLabel" | "cycleTheme" | "selectTheme" | "persistLanguage"
@@ -349,7 +344,6 @@ const profileOpen = ref(false);
 const savedIdentityId = ref<string | null>(null);
 
 const { whisperPttActive, whisperTargets, clearWhisperTargets, onWhisperPttDown, onWhisperPttUp } = props.whisper;
-const { openMemberActions, openMemberMenu, openChannelMenu } = props.contextMenu;
 const selfMember = computed(() => members.find((member) => member.isSelf) ?? null);
 const audioLink = computed(() => audioLinkStatus(voiceState, roomNotices));
 const accompaniment = computed(() =>

@@ -1,23 +1,17 @@
 import { computed, ref } from "vue";
 import type { ChannelMember } from "@/features/session";
-import type { TreeChannel } from "@/features/room/roomTypes.js";
-
-type Point = { x: number; y: number };
-
-/** What the open menu is about. Another kind of menu is one more member here and one more items component in the layer. */
-export type ContextTarget =
-  | ({ kind: "member"; member: ChannelMember } & Point)
-  | ({ kind: "self"; member: ChannelMember } & Point)
-  | ({ kind: "channel"; channel: TreeChannel } & Point);
-
-function pointOf(event: Event): Point {
-  return event instanceof MouseEvent ? { x: event.clientX, y: event.clientY } : { x: 20, y: 20 };
-}
+import type { ContextKind, ContextOrigin, ContextPayloads, ContextTarget } from "@/features/room/contextMenuApi";
 
 export type MemberMenuState = { member: ChannelMember; x: number; y: number };
 
+function pointOf(origin: ContextOrigin): { x: number; y: number } {
+  if (origin instanceof MouseEvent) return { x: origin.clientX, y: origin.clientY };
+  return origin instanceof Event ? { x: 20, y: 20 } : { x: 0, y: 0 };
+}
+
 /** The room's single context menu (desktop right-click or Shift+F10, mobile long press or "more" action): which target it is
- *  about, where it sits, and focus return on close. `memberMenu` is the member part of it, read and cleared by useChannelTree
+ *  about, where it sits, and focus return on close. Another menu is a payload in contextMenuApi, an items component and an
+ *  entry in menuKinds, and `open()` from the element. `memberMenu` is the member part of it, read and cleared by useChannelTree
  *  and RoomView's chat and viewport handlers; clearing it closes whatever menu is open. */
 export function useContextMenu() {
   const target = ref<ContextTarget | null>(null);
@@ -38,24 +32,13 @@ export function useContextMenu() {
   });
 
   // The desktop menu's trigger is a hidden zero-size span that cannot take focus back on close, so Reka leaves it on the
-  // document. Remember the opener's selector and focus that element instead (right click or Shift+F10 both end up there).
-  let openerSelector: string | null = null;
+  // document. Remember the element that asked for the menu and focus that instead (right click or Shift+F10 both end up there).
+  let opener: HTMLElement | null = null;
 
-  function openMemberMenu(member: ChannelMember, event: Event): void {
-    openerSelector = `[data-member-id="${member.id}"]`;
-    target.value = { kind: member.isSelf ? "self" : "member", member, ...pointOf(event) };
-  }
-
-  function openChannelMenu(channel: TreeChannel, event: Event): void {
-    openerSelector = `[data-channel-id="${channel.id.replaceAll(/["\\]/g, String.raw`\$&`)}"]`;
-    target.value = { kind: "channel", channel, ...pointOf(event) };
-  }
-
-  /** The mobile "more" button, which opens the sheet and is never shown on your own row. */
-  function openMemberActions(member: ChannelMember): void {
-    if (member.isSelf) return;
-    openerSelector = `[data-member-id="${member.id}"]`;
-    target.value = { kind: "member", member, x: 0, y: 0 };
+  function open<K extends ContextKind>(kind: K, payload: ContextPayloads[K], origin: ContextOrigin): void {
+    const element = origin instanceof Event ? origin.currentTarget : origin;
+    opener = element instanceof HTMLElement ? element : null;
+    target.value = { kind, ...payload, ...pointOf(origin) } as ContextTarget;
   }
 
   function close(): void {
@@ -63,14 +46,12 @@ export function useContextMenu() {
   }
 
   function onCloseAutoFocus(event: Event): void {
-    const selector = openerSelector;
-    openerSelector = null;
-    if (selector === null) return;
-    const opener = document.querySelector<HTMLElement>(selector);
-    if (!opener) return;
+    const element = opener;
+    opener = null;
+    if (!element?.isConnected) return;
     event.preventDefault();
-    opener.focus();
+    element.focus();
   }
 
-  return { target, memberMenu, menuStyle, openMemberMenu, openChannelMenu, openMemberActions, close, onCloseAutoFocus };
+  return { target, memberMenu, menuStyle, open, close, onCloseAutoFocus };
 }
