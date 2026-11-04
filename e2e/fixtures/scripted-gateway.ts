@@ -78,7 +78,11 @@ const chat = [
 
 // The groups a TeamSpeak 6 server has by default, with their built-in icon ids. Normal wears a downloaded icon here, as a
 // server admin can give any group one, so the shot shows both kinds.
-const GROUP_ICON = { id: 5000, dataUrl: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAAh0lEQVR4nO3UwQ2AMAxD0Q7KRuzLFSaAxI5dqiqReoT/GgnG6AHnPK776/wWtkHQsBRSjZcQqjiFUMchROZFbyNBMGEEYo+XEKp4hLDfntqCOg5voQENWBYw7TN0bEH2J2QQ8O2VCDoeASJI5tkQkEUwJxV3IaC4GkHFVYhSvAKRhVGILbztPOTPy8pJVsSrAAAAAElFTkSuQmCC" };
+const GROUP_ICON = {
+  id: 5000,
+  dataUrl:
+    "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAAh0lEQVR4nO3UwQ2AMAxD0Q7KRuzLFSaAxI5dqiqReoT/GgnG6AHnPK776/wWtkHQsBRSjZcQqjiFUMchROZFbyNBMGEEYo+XEKp4hLDfntqCOg5voQENWBYw7TN0bEH2J2QQ8O2VCDoeASJI5tkQkEUwJxV3IaC4GkHFVYhSvAKRhVGILbztPOTPy8pJVsSrAAAAAElFTkSuQmCC",
+};
 const serverGroups = [
   { id: 6, name: "Server Admin", iconId: 300, isDefault: false },
   { id: 7, name: "Normal", iconId: GROUP_ICON.id, isDefault: false },
