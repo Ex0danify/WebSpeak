@@ -9,6 +9,7 @@ export const iconNames = [
   "settings",
   "mic",
   "mic-off",
+  "mic-handheld",
   "music",
   "headset",
   "volume",
