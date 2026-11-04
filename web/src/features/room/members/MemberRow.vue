@@ -70,7 +70,7 @@
         @pointerdown.stop
         ><Icon name="monitor" :size="13" /></Button
     ></Tooltip>
-    <ServerGroupIcons :groups="serverGroups" />
+    <MemberGroupIcons :groups="groups" />
     <Tooltip :text="t('moreMemberOptions')"
       ><Button
         v-if="isMobileViewport && !member.isSelf"
@@ -85,8 +85,8 @@
 </template>
 
 <script setup lang="ts">
-import ServerGroupIcons from "@/features/room/members/ServerGroupIcons.vue";
-import type { MemberGroupIcon } from "@/features/room/members/useMemberGroups.js";
+import MemberGroupIcons from "@/features/room/members/MemberGroupIcons.vue";
+import type { MemberGroups } from "@/features/room/members/useMemberGroups.js";
 import { Avatar, AvatarMuteBadge } from "@/shared/ui/avatar";
 import { Button } from "@/shared/ui/button";
 import { Tooltip } from "@/shared/ui/tooltip";
@@ -110,10 +110,10 @@ withDefaults(
     /** The local user is watching that stream. */
     watching?: boolean;
     indicatorBars?: number[];
-    /** Server groups of this member that have an icon, in display order. */
-    serverGroups?: readonly MemberGroupIcon[];
+    /** The groups of this member that have an icon. */
+    groups?: MemberGroups;
   }>(),
-  { stream: null, watching: false, indicatorBars: () => [], serverGroups: () => [] },
+  { stream: null, watching: false, indicatorBars: () => [], groups: () => ({ server: [] }) },
 );
 
 defineEmits<{

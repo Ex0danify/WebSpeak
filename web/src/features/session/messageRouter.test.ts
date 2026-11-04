@@ -56,6 +56,7 @@ describe("roster handlers", () => {
 
   it("claims exactly the roster, chat, event and poke types", () => {
     expect(Object.keys(setup().handlers).sort()).toEqual([
+      "channelGroups",
       "channelList",
       "chatMessage",
       "memberAvatar",
@@ -103,6 +104,19 @@ describe("roster handlers", () => {
     ]);
     handlers.serverGroups!({});
     expect(session.serverGroups).toEqual([]);
+  });
+
+  it("channelGroups fills its own list and leaves the server groups alone", () => {
+    const { handlers, session } = setup();
+    handlers.serverGroups!({ groups: [{ id: 6, name: "Owner", iconId: 0 }] });
+    handlers.channelGroups!({
+      groups: [
+        { id: 5, name: "Channel Admin", iconId: 100 },
+        { id: "x", name: "Bad" },
+      ],
+    });
+    expect(session.channelGroups).toEqual([{ id: 5, name: "Channel Admin", iconId: 100 }]);
+    expect(session.serverGroups).toEqual([{ id: 6, name: "Owner", iconId: 0 }]);
   });
 
   it("serverGroupIcon keeps the icons by id and ignores a frame that is not a usable image", () => {

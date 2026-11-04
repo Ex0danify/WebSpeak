@@ -48,7 +48,7 @@
                   :stream="streamForMember(member)"
                   :watching="viewingStreamId !== '' && streamForMember(member)?.streamId === viewingStreamId"
                   :indicator-bars="indicatorBars"
-                  :server-groups="groupsForMember(member)"
+                  :groups="groupsFor(member)"
                   :class="{ dragging: draggedMemberId === member.id }"
                   :draggable="!member.isSelf"
                   @dragstart="$emit('member-drag-start', member, $event)"
@@ -77,7 +77,7 @@ import ChannelRails from "@/features/room/members/ChannelRails.vue";
 import ChannelRow from "@/features/room/members/ChannelRow.vue";
 import { computeChannelRails } from "@/features/room/members/channelRails.js";
 import MemberRow from "@/features/room/members/MemberRow.vue";
-import type { MemberGroupIcon } from "@/features/room/members/useMemberGroups.js";
+import { useMemberGroups } from "@/features/room/members/useMemberGroups.js";
 import { SpacerRow } from "@/shared/ui/spacer";
 import { useI18n } from "@/shared/i18n/useI18n.js";
 import { isSpeaking } from "@/features/session";
@@ -97,7 +97,6 @@ const props = defineProps<{
   streamForMember: (member: ChannelMember) => ScreenShareStream | null;
   viewingStreamId: string;
   indicatorBars: number[];
-  groupsForMember: (member: ChannelMember) => MemberGroupIcon[];
 }>();
 
 defineEmits<{
@@ -117,6 +116,7 @@ defineEmits<{
 }>();
 
 const { t } = useI18n();
+const { groupsFor } = useMemberGroups();
 
 type LayoutItem =
   | { key: string; spacer: NonNullable<TreeChannel["spacer"]>; depth: number; channels?: undefined }

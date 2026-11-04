@@ -67,20 +67,26 @@ describe("MemberRow away state", () => {
 });
 
 describe("MemberRow server groups", () => {
-  it("shows the icons of the member's groups, named for screen readers", () => {
+  it("shows the icons of the member's server and channel group, named for screen readers", () => {
     const wrapper = mount(MemberRow, {
       props: {
         member,
         speaking: false,
         isMobileViewport: false,
-        serverGroups: [{ id: 6, name: "Owner", src: "data:image/png;base64,AAAA" }],
+        groups: {
+          server: [{ id: 6, name: "Owner", src: "data:image/png;base64,AAAA" }],
+          channel: { id: 5, name: "Channel Admin", builtin: { icon: "star", tone: "text-warning" } },
+        },
       },
     });
     expect(wrapper.find('[role="img"][aria-label="Owner"]').exists()).toBe(true);
+    expect(wrapper.find('[role="img"][aria-label="Channel Admin"]').exists()).toBe(true);
   });
 
   it("has no group container without icons", () => {
-    expect(mountRow().find('[aria-label="Server groups"]').exists()).toBe(false);
+    const row = mountRow();
+    expect(row.find('[aria-label="Server groups"]').exists()).toBe(false);
+    expect(row.find('[aria-label="Channel group"]').exists()).toBe(false);
   });
 });
 

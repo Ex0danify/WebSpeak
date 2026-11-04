@@ -5,6 +5,7 @@ export { createMessageRouter, createRosterHandlers, type MessageHandlers } from 
 export { SCREEN_SHARE_NEGOTIATION_TIMEOUT_MS, getScreenShareIceServers } from "@/features/session/iceServers";
 export { errorKey, safeClientErrorCode, safeClientErrorDetail, visibleErrorCode } from "@/features/session/sessionErrors";
 export type {
+  ChannelGroup,
   ChannelInfo,
   ChannelMember,
   ChatMessage,

@@ -96,6 +96,7 @@ export const en = {
   memberOnline: "Online",
   memberStates: "Member states",
   serverGroups: "Server groups",
+  channelGroup: "Channel group",
   inputMuted: "Microphone muted",
   outputMuted: "Output muted",
   channelCommander: "Channel commander",

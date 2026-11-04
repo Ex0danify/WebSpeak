@@ -1,6 +1,7 @@
 import { defineStore } from "pinia";
 import { reactive, ref, shallowRef } from "vue";
 import type {
+  ChannelGroup,
   ChannelInfo,
   ChannelMember,
   ChatMessage,
@@ -64,6 +65,7 @@ export const useSessionStore = defineStore("voiceSession", () => {
   const serverName = ref("");
   /** The server groups in display order, empty until the gateway sent them. */
   const serverGroups = ref<ServerGroup[]>([]);
+  const channelGroups = ref<ChannelGroup[]>([]);
   /** Downloaded group icons as data URLs, by icon id. */
   const groupIcons = ref<Record<number, string>>({});
 
@@ -106,6 +108,7 @@ export const useSessionStore = defineStore("voiceSession", () => {
     webrtcAvailable.value = true;
     serverName.value = "";
     serverGroups.value = [];
+    channelGroups.value = [];
     groupIcons.value = {};
   }
 
@@ -131,6 +134,7 @@ export const useSessionStore = defineStore("voiceSession", () => {
     webrtcAvailable,
     serverName,
     serverGroups,
+    channelGroups,
     groupIcons,
     reset,
   };

@@ -1,9 +1,10 @@
 import { storeToRefs } from "pinia";
 import { computed } from "vue";
 import { builtinGroupIcon, type BuiltinGroupIcon } from "@/features/room/members/builtinGroupIcons.js";
-import { useSessionStore, type ChannelMember } from "@/features/session";
+import { useSessionStore, type ChannelMember, type ServerGroup } from "@/features/session";
 
-export interface MemberGroupIcon {
+/** A group that has an icon to show. */
+export interface MemberGroup {
   id: number;
   name: string;
   /** A downloaded icon, as a data URL. */
@@ -11,25 +12,44 @@ export interface MemberGroupIcon {
   builtin?: BuiltinGroupIcon;
 }
 
+export interface MemberGroups {
+  /** In the server's display order. */
+  server: MemberGroup[];
+  /** The group in the member's current channel. */
+  channel?: MemberGroup;
+}
+
 /**
- * The server groups of a member that have an icon, in the server's display order. A group whose
- * icon is still downloading or failed to load is left out, there is nothing to show for it.
+ * The groups of a member that the member row shows, resolved against the lists the server sent. A group without an icon,
+ * or whose icon is still downloading or failed to load, is left out, there is nothing to show for it.
  */
 export function useMemberGroups() {
-  const { serverGroups, groupIcons } = storeToRefs(useSessionStore());
-  const resolved = computed(() => {
-    const byId = new Map<number, MemberGroupIcon>();
-    for (const group of serverGroups.value) {
-      const builtin = builtinGroupIcon(group.iconId);
-      const src = groupIcons.value[group.iconId];
-      if (builtin) byId.set(group.id, { id: group.id, name: group.name, builtin });
-      else if (src) byId.set(group.id, { id: group.id, name: group.name, src });
-    }
-    return byId;
-  });
+  const { serverGroups, channelGroups, groupIcons } = storeToRefs(useSessionStore());
 
-  return (member: Pick<ChannelMember, "serverGroups">): MemberGroupIcon[] => {
-    const ids = new Set(member.serverGroups);
-    return [...resolved.value.values()].filter((group) => ids.has(group.id));
+  const iconOf = (iconId: number): Pick<MemberGroup, "src" | "builtin"> | undefined => {
+    const builtin = builtinGroupIcon(iconId);
+    if (builtin) return { builtin };
+    const src = groupIcons.value[iconId];
+    return src ? { src } : undefined;
+  };
+  const resolve = (groups: readonly ServerGroup[]): Map<number, MemberGroup> =>
+    new Map(
+      groups.flatMap((group) => {
+        const icon = iconOf(group.iconId);
+        return icon ? [[group.id, { id: group.id, name: group.name, ...icon }] as const] : [];
+      }),
+    );
+  const server = computed(() => resolve(serverGroups.value));
+  const channel = computed(() => resolve(channelGroups.value));
+
+  return {
+    groupsFor(member: Pick<ChannelMember, "serverGroups" | "channelGroupId">): MemberGroups {
+      const ids = new Set(member.serverGroups);
+      const channelGroup = member.channelGroupId ? channel.value.get(member.channelGroupId) : undefined;
+      return {
+        server: [...server.value.values()].filter((group) => ids.has(group.id)),
+        ...(channelGroup ? { channel: channelGroup } : {}),
+      };
+    },
   };
 }
