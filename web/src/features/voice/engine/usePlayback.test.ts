@@ -90,6 +90,31 @@ describe("handleAudioFrame", () => {
     expect([...chunk.init.data]).toEqual([7, 7, 7, 7]);
   });
 
+  it("decodes music frames as stereo and rebuilds the decoder when the layout changes", () => {
+    const { playback } = setup();
+    const music = frame(9);
+    music[0] = 5;
+    playback.handleAudioFrame(frame(9));
+    playback.handleAudioFrame(music);
+    expect(FakeAudioDecoder.instances.map((decoder) => (decoder.configured as { numberOfChannels: number }).numberOfChannels)).toEqual([
+      1, 2,
+    ]);
+    expect(FakeAudioDecoder.instances[0].state).toBe("closed");
+  });
+
+  it("advances the decode timestamp by the real packet duration", () => {
+    const { playback } = setup();
+    const toc = (31 << 3) | 1; // two 20 ms frames
+    const data = Uint8Array.from([4, 0, 9, toc, 1, 2, 3]);
+    playback.handleAudioFrame(data);
+    playback.handleAudioFrame(data);
+    const chunks = FakeAudioDecoder.instances[0].chunks as { init: { timestamp: number; duration: number } }[];
+    expect(chunks.map((chunk) => [chunk.init.timestamp, chunk.init.duration])).toEqual([
+      [0, 40_000],
+      [40_000, 40_000],
+    ]);
+  });
+
   it("keeps one decoder per client", () => {
     const { playback } = setup();
     playback.handleAudioFrame(frame(9));

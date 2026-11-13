@@ -194,6 +194,7 @@ function opusFrame(clientId: number, payloadLength = 8, codec = 4): Uint8Array {
   frame[1] = (clientId >> 8) & 0xff;
   frame[2] = clientId & 0xff;
   frame.fill(0xab, 3);
+  frame[3] = 0xf8; // TOC of a single 20 ms CELT frame
   return frame;
 }
 
@@ -230,7 +231,7 @@ describe("downlink: routing", () => {
     const { socket } = await downlink();
     socket.receiveBinary(opusFrame(9, 5));
     const chunk = FakeAudioDecoder.instances[0].chunks[0] as { init: { data: Uint8Array } };
-    expect(chunk.init.data).toEqual(new Uint8Array(5).fill(0xab));
+    expect(chunk.init.data).toEqual(Uint8Array.of(0xf8, 0xab, 0xab, 0xab, 0xab));
     expect(harness.voice.roster.speakingIds.has(9)).toBe(true);
   });
 
