@@ -1,4 +1,4 @@
-import type { TSDirectorySnapshot } from "../../teamspeak";
+import type { TSDirectorySnapshot } from "../../teamspeak/index.js";
 
 export function isChannelRecord(value: unknown): value is { id: string; name: string } {
   return (
