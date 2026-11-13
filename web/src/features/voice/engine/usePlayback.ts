@@ -8,6 +8,7 @@ import {
   REMOTE_PLAYOUT_DELAY_SECONDS,
   SPEAKING_HOLD_MS,
 } from "@/features/voice/audioConstants";
+import { opusChannelsForCodec, opusPacketDurationUs } from "@/features/voice/engine/opusPacket";
 import type { SinkAudioContext } from "@/features/voice/voiceTypes";
 import type { MessageHandlers } from "@/features/session";
 
@@ -29,6 +30,7 @@ export function usePlayback(deps: PlaybackDeps) {
   // Playback is kept per client so frames from multiple speakers cannot
   // interleave into one decoder or one scheduling queue.
   const remoteDecoders = new Map<number, AudioDecoder>();
+  const remoteDecoderChannels = new Map<number, 1 | 2>();
   const remoteDecoderGenerations = new Map<number, number>();
   let nextRemoteDecoderGeneration = 0;
   const remotePlayTimes = new Map<number, number>();
@@ -63,8 +65,10 @@ export function usePlayback(deps: PlaybackDeps) {
     speakingIds.clear();
   }
 
-  function playAudioFrame(clientId: number, opusData: Uint8Array): void {
+  function playAudioFrame(clientId: number, opusData: Uint8Array, channels: 1 | 2): void {
     if (opusData.length < 3) return;
+    // Switching between voice and music changes the channel layout, which needs a fresh decoder.
+    if (remoteDecoderChannels.get(clientId) !== channels) clearRemotePlayback(clientId);
     let decoder = remoteDecoders.get(clientId);
     const ctx = getAudioCtx();
     const now = ctx.currentTime;
@@ -148,16 +152,18 @@ export function usePlayback(deps: PlaybackDeps) {
           }
         },
       });
-      nextDecoder.configure({ codec: "opus", sampleRate: 48000, numberOfChannels: 1 });
+      nextDecoder.configure({ codec: "opus", sampleRate: 48000, numberOfChannels: channels });
       decoder = nextDecoder;
+      remoteDecoderChannels.set(clientId, channels);
       remoteDecoderGenerations.set(clientId, generation);
       remoteDecoders.set(clientId, decoder);
     }
 
     try {
       const timestamp = remoteDecodeTimestamps.get(clientId) ?? 0;
-      decoder.decode(new EncodedAudioChunk({ type: "key", timestamp, duration: 20_000, data: opusData }));
-      remoteDecodeTimestamps.set(clientId, timestamp + 20_000);
+      const duration = opusPacketDurationUs(opusData);
+      decoder.decode(new EncodedAudioChunk({ type: "key", timestamp, duration, data: opusData }));
+      remoteDecodeTimestamps.set(clientId, timestamp + duration);
     } catch {
       // Ignore malformed frames, the next valid frame can still be decoded.
     }
@@ -173,6 +179,7 @@ export function usePlayback(deps: PlaybackDeps) {
       }
     }
     remoteDecoders.delete(clientId);
+    remoteDecoderChannels.delete(clientId);
     remoteDecoderGenerations.delete(clientId);
     remotePlayTimes.delete(clientId);
     remoteDecodeTimestamps.delete(clientId);
@@ -203,7 +210,7 @@ export function usePlayback(deps: PlaybackDeps) {
     if (clientId === state.tsClientId) return;
     markSpeaking(clientId);
     arrivals.frame(clientId, performance.now());
-    playAudioFrame(clientId, data.slice(3));
+    playAudioFrame(clientId, data.slice(3), opusChannelsForCodec(data[0]));
   }
 
   /** The downlink half of `disconnect`, dropping every decoder, source, gain and speaking timer. */
