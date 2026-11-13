@@ -1,5 +1,10 @@
 export const micCaptureWorkletUrl = "/mic-capture-worklet.js";
 
+export const DEFAULT_VOX_THRESHOLD = 0.008;
+export const VOX_THRESHOLD_MIN = 0.001;
+export const VOX_THRESHOLD_MAX = 0.08;
+/** micLevel is the capture RMS times this, so the VOX threshold (an RMS) reads on the same scale after dividing by it. */
+export const MIC_LEVEL_GAIN = 6;
 export const VOX_HOLD = 15;
 export const VOX_ATTACK_FRAMES = 1;
 export const SPEAKING_HOLD_MS = 360;

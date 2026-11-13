@@ -1,6 +1,7 @@
 import { defineStore } from "pinia";
 import { reactive, ref } from "vue";
 import { readStorage } from "@/shared/services/safeStorage";
+import { DEFAULT_VOX_THRESHOLD } from "@/features/voice/audioConstants";
 import type { AudioInputDevice, AudioOutputDevice, AudioPermission, MicrophoneProcessingSettings } from "@/features/voice/voiceTypes";
 
 export type AccompanimentErrorCode = "" | "unsupported" | "needsWebRtc" | "gatewayDisabled" | "noAudio" | "permission" | "gateway";
@@ -23,7 +24,7 @@ export const useVoiceAudioStore = defineStore("voiceAudio", () => {
   const outputVolume = ref(1);
   const outputMuted = ref(false);
   const notificationVolume = ref(0.5);
-  const voxThreshold = ref(0.008);
+  const voxThreshold = ref(DEFAULT_VOX_THRESHOLD);
   const inputDevices = reactive<AudioInputDevice[]>([]);
   const outputDevices = reactive<AudioOutputDevice[]>([]);
   const selectedInputDeviceId = ref(readStorage("webspeak:input-device") ?? "");
@@ -48,7 +49,7 @@ export const useVoiceAudioStore = defineStore("voiceAudio", () => {
     outputVolume.value = 1;
     outputMuted.value = false;
     notificationVolume.value = 0.5;
-    voxThreshold.value = 0.008;
+    voxThreshold.value = DEFAULT_VOX_THRESHOLD;
     inputDevices.splice(0);
     outputDevices.splice(0);
     selectedInputDeviceId.value = readStorage("webspeak:input-device") ?? "";

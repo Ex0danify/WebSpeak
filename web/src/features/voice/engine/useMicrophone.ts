@@ -3,7 +3,7 @@ import { storeToRefs } from "pinia";
 import type { RnnoiseWorkletNode } from "@sapphi-red/web-noise-suppressor";
 import { useVoiceAudioStore } from "@/features/voice/stores/voiceAudioStore";
 import { useSessionStore } from "@/features/session";
-import { AUDIO_FRAME_SAMPLES, MAX_AUDIO_BUFFERED_BYTES, micCaptureWorkletUrl } from "@/features/voice/audioConstants";
+import { AUDIO_FRAME_SAMPLES, MAX_AUDIO_BUFFERED_BYTES, MIC_LEVEL_GAIN, micCaptureWorkletUrl } from "@/features/voice/audioConstants";
 import { text, type LocalizedText, type TextParams } from "@/shared/i18n/localizedText";
 import { normalizeMicrophoneFailure } from "@/features/voice/voiceErrors";
 import type { SinkAudioContext } from "@/features/voice/voiceTypes";
@@ -175,7 +175,10 @@ export function useMicrophone(deps: MicrophoneDeps) {
 
     const handleCaptureChunk = (input: Float32Array, rms?: number): void => {
       if (!input.length) return;
-      micLevel.value = Math.min(1, (rms ?? Math.sqrt(input.reduce((sum, sample) => sum + sample * sample, 0) / input.length)) * 6);
+      micLevel.value = Math.min(
+        1,
+        (rms ?? Math.sqrt(input.reduce((sum, sample) => sum + sample * sample, 0) / input.length)) * MIC_LEVEL_GAIN,
+      );
       const socket = ws.value;
       const shouldSend =
         !microphoneMuted.value &&

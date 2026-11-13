@@ -3,6 +3,7 @@ import { storeToRefs } from "pinia";
 import { loadLocalPreferences, saveLocalPreferences } from "@/shared/services/localPersistence.js";
 import { useVoiceAudioStore } from "@/features/voice/stores/voiceAudioStore";
 import { useSessionStore } from "@/features/session";
+import { VOX_THRESHOLD_MAX, VOX_THRESHOLD_MIN } from "@/features/voice/audioConstants";
 
 /**
  * The parts of a volume change that touch audio nodes or the gateway. They stay with the audio graph and are late-bound,
@@ -72,7 +73,8 @@ export function useAudioPreferences(deps: AudioPreferencesDeps) {
     if (!selectedInputDeviceId.value) selectedInputDeviceId.value = preferences.preferredInputDeviceId ?? preferences.inputDeviceId ?? "";
     if (typeof preferences.microphoneMuted === "boolean") microphoneMuted.value = preferences.microphoneMuted;
     if (typeof preferences.noiseSuppressionEnabled === "boolean") noiseSuppressionEnabled.value = preferences.noiseSuppressionEnabled;
-    if (typeof preferences.voxThreshold === "number") voxThreshold.value = clamp(preferences.voxThreshold, 0.001, 0.08);
+    if (typeof preferences.voxThreshold === "number")
+      voxThreshold.value = clamp(preferences.voxThreshold, VOX_THRESHOLD_MIN, VOX_THRESHOLD_MAX);
     if (typeof preferences.inputGain === "number") inputVolume.value = Math.max(0, Math.min(1, preferences.inputGain));
     if (typeof preferences.outputVolume === "number") outputVolume.value = Math.max(0, Math.min(1, preferences.outputVolume));
     if (!selectedOutputDeviceId.value) selectedOutputDeviceId.value = preferences.preferredOutputDeviceId ?? "";
@@ -129,7 +131,7 @@ export function useAudioPreferences(deps: AudioPreferencesDeps) {
   }
 
   function setVoxThreshold(threshold: number): void {
-    voxThreshold.value = clamp(threshold, 0.001, 0.08);
+    voxThreshold.value = clamp(threshold, VOX_THRESHOLD_MIN, VOX_THRESHOLD_MAX);
     void saveAudioPreferences();
   }
 
