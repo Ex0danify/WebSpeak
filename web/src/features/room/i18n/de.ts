@@ -40,6 +40,7 @@ export const de: Record<string, string> = {
   screenShareSettings: "Freigabeeinstellungen",
   screenShareFrameRate: "Bildratenlimit",
   switchChannel: "Kanal wechseln",
+  channelProtected: "Passwortgeschützt",
   serverBreadcrumb: "Server",
   onlineShort: "{{count}} online",
   copyInvite: "Einladungslink kopieren",

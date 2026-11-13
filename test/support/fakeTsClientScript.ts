@@ -55,7 +55,7 @@ export function directoryChannels(channels: Iterable<FakeChannel>): ChannelInfo[
   const lastByParent = new Map<bigint, bigint>();
   return [...channels].map((channel) => {
     const parentID = channel.parentId ?? 0n;
-    const info: ChannelInfo = { name: channel.name, description: "", id: channel.id, parentID, order: lastByParent.get(parentID) ?? 0n };
+    const info: ChannelInfo = { name: channel.name, description: "", hasPassword: false, id: channel.id, parentID, order: lastByParent.get(parentID) ?? 0n };
     lastByParent.set(parentID, channel.id);
     return info;
   });

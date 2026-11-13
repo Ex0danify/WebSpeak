@@ -60,6 +60,8 @@ export interface ChannelInfo {
   name: string;
   /** Empty `name` plus this flag: the view renders `unnamedChannel`. */
   unnamed?: boolean;
+  /** Joining needs a password. */
+  hasPassword?: boolean;
   description?: string;
   members?: {
     id: number;

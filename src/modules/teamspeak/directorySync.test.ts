@@ -8,7 +8,7 @@ import { DirectorySynchronizer } from "./directorySync.js";
 import type { TSDirectorySnapshot } from "./teamSpeakClient.js";
 
 function channel(id: number, name = `channel ${id}`): ChannelInfo {
-  return { id: BigInt(id), name, description: "", parentID: 0n, order: 0n };
+  return { id: BigInt(id), name, description: "", hasPassword: false, parentID: 0n, order: 0n };
 }
 
 function client(id: number, extra: Partial<DirectoryClientInfo> = {}): DirectoryClientInfo {
