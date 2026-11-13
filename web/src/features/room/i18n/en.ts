@@ -84,6 +84,8 @@ export const en = {
   moveMemberNoChannels: "No available channels",
   moveMemberSuccess: "Member moved",
   copiedNickname: "Nickname copied",
+  copyChannelName: "Copy channel name",
+  copiedChannelName: "Channel name copied",
   muteMic: "Mute mic",
   unmuteMic: "Unmute mic",
   microphoneActive: "Microphone on",

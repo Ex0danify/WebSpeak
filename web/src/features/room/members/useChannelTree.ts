@@ -234,13 +234,19 @@ export function useChannelTree(options: UseChannelTreeOptions) {
   }
 
   async function moveMemberDirect(member: ChannelMember, targetChannelId: string): Promise<void> {
-    if (member.isSelf || !targetChannelId || targetChannelId === "__current__") return;
+    if (!targetChannelId || targetChannelId === "__current__") return;
     const sourceChannel = memberChannels.value.find((channel) => channel.members.some((candidate) => candidate.id === member.id));
     if (sourceChannel?.id === targetChannelId) {
       memberMenu.value = null;
       return;
     }
     memberMenu.value = null;
+    if (member.isSelf) {
+      // Moving yourself is a normal channel switch, so a protected channel still asks for its password.
+      const target = joinableChannels.value.find((item) => item.id === targetChannelId);
+      if (target) selectChannel(target);
+      return;
+    }
     try {
       // Moving a visible client is a server-admin operation, so channel passwords are never requested or forwarded here.
       await moveClient(member.id, targetChannelId);
@@ -251,10 +257,6 @@ export function useChannelTree(options: UseChannelTreeOptions) {
   }
 
   function onMemberDragStart(member: ChannelMember, event: DragEvent): void {
-    if (member.isSelf) {
-      event.preventDefault();
-      return;
-    }
     draggedMember.value = member;
     dragOverChannelId.value = "";
     event.dataTransfer?.setData("text/plain", String(member.id));
@@ -267,7 +269,7 @@ export function useChannelTree(options: UseChannelTreeOptions) {
   }
 
   function onMemberPointerDown(member: ChannelMember, event: PointerEvent): void {
-    if (member.isSelf || event.button !== 0) return;
+    if (event.button !== 0) return;
     const target = event.target instanceof Element ? event.target : null;
     if (target?.closest("input,button")) return;
     event.preventDefault();

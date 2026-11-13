@@ -50,15 +50,13 @@
                   :indicator-bars="indicatorBars"
                   :groups="groupsFor(member)"
                   :class="{ dragging: draggedMemberId === member.id }"
-                  :draggable="!member.isSelf"
+                  draggable="true"
                   @dragstart="$emit('member-drag-start', member, $event)"
                   @dragend="$emit('member-drag-end')"
                   @pointerdown="$emit('member-pointer-down', member, $event)"
                   @pointermove="$emit('member-pointer-move', $event)"
                   @pointerup="$emit('member-pointer-up', $event)"
                   @pointercancel="$emit('member-pointer-cancel', $event)"
-                  @contextmenu.prevent="$emit('open-member-menu', member, $event)"
-                  @open-actions="$emit('open-member-actions', member)"
                   @toggle-screen-share="$emit('toggle-screen-share', member)"
                 />
               </div>
@@ -111,8 +109,6 @@ defineEmits<{
   (e: "member-pointer-move", event: PointerEvent): void;
   (e: "member-pointer-up", event: PointerEvent): void;
   (e: "member-pointer-cancel", event: PointerEvent): void;
-  (e: "open-member-menu", member: ChannelMember, event: MouseEvent): void;
-  (e: "open-member-actions", member: ChannelMember): void;
 }>();
 
 const { t } = useI18n();

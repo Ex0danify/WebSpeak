@@ -7,30 +7,16 @@
     :screen-share="screenShare"
     :audio-panel="audioPanel"
     :whisper="whisper"
-    :member-menu="roomMemberMenu"
     :appearance="appearance"
     :do-share="doShare"
     :do-disconnect="doDisconnect"
   />
 
-  <MemberContextMenu
-    :member-menu="memberMenu"
-    :member-menu-style="memberMenuStyle"
-    :volumes="volumes"
-    :muted-members="mutedMembers"
-    :whisper-target-ids="whisperTargetIds"
-    :move-current-channel="memberMoveMenuCurrentChannel"
-    :move-current-same-channel="memberMoveMenuCurrentSameChannel"
-    :move-other-channels="memberMoveMenuOtherChannels"
-    @close="memberMenu = null"
-    @close-auto-focus="onMemberMenuCloseAutoFocus"
-    @set-volume="setVolume"
-    @set-muted="setMemberMuted"
-    @private-message="openPrivateChat"
-    @poke="pokeMember"
-    @toggle-whisper="toggleWhisperTarget"
-    @copy-name="copyMemberName"
-    @move="moveMemberDirect"
+  <ContextMenuLayer
+    :target="contextTarget"
+    :menu-style="menuStyle"
+    @close="closeContextMenu"
+    @close-auto-focus="onContextMenuCloseAutoFocus"
   />
 
   <!-- Protected channel password modal -->
@@ -87,16 +73,18 @@
 
 <script setup lang="ts">
 import { storeToRefs } from "pinia";
-import { ref } from "vue";
+import { computed, ref } from "vue";
 import {
   AudioSettingsDialog,
-  MemberContextMenu,
+  ContextMenuLayer,
   RoomWorkspace,
   useAudioSettingsPanel,
   useChannelTree,
   useChat,
   useGatewayErrorNotices,
-  useMemberMenu,
+  useContextMenu,
+  provideContextActions,
+  provideContextMenu,
   useRoomContext,
   useRoomShell,
   useScreenShareErrorNotice,
@@ -113,7 +101,7 @@ import { avatarStyle } from "@/shared/lib/format";
 
 const session = useRoomContext();
 const { state: voiceState, disconnect } = session.session;
-const { pokeNotifications, volumes, mutedMembers, whisperTargetIds } = session.roster;
+const { pokeNotifications } = session.roster;
 const { sendPoke } = session.chat;
 const {
   microphoneMuted,
@@ -131,8 +119,6 @@ const {
   micLevel,
   microphoneTestActive,
   testAudioUrl,
-  setVolume,
-  setMemberMuted,
   setInputVolume,
   setNoiseSuppressionEnabled,
   setOutputVolume,
@@ -156,8 +142,15 @@ function doDisconnect() {
   toast({ title: t("leftToast"), variant: "success", duration: 2800 });
 }
 
-const { memberMenu, memberMenuStyle, openMemberMenu, openMemberActions, onMemberMenuCloseAutoFocus } = useMemberMenu();
-const roomMemberMenu = { openMemberMenu, openMemberActions };
+const {
+  target: contextTarget,
+  memberMenu,
+  menuStyle,
+  open: openContextMenu,
+  close: closeContextMenu,
+  onCloseAutoFocus: onContextMenuCloseAutoFocus,
+} = useContextMenu();
+provideContextMenu(openContextMenu);
 const shell = useRoomShell({
   memberMenu,
   pokeNotifications,
@@ -166,7 +159,7 @@ const shell = useRoomShell({
   refreshAudioDevices,
   sendPoke,
 });
-const { mobileSection, isMobileViewport, pokeMember, copyMemberName } = shell;
+const { mobileSection, isMobileViewport, pokeMember, copyMemberName, copyChannelName } = shell;
 
 const tree = useChannelTree({
   session: session.session,
@@ -185,6 +178,7 @@ const {
   submitChannelPassword,
   cancelChannelPassword,
   moveMemberDirect,
+  selectChannel,
   memberMoveMenuCurrentChannel,
   memberMoveMenuCurrentSameChannel,
   memberMoveMenuOtherChannels,
@@ -224,6 +218,20 @@ const {
 
 const whisper = useWhisper({ roster: session.roster, actions: session.actions });
 const { toggleWhisperTarget } = whisper;
+
+provideContextActions({
+  currentChannelId: computed(() => currentChannel.value?.id),
+  moveCurrentChannel: memberMoveMenuCurrentChannel,
+  moveCurrentSameChannel: memberMoveMenuCurrentSameChannel,
+  moveOtherChannels: memberMoveMenuOtherChannels,
+  openPrivateChat,
+  pokeMember,
+  toggleWhisperTarget,
+  copyMemberName,
+  moveMemberDirect,
+  switchChannel: selectChannel,
+  copyChannelName,
+});
 
 useGatewayErrorNotices(voiceState);
 useScreenShareErrorNotice(screenShare.screenShareErrorText);
