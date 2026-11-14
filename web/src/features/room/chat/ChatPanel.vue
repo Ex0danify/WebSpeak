@@ -98,7 +98,7 @@
                     ]"
                   >
                     <time v-if="index > 0" class="sr-only">{{ formatTime(message.timestamp) }}</time>
-                    <span>{{ message.message }}</span>
+                    <ChatMarkdown :text="message.message" />
                   </div>
                   <div
                     v-if="message.status"
@@ -159,6 +159,7 @@ import { Icon } from "@/shared/ui/icon";
 import { Input } from "@/shared/ui/input";
 import { Separator } from "@/shared/ui/separator";
 import { Tab, TabList, TabPanel, Tabs } from "@/shared/ui/tabs";
+import ChatMarkdown from "@/features/room/chat/ChatMarkdown.vue";
 import UnreadMark from "@/features/room/chat/UnreadMark.vue";
 import { buildTimeline, splitAroundName, type Notice } from "@/features/room/chat/groupMessages";
 import { useI18n } from "@/shared/i18n/useI18n.js";

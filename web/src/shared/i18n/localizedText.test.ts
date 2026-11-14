@@ -19,7 +19,8 @@ describe("text", () => {
 
   it("is recognised by isLocalizedText, strings and null are not", () => {
     expect(isLocalizedText(text(testKey("lt_plain")))).toBe(true);
-    for (const value of [testKey("lt_plain"), null, undefined, 1, {}, { key: 1 }]) expect(isLocalizedText(value)).toBe(false);
+    const notText: unknown[] = ["lt_plain", null, undefined, 1, {}, { key: 1 }];
+    for (const value of notText) expect(isLocalizedText(value)).toBe(false);
   });
 });
 
