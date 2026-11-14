@@ -22,7 +22,9 @@ function sel(marked: string): Selection {
     return { text: marked.slice(0, open) + marked.slice(open + 1, close) + marked.slice(close + 1), start: open, end: close - 1 };
   }
   const caret = marked.indexOf("|");
-  return { text: marked.replace("|", ""), start: caret, end: caret };
+  if (caret === -1) throw new Error(`no selection or caret marker in "${marked}"`);
+  // Cut out the one marker at its position, the text itself may hold other pipes.
+  return { text: marked.slice(0, caret) + marked.slice(caret + 1), start: caret, end: caret };
 }
 function show({ text, start, end }: Selection): string {
   if (start === end) return `${text.slice(0, start)}|${text.slice(start)}`;
