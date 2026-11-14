@@ -1,5 +1,6 @@
 export { launchOptions } from "./chromium";
 export { focusInfo, overflowScan, type FocusInfo } from "./inspect";
+export { composerText, expectComposerText, selectedText, selectInComposer } from "./composer";
 export { poll, type PollOptions } from "./poll";
 export { channelGroup, channelHeading, expectInRoom, join, memberRow, openMemberMenu, submitJoin } from "./room";
 export { Session, type GatewayMessage } from "./session";

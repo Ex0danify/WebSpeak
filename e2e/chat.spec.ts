@@ -1,6 +1,6 @@
 import type { Locator, Page } from "@playwright/test";
 import { expect, type Script, test } from "./fixtures";
-import { join, openMemberMenu, overflowScan, poll } from "./helpers";
+import { expectComposerText, join, openMemberMenu, overflowScan, poll } from "./helpers";
 import type { Gateway } from "../test/support/gateway";
 
 // The chat panel of the connected view: the channel, server and private tabs, the event log popover and the
@@ -44,7 +44,7 @@ test.describe("channel chat", () => {
     await composer(page).fill("hello channel");
     await composer(page).press("Enter");
     await expect(message(page, "You", "hello channel")).toBeVisible();
-    await expect(composer(page)).toHaveValue("");
+    await expectComposerText(composer(page), "");
     await expect(page.getByText("This is the beginning of the chat")).toBeHidden();
     const sent = await poll(
       () => sentBy(gateway, "chat-send-self"),
@@ -71,7 +71,7 @@ test.describe("channel chat", () => {
     expect(sent[0].message).toBe("padded");
 
     await composer(page).fill("x".repeat(9000));
-    await expect(composer(page)).toHaveValue("x".repeat(8192));
+    await expectComposerText(composer(page), "x".repeat(8192));
   });
 
   test("a message from someone in your channel shows with their name", async ({ page, script }) => {
@@ -228,12 +228,12 @@ test.describe("chat permissions", () => {
     await chatTab(page, "Server").click();
     const blocked = page.getByRole("textbox", { name: "No permission to write to the server" });
     await expect(blocked).toBeDisabled();
-    await expect(blocked).toHaveAttribute("placeholder", "No permission to write to the server");
+    await expect(blocked).toContainText("No permission to write to the server");
     await expect(sendButton(page)).toBeDisabled();
 
     await chatTab(page, "Lobby").click();
     await expect(composer(page)).toBeEnabled();
-    await expect(composer(page)).toHaveAttribute("placeholder", /Message/);
+    await expect(composer(page)).toContainText(/Message/);
 
     client.textAllowed.server = true;
     client.emit("permissionsChanged");

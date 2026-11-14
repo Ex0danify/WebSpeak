@@ -1,6 +1,28 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { defineComponent, h } from "vue";
 import { flushPromises, mount, type VueWrapper } from "@vue/test-utils";
 import ChatComposer from "@/features/room/chat/ChatComposer.vue";
+import type { Selection } from "@/features/room/chat/composerFormat";
+
+// The editor itself is tested against CodeMirror in ChatEditor.test.ts. Here a stand-in with the same few methods keeps the
+// composer's own work in view: what a button or a shortcut does to the text and selection, and when Send is possible.
+const EditorStub = defineComponent({
+  props: { modelValue: { type: String, default: "" }, label: String, placeholder: String, disabled: Boolean, maxLength: Number },
+  emits: ["update:modelValue", "submit", "shortcut"],
+  setup(props, { expose, emit }) {
+    const range = { start: 0, end: 0 };
+    expose({
+      focus: vi.fn(),
+      select: (start: number, end: number) => Object.assign(range, { start, end }),
+      getSelection: (): Selection => ({ text: props.modelValue, ...range }),
+      apply: (next: Selection) => {
+        Object.assign(range, { start: next.start, end: next.end });
+        emit("update:modelValue", next.text);
+      },
+    });
+    return () => h("div", { "data-editor": "", "aria-label": props.label });
+  },
+});
 
 function stubPhone(phone: boolean) {
   vi.stubGlobal("matchMedia", () => ({ matches: phone, addEventListener: () => {}, removeEventListener: () => {} }));
@@ -8,60 +30,58 @@ function stubPhone(phone: boolean) {
 
 afterEach(() => {
   vi.unstubAllGlobals();
+  vi.useRealTimers();
   document.body.innerHTML = "";
 });
 
-function mountComposer(value = "", props: { disabled?: boolean } = {}) {
-  stubPhone(false);
+function mountComposer(value = "", props: { disabled?: boolean; phone?: boolean } = {}) {
+  stubPhone(props.phone ?? false);
   const wrapper: VueWrapper = mount(ChatComposer, {
     props: {
       modelValue: value,
       "onUpdate:modelValue": (next: string) => wrapper.setProps({ modelValue: next }),
       placeholder: "Message",
       label: "Send",
-      disabled: false,
-      ...props,
+      disabled: props.disabled ?? false,
     },
+    global: { stubs: { ChatEditor: EditorStub } },
     attachTo: document.body,
   });
   return wrapper;
 }
 
-const box = (wrapper: VueWrapper) => wrapper.find("textarea").element as HTMLTextAreaElement;
+const editor = (wrapper: VueWrapper) => wrapper.findComponent(EditorStub);
 const button = (wrapper: VueWrapper, name: string) => wrapper.find(`button[aria-label="${name}"]`);
-
-function select(wrapper: VueWrapper, start: number, end: number) {
-  box(wrapper).focus();
-  box(wrapper).setSelectionRange(start, end);
-}
+const select = (wrapper: VueWrapper, start: number, end: number) =>
+  (editor(wrapper).vm as unknown as { select: (start: number, end: number) => void }).select(start, end);
+const value = (wrapper: VueWrapper) => (wrapper.props() as { modelValue: string }).modelValue;
 
 describe("ChatComposer", () => {
+  describe("the editor", () => {
+    it("is named, labelled and limited by the composer", () => {
+      const wrapper = mountComposer();
+      expect(editor(wrapper).props()).toMatchObject({ label: "Send", placeholder: "Message", disabled: false, maxLength: 8192 });
+    });
+
+    it("passes a blocked state on", () => {
+      expect(editor(mountComposer("", { disabled: true })).props("disabled")).toBe(true);
+    });
+  });
+
   describe("sending", () => {
-    it("sends on Enter and keeps the text for the parent to clear", async () => {
+    it("sends when the editor asks to", () => {
       const wrapper = mountComposer("hello");
-      await wrapper.find("textarea").trigger("keydown", { key: "Enter" });
+      editor(wrapper).vm.$emit("submit");
       expect(wrapper.emitted("submit")).toHaveLength(1);
     });
 
-    it("starts a new line on Shift+Enter instead of sending", async () => {
-      const wrapper = mountComposer("hello");
-      const event = new KeyboardEvent("keydown", { key: "Enter", shiftKey: true, cancelable: true });
-      box(wrapper).dispatchEvent(event);
-      expect(event.defaultPrevented).toBe(false);
+    it.each([
+      ["an empty box", mountComposer("")],
+      ["a blank box", mountComposer("   \n ")],
+      ["a blocked box", mountComposer("text", { disabled: true })],
+    ])("does not send %s", (_name, wrapper) => {
+      editor(wrapper).vm.$emit("submit");
       expect(wrapper.emitted("submit")).toBeUndefined();
-    });
-
-    it("does not send while an input method is composing", async () => {
-      const wrapper = mountComposer("かな");
-      await wrapper.find("textarea").trigger("keydown", { key: "Enter", isComposing: true });
-      expect(wrapper.emitted("submit")).toBeUndefined();
-    });
-
-    it("ignores Enter on an empty or blank box and when disabled", async () => {
-      for (const wrapper of [mountComposer(""), mountComposer("   "), mountComposer("text", { disabled: true })]) {
-        await wrapper.find("textarea").trigger("keydown", { key: "Enter" });
-        expect(wrapper.emitted("submit")).toBeUndefined();
-      }
     });
 
     it("keeps Send off until there is text", () => {
@@ -69,22 +89,10 @@ describe("ChatComposer", () => {
       expect(button(mountComposer("hi"), "Send").attributes("disabled")).toBeUndefined();
     });
 
-    it("allows up to 8192 characters", () => {
-      expect(box(mountComposer()).maxLength).toBe(8192);
-    });
-  });
-
-  describe("growing", () => {
-    it("follows the content height and caps it with a scrolling box", async () => {
-      const wrapper = mountComposer();
-      Object.defineProperty(box(wrapper), "scrollHeight", { configurable: true, value: 120 });
-      await wrapper.setProps({ modelValue: "a\nb\nc\nd" });
-      await flushPromises();
-      expect(box(wrapper).style.height).toBe("120px");
-      // The cap is the box's own max height, beyond which it scrolls.
-      expect(box(wrapper).classList).toContain("max-h-40");
-      expect(box(wrapper).classList).toContain("overflow-y-auto");
-      expect(box(wrapper).classList).toContain("resize-none");
+    it("sends from the Send button", async () => {
+      const wrapper = mountComposer("hello");
+      await wrapper.find("form").trigger("submit");
+      expect(wrapper.emitted("submit")).toHaveLength(1);
     });
   });
 
@@ -103,16 +111,7 @@ describe("ChatComposer", () => {
       select(wrapper, 0, 5);
       await button(wrapper, name).trigger("click");
       await flushPromises();
-      expect(box(wrapper).value).toBe(expected);
-    });
-
-    it("keeps the selection on the text and the focus in the box", async () => {
-      const wrapper = mountComposer("hello world");
-      select(wrapper, 6, 11);
-      await button(wrapper, "Bold").trigger("click");
-      await flushPromises();
-      expect(document.activeElement).toBe(box(wrapper));
-      expect(box(wrapper).value.slice(box(wrapper).selectionStart, box(wrapper).selectionEnd)).toBe("world");
+      expect(value(wrapper)).toBe(expected);
     });
 
     it("takes the formatting off with a second click", async () => {
@@ -122,7 +121,7 @@ describe("ChatComposer", () => {
       await flushPromises();
       await button(wrapper, "Bold").trigger("click");
       await flushPromises();
-      expect(box(wrapper).value).toBe("hello world");
+      expect(value(wrapper)).toBe("hello world");
     });
 
     it("refuses an edit that would pass the length limit", async () => {
@@ -131,15 +130,15 @@ describe("ChatComposer", () => {
       select(wrapper, 0, 5);
       await button(wrapper, "Bold").trigger("click");
       await flushPromises();
-      expect(box(wrapper).value).toBe(full);
+      expect(value(wrapper)).toBe(full);
     });
 
-    it("does nothing while the box is disabled", async () => {
+    it("does nothing while the box is blocked", () => {
       const wrapper = mountComposer("hello", { disabled: true });
       expect(button(wrapper, "Bold").attributes("disabled")).toBeDefined();
     });
 
-    it("names every button and shows the shortcut where there is one", () => {
+    it("names every button", () => {
       const wrapper = mountComposer();
       for (const name of ["Bold", "Italic", "Strikethrough", "Underline", "Link", "Quote", "Inline code", "Bulleted list"]) {
         expect(button(wrapper, name).exists(), name).toBe(true);
@@ -148,42 +147,41 @@ describe("ChatComposer", () => {
     });
   });
 
-  describe("keyboard shortcuts", () => {
+  describe("shortcuts", () => {
     it.each([
-      ["b", "**hello** world"],
-      ["i", "*hello* world"],
-      ["k", "[hello](url) world"],
-    ])("Ctrl+%s", async (key, expected) => {
+      ["bold", "**hello** world"],
+      ["italic", "*hello* world"],
+      ["link", "[hello](url) world"],
+    ])("%s from the editor", async (name, expected) => {
       const wrapper = mountComposer("hello world");
       select(wrapper, 0, 5);
-      const event = new KeyboardEvent("keydown", { key, ctrlKey: true, cancelable: true, bubbles: true });
-      box(wrapper).dispatchEvent(event);
+      editor(wrapper).vm.$emit("shortcut", name);
       await flushPromises();
-      expect(event.defaultPrevented).toBe(true);
-      expect(box(wrapper).value).toBe(expected);
-    });
-
-    it("leaves other Ctrl combinations to the browser", async () => {
-      const wrapper = mountComposer("hello");
-      const event = new KeyboardEvent("keydown", { key: "a", ctrlKey: true, cancelable: true, bubbles: true });
-      box(wrapper).dispatchEvent(event);
-      expect(event.defaultPrevented).toBe(false);
+      expect(value(wrapper)).toBe(expected);
     });
   });
 
   describe("on a phone", () => {
     it("hides the toolbar until it is asked for", async () => {
-      stubPhone(true);
-      const wrapper = mount(ChatComposer, {
-        props: { modelValue: "", placeholder: "Message", label: "Send", disabled: false },
-        attachTo: document.body,
-      });
+      const wrapper = mountComposer("", { phone: true });
       expect(wrapper.find('[role="toolbar"]').exists()).toBe(false);
       const toggle = button(wrapper, "Show formatting");
       expect(toggle.attributes("aria-expanded")).toBe("false");
       await toggle.trigger("click");
       expect(wrapper.find('[role="toolbar"]').exists()).toBe(true);
       expect(button(wrapper, "Hide formatting").attributes("aria-expanded")).toBe("true");
+    });
+
+    it("hands the focus back to the editor after an edit, once the menu sheet has closed", async () => {
+      vi.useFakeTimers();
+      const wrapper = mountComposer("hello", { phone: true });
+      await button(wrapper, "Show formatting").trigger("click");
+      select(wrapper, 0, 5);
+      const focus = (editor(wrapper).vm as unknown as { focus: ReturnType<typeof vi.fn> }).focus;
+      await button(wrapper, "Bold").trigger("click");
+      focus.mockClear();
+      vi.runAllTimers();
+      expect(focus).toHaveBeenCalled();
     });
 
     it("has no toggle on a wide screen, where the toolbar is always there", () => {

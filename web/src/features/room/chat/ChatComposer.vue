@@ -1,6 +1,9 @@
 <template>
-  <form class="mt-3 rounded-lg bg-surface-2 max-compact:mb-1 max-compact:border max-compact:border-line" @submit.prevent="submit">
-    <div v-if="showToolbar" class="px-1.5 pt-1.5">
+  <form
+    class="mt-3 overflow-hidden rounded-lg bg-surface-2 max-compact:mb-1 max-compact:border max-compact:border-line"
+    @submit.prevent="submit"
+  >
+    <div v-if="showToolbar" class="border-b border-line px-1.5 py-1.5">
       <Toolbar id="chat-format-toolbar" :label="t('formatToolbar')">
         <ToolbarButton :label="t('formatBold')" shortcut="Ctrl+B" :disabled="disabled" @click="wrap('**')"
           ><Icon name="bold" :size="16"
@@ -57,18 +60,17 @@
         </Menu>
       </Toolbar>
     </div>
-    <div class="flex items-end gap-1.75 py-1.5 pr-2 pl-3 max-compact:py-1.75 max-compact:pl-3.25">
-      <Textarea
-        ref="area"
+    <div class="flex items-end gap-1.75 bg-surface-1 py-1.5 pr-2 pl-1 max-compact:py-1.75 max-compact:pl-1.25">
+      <ChatEditor
+        ref="editor"
         v-model="draft"
-        rows="1"
-        :maxlength="MAX_CHAT_SEND_LENGTH"
+        :label="label"
         :placeholder="placeholder"
         :disabled="disabled"
-        :aria-label="label"
-        class="flex-1"
-        textarea-class="max-h-40 min-h-9 resize-none overflow-y-auto border-0 bg-transparent px-0 py-2 text-md max-compact:min-h-11 max-compact:text-sm"
-        @keydown="onKeydown"
+        :max-length="MAX_CHAT_SEND_LENGTH"
+        class="flex-1 text-md max-compact:text-sm"
+        @submit="submit"
+        @shortcut="onShortcut"
       />
       <Tooltip v-if="phone" :text="toolbarOpen ? t('formatHide') : t('formatShow')"
         ><Button
@@ -91,7 +93,8 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, onMounted, ref, watch } from "vue";
+import { computed, ref } from "vue";
+import ChatEditor from "@/features/room/chat/editor/ChatEditor.vue";
 import {
   HEADING_PREFIX,
   LIST_PREFIX,
@@ -112,12 +115,11 @@ import { useI18n } from "@/shared/i18n/useI18n.js";
 import { Button } from "@/shared/ui/button";
 import { Icon } from "@/shared/ui/icon";
 import { Menu, MenuItem, MenuSeparator, MenuSub } from "@/shared/ui/menu";
-import { Textarea } from "@/shared/ui/textarea";
 import { Toolbar, ToolbarButton, ToolbarItem, ToolbarSeparator } from "@/shared/ui/toolbar";
 import { Tooltip } from "@/shared/ui/tooltip";
 
-// The message box with its formatting toolbar. The box grows with the text up to a height of its own and scrolls beyond
-// that, so a long message never pushes the chat list off the screen. Enter sends, Shift+Enter starts a new line.
+// The message box with its formatting toolbar. The editor shows the formatting as it is typed, grows with the text up to a
+// height of its own and scrolls beyond that, so a long message never pushes the chat list off the screen.
 const props = defineProps<{
   /** The placeholder, or the reason writing is blocked. */
   placeholder: string;
@@ -130,7 +132,7 @@ const emit = defineEmits<{ (e: "submit"): void }>();
 const draft = defineModel<string>({ default: "" });
 const { t } = useI18n();
 
-const area = ref<{ el: HTMLTextAreaElement | null; focus: () => void } | null>(null);
+const editor = ref<InstanceType<typeof ChatEditor> | null>(null);
 const canSend = computed(() => !props.disabled && draft.value.trim() !== "");
 
 // On a phone the toolbar would take the room of the chat, so it opens on request.
@@ -146,64 +148,38 @@ const alignLabels = {
   justify: () => t("formatAlignJustify"),
 };
 
-function grow() {
-  const el = area.value?.el;
-  if (!el) return;
-  el.style.height = "auto";
-  el.style.height = `${el.scrollHeight}px`;
-}
-watch(draft, () => nextTick(grow));
-onMounted(grow);
-
 function submit() {
   if (canSend.value) emit("submit");
 }
 
-function onKeydown(event: KeyboardEvent) {
-  if (event.key === "Enter" && !event.shiftKey && !event.isComposing) {
-    event.preventDefault();
-    submit();
-    return;
-  }
-  if (!(event.ctrlKey || event.metaKey) || event.altKey || event.shiftKey) return;
-  const key = event.key.toLowerCase();
-  if (key === "b") wrap("**");
-  else if (key === "i") wrap("*");
-  else if (key === "k") link();
-  else return;
-  event.preventDefault();
+function onShortcut(name: "bold" | "italic" | "link") {
+  if (name === "bold") wrap("**");
+  else if (name === "italic") wrap("*");
+  else link();
 }
 
-// The textarea keeps its selection while a toolbar button or menu has the focus, so the edit reads it from there.
-async function edit(change: (selection: Selection) => Selection) {
-  const el = area.value?.el;
-  if (!el || props.disabled) return;
-  const next = change({ text: draft.value, start: el.selectionStart, end: el.selectionEnd });
+// The editor keeps its selection while a toolbar button or menu has the focus, so the edit reads it from there.
+function edit(change: (selection: Selection) => Selection) {
+  if (!editor.value || props.disabled) return;
+  const next = change(editor.value.getSelection());
   if (next.text.length > MAX_CHAT_SEND_LENGTH) return;
-  draft.value = next.text;
-  await nextTick();
-  const restore = () => {
-    el.focus();
-    el.setSelectionRange(next.start, next.end);
-  };
-  restore();
-  grow();
+  editor.value.apply(next);
   // The phone's menu is a sheet that gives the focus back to its trigger in a timer once it has closed.
-  if (phone.value) setTimeout(restore, 0);
+  if (phone.value) setTimeout(() => editor.value?.focus(), 0);
 }
 
-const wrap = (marker: string): void => void edit((selection) => toggleWrap(selection, marker));
-const link = (): void => void edit(makeLink);
-const block = (head: string, tail: string): void => void edit((selection) => wrapBlock(selection, head, tail));
-const standalone = (snippet: string, caret?: number): void => void edit((selection) => insertStandalone(selection, snippet, caret));
-const linePrefix = (marker: (index: number) => string, strip: RegExp, has?: (line: string, marker: string) => boolean): void =>
-  void edit((selection) => toggleLinePrefix(selection, marker, strip, has));
+const wrap = (marker: string) => edit((selection) => toggleWrap(selection, marker));
+const link = () => edit(makeLink);
+const block = (head: string, tail: string) => edit((selection) => wrapBlock(selection, head, tail));
+const standalone = (snippet: string, caret?: number) => edit((selection) => insertStandalone(selection, snippet, caret));
+const linePrefix = (marker: (index: number) => string, strip: RegExp, has?: (line: string, marker: string) => boolean) =>
+  edit((selection) => toggleLinePrefix(selection, marker, strip, has));
 
 // A closing menu hands the focus to its trigger, an edit has already put it back in the box.
 function giveFocusBack(event: Event) {
   event.preventDefault();
-  area.value?.focus();
+  editor.value?.focus();
 }
 
-defineExpose({ focus: () => area.value?.focus() });
+defineExpose({ focus: () => editor.value?.focus() });
 </script>
