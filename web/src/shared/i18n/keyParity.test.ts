@@ -158,6 +158,8 @@ const SAME_AS_ENGLISH = new Set<string>([
   "identity.identityNameLabel",
   "chat.serverChat",
   "chat.detailsTitle",
+  "chat.formatLink",
+  "chat.formatSpoiler",
   "room.serverBreadcrumb",
   "room.onlineShort",
   "room.memberOnline",

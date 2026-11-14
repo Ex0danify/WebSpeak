@@ -120,32 +120,14 @@
     <Banner v-if="privatePeerName" variant="warning" :class="`mt-3 ${columnClass}`">
       {{ t("privatePeerAway", { name: privatePeerName }) }}
     </Banner>
-    <form
-      :class="[
-        columnClass,
-        'mt-3 flex min-h-12 flex-none items-center gap-1.75 rounded-lg bg-surface-2 py-1.5 pr-2 pl-3 max-compact:mb-1 max-compact:min-h-13.5 max-compact:border max-compact:border-line max-compact:py-1.75 max-compact:pl-3.25',
-      ]"
-      @submit.prevent="$emit('submit')"
-    >
-      <Input
-        v-model="messageDraft"
-        maxlength="500"
-        :placeholder="writeBlockedHint || chatPlaceholder"
-        :disabled="Boolean(privatePeerName) || Boolean(writeBlockedHint)"
-        :aria-label="writeBlockedHint || t('send')"
-        class="flex-1"
-        input-class="h-9 border-0 bg-transparent px-0 text-md max-compact:text-sm"
-      />
-      <Tooltip :text="t('send')"
-        ><Button
-          type="submit"
-          icon-only
-          class="size-8.5 shrink-0"
-          :disabled="!messageDraft.trim() || Boolean(privatePeerName) || Boolean(writeBlockedHint)"
-          :aria-label="t('send')"
-          ><Icon name="send" :size="18" /></Button
-      ></Tooltip>
-    </form>
+    <ChatComposer
+      v-model="messageDraft"
+      :class="[columnClass, 'flex-none']"
+      :placeholder="writeBlockedHint || chatPlaceholder"
+      :label="writeBlockedHint || t('send')"
+      :disabled="Boolean(privatePeerName) || Boolean(writeBlockedHint)"
+      @submit="$emit('submit')"
+    />
   </section>
 </template>
 
@@ -156,9 +138,9 @@ import { Banner } from "@/shared/ui/banner";
 import { Button } from "@/shared/ui/button";
 import { Tooltip } from "@/shared/ui/tooltip";
 import { Icon } from "@/shared/ui/icon";
-import { Input } from "@/shared/ui/input";
 import { Separator } from "@/shared/ui/separator";
 import { Tab, TabList, TabPanel, Tabs } from "@/shared/ui/tabs";
+import ChatComposer from "@/features/room/chat/ChatComposer.vue";
 import ChatMarkdown from "@/features/room/chat/ChatMarkdown.vue";
 import UnreadMark from "@/features/room/chat/UnreadMark.vue";
 import { buildTimeline, splitAroundName, type Notice } from "@/features/room/chat/groupMessages";
