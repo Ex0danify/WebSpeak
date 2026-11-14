@@ -68,7 +68,7 @@
       @focusin="boxFocused = isBox($event.target)"
       @focusout="boxFocused = false"
     >
-      <ChatEditor
+      <AsyncChatEditor
         ref="editor"
         v-model="draft"
         :label="label"
@@ -83,7 +83,7 @@
         ><Button
           variant="soft"
           icon-only
-          class="my-1.5 size-8.5 shrink-0 self-end"
+          class="my-1.5 size-8.5 shrink-0 self-center"
           :aria-label="toolbarOpen ? t('formatHide') : t('formatShow')"
           :aria-expanded="toolbarOpen"
           aria-controls="chat-format-toolbar"
@@ -92,7 +92,7 @@
           ><Icon name="text-format" :size="18" /></Button
       ></Tooltip>
       <Tooltip :text="t('send')"
-        ><Button type="submit" icon-only class="my-1.5 size-8.5 shrink-0 self-end" :disabled="!canSend" :aria-label="t('send')"
+        ><Button type="submit" icon-only class="my-1.5 size-8.5 shrink-0 self-center" :disabled="!canSend" :aria-label="t('send')"
           ><Icon name="send" :size="18" /></Button
       ></Tooltip>
     </div>
@@ -101,7 +101,8 @@
 
 <script setup lang="ts">
 import { computed, ref } from "vue";
-import ChatEditor from "@/features/room/chat/editor/ChatEditor.vue";
+import type ChatEditor from "@/features/room/chat/editor/ChatEditor.vue";
+import { AsyncChatEditor } from "@/features/room/chat/editor/asyncChatEditor";
 import {
   HEADING_PREFIX,
   LIST_PREFIX,
@@ -139,6 +140,7 @@ const emit = defineEmits<{ (e: "submit"): void }>();
 const draft = defineModel<string>({ default: "" });
 const { t } = useI18n();
 
+// Empty until the editor has loaded, so what reaches for it checks first.
 const editor = ref<InstanceType<typeof ChatEditor> | null>(null);
 const canSend = computed(() => !props.disabled && draft.value.trim() !== "");
 

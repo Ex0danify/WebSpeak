@@ -18,6 +18,7 @@ export const en = {
   messageSending: "Sending",
   messageNotDelivered: "Not delivered",
   messageNoPermission: "No permission to write here",
+  editorLoadFailed: "The message box could not be loaded. Reload the page to try again.",
   formatToolbar: "Text formatting",
   formatShow: "Show formatting",
   formatHide: "Hide formatting",

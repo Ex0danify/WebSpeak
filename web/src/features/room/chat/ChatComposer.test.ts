@@ -1,32 +1,29 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
-import { defineComponent, h } from "vue";
+import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { flushPromises, mount, type VueWrapper } from "@vue/test-utils";
 import ChatComposer from "@/features/room/chat/ChatComposer.vue";
-import type { Selection } from "@/features/room/chat/composerFormat";
+import { EditorStub } from "@/testSupport/chatEditorStub";
 
 // The editor itself is tested against CodeMirror in ChatEditor.test.ts. Here a stand-in with the same few methods keeps the
-// composer's own work in view: what a button or a shortcut does to the text and selection, and when Send is possible.
-const EditorStub = defineComponent({
-  props: { modelValue: { type: String, default: "" }, label: String, placeholder: String, disabled: Boolean, maxLength: Number },
-  emits: ["update:modelValue", "submit", "shortcut"],
-  setup(props, { expose, emit }) {
-    const range = { start: 0, end: 0 };
-    expose({
-      focus: vi.fn(),
-      select: (start: number, end: number) => Object.assign(range, { start, end }),
-      getSelection: (): Selection => ({ text: props.modelValue, ...range }),
-      apply: (next: Selection) => {
-        Object.assign(range, { start: next.start, end: next.end });
-        emit("update:modelValue", next.text);
-      },
-    });
-    return () => h("div", { "data-editor": "", "aria-label": props.label });
-  },
-});
+// composer's own work in view: what a button or a shortcut does to the text and selection, and when Send is possible. The
+// composer loads the editor on demand, so the stand-in takes the place of that import.
+vi.mock("@/features/room/chat/editor/ChatEditor.vue", async () => ({
+  // Vue unwraps the component from an import only when it recognizes the import as a module.
+  __esModule: true,
+  default: (await import("@/testSupport/chatEditorStub")).EditorStub,
+}));
 
 function stubPhone(phone: boolean) {
   vi.stubGlobal("matchMedia", () => ({ matches: phone, addEventListener: () => {}, removeEventListener: () => {} }));
 }
+
+// The first composer waits for the import, later ones find the editor ready and draw it at once.
+beforeAll(async () => {
+  stubPhone(false);
+  const first = mount(ChatComposer, { props: { modelValue: "", placeholder: "", label: "Send", disabled: false } });
+  await flushPromises();
+  first.unmount();
+  vi.unstubAllGlobals();
+});
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -44,7 +41,6 @@ function mountComposer(value = "", props: { disabled?: boolean; phone?: boolean 
       label: "Send",
       disabled: props.disabled ?? false,
     },
-    global: { stubs: { ChatEditor: EditorStub } },
     attachTo: document.body,
   });
   return wrapper;

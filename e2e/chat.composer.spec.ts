@@ -53,6 +53,30 @@ const look = (box: Locator, text: string) =>
       };
     });
 
+test.describe("loading the editor", () => {
+  test("says so when the editor cannot be loaded, and the rest of the chat still works", async ({ page }) => {
+    // The editor is its own file, which is only fetched when the chat shows.
+    await page.route(/\/assets\/ChatEditor-[^/]*\.js/, (route) => route.abort());
+    await join(page, "compose-failed");
+    await openChat(page);
+    await expect(page.getByRole("alert").filter({ hasText: "The message box could not be loaded" })).toBeVisible();
+    await expect(composer(page)).toHaveCount(0);
+    await expect(page.getByRole("tab", { name: /Channel|Lobby/ }).first()).toBeVisible();
+  });
+
+  test("loads on demand, once, and the box is ready without a reload", async ({ page }) => {
+    const requests: string[] = [];
+    page.on("request", (request) => {
+      if (/\/assets\/ChatEditor-[^/]*\.js/.test(request.url())) requests.push(request.url());
+    });
+    await join(page, "compose-lazy");
+    await openChat(page);
+    await composer(page).fill("hello");
+    await expectComposerText(composer(page), "hello");
+    expect(requests).toHaveLength(1);
+  });
+});
+
 test.describe("formatting while typing", () => {
   test("shows each style in the text and fades the markers, which stay in the message", async ({ page }) => {
     await join(page, "compose-live");
@@ -271,6 +295,26 @@ test.describe("line breaks and height", () => {
     await box.press("Control+a");
     await box.press("Delete");
     await expect.poll(height).toBeLessThan(threeLines);
+  });
+
+  test("Send stays centered beside the box as it grows", async ({ page }) => {
+    await join(page, "compose-center");
+    await openChat(page);
+    const row = page.locator("[data-focus-ring]");
+    const send = page.getByRole("button", { name: "Send", exact: true });
+    const offCenter = async () => {
+      const [rowBox, sendBox] = await Promise.all([row.boundingBox(), send.boundingBox()]);
+      return Math.abs(rowBox!.y + rowBox!.height / 2 - (sendBox!.y + sendBox!.height / 2));
+    };
+    expect(await offCenter()).toBeLessThan(1);
+
+    await paste(composer(page), lines(3));
+    await expect.poll(async () => (await row.boundingBox())!.height).toBeGreaterThan(60);
+    expect(await offCenter()).toBeLessThan(1);
+
+    // At the height where it starts to scroll.
+    await paste(composer(page), `\n${lines(60)}`);
+    expect(await offCenter()).toBeLessThan(1);
   });
 
   test("a long message leaves the chat list its room", async ({ page }) => {

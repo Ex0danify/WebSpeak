@@ -18,6 +18,7 @@ export const de: Record<string, string> = {
   messageSending: "Wird gesendet",
   messageNotDelivered: "Nicht zugestellt",
   messageNoPermission: "Keine Berechtigung, hier zu schreiben",
+  editorLoadFailed: "Das Nachrichtenfeld konnte nicht geladen werden. Lade die Seite neu und versuche es noch einmal.",
   formatToolbar: "Textformatierung",
   formatShow: "Formatierung einblenden",
   formatHide: "Formatierung ausblenden",
