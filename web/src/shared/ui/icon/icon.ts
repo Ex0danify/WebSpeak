@@ -52,6 +52,17 @@ export const iconNames = [
   "fullscreen",
   "fullscreen-exit",
   "github",
+  "bold",
+  "italic",
+  "strikethrough",
+  "underline",
+  "link",
+  "quote",
+  "code",
+  "list",
+  "heading",
+  "eye-off",
+  "text-format",
 ] as const;
 
 export type IconName = (typeof iconNames)[number];

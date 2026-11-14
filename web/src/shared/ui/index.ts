@@ -25,5 +25,6 @@ export * from "@/shared/ui/spinner";
 export * from "@/shared/ui/switch";
 export * from "@/shared/ui/tabs";
 export * from "@/shared/ui/toast";
+export * from "@/shared/ui/toolbar";
 export * from "@/shared/ui/textarea";
 export * from "@/shared/ui/tooltip";
