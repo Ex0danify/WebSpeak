@@ -3,6 +3,8 @@ export const MAX_CHAT_MESSAGES = 500;
 export const MAX_SERVER_EVENTS = 500;
 export const MAX_POKE_NOTIFICATIONS = 20;
 export const MAX_CHAT_TEXT_LENGTH = 20000;
+/** What the composer lets you send. The gateway checks the same number in `voiceProtocol.ts`. */
+export const MAX_CHAT_SEND_LENGTH = 8192;
 export const MAX_POKE_TEXT_LENGTH = 2000;
 export const MAX_NICKNAME_LENGTH = 128;
 export const MAX_AVATAR_LENGTH = 512 * 1024;

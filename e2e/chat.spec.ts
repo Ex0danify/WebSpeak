@@ -53,7 +53,7 @@ test.describe("channel chat", () => {
     expect(sent).toEqual([expect.objectContaining({ scope: "channel", message: "hello channel" })]);
   });
 
-  test("Send waits for text, ignores spaces around it, and the box stops at 500 characters", async ({ page, gateway }) => {
+  test("Send waits for text, ignores spaces around it, and the box stops at 8192 characters", async ({ page, gateway }) => {
     await join(page, "chat-limit-self");
     await openChat(page);
     await expect(sendButton(page)).toBeDisabled();
@@ -70,8 +70,8 @@ test.describe("channel chat", () => {
     );
     expect(sent[0].message).toBe("padded");
 
-    await composer(page).fill("x".repeat(600));
-    await expect(composer(page)).toHaveValue("x".repeat(500));
+    await composer(page).fill("x".repeat(9000));
+    await expect(composer(page)).toHaveValue("x".repeat(8192));
   });
 
   test("a message from someone in your channel shows with their name", async ({ page, script }) => {
