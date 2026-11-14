@@ -25,6 +25,10 @@
       <span :class="['min-w-0 flex-1 truncate', sub ? ['text-ui', occupied ? 'font-bold' : 'font-medium'] : 'text-md font-bold']">{{
         channelNameText(channel, t)
       }}</span>
+      <span v-if="channel.hasPassword" class="inline-flex" :title="t('channelProtected')">
+        <Icon name="lock" :size="sub ? 13 : 14" />
+        <span class="sr-only">{{ t("channelProtected") }}</span>
+      </span>
       <small v-if="channel.members.length" class="text-ui">{{ channel.members.length }}</small>
     </Button>
   </div>
@@ -47,7 +51,7 @@ const props = defineProps<{
   /** A member is being dragged over this row. */
   dragOver: boolean;
   /** The upper half of this row's rail and the stub into its name; absent for roots. */
-  elbow?: ChannelRailState["elbow"];
+  elbow?: NonNullable<ChannelRailState["elbow"]>;
 }>();
 
 const { t } = useI18n();

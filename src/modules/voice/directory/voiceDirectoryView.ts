@@ -28,6 +28,7 @@ export function mapChannelTree(snapshot: TSDirectorySnapshot, avatarCache = new 
     order: String(channel.order),
     name: channel.name,
     ...(channel.name ? {} : { unnamed: true }),
+    ...(channel.hasPassword ? { hasPassword: true } : {}),
     description: channel.description || "",
     members: snapshot.clients
       .filter((client) => client.channelID === channel.id)
@@ -79,12 +80,8 @@ export function normalizeDirectorySnapshot(
   const requestedChannel = requestedName
     ? snapshot.channels.find((channel) => channel.name.trim().toLocaleLowerCase() === requestedName)
     : undefined;
-  const resolvedChannelId =
-    selfChannelId !== 0n
-      ? selfChannelId
-      : snapshotChannelId !== 0n
-        ? snapshotChannelId
-        : (requestedChannel?.id ?? snapshot.channels[0]?.id ?? 0n);
+  const fallbackChannelId = snapshotChannelId !== 0n ? snapshotChannelId : (requestedChannel?.id ?? snapshot.channels[0]?.id ?? 0n);
+  const resolvedChannelId = selfChannelId !== 0n ? selfChannelId : fallbackChannelId;
   if (selfIndex >= 0) {
     const current = clients[selfIndex]!;
     if (resolvedChannelId !== 0n) clients[selfIndex] = { ...current, channelID: resolvedChannelId };

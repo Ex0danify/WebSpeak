@@ -87,7 +87,7 @@ describe("welcome", () => {
     );
     feed(cmd("notifychanneledited", { cid: 2, channel_topic: "Topic" }));
     const snapshot = session.snapshot();
-    expect(snapshot.channels).toContainEqual({ id: 2n, parentID: 1n, order: 0n, name: "Talk", description: "Topic" });
+    expect(snapshot.channels).toContainEqual({ id: 2n, parentID: 1n, order: 0n, name: "Talk", description: "Topic", hasPassword: false });
     expect(snapshot.clients).toEqual([
       {
         id: 5,

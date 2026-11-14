@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { TSDirectorySnapshot } from "../../teamspeak/index.js";
+import type { TSDirectorySnapshot } from "../../teamspeak";
 import { avatarDataUrl, isChannelRecord, mapChannelTree, memberGroups, normalizeDirectorySnapshot } from "./voiceDirectoryView.js";
 
 function snapshot(channels: Array<Record<string, unknown>>, clients: Array<Record<string, unknown>>): TSDirectorySnapshot {
@@ -89,6 +89,20 @@ describe("mapChannelTree", () => {
     ]);
     expect((tree[1]!.members as Array<Record<string, unknown>>)[0]).not.toHaveProperty("avatar");
     expect((tree[1]!.members as Array<Record<string, unknown>>)[0]).not.toHaveProperty("serverGroups");
+  });
+
+  it("flags only password protected channels", () => {
+    const tree = mapChannelTree(
+      snapshot(
+        [
+          { id: 1n, parentID: 0n, order: 0n, name: "Open", description: "", hasPassword: false },
+          { id: 2n, parentID: 0n, order: 1n, name: "Locked", description: "", hasPassword: true },
+        ],
+        [],
+      ),
+    ) as Array<Record<string, unknown>>;
+    expect(tree[0]).not.toHaveProperty("hasPassword");
+    expect(tree[1]!.hasPassword).toBe(true);
   });
 
   it("omits the avatar when the cache holds null", () => {

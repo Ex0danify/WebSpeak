@@ -40,6 +40,7 @@ export const en = {
   screenShareFrameRate: "Frame rate limit",
   watching: "Watching",
   switchChannel: "Switch channel",
+  channelProtected: "Password protected",
   serverBreadcrumb: "Server",
   onlineShort: "{{count}} online",
   copyInvite: "Copy invite link",

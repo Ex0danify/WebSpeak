@@ -10,6 +10,7 @@ export interface DirectoryChannel {
   order: bigint;
   name: string;
   description: string;
+  hasPassword: boolean;
 }
 
 export interface DirectoryClient {
@@ -40,6 +41,7 @@ export const directoryChannel = (channel: SessionChannel): DirectoryChannel => (
   order: channel.order,
   name: channel.name,
   description: channel.topic,
+  hasPassword: channel.hasPassword,
 });
 
 export const directoryClient = (client: SessionClient): DirectoryClient => ({
