@@ -23,18 +23,14 @@ const highlightStyle = HighlightStyle.define([
   { tag: [t.processingInstruction, t.contentSeparator, t.list], color: quiet },
 ]);
 
-const focusRing = "2px solid color-mix(in srgb, var(--color-accent) 55%, transparent)";
-
 const theme = EditorView.theme({
-  "&": { fontSize: "inherit", color: "inherit", backgroundColor: "transparent", minHeight: "2.25rem", borderRadius: "0.375rem" },
-  // The ring sits on the editable element, inside its edge, because the scroll area around it would clip one drawn outside.
+  // The editor fills the row it sits in. The focus ring belongs to that row, which also holds the Send button, so the editor
+  // draws none of its own.
+  "&": { fontSize: "inherit", color: "inherit", backgroundColor: "transparent", minHeight: "2.25rem", height: "100%" },
   "&.cm-focused": { outline: "none" },
-  // `:focus`, not the editor's own focused class, which only appears after its next update.
-  ".cm-content:focus": { outline: focusRing, outlineOffset: "-2px" },
   // The editor grows with its text up to this height, then scrolls inside.
   ".cm-scroller": { fontFamily: "inherit", lineHeight: "1.5", maxHeight: "10rem", overflowY: "auto" },
-  // The side padding leaves room for the ring, the row around the editor takes the same off its own.
-  ".cm-content": { padding: "0.5rem", caretColor: "var(--color-fg)", borderRadius: "0.375rem" },
+  ".cm-content": { padding: "0.625rem 0.75rem", caretColor: "var(--color-fg)" },
   ".cm-line": { padding: "0" },
   ".cm-placeholder": { color: quiet },
   ".cm-selectionBackground, &.cm-focused > .cm-scroller > .cm-selectionLayer .cm-selectionBackground": {

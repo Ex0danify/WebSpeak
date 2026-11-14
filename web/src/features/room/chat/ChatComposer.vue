@@ -1,8 +1,5 @@
 <template>
-  <form
-    class="mt-3 overflow-hidden rounded-lg bg-surface-2 max-compact:mb-1 max-compact:border max-compact:border-line"
-    @submit.prevent="submit"
-  >
+  <form class="mt-3 overflow-hidden rounded-lg border border-line-strong bg-surface-2 max-compact:mb-1" @submit.prevent="submit">
     <div v-if="showToolbar" class="border-b border-line px-1.5 py-1.5">
       <Toolbar id="chat-format-toolbar" :label="t('formatToolbar')">
         <ToolbarButton :label="t('formatBold')" shortcut="Ctrl+B" :disabled="disabled" @click="wrap('**')"
@@ -60,7 +57,17 @@
         </Menu>
       </Toolbar>
     </div>
-    <div class="flex items-end gap-1.75 bg-surface-1 py-1.5 pr-2 pl-1 max-compact:py-1.75 max-compact:pl-1.25">
+    <!-- The ring is on the row, around the box and Send, and only while the box itself has the focus. -->
+    <div
+      data-focus-ring
+      :class="[
+        'flex items-stretch gap-1.5 rounded-b-lg bg-surface-1 pr-1.5',
+        !showToolbar && 'rounded-t-lg',
+        boxFocused && 'outline-2 -outline-offset-2 outline-accent/55',
+      ]"
+      @focusin="boxFocused = isBox($event.target)"
+      @focusout="boxFocused = false"
+    >
       <ChatEditor
         ref="editor"
         v-model="draft"
@@ -76,7 +83,7 @@
         ><Button
           variant="soft"
           icon-only
-          class="size-8.5 shrink-0"
+          class="my-1.5 size-8.5 shrink-0 self-end"
           :aria-label="toolbarOpen ? t('formatHide') : t('formatShow')"
           :aria-expanded="toolbarOpen"
           aria-controls="chat-format-toolbar"
@@ -85,7 +92,7 @@
           ><Icon name="text-format" :size="18" /></Button
       ></Tooltip>
       <Tooltip :text="t('send')"
-        ><Button type="submit" icon-only class="size-8.5 shrink-0" :disabled="!canSend" :aria-label="t('send')"
+        ><Button type="submit" icon-only class="my-1.5 size-8.5 shrink-0 self-end" :disabled="!canSend" :aria-label="t('send')"
           ><Icon name="send" :size="18" /></Button
       ></Tooltip>
     </div>
@@ -138,6 +145,10 @@ const canSend = computed(() => !props.disabled && draft.value.trim() !== "");
 // On a phone the toolbar would take the room of the chat, so it opens on request.
 const phone = useMediaQuery("(max-width: 740px)");
 const toolbarOpen = ref(false);
+
+// Whether the focus is in the text box, not on Send beside it.
+const boxFocused = ref(false);
+const isBox = (target: EventTarget | null) => target instanceof Element && target.closest("[contenteditable]") !== null;
 const showToolbar = computed(() => !phone.value || toolbarOpen.value);
 
 const aligns = ["left", "center", "right", "justify"] as const;
