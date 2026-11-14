@@ -92,7 +92,9 @@
                 <template v-for="(message, index) in item.group.messages" :key="message.id">
                   <div
                     :class="[
-                      'px-3.25 py-2.5 text-md leading-normal max-compact:px-3 max-compact:text-sm',
+                      // Right-aligned bubbles size to their text. Without these two, a word or a table that cannot break holds the
+                      // bubble open at its own width, far past the screen.
+                      'max-w-full min-w-0 px-3.25 py-2.5 text-md leading-normal max-compact:px-3 max-compact:text-sm',
                       item.group.isSelf ? 'bg-accent text-accent-fg' : 'bg-surface-2 text-fg',
                       index === 0 ? (item.group.isSelf ? 'rounded-lg rounded-tr-sm' : 'rounded-lg rounded-tl-sm') : 'rounded-lg',
                     ]"

@@ -31,3 +31,13 @@ export async function selectInComposer(page: Page, box: Locator, from: number, t
   for (let i = 0; i < from; i++) await page.keyboard.press("ArrowRight");
   for (let i = from; i < to; i++) await page.keyboard.press("Shift+ArrowRight");
 }
+
+/** Pastes `text` as a person would, which is the way to put several lines into the box at once. */
+export async function pasteIntoComposer(box: Locator, text: string): Promise<void> {
+  await box.evaluate((content, pasted) => {
+    content.focus();
+    const data = new DataTransfer();
+    data.setData("text/plain", pasted);
+    content.dispatchEvent(new ClipboardEvent("paste", { clipboardData: data, bubbles: true, cancelable: true }));
+  }, text);
+}

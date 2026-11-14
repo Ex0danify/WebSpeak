@@ -1,6 +1,6 @@
 import type { Locator, Page } from "@playwright/test";
 import { expect, type Script, test } from "./fixtures";
-import { expectComposerText, join, openMemberMenu, overflowScan, poll } from "./helpers";
+import { expectComposerText, join, openMemberMenu, overflowScan, pasteIntoComposer, poll } from "./helpers";
 import type { Gateway } from "../test/support/gateway";
 
 // The chat panel of the connected view: the channel, server and private tabs, the event log popover and the
@@ -95,6 +95,40 @@ test.describe("channel chat", () => {
     // The bubble holds the whole link, it wraps and is not cut.
     const box = await shown.boundingBox();
     expect(box!.x + box!.width).toBeLessThanOrEqual(page.viewportSize()!.width);
+  });
+
+  test("your own long text that cannot break stays inside the panel, in its bubble", async ({ page }) => {
+    await join(page, "chat-own-wide");
+    await openChat(page);
+    const cases = {
+      word: "a".repeat(400),
+      link: `https://example.com/${"path/segment/".repeat(30)}`,
+      inlineCode: `\`${"x".repeat(200)}\``,
+      codeBlock: `\`\`\`\n${"const veryLongName = someFunction(argumentOne, argumentTwo, argumentThree);\n".repeat(3)}\`\`\``,
+      table: `| Name | Role | Description | Notes |\n| --- | --- | --- | --- |\n${"| Alice Anderson | Administrator | Manages the whole server | long cell |\n".repeat(3)}`,
+    };
+    for (const text of Object.values(cases)) {
+      await pasteIntoComposer(composer(page), text);
+      await composer(page).press("Enter");
+    }
+    await expect(page.getByRole("article").locator("div.rounded-lg")).toHaveCount(Object.keys(cases).length);
+
+    // Right-aligned bubbles take the width of their text, which a word that cannot break once stretched far past the screen.
+    const width = page.viewportSize()!.width;
+    const bubbles = await page
+      .getByRole("article")
+      .locator("div.rounded-lg")
+      .evaluateAll((all) =>
+        all.map((bubble) => {
+          const { left, right } = bubble.getBoundingClientRect();
+          return { left: Math.round(left), right: Math.round(right) };
+        }),
+      );
+    for (const bubble of bubbles) {
+      expect(bubble.left).toBeGreaterThanOrEqual(0);
+      expect(bubble.right).toBeLessThanOrEqual(width);
+    }
+    expect(await overflowScan(page)).toEqual({ clipped: [], pageScrolls: false });
   });
 
   test("the list scrolls to the newest message", async ({ page, script }) => {

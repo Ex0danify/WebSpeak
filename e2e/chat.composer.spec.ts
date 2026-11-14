@@ -1,6 +1,6 @@
 import type { Locator, Page } from "@playwright/test";
 import { expect, test } from "./fixtures";
-import { expectComposerText, join, poll, selectedText, selectInComposer } from "./helpers";
+import { expectComposerText, join, pasteIntoComposer, poll, selectedText, selectInComposer } from "./helpers";
 import type { Gateway } from "../test/support/gateway";
 
 // The message box: an editor that shows the formatting while it is typed, a formatting toolbar, line breaks, and the height that
@@ -21,15 +21,7 @@ async function showToolbar(page: Page): Promise<void> {
   await expect(toolbar(page)).toBeVisible();
 }
 
-/** Pastes `text` as a person would, which is the way to put many lines into the box at once. */
-async function paste(box: Locator, text: string): Promise<void> {
-  await box.evaluate((content, pasted) => {
-    content.focus();
-    const data = new DataTransfer();
-    data.setData("text/plain", pasted);
-    content.dispatchEvent(new ClipboardEvent("paste", { clipboardData: data, bubbles: true, cancelable: true }));
-  }, text);
-}
+const paste = pasteIntoComposer;
 
 const lines = (count: number): string => Array.from({ length: count }, (_, i) => `line ${i}`).join("\n");
 
