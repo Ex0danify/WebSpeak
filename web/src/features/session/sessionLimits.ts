@@ -2,7 +2,8 @@
 export const MAX_CHAT_MESSAGES = 500;
 export const MAX_SERVER_EVENTS = 500;
 export const MAX_POKE_NOTIFICATIONS = 20;
-export const MAX_CHAT_TEXT_LENGTH = 2000;
+export const MAX_CHAT_TEXT_LENGTH = 20000;
+export const MAX_POKE_TEXT_LENGTH = 2000;
 export const MAX_NICKNAME_LENGTH = 128;
 export const MAX_AVATAR_LENGTH = 512 * 1024;
 
