@@ -50,10 +50,10 @@ test("you are told about a server group given and taken, and not about the defau
   const normal = (await query.call("servergrouplist")).find((row) => row.name === "Normal" && row.type === "1")!;
   try {
     await query.call("servergroupaddclient", { sgid: normal.sgid, cldbid });
-    await expect(me.page.getByText("Server group assigned: Normal")).toBeVisible();
+    await expect(me.page.getByText("Server group assigned: Normal", { exact: true })).toBeVisible();
 
     await query.call("servergroupdelclient", { sgid: normal.sgid, cldbid });
-    await expect(me.page.getByText("Server group revoked: Normal")).toBeVisible();
+    await expect(me.page.getByText("Server group revoked: Normal", { exact: true })).toBeVisible();
     await expect(me.page.getByText(new RegExp(`Server group (assigned|revoked): ${defaultName}$`))).toHaveCount(0);
   } finally {
     await query.call("servergroupdelclient", { sgid: normal.sgid, cldbid }).catch(() => undefined);

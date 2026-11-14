@@ -56,10 +56,10 @@ test.describe("server and channel groups", () => {
     const id = ownId(gateway, "groups-own-server");
 
     gateway.ts.updateMember(id, { serverGroups: ["8", "7"] });
-    await expect(page.getByText("Server group assigned: Normal")).toBeVisible();
+    await expect(page.getByText("Server group assigned: Normal", { exact: true })).toBeVisible();
 
     gateway.ts.updateMember(id, { serverGroups: ["8"] });
-    await expect(page.getByText("Server group revoked: Normal")).toBeVisible();
+    await expect(page.getByText("Server group revoked: Normal", { exact: true })).toBeVisible();
   });
 
   test("tells you about your channel group, falling back to the default being a revoke", async ({ page, gateway }) => {
@@ -71,10 +71,10 @@ test.describe("server and channel groups", () => {
     await expect(memberRow(page, "groups-own-channel")).toBeVisible();
 
     gateway.ts.updateMember(id, { channelGroupId: 6 });
-    await expect(page.getByText("Channel group assigned: Operator")).toBeVisible();
+    await expect(page.getByText("Channel group assigned: Operator", { exact: true })).toBeVisible();
 
     gateway.ts.updateMember(id, { channelGroupId: 8 });
-    await expect(page.getByText("Channel group revoked: Operator")).toBeVisible();
+    await expect(page.getByText("Channel group revoked: Operator", { exact: true })).toBeVisible();
   });
 
   test("stays silent about the groups of other members", async ({ page, gateway, script }) => {
