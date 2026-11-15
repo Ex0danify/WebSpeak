@@ -17,11 +17,12 @@ export const PNG = Buffer.concat([Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0
 export async function startServer(routes: Record<string, Route>): Promise<TestServer> {
   const hits = new Map<string, number>();
   const hosts: string[] = [];
+  const table = new Map(Object.entries(routes));
   const server: Server = createServer((request, response) => {
     const path = request.url ?? "/";
     hits.set(path, (hits.get(path) ?? 0) + 1);
     hosts.push(String(request.headers.host));
-    const route = routes[path];
+    const route = table.get(path);
     if (!route) {
       response.writeHead(404).end();
       return;

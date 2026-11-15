@@ -36,12 +36,27 @@ const SVG_FORBIDDEN: readonly RegExp[] = [
 
 const BYTE_ORDER_MARK = new RegExp("^\\ufeff");
 
-const SVG_START = /^(?:<\?xml[^>]*\?>\s*)?(?:<!--[\s\S]*?-->\s*)*<svg[\s>]/;
+// Walks past the XML declaration and leading comments with indexOf. A single regex for this backtracks badly on
+// input like repeated "<!--" without a closing "-->".
+function startsWithSvg(text: string): boolean {
+  let rest = text;
+  if (rest.startsWith("<?xml")) {
+    const end = rest.indexOf("?>");
+    if (end < 0) return false;
+    rest = rest.slice(end + 2).trimStart();
+  }
+  while (rest.startsWith("<!--")) {
+    const end = rest.indexOf("-->", 4);
+    if (end < 0) return false;
+    rest = rest.slice(end + 3).trimStart();
+  }
+  return /^<svg[\s>]/.test(rest);
+}
 
 /** True for an SVG that has nothing that could reach outside of itself. */
 export function isPlainSvg(bytes: Uint8Array): boolean {
   const text = new TextDecoder("utf-8", { fatal: false }).decode(bytes).replace(BYTE_ORDER_MARK, "").trimStart().toLowerCase();
-  if (!SVG_START.test(text)) return false;
+  if (!startsWithSvg(text)) return false;
   return !SVG_FORBIDDEN.some((pattern) => pattern.test(text));
 }
 

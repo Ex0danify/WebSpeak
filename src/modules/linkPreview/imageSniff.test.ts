@@ -51,6 +51,13 @@ describe("isPlainSvg", () => {
   ])("rejects %s", (_name, source) => {
     expect(isPlainSvg(text(source))).toBe(false);
   });
+
+  it("rejects many unclosed comments quickly", () => {
+    const started = Date.now();
+    expect(isPlainSvg(text("<!--".repeat(50_000)))).toBe(false);
+    expect(isPlainSvg(text("<!-- -->".repeat(20_000) + "x"))).toBe(false);
+    expect(Date.now() - started).toBeLessThan(1000);
+  });
 });
 
 describe("sniffImage", () => {
