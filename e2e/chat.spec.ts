@@ -1,6 +1,6 @@
 import type { Locator, Page } from "@playwright/test";
 import { expect, type Script, test } from "./fixtures";
-import { join, openMemberMenu, overflowScan, poll } from "./helpers";
+import { expectComposerText, join, openMemberMenu, overflowScan, pasteIntoComposer, poll } from "./helpers";
 import type { Gateway } from "../test/support/gateway";
 
 // The chat panel of the connected view: the channel, server and private tabs, the event log popover and the
@@ -44,7 +44,7 @@ test.describe("channel chat", () => {
     await composer(page).fill("hello channel");
     await composer(page).press("Enter");
     await expect(message(page, "You", "hello channel")).toBeVisible();
-    await expect(composer(page)).toHaveValue("");
+    await expectComposerText(composer(page), "");
     await expect(page.getByText("This is the beginning of the chat")).toBeHidden();
     const sent = await poll(
       () => sentBy(gateway, "chat-send-self"),
@@ -53,7 +53,7 @@ test.describe("channel chat", () => {
     expect(sent).toEqual([expect.objectContaining({ scope: "channel", message: "hello channel" })]);
   });
 
-  test("Send waits for text, ignores spaces around it, and the box stops at 500 characters", async ({ page, gateway }) => {
+  test("Send waits for text, ignores spaces around it, and the box stops at 8192 characters", async ({ page, gateway }) => {
     await join(page, "chat-limit-self");
     await openChat(page);
     await expect(sendButton(page)).toBeDisabled();
@@ -70,8 +70,8 @@ test.describe("channel chat", () => {
     );
     expect(sent[0].message).toBe("padded");
 
-    await composer(page).fill("x".repeat(600));
-    await expect(composer(page)).toHaveValue("x".repeat(500));
+    await composer(page).fill("x".repeat(9000));
+    await expectComposerText(composer(page), "x".repeat(8192));
   });
 
   test("a message from someone in your channel shows with their name", async ({ page, script }) => {
@@ -95,6 +95,40 @@ test.describe("channel chat", () => {
     // The bubble holds the whole link, it wraps and is not cut.
     const box = await shown.boundingBox();
     expect(box!.x + box!.width).toBeLessThanOrEqual(page.viewportSize()!.width);
+  });
+
+  test("your own long text that cannot break stays inside the panel, in its bubble", async ({ page }) => {
+    await join(page, "chat-own-wide");
+    await openChat(page);
+    const cases = {
+      word: "a".repeat(400),
+      link: `https://example.com/${"path/segment/".repeat(30)}`,
+      inlineCode: `\`${"x".repeat(200)}\``,
+      codeBlock: `\`\`\`\n${"const veryLongName = someFunction(argumentOne, argumentTwo, argumentThree);\n".repeat(3)}\`\`\``,
+      table: `| Name | Role | Description | Notes |\n| --- | --- | --- | --- |\n${"| Alice Anderson | Administrator | Manages the whole server | long cell |\n".repeat(3)}`,
+    };
+    for (const text of Object.values(cases)) {
+      await pasteIntoComposer(composer(page), text);
+      await composer(page).press("Enter");
+    }
+    await expect(page.getByRole("article").locator("div.rounded-lg")).toHaveCount(Object.keys(cases).length);
+
+    // Right-aligned bubbles take the width of their text, which a word that cannot break once stretched far past the screen.
+    const width = page.viewportSize()!.width;
+    const bubbles = await page
+      .getByRole("article")
+      .locator("div.rounded-lg")
+      .evaluateAll((all) =>
+        all.map((bubble) => {
+          const { left, right } = bubble.getBoundingClientRect();
+          return { left: Math.round(left), right: Math.round(right) };
+        }),
+      );
+    for (const bubble of bubbles) {
+      expect(bubble.left).toBeGreaterThanOrEqual(0);
+      expect(bubble.right).toBeLessThanOrEqual(width);
+    }
+    expect(await overflowScan(page)).toEqual({ clipped: [], pageScrolls: false });
   });
 
   test("the list scrolls to the newest message", async ({ page, script }) => {
@@ -228,12 +262,12 @@ test.describe("chat permissions", () => {
     await chatTab(page, "Server").click();
     const blocked = page.getByRole("textbox", { name: "No permission to write to the server" });
     await expect(blocked).toBeDisabled();
-    await expect(blocked).toHaveAttribute("placeholder", "No permission to write to the server");
+    await expect(blocked).toContainText("No permission to write to the server");
     await expect(sendButton(page)).toBeDisabled();
 
     await chatTab(page, "Lobby").click();
     await expect(composer(page)).toBeEnabled();
-    await expect(composer(page)).toHaveAttribute("placeholder", /Message/);
+    await expect(composer(page)).toContainText(/Message/);
 
     client.textAllowed.server = true;
     client.emit("permissionsChanged");

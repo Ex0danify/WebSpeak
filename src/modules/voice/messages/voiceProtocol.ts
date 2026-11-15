@@ -1,6 +1,9 @@
 import type { ProtocolCode } from "../../../shared/messageCodes.js";
 import { isRecord } from "../../../shared/typeGuards.js";
 
+/** The longest chat message the gateway forwards. The web composer enforces the same number (`MAX_CHAT_SEND_LENGTH`). */
+export const MAX_TEXT_MESSAGE_LENGTH = 8192;
+
 export interface ClientCommand {
   type:
     | "switchChannel"
@@ -91,12 +94,15 @@ export function parseClientCommand(raw: string): ClientCommandResult {
   ) {
     return { error: { code: "INVALID_CHANNEL_PASSWORD", message: "Channel password is invalid" } };
   }
-  if (value.type === "sendTextMessage" && (typeof value.payload.message !== "string" || value.payload.message.length > 500)) {
+  if (
+    value.type === "sendTextMessage" &&
+    (typeof value.payload.message !== "string" || value.payload.message.length > MAX_TEXT_MESSAGE_LENGTH)
+  ) {
     return { error: { code: "INVALID_TEXT_MESSAGE", message: "Text message is invalid" } };
   }
   if (
     (value.type === "sendServerMessage" || value.type === "sendPrivateMessage") &&
-    (typeof value.payload.message !== "string" || value.payload.message.length > 500)
+    (typeof value.payload.message !== "string" || value.payload.message.length > MAX_TEXT_MESSAGE_LENGTH)
   ) {
     return { error: { code: "INVALID_TEXT_MESSAGE", message: "Text message is invalid" } };
   }

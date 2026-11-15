@@ -1,6 +1,6 @@
 import { storeToRefs } from "pinia";
 import { useSessionStore } from "@/features/session/sessionStore";
-import { MAX_CHAT_MESSAGES, pushBounded } from "@/features/session/sessionLimits";
+import { MAX_CHAT_MESSAGES, MAX_CHAT_SEND_LENGTH, pushBounded } from "@/features/session/sessionLimits";
 import { LocalizedError, text, type LocalizedText } from "@/shared/i18n/localizedText";
 import { normalizedClientErrorCode } from "@/features/session/sessionErrors";
 import { privateConversationKey } from "@/features/session/format";
@@ -136,7 +136,7 @@ export function useSessionActions(deps: RoomActionsDeps) {
 
   function sendTextMessage(message: string, targetId = ""): void {
     const trimmed = message.trim();
-    if (!trimmed || trimmed.length > 500) return;
+    if (!trimmed || trimmed.length > MAX_CHAT_SEND_LENGTH) return;
     sendChat(
       "sendTextMessage",
       { message: trimmed },
@@ -146,7 +146,7 @@ export function useSessionActions(deps: RoomActionsDeps) {
 
   function sendServerMessage(message: string): void {
     const trimmed = message.trim();
-    if (!trimmed || trimmed.length > 500) return;
+    if (!trimmed || trimmed.length > MAX_CHAT_SEND_LENGTH) return;
     sendChat(
       "sendServerMessage",
       { message: trimmed },
@@ -156,7 +156,7 @@ export function useSessionActions(deps: RoomActionsDeps) {
 
   function sendPrivateMessage(clientId: number, message: string, targetId = ""): void {
     const trimmed = message.trim();
-    if (!trimmed || trimmed.length > 500) return;
+    if (!trimmed || trimmed.length > MAX_CHAT_SEND_LENGTH) return;
     const recipient = members.find((member) => member.id === clientId);
     sendChat(
       "sendPrivateMessage",

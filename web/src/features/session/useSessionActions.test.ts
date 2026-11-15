@@ -220,10 +220,10 @@ describe("chat", () => {
     expect(session.chatMessages[0]?.status).toBe("failed");
   });
 
-  it("drops empty and over-500-character messages without sending", () => {
+  it("drops empty and over-8192-character messages without sending", () => {
     const { session, actions } = setup();
     actions.sendTextMessage("   ");
-    actions.sendServerMessage("x".repeat(501));
+    actions.sendServerMessage("x".repeat(8193));
     actions.sendPrivateMessage(3, "");
     expect(socket.sent).toHaveLength(0);
     expect(session.chatMessages).toHaveLength(0);

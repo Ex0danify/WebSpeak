@@ -127,6 +127,26 @@
       <circle cx="12" cy="5.8" r="4.8" />
       <path d="M8.8 11.4h6.4l-1.4 11.2h-3.6zM10.9 13.8a1.1 1.1 0 0 1 2.2 0v4.4a1.1 1.1 0 0 1-2.2 0z" />
     </g>
+    <path v-else-if="name === 'bold'" d="M7 5h6a3.5 3.5 0 0 1 0 7H7zM7 12h7a3.5 3.5 0 0 1 0 7H7z" />
+    <path v-else-if="name === 'italic'" d="M19 4h-9M14 20H5M15 4 9 20" />
+    <path
+      v-else-if="name === 'strikethrough'"
+      d="M16 5.5A4 4 0 0 0 12 4c-2.5 0-4.5 1.3-4.5 3.2 0 1.6 1.4 2.5 4.5 3.3M4 12h16M16.5 16c0 2-2 4-4.5 4a4.6 4.6 0 0 1-4-2"
+    />
+    <path v-else-if="name === 'underline'" d="M6 4v6a6 6 0 0 0 12 0V4M4 20h16" />
+    <path
+      v-else-if="name === 'link'"
+      d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"
+    />
+    <path v-else-if="name === 'quote'" d="M4 5v14M9 8h11M9 12h11M9 16h7" />
+    <path v-else-if="name === 'code'" d="m8 7-5 5 5 5m8-10 5 5-5 5M14 4l-4 16" />
+    <path v-else-if="name === 'list'" d="M9 6h11M9 12h11M9 18h11M4 6h.01M4 12h.01M4 18h.01" stroke-width="2.4" />
+    <path v-else-if="name === 'heading'" d="M6 4v16M18 4v16M6 12h12" />
+    <path
+      v-else-if="name === 'eye-off'"
+      d="m3 3 18 18M10.6 10.6a2 2 0 0 0 2.8 2.8M9.9 5.1A9.7 9.7 0 0 1 12 5c5 0 8.5 4.2 9.5 7a13 13 0 0 1-2.2 3.3M6.5 6.6A13 13 0 0 0 2.5 12c1 2.8 4.5 7 9.5 7 1.5 0 2.8-.4 4-1"
+    />
+    <path v-else-if="name === 'text-format'" d="M4 19 10 5l6 14M6.5 14h7M19 6v4m-2-2h4" />
     <circle v-else cx="12" cy="12" r="8" />
   </svg>
 </template>

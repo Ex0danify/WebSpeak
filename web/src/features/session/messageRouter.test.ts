@@ -229,12 +229,12 @@ describe("bounds on what the gateway can make the store hold", () => {
     expect(store.pokeNotifications.at(-1)?.message).toBe("p699");
   });
 
-  it("cuts chat text to 2000 characters and names to 128", () => {
+  it("cuts chat text to 20000 characters, poke text to 2000 and names to 128", () => {
     const store = useSessionStore();
     const h = handlers();
     h.chatMessage!({ invokerId: 9, invokerName: "n".repeat(10_000), message: "x".repeat(100_000), scope: "channel" });
     h.pokeReceived!({ invokerId: 1, invokerName: "n".repeat(10_000), message: "x".repeat(100_000) });
-    expect(store.chatMessages[0]?.message).toHaveLength(2000);
+    expect(store.chatMessages[0]?.message).toHaveLength(20_000);
     expect(store.chatMessages[0]?.invokerName).toHaveLength(128);
     expect(store.pokeNotifications[0]?.message).toHaveLength(2000);
     expect(store.pokeNotifications[0]?.invokerName).toHaveLength(128);

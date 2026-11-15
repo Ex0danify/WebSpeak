@@ -6,6 +6,7 @@ import {
   MAX_CHAT_TEXT_LENGTH,
   MAX_NICKNAME_LENGTH,
   MAX_POKE_NOTIFICATIONS,
+  MAX_POKE_TEXT_LENGTH,
   MAX_SERVER_EVENTS,
   clampText,
   pushBounded,
@@ -130,7 +131,7 @@ export function createRosterHandlers(deps: { syncKnownMemberVolumes: () => void 
         invokerId: Number(msg.invokerId) || 0,
         invokerUid: typeof msg.invokerUid === "string" ? msg.invokerUid : "",
         invokerName: clampText(String(msg.invokerName || "Unknown"), MAX_NICKNAME_LENGTH),
-        message: clampText(String(msg.message || ""), MAX_CHAT_TEXT_LENGTH),
+        message: clampText(String(msg.message || ""), MAX_POKE_TEXT_LENGTH),
         timestamp: typeof msg.timestamp === "number" ? msg.timestamp : Date.now(),
       });
     },

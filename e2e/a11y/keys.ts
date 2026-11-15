@@ -26,17 +26,25 @@ export function describeFocus(page: Page): Promise<Stop | null> {
       last: 0,
     });
     if (!book.ids.has(element)) book.ids.set(element, ++book.last);
-    const style = getComputedStyle(element);
-    const outlineWidth = Number.parseFloat(style.outlineWidth) || 0;
-    // The browser's own ring (outline-style: auto) has no width to read.
-    const outline = style.outlineStyle !== "none" && (outlineWidth >= 2 || style.outlineStyle === "auto");
-    // Computed shadows read "rgb(0, 0, 0) 0px 0px 0px 3px": colour, x, y, blur, spread.
-    const shadow = /0px 0px (?:\d+(?:\.\d+)?px )?(?:[2-9]|\d{2,})(?:\.\d+)?px(?:,|$)/.test(style.boxShadow.replace(/ inset/g, ""));
+    const ringOf = (target: Element) => {
+      const style = getComputedStyle(target);
+      const outlineWidth = Number.parseFloat(style.outlineWidth) || 0;
+      // The browser's own ring (outline-style: auto) has no width to read.
+      const outline = style.outlineStyle !== "none" && (outlineWidth >= 2 || style.outlineStyle === "auto");
+      // Computed shadows read "rgb(0, 0, 0) 0px 0px 0px 3px": colour, x, y, blur, spread.
+      const shadow = /0px 0px (?:\d+(?:\.\d+)?px )?(?:[2-9]|\d{2,})(?:\.\d+)?px(?:,|$)/.test(style.boxShadow.replace(/ inset/g, ""));
+      return { outlineWidth, ring: outline ? ("outline" as const) : shadow ? ("shadow" as const) : ("none" as const) };
+    };
+    // A control may show its ring on a wrapper that marks itself with `data-focus-ring` (the message box shares one with Send).
+    // The element's own ring comes first, so a control inside such a wrapper is still judged by itself.
+    const own = ringOf(element);
+    const wrapper = element.closest("[data-focus-ring]");
+    const { ring, outlineWidth } = own.ring === "none" && wrapper ? ringOf(wrapper) : own;
     return {
       id: book.ids.get(element)!,
       tag: element.tagName.toLowerCase(),
       label: (element.getAttribute("aria-label") || element.textContent || element.id || "").trim().replace(/\s+/g, " ").slice(0, 34),
-      ring: outline ? ("outline" as const) : shadow ? ("shadow" as const) : ("none" as const),
+      ring,
       outlineWidth,
       inDialog: !!element.closest("[role=dialog]"),
     };

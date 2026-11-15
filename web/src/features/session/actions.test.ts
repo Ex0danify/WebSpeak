@@ -255,7 +255,7 @@ describe("chat", () => {
     const socket = await connected();
     harness.voice.chat.sendTextMessage("  hello  ", "4");
     harness.voice.chat.sendTextMessage("   ");
-    harness.voice.chat.sendTextMessage("x".repeat(501));
+    harness.voice.chat.sendTextMessage("x".repeat(8193));
     expect(socket.sentJson).toEqual([
       { type: "sendTextMessage", payload: { message: "hello" }, requestId: expect.stringMatching(/^command-/) },
     ]);
