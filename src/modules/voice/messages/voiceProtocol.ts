@@ -94,7 +94,10 @@ export function parseClientCommand(raw: string): ClientCommandResult {
   ) {
     return { error: { code: "INVALID_CHANNEL_PASSWORD", message: "Channel password is invalid" } };
   }
-  if (value.type === "sendTextMessage" && (typeof value.payload.message !== "string" || value.payload.message.length > MAX_TEXT_MESSAGE_LENGTH)) {
+  if (
+    value.type === "sendTextMessage" &&
+    (typeof value.payload.message !== "string" || value.payload.message.length > MAX_TEXT_MESSAGE_LENGTH)
+  ) {
     return { error: { code: "INVALID_TEXT_MESSAGE", message: "Text message is invalid" } };
   }
   if (
