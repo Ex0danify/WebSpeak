@@ -7,6 +7,8 @@ const SEND_SITES = [
   "../modules/voice/messages/voiceProtocol.ts",
   "../modules/voice/messages/voiceCommands.ts",
   "../modules/voice/messages/voiceMessageRouter.ts",
+  "../modules/voice/messages/voiceLinkPreview.ts",
+  "../modules/linkPreview/previewErrorCode.ts",
   "../modules/voice/session/voiceFailures.ts",
   "../modules/voice/audio/audioUplink.ts",
   "../modules/screenShare/screenShareProtocol.ts",
@@ -25,6 +27,9 @@ function codesIn(source: string): string[] {
     /sendProtocolError\([^,]+,\s*"([A-Z][A-Z_]+)"/g,
     /classifyOperationError\([^,]+,\s*"([A-Z][A-Z_]+)"/g,
     /failureFrame\(\s*"([A-Z][A-Z_]+)"/g,
+    // The link preview frames: `fail("CODE")` and the reason-to-code table.
+    /\bfail\(\s*"([A-Z][A-Z_]+)"/g,
+    /^\s+(?:"?[a-z-]+"?):\s*"(LINK_PREVIEW_[A-Z_]+)"/gm,
   ];
   for (const pattern of patterns) for (const match of source.matchAll(pattern)) found.add(match[1]);
   return [...found].filter((code) => !OUT_OF_CATALOG.has(code));

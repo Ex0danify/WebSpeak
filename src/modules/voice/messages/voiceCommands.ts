@@ -1,4 +1,6 @@
 import { pingTeamSpeakSession } from "../../relay/index.js";
+import type { LinkPreviewService } from "../../linkPreview/index.js";
+import { handleLinkPreview } from "./voiceLinkPreview.js";
 import type { WebClientEntry } from "../voiceTypes.js";
 import { isRecord } from "../../../shared/typeGuards.js";
 import { classifyOperationError } from "../session/voiceFailures.js";
@@ -8,7 +10,13 @@ export async function handleCommand(
   entry: WebClientEntry,
   command: ClientCommand,
   sendJson: (message: Record<string, unknown>) => void,
+  linkPreviews?: LinkPreviewService,
 ): Promise<void> {
+  if (command.type === "getLinkPreview") {
+    await handleLinkPreview(entry, command, sendJson, linkPreviews);
+    return;
+  }
+
   if (command.type === "latencyProbe") {
     const sequence = command.payload.sequence as string;
     const now = Date.now();

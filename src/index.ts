@@ -6,6 +6,8 @@ import { ADMIN_RESET_COMMAND, runAdminResetCommand } from "./transport/cli/admin
 import { createAccelerationRelayServer } from "./modules/relay/index.js";
 import { AdminBootstrapError } from "./modules/admin/index.js";
 import { normalizeScreenShareIceServers, type ScreenShareIceServer } from "./modules/screenShare/index.js";
+import { LinkPreviewService } from "./modules/linkPreview/index.js";
+import { DEFAULT_LINK_PREVIEW_LIMITS } from "./config/linkPreviewConfig.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT_DIR = path.resolve(__dirname, "..");
@@ -99,6 +101,7 @@ async function runGateway(env: GatewayEnv): Promise<void> {
       acceleration: () => adminService.getAccelerationRelayOptions(),
       accelerationName: () => adminService.getAccelerationRelayName(),
       clientVersion: env.tsClientVersion,
+      linkPreviews: new LinkPreviewService({ getLimits: () => DEFAULT_LINK_PREVIEW_LIMITS }),
       sessionRecorder: new SessionHistoryRecorder(database, gatewayEvents, logger),
     },
     adminService,

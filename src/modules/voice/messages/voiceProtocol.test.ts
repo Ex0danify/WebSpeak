@@ -27,6 +27,7 @@ const VALID: Record<ClientCommand["type"], Record<string, unknown>> = {
   setAccompanimentActive: { active: false },
   setMemberVolume: { clientId: 7, volume: 1 },
   latencyProbe: { sequence: "abc" },
+  getLinkPreview: { url: "https://example.com/a" },
   getIdentity: {},
 };
 
@@ -131,6 +132,10 @@ describe("parseClientCommand payload rules", () => {
     ["volume client id is bad", "setMemberVolume", { clientId: 1.5, volume: 1 }, "INVALID_MEMBER_VOLUME"],
     ["latency sequence is a number", "latencyProbe", { sequence: 1 }, "INVALID_LATENCY_PROBE"],
     ["latency sequence is over 64", "latencyProbe", { sequence: "s".repeat(65) }, "INVALID_LATENCY_PROBE"],
+    ["link preview url is missing", "getLinkPreview", {}, "INVALID_LINK_PREVIEW_REQUEST"],
+    ["link preview url is a number", "getLinkPreview", { url: 5 }, "INVALID_LINK_PREVIEW_REQUEST"],
+    ["link preview url is over 2048", "getLinkPreview", { url: "u".repeat(2049) }, "INVALID_LINK_PREVIEW_REQUEST"],
+    ["link preview full is a string", "getLinkPreview", { url: "https://a.b", full: "yes" }, "INVALID_LINK_PREVIEW_REQUEST"],
   ];
 
   it.each(cases)("rejects when the %s", (_name, type, payload, code) => {

@@ -13,6 +13,7 @@ import type { TsClientVersion } from "../../config/env.js";
 import type { SessionRecorder } from "./session/voiceSessionRecorder.js";
 import { cleanupEntry, getSessionSummaries, terminateSession, type SessionCleanupDeps } from "./session/voiceSessionAdmin.js";
 import type { ConfiguredAccelerationRelay } from "../relay/index.js";
+import type { LinkPreviewService } from "../linkPreview/index.js";
 import {
   ScreenShareHub,
   discoverExistingTeamSpeakStreams,
@@ -32,6 +33,7 @@ export interface VoiceBridgeOptions {
   sessionRecorder?: SessionRecorder;
   createClient?: (options: TSClientOptions, logger: LoggerType) => TSClient;
   clientVersion?: TsClientVersion;
+  linkPreviews?: LinkPreviewService;
   /** How long a connected TeamSpeak client may take to deliver its first directory snapshot. */
   directorySyncTimeoutMs?: number;
 }
@@ -70,6 +72,7 @@ export class VoiceBridge {
       directorySyncTimeoutMs: () => this.options.directorySyncTimeoutMs ?? DIRECTORY_SYNC_TIMEOUT_MS,
       discoverExistingTeamSpeakStreams: (entry) => discoverExistingTeamSpeakStreams(this.screenHub, entry),
       sessionRecorder: this.options.sessionRecorder,
+      linkPreviews: this.options.linkPreviews,
     };
     this.directoryDeps = {
       sendInitialState: (ctx) => sendInitialState(ctx, this.hooks),

@@ -30,6 +30,7 @@ const PROTOCOL_CODES = {
   INVALID_ACCOMPANIMENT_STATE: {} as NoParams,
   INVALID_MEMBER_VOLUME: {} as NoParams,
   INVALID_LATENCY_PROBE: {} as NoParams,
+  INVALID_LINK_PREVIEW_REQUEST: {} as NoParams,
   INVALID_AUDIO_FRAME: {} as NoParams,
   WEBRTC_DISABLED: {} as NoParams,
   SESSION_NOT_READY: {} as NoParams,
@@ -77,7 +78,17 @@ const SCREEN_SHARE_CODES = {
   SCREEN_SHARE_NATIVE_PUBLISHER_STOPPED: {} as NoParams,
 };
 
-export type MessageCatalog = typeof PROTOCOL_CODES & typeof OPERATION_CODES & typeof SCREEN_SHARE_CODES;
+/** Why a link preview could not be made. The chat shows one line under the link, the text lives in the browser. */
+const LINK_PREVIEW_CODES = {
+  LINK_PREVIEW_INVALID: {} as NoParams,
+  LINK_PREVIEW_BLOCKED: {} as NoParams,
+  LINK_PREVIEW_FAILED: {} as NoParams,
+  LINK_PREVIEW_TOO_LARGE: {} as NoParams,
+  LINK_PREVIEW_UNSUPPORTED: {} as NoParams,
+  LINK_PREVIEW_RATE_LIMITED: {} as NoParams,
+};
+
+export type MessageCatalog = typeof PROTOCOL_CODES & typeof OPERATION_CODES & typeof SCREEN_SHARE_CODES & typeof LINK_PREVIEW_CODES;
 export type MessageCode = keyof MessageCatalog;
 export type ProtocolCode = keyof typeof PROTOCOL_CODES;
 export type MessageParamsFor<C extends MessageCode> = MessageCatalog[C];
@@ -86,6 +97,7 @@ export const MESSAGE_CODES: readonly MessageCode[] = Object.keys({
   ...PROTOCOL_CODES,
   ...OPERATION_CODES,
   ...SCREEN_SHARE_CODES,
+  ...LINK_PREVIEW_CODES,
 }) as MessageCode[];
 
 const KNOWN_CODES: ReadonlySet<string> = new Set(MESSAGE_CODES);

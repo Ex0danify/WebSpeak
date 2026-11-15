@@ -3,6 +3,7 @@ export { useSessionActions, type RoomActionsDeps } from "@/features/session/useS
 export { useSessionStore, type PokeNotification } from "@/features/session/sessionStore";
 export { createMessageRouter, createRosterHandlers, type MessageHandlers } from "@/features/session/messageRouter";
 export { SCREEN_SHARE_NEGOTIATION_TIMEOUT_MS, getScreenShareIceServers } from "@/features/session/iceServers";
+export { protocolErrorMessage } from "@/features/session/connectionMessages";
 export { errorKey, safeClientErrorCode, safeClientErrorDetail, visibleErrorCode } from "@/features/session/sessionErrors";
 export type {
   ChannelGroup,
@@ -10,6 +11,8 @@ export type {
   ChannelMember,
   ChatMessage,
   LatencyProbeResult,
+  LinkPreviewData,
+  LinkPreviewImage,
   PermissionEntry,
   RoomNotice,
   ServerEvent,

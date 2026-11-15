@@ -4,6 +4,9 @@ import { isRecord } from "../../../shared/typeGuards.js";
 /** The longest chat message the gateway forwards. The web composer enforces the same number (`MAX_CHAT_SEND_LENGTH`). */
 export const MAX_TEXT_MESSAGE_LENGTH = 8192;
 
+/** The longest address a preview is made for. */
+export const MAX_LINK_PREVIEW_URL_LENGTH = 2048;
+
 export interface ClientCommand {
   type:
     | "switchChannel"
@@ -21,6 +24,7 @@ export interface ClientCommand {
     | "setAccompanimentActive"
     | "setMemberVolume"
     | "latencyProbe"
+    | "getLinkPreview"
     | "getIdentity";
   requestId?: string;
   payload: Record<string, unknown>;
@@ -57,6 +61,7 @@ export function parseClientCommand(raw: string): ClientCommandResult {
     "setAccompanimentActive",
     "setMemberVolume",
     "latencyProbe",
+    "getLinkPreview",
     "getIdentity",
   ]);
   if (!supportedTypes.has(value.type)) {
@@ -170,6 +175,14 @@ export function parseClientCommand(raw: string): ClientCommandResult {
   }
   if (value.type === "latencyProbe" && (typeof value.payload.sequence !== "string" || value.payload.sequence.length > 64)) {
     return { error: { code: "INVALID_LATENCY_PROBE", message: "Latency probe id is invalid" } };
+  }
+  if (
+    value.type === "getLinkPreview" &&
+    (typeof value.payload.url !== "string" ||
+      value.payload.url.length > MAX_LINK_PREVIEW_URL_LENGTH ||
+      (value.payload.full !== undefined && typeof value.payload.full !== "boolean"))
+  ) {
+    return { error: { code: "INVALID_LINK_PREVIEW_REQUEST", message: "Link preview request is invalid" } };
   }
   return {
     type: value.type as ClientCommand["type"],
