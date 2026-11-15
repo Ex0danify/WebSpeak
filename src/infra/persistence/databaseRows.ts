@@ -30,6 +30,10 @@ export interface SettingsRow extends Record<string, unknown> {
   connection_max_rows: number;
   privacy_notice_url: string;
   log_retention_days: number;
+  link_preview_image_kib: number;
+  link_preview_click_image_kib: number;
+  link_preview_svg_kib: number;
+  link_preview_cache_kib: number;
   updated_at: string;
 }
 

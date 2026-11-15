@@ -20,6 +20,7 @@ const stored = (overrides: Partial<PersistedSettings> = {}): PersistedSettings =
   identityMintConcurrency: 2,
   identityMintQueueDepth: 20,
   retention: { eventLog: { days: 90, maxRows: 5000 }, connections: { days: 30, maxRows: 10000 }, logs: { days: 30 } },
+  linkPreview: { imageKib: 1024, clickImageKib: 8192, svgKib: 128, cacheKib: 32768 },
   updatedAt: "2026-01-01T00:00:00.000Z",
   ...overrides,
 });
@@ -104,6 +105,20 @@ describe("normalizeSettings", () => {
     ["a log retention above a year", { logRetentionDays: 366 }, "INVALID_LOG_RETENTION"],
     ["a log retention that is no whole number", { logRetentionDays: 2.5 }, "INVALID_LOG_RETENTION"],
     ["a fractional retention", { connectionRetentionDays: 1.5 }, "INVALID_CONNECTION_RETENTION"],
+    ["an inline image size below 64 KiB", { linkPreviewImageKib: 63 }, "INVALID_LINK_PREVIEW_IMAGE_SIZE"],
+    ["an inline image size above 4 MiB", { linkPreviewImageKib: 4097 }, "INVALID_LINK_PREVIEW_IMAGE_SIZE"],
+    ["an image size that is no whole number", { linkPreviewImageKib: 100.5 }, "INVALID_LINK_PREVIEW_IMAGE_SIZE"],
+    ["a size on request below 1 MiB", { linkPreviewClickImageKib: 1023 }, "INVALID_LINK_PREVIEW_CLICK_IMAGE_SIZE"],
+    ["a size on request above 32 MiB", { linkPreviewClickImageKib: 32769 }, "INVALID_LINK_PREVIEW_CLICK_IMAGE_SIZE"],
+    [
+      "a size on request below the inline size",
+      { linkPreviewImageKib: 4096, linkPreviewClickImageKib: 2048 },
+      "INVALID_LINK_PREVIEW_CLICK_IMAGE_SIZE",
+    ],
+    ["an svg size below 16 KiB", { linkPreviewSvgKib: 15 }, "INVALID_LINK_PREVIEW_SVG_SIZE"],
+    ["an svg size above 1 MiB", { linkPreviewSvgKib: 1025 }, "INVALID_LINK_PREVIEW_SVG_SIZE"],
+    ["a preview cache below 4 MiB", { linkPreviewCacheKib: 4095 }, "INVALID_LINK_PREVIEW_CACHE_SIZE"],
+    ["a preview cache above 256 MiB", { linkPreviewCacheKib: 262145 }, "INVALID_LINK_PREVIEW_CACHE_SIZE"],
   ];
   it.each(rejects)("rejects %s", (_name, overrides, code) => {
     expect(codeOf(() => normalizeSettings(settingsInput(overrides), stored()))).toBe(code);
@@ -159,6 +174,37 @@ describe("normalizeSettings", () => {
         current,
       ).retention,
     ).toEqual({ eventLog: { days: 365, maxRows: 50_000 }, connections: { days: 1, maxRows: 100_000 }, logs: { days: 365 } });
+  });
+
+  it("keeps the current link preview limits for omitted fields and takes the bounds as they are", () => {
+    const current = stored({ linkPreview: { imageKib: 512, clickImageKib: 2048, svgKib: 64, cacheKib: 8192 } });
+    expect(normalizeSettings(settingsInput(), current).linkPreview).toEqual(current.linkPreview);
+    expect(
+      normalizeSettings(
+        settingsInput({ linkPreviewImageKib: 64, linkPreviewClickImageKib: 1024, linkPreviewSvgKib: 16, linkPreviewCacheKib: 4096 }),
+        current,
+      ).linkPreview,
+    ).toEqual({ imageKib: 64, clickImageKib: 1024, svgKib: 16, cacheKib: 4096 });
+    expect(
+      normalizeSettings(
+        settingsInput({ linkPreviewImageKib: 4096, linkPreviewClickImageKib: 32768, linkPreviewSvgKib: 1024, linkPreviewCacheKib: 262144 }),
+        current,
+      ).linkPreview,
+    ).toEqual({ imageKib: 4096, clickImageKib: 32768, svgKib: 1024, cacheKib: 262144 });
+  });
+
+  it("accepts a size on request that equals the inline size", () => {
+    expect(
+      normalizeSettings(settingsInput({ linkPreviewImageKib: 2048, linkPreviewClickImageKib: 2048 }), stored()).linkPreview,
+    ).toMatchObject({
+      imageKib: 2048,
+      clickImageKib: 2048,
+    });
+  });
+
+  it("carries the link preview limits into an update made from stored settings", () => {
+    const current = stored({ linkPreview: { imageKib: 512, clickImageKib: 2048, svgKib: 64, cacheKib: 8192 } });
+    expect(toSettingsUpdate(current).linkPreview).toEqual(current.linkPreview);
   });
 
   it("locks the UDP range while WebRTC is enabled", () => {

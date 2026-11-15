@@ -8,6 +8,7 @@ import { useAdminOverviewStore } from "@/features/admin/dashboard/adminOverview"
 import { DEFAULT_WELCOME_TEXTS } from "@/features/admin/settings/adminServerForm";
 import { useAdminServerSettingsStore } from "@/features/admin/settings/adminServerSettings";
 import IdentityMintCard from "@/features/admin/gateway/IdentityMintCard.vue";
+import LinkPreviewCard from "@/features/admin/gateway/LinkPreviewCard.vue";
 import RelayNodesCard from "@/features/admin/gateway/RelayNodesCard.vue";
 import WebRtcCard from "@/features/admin/gateway/WebRtcCard.vue";
 import RetentionCard from "@/features/admin/diagnostics/RetentionCard.vue";
@@ -35,6 +36,10 @@ const settingsAnswer = {
   connectionRetentionDays: 30,
   connectionMaxRows: 10000,
   logRetentionDays: 14,
+  linkPreviewImageKib: 512,
+  linkPreviewClickImageKib: 4096,
+  linkPreviewSvgKib: 64,
+  linkPreviewCacheKib: 16384,
   relayNodes: [],
 };
 
@@ -92,6 +97,26 @@ describe("IdentityMintCard", () => {
     await inputs[2]!.trigger("change");
     expect(settings.serverForm.identityMintQueueDepth).toBe(50);
     expect(scheduleSave).toHaveBeenCalledWith("mint");
+  });
+});
+
+describe("LinkPreviewCard", () => {
+  it("shows the limits the gateway answered, labels each and saves the group once a value changed", async () => {
+    const { settings, scheduleSave, pinia } = await setup();
+    const wrapper = mount(LinkPreviewCard, { global: { plugins: [pinia] } });
+    expectLabelled(wrapper, 4);
+    const inputs = wrapper.findAll("input");
+    expect(inputs.map((input) => (input.element as HTMLInputElement).value)).toEqual(["512", "4096", "64", "16384"]);
+    expect(inputs.map((input) => [input.attributes("min"), input.attributes("max")])).toEqual([
+      ["64", "4096"],
+      ["1024", "32768"],
+      ["16", "1024"],
+      ["4096", "262144"],
+    ]);
+    await inputs[1]!.setValue("16384");
+    await inputs[1]!.trigger("change");
+    expect(settings.serverForm.linkPreviewClickImageKib).toBe(16384);
+    expect(scheduleSave).toHaveBeenCalledWith("previews");
   });
 });
 

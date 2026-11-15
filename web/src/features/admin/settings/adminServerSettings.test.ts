@@ -85,6 +85,10 @@ describe("autosave", () => {
       connectionRetentionDays: 30,
       connectionMaxRows: 10000,
       logRetentionDays: 30,
+      linkPreviewImageKib: 1024,
+      linkPreviewClickImageKib: 8192,
+      linkPreviewSvgKib: 128,
+      linkPreviewCacheKib: 32768,
       relayNodes: [],
     });
     expect(s.st.statuses.web.state).toBe("saved");

@@ -13,6 +13,7 @@ import {
   IDENTITY_MINT_QUEUE_DEPTH_MAX,
   IDENTITY_MINT_QUEUE_DEPTH_MIN,
 } from "../../config/identityMintConfig.js";
+import { DEFAULT_LINK_PREVIEW_KIB, LINK_PREVIEW_KIB_BOUNDS, type LinkPreviewKib } from "../../config/linkPreviewConfig.js";
 import {
   CONNECTION_ROWS_MAX,
   CONNECTION_ROWS_MIN,
@@ -44,6 +45,10 @@ export interface AdminSettingsInput {
   connectionRetentionDays?: number;
   connectionMaxRows?: number;
   logRetentionDays?: number;
+  linkPreviewImageKib?: number;
+  linkPreviewClickImageKib?: number;
+  linkPreviewSvgKib?: number;
+  linkPreviewCacheKib?: number;
   relayNodes?: RelayNodeInput[];
 }
 
@@ -188,6 +193,8 @@ export function normalizeSettings(input: AdminSettingsInput, current: StoredSett
     },
   };
 
+  const linkPreview = normalizeLinkPreview(input, current);
+
   return {
     siteName,
     welcomeTexts,
@@ -200,7 +207,38 @@ export function normalizeSettings(input: AdminSettingsInput, current: StoredSett
     identityMintConcurrency,
     identityMintQueueDepth,
     retention,
+    linkPreview,
   };
+}
+
+function normalizeLinkPreview(input: AdminSettingsInput, current: StoredSettings): LinkPreviewKib {
+  const field = (value: number | undefined, kept: number, key: keyof LinkPreviewKib, code: string, label: string) => {
+    const [min, max] = LINK_PREVIEW_KIB_BOUNDS[key];
+    return boundedInteger(value ?? kept ?? DEFAULT_LINK_PREVIEW_KIB[key], min, max, code, `${label} must be between ${min} and ${max} KiB`);
+  };
+  const linkPreview = {
+    imageKib: field(input.linkPreviewImageKib, current.linkPreview.imageKib, "imageKib", "INVALID_LINK_PREVIEW_IMAGE_SIZE", "Image size"),
+    clickImageKib: field(
+      input.linkPreviewClickImageKib,
+      current.linkPreview.clickImageKib,
+      "clickImageKib",
+      "INVALID_LINK_PREVIEW_CLICK_IMAGE_SIZE",
+      "Image size on request",
+    ),
+    svgKib: field(input.linkPreviewSvgKib, current.linkPreview.svgKib, "svgKib", "INVALID_LINK_PREVIEW_SVG_SIZE", "SVG size"),
+    cacheKib: field(
+      input.linkPreviewCacheKib,
+      current.linkPreview.cacheKib,
+      "cacheKib",
+      "INVALID_LINK_PREVIEW_CACHE_SIZE",
+      "Preview cache",
+    ),
+  };
+  // An image that is loaded on request is by definition larger than one that comes with the card.
+  if (linkPreview.clickImageKib < linkPreview.imageKib) {
+    throw new AdminInputError("INVALID_LINK_PREVIEW_CLICK_IMAGE_SIZE", "The size on request must not be smaller than the inline size");
+  }
+  return linkPreview;
 }
 
 export function normalizeRelayNodes(inputs: RelayNodeInput[], existing: PersistedRelayNode[], masterSecret: Buffer): PersistedRelayNode[] {
@@ -269,5 +307,6 @@ export function toSettingsUpdate(settings: StoredSettings): SettingsUpdate {
     identityMintConcurrency: settings.identityMintConcurrency,
     identityMintQueueDepth: settings.identityMintQueueDepth,
     retention: settings.retention,
+    linkPreview: settings.linkPreview,
   };
 }

@@ -32,6 +32,10 @@ export function readSettingsInput(body: Record<string, unknown>): AdminSettingsI
     connectionRetentionDays: readOptionalInteger(body, "connectionRetentionDays"),
     connectionMaxRows: readOptionalInteger(body, "connectionMaxRows"),
     logRetentionDays: readOptionalInteger(body, "logRetentionDays"),
+    linkPreviewImageKib: readOptionalInteger(body, "linkPreviewImageKib"),
+    linkPreviewClickImageKib: readOptionalInteger(body, "linkPreviewClickImageKib"),
+    linkPreviewSvgKib: readOptionalInteger(body, "linkPreviewSvgKib"),
+    linkPreviewCacheKib: readOptionalInteger(body, "linkPreviewCacheKib"),
     relayNodes,
   };
 }

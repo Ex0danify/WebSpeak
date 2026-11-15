@@ -90,6 +90,37 @@ describe("buildSettingsDocument", () => {
     });
   });
 
+  it("holds back a link preview limit that is out of bounds and keeps the others", () => {
+    const form = confirmedForm({
+      linkPreviewImageKib: 63,
+      linkPreviewClickImageKib: 2048,
+      linkPreviewSvgKib: 1025,
+      linkPreviewCacheKib: 8192,
+    });
+    const { document, issues } = buildSettingsDocument(form, confirmedForm());
+    expect(Object.keys(issues).sort()).toEqual(["linkPreviewImageKib", "linkPreviewSvgKib"]);
+    expect(document).toMatchObject({
+      linkPreviewImageKib: 1024,
+      linkPreviewClickImageKib: 2048,
+      linkPreviewSvgKib: 128,
+      linkPreviewCacheKib: 8192,
+    });
+  });
+
+  it("holds back a size on request below the inline size, sending the pair the gateway confirmed", () => {
+    const form = confirmedForm({ linkPreviewImageKib: 4096, linkPreviewClickImageKib: 2048 });
+    const { document, issues } = buildSettingsDocument(form, confirmedForm());
+    expect(issues.linkPreviewClickImageKib).toEqual({ code: "number", min: 4096, max: 32768 });
+    expect(document).toMatchObject({ linkPreviewImageKib: 1024, linkPreviewClickImageKib: 8192 });
+  });
+
+  it("accepts a size on request equal to the inline size", () => {
+    const form = confirmedForm({ linkPreviewImageKib: 2048, linkPreviewClickImageKib: 2048 });
+    const { document, issues } = buildSettingsDocument(form, confirmedForm());
+    expect(issues).toEqual({});
+    expect(document).toMatchObject({ linkPreviewImageKib: 2048, linkPreviewClickImageKib: 2048 });
+  });
+
   it("sends an unchanged token as keep, and an empty replacement as no change", () => {
     const node = {
       ...createRelayNode(),

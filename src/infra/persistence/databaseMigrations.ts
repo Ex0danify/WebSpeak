@@ -1,6 +1,6 @@
 import type { DatabaseSync } from "node:sqlite";
 
-export const DATABASE_SCHEMA_VERSION = 17;
+export const DATABASE_SCHEMA_VERSION = 18;
 
 /** The oldest schema this build upgrades, 0.7.0 is the first release that writes it. */
 export const MINIMUM_SCHEMA_VERSION = 10;
@@ -48,6 +48,10 @@ const MIGRATIONS: Migration[] = [
             connection_max_rows INTEGER NOT NULL DEFAULT 10000 CHECK (connection_max_rows BETWEEN 100 AND 100000),
             privacy_notice_url TEXT NOT NULL DEFAULT '',
             log_retention_days INTEGER NOT NULL DEFAULT 30 CHECK (log_retention_days BETWEEN 1 AND 365),
+            link_preview_image_kib INTEGER NOT NULL DEFAULT 1024 CHECK (link_preview_image_kib BETWEEN 64 AND 4096),
+            link_preview_click_image_kib INTEGER NOT NULL DEFAULT 8192 CHECK (link_preview_click_image_kib BETWEEN 1024 AND 32768),
+            link_preview_svg_kib INTEGER NOT NULL DEFAULT 128 CHECK (link_preview_svg_kib BETWEEN 16 AND 1024),
+            link_preview_cache_kib INTEGER NOT NULL DEFAULT 32768 CHECK (link_preview_cache_kib BETWEEN 4096 AND 262144),
             updated_at TEXT NOT NULL
           );
           CREATE TABLE welcome_texts (
@@ -288,6 +292,19 @@ const MIGRATIONS: Migration[] = [
       database.exec(
         "ALTER TABLE settings ADD COLUMN log_retention_days INTEGER NOT NULL DEFAULT 30 CHECK (log_retention_days BETWEEN 1 AND 365)",
       );
+    },
+  },
+  {
+    from: 17,
+    to: 18,
+    up(database) {
+      // How large the pictures of link previews may be, in KiB, and how much of them the gateway keeps in memory.
+      database.exec(`
+        ALTER TABLE settings ADD COLUMN link_preview_image_kib INTEGER NOT NULL DEFAULT 1024 CHECK (link_preview_image_kib BETWEEN 64 AND 4096);
+        ALTER TABLE settings ADD COLUMN link_preview_click_image_kib INTEGER NOT NULL DEFAULT 8192 CHECK (link_preview_click_image_kib BETWEEN 1024 AND 32768);
+        ALTER TABLE settings ADD COLUMN link_preview_svg_kib INTEGER NOT NULL DEFAULT 128 CHECK (link_preview_svg_kib BETWEEN 16 AND 1024);
+        ALTER TABLE settings ADD COLUMN link_preview_cache_kib INTEGER NOT NULL DEFAULT 32768 CHECK (link_preview_cache_kib BETWEEN 4096 AND 262144);
+      `);
     },
   },
 ];

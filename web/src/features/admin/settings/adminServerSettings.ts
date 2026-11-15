@@ -25,7 +25,7 @@ import { useAdminFeedbackStore } from "@/features/admin/core/adminFeedback.js";
 import { adminSiblings } from "@/features/admin/core/adminSiblings.js";
 import { useAdminSessionStore } from "@/features/admin/core/adminSession.js";
 
-const SECTIONS: SettingsSection[] = ["access", "web", "webrtc", "mint", "retention", "relay"];
+const SECTIONS: SettingsSection[] = ["access", "web", "webrtc", "mint", "previews", "retention", "relay"];
 
 /** The section a refused save is about, by the code the gateway answered with. */
 function sectionOfError(code: string | undefined): SettingsSection {
@@ -33,12 +33,13 @@ function sectionOfError(code: string | undefined): SettingsSection {
   if (code === "INVALID_SITE_NAME" || code === "INVALID_WELCOME_TEXT" || code === "INVALID_PRIVACY_NOTICE_URL") return "web";
   if (code?.includes("WEBRTC")) return "webrtc";
   if (code?.includes("IDENTITY_MINT")) return "mint";
+  if (code?.includes("LINK_PREVIEW")) return "previews";
   if (code?.includes("RETENTION") || code?.includes("_ROWS")) return "retention";
   return "access";
 }
 
 /**
- * The gateway and web pages' settings: access mode, site name, welcome texts, WebRTC port range, identity minting limits, log retention and relay nodes. Every change saves by itself: the form
+ * The gateway and web pages' settings: access mode, site name, welcome texts, WebRTC port range, identity minting limits, link preview size limits, log retention and relay nodes. Every change saves by itself: the form
  * schedules a save when a choice is made or a field is left, saves run one at a time and always send the whole document.
  */
 export const useAdminServerSettingsStore = defineStore("adminServerSettings", () => {
@@ -59,6 +60,7 @@ export const useAdminServerSettingsStore = defineStore("adminServerSettings", ()
     web: createSaveStatus(),
     webrtc: createSaveStatus(),
     mint: createSaveStatus(),
+    previews: createSaveStatus(),
     retention: createSaveStatus(),
     relay: createSaveStatus(),
   };

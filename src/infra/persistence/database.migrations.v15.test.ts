@@ -6,6 +6,9 @@ import { DATABASE_SCHEMA_VERSION } from "./database.js";
 
 const fx = useDatabaseFixture();
 
+/** The columns schema 18 adds, dropped first so the older layout is what the migrations start from. */
+const LATER_COLUMNS = ["link_preview_image_kib", "link_preview_click_image_kib", "link_preview_svg_kib", "link_preview_cache_kib"];
+
 function rows(file: string, sql: string): unknown[] {
   const raw = new DatabaseSync(file, { readOnly: true });
   try {
@@ -20,6 +23,7 @@ function createSchema14Database(file: string): void {
   fx.open().close();
   const raw = new DatabaseSync(file);
   raw.exec("ALTER TABLE connection_records DROP COLUMN user_agent");
+  for (const column of LATER_COLUMNS) raw.exec(`ALTER TABLE settings DROP COLUMN ${column}`);
   raw.exec("ALTER TABLE settings DROP COLUMN log_retention_days");
   raw.exec("ALTER TABLE settings DROP COLUMN privacy_notice_url");
   raw.exec(

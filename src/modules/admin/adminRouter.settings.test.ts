@@ -29,6 +29,10 @@ describe("GET /server", () => {
       "identityMintConcurrency",
       "identityMintMaxLevel",
       "identityMintQueueDepth",
+      "linkPreviewCacheKib",
+      "linkPreviewClickImageKib",
+      "linkPreviewImageKib",
+      "linkPreviewSvgKib",
       "logRetentionDays",
       "privacyNoticeUrl",
       "relayNodes",
@@ -46,6 +50,10 @@ describe("GET /server", () => {
       relayNodes: [],
       webRtcEnabled: false,
       siteName: "WebSpeak",
+      linkPreviewImageKib: 1024,
+      linkPreviewClickImageKib: 8192,
+      linkPreviewSvgKib: 128,
+      linkPreviewCacheKib: 32768,
     });
   });
 });

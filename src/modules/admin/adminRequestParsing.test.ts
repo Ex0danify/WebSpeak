@@ -46,4 +46,18 @@ describe("adminRequestParsing", () => {
     expect(input).toMatchObject({ identityMintMaxLevel: 10, identityMintConcurrency: 3, identityMintQueueDepth: 0 });
     expect(() => readSettingsInput({ target: "ts.example:9987", siteName: "Site", identityMintMaxLevel: 1.5 })).toThrow(AdminInputError);
   });
+
+  it("readSettingsInput reads the link preview limits, leaves them out when absent and rejects non-integers", () => {
+    expect(
+      readSettingsInput({
+        siteName: "Site",
+        linkPreviewImageKib: 512,
+        linkPreviewClickImageKib: 4096,
+        linkPreviewSvgKib: 64,
+        linkPreviewCacheKib: 16384,
+      }),
+    ).toMatchObject({ linkPreviewImageKib: 512, linkPreviewClickImageKib: 4096, linkPreviewSvgKib: 64, linkPreviewCacheKib: 16384 });
+    expect(readSettingsInput({ siteName: "Site" })).toMatchObject({ linkPreviewImageKib: undefined, linkPreviewCacheKib: undefined });
+    expect(() => readSettingsInput({ siteName: "Site", linkPreviewSvgKib: 1.5 })).toThrow(AdminInputError);
+  });
 });

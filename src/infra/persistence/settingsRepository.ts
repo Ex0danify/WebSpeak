@@ -1,5 +1,6 @@
 import { DEFAULT_WEBRTC_UDP_PORT_RANGE } from "../../config/webrtcConfig.js";
 import { DEFAULT_RETENTION_POLICY } from "../../config/retentionConfig.js";
+import { DEFAULT_LINK_PREVIEW_KIB } from "../../config/linkPreviewConfig.js";
 import { DEFAULT_IDENTITY_MINT_POLICY } from "../../config/identityMintConfig.js";
 import type { SettingsRow, WelcomeTextRow } from "./databaseRows.js";
 import type { PersistedSettings, SettingsUpdate } from "./databaseTypes.js";
@@ -26,19 +27,28 @@ export class SettingsRepository {
         connections: { days: row.connection_retention_days, maxRows: row.connection_max_rows },
         logs: { days: row.log_retention_days },
       },
+      linkPreview: {
+        imageKib: row.link_preview_image_kib,
+        clickImageKib: row.link_preview_click_image_kib,
+        svgKib: row.link_preview_svg_kib,
+        cacheKib: row.link_preview_cache_kib,
+      },
       updatedAt: row.updated_at,
     };
   }
 
   write(settings: SettingsUpdate, now: string): void {
     const retention = settings.retention ?? DEFAULT_RETENTION_POLICY;
+    const linkPreview = settings.linkPreview ?? DEFAULT_LINK_PREVIEW_KIB;
     this.context.database
       .prepare(
         `UPDATE settings SET
          site_name = ?, access_mode = ?, webrtc_enabled = ?, webrtc_udp_start = ?,
          webrtc_udp_end = ?, identity_mint_max_level = ?, identity_mint_concurrency = ?,
          identity_mint_queue_depth = ?, event_log_retention_days = ?, event_log_max_rows = ?,
-         connection_retention_days = ?, connection_max_rows = ?, privacy_notice_url = ?, log_retention_days = ?, updated_at = ?
+         connection_retention_days = ?, connection_max_rows = ?, privacy_notice_url = ?, log_retention_days = ?,
+         link_preview_image_kib = ?, link_preview_click_image_kib = ?, link_preview_svg_kib = ?, link_preview_cache_kib = ?,
+         updated_at = ?
        WHERE id = 1`,
       )
       .run(
@@ -56,6 +66,10 @@ export class SettingsRepository {
         retention.connections.maxRows,
         settings.privacyNoticeUrl ?? "",
         retention.logs.days,
+        linkPreview.imageKib,
+        linkPreview.clickImageKib,
+        linkPreview.svgKib,
+        linkPreview.cacheKib,
         now,
       );
     this.writeWelcomeTexts(settings.welcomeTexts ?? {});
