@@ -76,6 +76,12 @@ export const de: Record<string, string> = {
   eventChannelRenamed: "Kanal wurde in „{{channel}}“ umbenannt",
   eventChannelDeleted: "Kanal „{{channel}}“ wurde gelöscht",
   sendMessagePlaceholder: "Nachricht an die Kanalmitglieder…",
+  linkPreviews: "Linkvorschauen",
+  linkPreviewsOn: "Linkvorschauen sind an, das Gateway lädt die Seiten und Bilder, die du siehst",
+  linkPreviewsOff: "Linkvorschauen sind aus",
+  previewImageAlt: "Bild von {{host}}",
+  previewLoadImage: "Bild laden ({{size}})",
+  previewLoadImageUnknownSize: "Bild laden",
   fileCardLabel: "Datei {{name}}",
   fileCardUnavailable: "bei MyTeamSpeak gespeichert, hier nicht verfügbar",
 };

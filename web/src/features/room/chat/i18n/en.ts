@@ -76,6 +76,12 @@ export const en = {
   eventChannelRenamed: 'Channel renamed to "{{channel}}"',
   eventChannelDeleted: 'Channel "{{channel}}" was deleted',
   sendMessagePlaceholder: "Message the channel…",
+  linkPreviews: "Link previews",
+  linkPreviewsOn: "Link previews are on, the gateway fetches the pages and images you see",
+  linkPreviewsOff: "Link previews are off",
+  previewImageAlt: "Image from {{host}}",
+  previewLoadImage: "Load image ({{size}})",
+  previewLoadImageUnknownSize: "Load image",
   fileCardLabel: "File {{name}}",
   fileCardUnavailable: "stored on MyTeamSpeak, not available here",
 } satisfies Record<string, string>;

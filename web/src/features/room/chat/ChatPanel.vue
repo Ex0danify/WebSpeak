@@ -33,6 +33,18 @@
             @click="$emit('toggle-mute')"
             ><Icon :name="muted ? 'message-off' : 'message'" :size="20" /></Button
         ></Tooltip>
+        <Tooltip v-if="linkPreviews" :text="linkPreviews.enabled.value ? t('linkPreviewsOn') : t('linkPreviewsOff')"
+          ><Button
+            variant="softNeutral"
+            size="sm"
+            icon-only
+            pressed-tone="accent"
+            class="size-8.5 flex-none max-compact:size-11"
+            :aria-label="t('linkPreviews')"
+            :pressed="linkPreviews.enabled.value"
+            @click="linkPreviews.setEnabled(!linkPreviews.enabled.value)"
+            ><Icon name="link" :size="20" /></Button
+        ></Tooltip>
         <Tooltip v-if="chatTab === 'private'" :text="t('closePrivateChat')"
           ><Button
             variant="soft"
@@ -101,7 +113,10 @@
                   >
                     <time v-if="index > 0" class="sr-only">{{ formatTime(message.timestamp) }}</time>
                     <ChatFileCard v-if="mytsFile(message.message)" :file="mytsFile(message.message)!" />
-                    <ChatMarkdown v-else :text="message.message" />
+                    <template v-else>
+                      <ChatMarkdown :text="message.message" />
+                      <ChatLinkPreviews :text="message.message" />
+                    </template>
                   </div>
                   <div
                     v-if="message.status"
@@ -145,8 +160,10 @@ import { Separator } from "@/shared/ui/separator";
 import { Tab, TabList, TabPanel, Tabs } from "@/shared/ui/tabs";
 import ChatComposer from "@/features/room/chat/ChatComposer.vue";
 import ChatFileCard from "@/features/room/chat/ChatFileCard.vue";
+import ChatLinkPreviews from "@/features/room/chat/ChatLinkPreviews.vue";
 import ChatMarkdown from "@/features/room/chat/ChatMarkdown.vue";
 import { parseMytsFile } from "@/features/room/chat/mytsFile";
+import { useLinkPreviews } from "@/features/room/chat/useLinkPreviews";
 import UnreadMark from "@/features/room/chat/UnreadMark.vue";
 import { buildTimeline, splitAroundName, type Notice } from "@/features/room/chat/groupMessages";
 import { useI18n } from "@/shared/i18n/useI18n.js";
@@ -190,6 +207,7 @@ const emit = defineEmits<{
 const chatTab = defineModel<ChatTab>("chatTab", { default: "channel" });
 const messageDraft = defineModel<string>("messageDraft", { default: "" });
 const mytsFile = parseMytsFile;
+const linkPreviews = useLinkPreviews();
 
 const { t } = useI18n();
 

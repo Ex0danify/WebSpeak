@@ -215,6 +215,7 @@ import { useI18n } from "@/shared/i18n/useI18n";
 import type { useAppearance } from "@/shared/composables/useAppearance";
 import type { useScreenShare } from "@/features/screenShare";
 import ChatPanel from "@/features/room/chat/ChatPanel.vue";
+import { createLinkPreviews, provideLinkPreviews } from "@/features/room/chat/useLinkPreviews";
 import type { useChat } from "@/features/room/chat/useChat";
 import AudioDock from "@/features/room/dock/AudioDock.vue";
 import { accompanimentAvailability } from "@/features/room/dock/accompanimentAvailability";
@@ -257,7 +258,16 @@ const props = defineProps<{
 }>();
 
 const { t } = useI18n();
-const { state: voiceState, roomNotices, reconnectNow, requestIdentity, identityMaterial, setNickname } = props.session.session;
+const {
+  state: voiceState,
+  roomNotices,
+  reconnectNow,
+  requestIdentity,
+  requestLinkPreview,
+  identityMaterial,
+  setNickname,
+} = props.session.session;
+provideLinkPreviews(createLinkPreviews(requestLinkPreview));
 const changeNickname = useNicknameChange({ setNickname });
 const { members, serverEvents, serverName, pokeNotifications, speakingIds, canSpeak, mutedMembers, whisperTargetIds, whisperActive } =
   props.session.roster;
