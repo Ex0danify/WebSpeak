@@ -100,7 +100,8 @@
                     ]"
                   >
                     <time v-if="index > 0" class="sr-only">{{ formatTime(message.timestamp) }}</time>
-                    <ChatMarkdown :text="message.message" />
+                    <ChatFileCard v-if="mytsFile(message.message)" :file="mytsFile(message.message)!" />
+                    <ChatMarkdown v-else :text="message.message" />
                   </div>
                   <div
                     v-if="message.status"
@@ -143,7 +144,9 @@ import { Icon } from "@/shared/ui/icon";
 import { Separator } from "@/shared/ui/separator";
 import { Tab, TabList, TabPanel, Tabs } from "@/shared/ui/tabs";
 import ChatComposer from "@/features/room/chat/ChatComposer.vue";
+import ChatFileCard from "@/features/room/chat/ChatFileCard.vue";
 import ChatMarkdown from "@/features/room/chat/ChatMarkdown.vue";
+import { parseMytsFile } from "@/features/room/chat/mytsFile";
 import UnreadMark from "@/features/room/chat/UnreadMark.vue";
 import { buildTimeline, splitAroundName, type Notice } from "@/features/room/chat/groupMessages";
 import { useI18n } from "@/shared/i18n/useI18n.js";
@@ -186,6 +189,7 @@ const emit = defineEmits<{
 
 const chatTab = defineModel<ChatTab>("chatTab", { default: "channel" });
 const messageDraft = defineModel<string>("messageDraft", { default: "" });
+const mytsFile = parseMytsFile;
 
 const { t } = useI18n();
 

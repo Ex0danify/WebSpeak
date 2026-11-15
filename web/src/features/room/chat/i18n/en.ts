@@ -76,4 +76,6 @@ export const en = {
   eventChannelRenamed: 'Channel renamed to "{{channel}}"',
   eventChannelDeleted: 'Channel "{{channel}}" was deleted',
   sendMessagePlaceholder: "Message the channel…",
+  fileCardLabel: "File {{name}}",
+  fileCardUnavailable: "stored on MyTeamSpeak, not available here",
 } satisfies Record<string, string>;
