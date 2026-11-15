@@ -5,7 +5,7 @@ import { describe, expect, it, vi } from "vitest";
 import { parseScreenShareMessage } from "../src/modules/screenShare/index.js";
 import { handleUplinkFrame } from "../src/modules/voice/audio/audioUplink.js";
 import { routeTextFrame } from "../src/modules/voice/messages/voiceMessageRouter.js";
-import { parseClientCommand } from "../src/modules/voice/messages/voiceProtocol.js";
+import { MAX_TEXT_MESSAGE_LENGTH, parseClientCommand } from "../src/modules/voice/messages/voiceProtocol.js";
 import { classifyOperationError, sendProtocolError } from "../src/modules/voice/session/voiceFailures.js";
 import type { VoiceConnection } from "../src/modules/voice/voiceTypes.js";
 
@@ -57,7 +57,7 @@ describe("command validation errors (voiceProtocol)", () => {
     ],
     [
       "sendServerMessage with a bad text",
-      json({ type: "sendServerMessage", payload: { message: "x".repeat(501) } }),
+      json({ type: "sendServerMessage", payload: { message: "x".repeat(MAX_TEXT_MESSAGE_LENGTH + 1) } }),
       "INVALID_TEXT_MESSAGE",
       "Text message is invalid",
     ],
