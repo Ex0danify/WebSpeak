@@ -91,16 +91,17 @@ describe("roster handlers", () => {
     const { handlers, session } = setup();
     handlers.serverGroups!({
       groups: [
-        { id: 7, name: "Normal", iconId: 600 },
+        { id: 7, name: "Normal", iconId: 600, type: 2 },
         { id: "7", name: "Bad id", iconId: 1 },
         { id: 8, name: 5, iconId: 1 },
         { id: 8, name: "Guest" },
         null,
       ],
     });
+    // A group without a type counts as a regular one.
     expect(session.serverGroups).toEqual([
-      { id: 7, name: "Normal", iconId: 600, isDefault: false },
-      { id: 8, name: "Guest", iconId: 0, isDefault: false },
+      { id: 7, name: "Normal", iconId: 600, isDefault: false, type: 2 },
+      { id: 8, name: "Guest", iconId: 0, isDefault: false, type: 1 },
     ]);
     handlers.serverGroups!({});
     expect(session.serverGroups).toEqual([]);
@@ -115,8 +116,8 @@ describe("roster handlers", () => {
         { id: "x", name: "Bad" },
       ],
     });
-    expect(session.channelGroups).toEqual([{ id: 5, name: "Channel Admin", iconId: 100, isDefault: true }]);
-    expect(session.serverGroups).toEqual([{ id: 6, name: "Server Admin", iconId: 300, isDefault: false }]);
+    expect(session.channelGroups).toEqual([{ id: 5, name: "Channel Admin", iconId: 100, isDefault: true, type: 1 }]);
+    expect(session.serverGroups).toEqual([{ id: 6, name: "Server Admin", iconId: 300, isDefault: false, type: 1 }]);
   });
 
   it("serverGroupIcon keeps the icons by id and ignores a frame that is not a usable image", () => {

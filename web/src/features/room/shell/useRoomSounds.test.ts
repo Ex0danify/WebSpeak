@@ -100,12 +100,12 @@ describe("group sounds", () => {
   const setupGroups = (channelId = "a") => {
     const started = setup([{ ...channel(channelId, []), members: [own([8], 8)] }, channel("b", [3])], {
       server: [
-        { id: 6, name: "Server Admin", iconId: 0, isDefault: false },
-        { id: 8, name: "Guest", iconId: 0, isDefault: true },
+        { id: 6, name: "Server Admin", iconId: 0, isDefault: false, type: 1 },
+        { id: 8, name: "Guest", iconId: 0, isDefault: true, type: 1 },
       ],
       channel: [
-        { id: 6, name: "Operator", iconId: 0, isDefault: false },
-        { id: 8, name: "Guest", iconId: 0, isDefault: true },
+        { id: 6, name: "Operator", iconId: 0, isDefault: false, type: 1 },
+        { id: 8, name: "Guest", iconId: 0, isDefault: true, type: 1 },
       ],
     });
     return { ...started, me: () => started.channels[0]!.members![0]! };

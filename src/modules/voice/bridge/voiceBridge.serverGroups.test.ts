@@ -28,9 +28,9 @@ describe("server groups", () => {
       {
         type: "serverGroups",
         groups: [
-          { id: 7, name: "Normal", iconId: 600, isDefault: false },
-          { id: 3, name: "Server Admin", iconId: 300, isDefault: false },
-          { id: 8, name: "Guest", iconId: 0, isDefault: true },
+          { id: 7, name: "Normal", iconId: 600, isDefault: false, type: 1 },
+          { id: 3, name: "Server Admin", iconId: 300, isDefault: false, type: 0 },
+          { id: 8, name: "Guest", iconId: 0, isDefault: true, type: 1 },
         ],
       },
     ]);
@@ -52,8 +52,8 @@ describe("server groups", () => {
       {
         type: "channelGroups",
         groups: [
-          { id: 5, name: "Channel Admin", iconId: 100, isDefault: false },
-          { id: 8, name: "Guest", iconId: 0, isDefault: true },
+          { id: 5, name: "Channel Admin", iconId: 100, isDefault: false, type: 1 },
+          { id: 8, name: "Guest", iconId: 0, isDefault: true, type: 1 },
         ],
       },
     ]);

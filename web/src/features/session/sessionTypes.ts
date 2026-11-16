@@ -87,6 +87,8 @@ export interface ServerGroup {
   iconId: number;
   /** The group the server gives everyone, losing the last other one hands it back. */
   isDefault: boolean;
+  /** 0 template, 1 regular, 2 query. Only a regular group is one to give or take. */
+  type: number;
 }
 
 /** Channel groups come in the same shape, but hold per channel and one per member. */

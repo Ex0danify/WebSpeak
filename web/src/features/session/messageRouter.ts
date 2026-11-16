@@ -25,6 +25,7 @@ function readGroups(groups: unknown): ServerGroup[] {
             name: clampText(group.name, MAX_NICKNAME_LENGTH),
             iconId: Number(group.iconId) || 0,
             isDefault: group.isDefault === true,
+            type: Number.isInteger(group.type) ? group.type : 1,
           },
         ]
       : [],
