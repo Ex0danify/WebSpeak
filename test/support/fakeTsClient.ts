@@ -22,7 +22,7 @@ import {
   type FakeServerOptions,
 } from "./fakeTsClientScript.js";
 import { deliverChat, deliverVoice } from "./fakeTsChat.js";
-import { FakeGroups, fakeAvatar, fakeGroupIcon } from "./fakeTsFiles.js";
+import { FakeGroups, fakeAvatar, fakeGroupIcon, fakeModeration } from "./fakeTsFiles.js";
 
 const refused = (id: number, serverMessage: string) => new TeamSpeakServerError({ id, serverMessage });
 export { DEFAULT_FAKE_CHANNELS, FakeRemoteMember, type FakeChannel, type FakeOperation, type FakeServerOptions };
@@ -329,9 +329,8 @@ export class FakeTSClient extends EventEmitter {
     if (moved) moved.preferredChannelId = channelId;
   }
 
-  getClientId(): number {
-    return this.clientId;
-  }
+  getClientId = (): number => this.clientId;
+  moderation = () => fakeModeration(this);
   getProtocol(): TeamSpeakProtocol | null {
     return this.isUp ? this.server.protocol : null;
   }

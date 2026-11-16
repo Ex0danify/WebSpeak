@@ -4,6 +4,11 @@ import { isRecord } from "../../../shared/typeGuards.js";
 /** The longest chat message the gateway forwards. The web composer enforces the same number (`MAX_CHAT_SEND_LENGTH`). */
 export const MAX_TEXT_MESSAGE_LENGTH = 8192;
 
+/** The longest kick or ban reason the gateway forwards. */
+export const MAX_MODERATION_REASON_LENGTH = 80;
+
+const MAX_U32 = 2 ** 32 - 1;
+
 /** The longest address a preview is made for. */
 export const MAX_LINK_PREVIEW_URL_LENGTH = 2048;
 
@@ -15,6 +20,10 @@ export interface ClientCommand {
     | "sendServerMessage"
     | "sendPrivateMessage"
     | "poke"
+    | "kickClient"
+    | "banClient"
+    | "setServerGroup"
+    | "setChannelGroup"
     | "setAway"
     | "setNickname"
     | "setWhisperTargets"
@@ -31,6 +40,30 @@ export interface ClientCommand {
 }
 
 export type ClientCommandResult = ClientCommand | { error: { code: ProtocolCode; message: string } };
+
+const isClientId = (value: unknown): boolean => typeof value === "number" && Number.isInteger(value) && value > 0 && value <= 65535;
+const isU32 = (value: unknown, min: number): boolean =>
+  typeof value === "number" && Number.isInteger(value) && value >= min && value <= MAX_U32;
+const isReason = (value: unknown): boolean =>
+  value === undefined || (typeof value === "string" && value.length <= MAX_MODERATION_REASON_LENGTH);
+
+type ProtocolError = { code: ProtocolCode; message: string };
+
+/** What each moderation command needs besides the member's id. */
+const MODERATION_PAYLOADS = new Map<string, (payload: Record<string, unknown>) => boolean>([
+  ["kickClient", (p) => (p.scope === "channel" || p.scope === "server") && isReason(p.message)],
+  ["banClient", (p) => isU32(p.seconds, 0) && isReason(p.message)],
+  ["setServerGroup", (p) => isU32(p.groupId, 1) && typeof p.assigned === "boolean"],
+  ["setChannelGroup", (p) => isU32(p.groupId, 1)],
+]);
+
+/** The checks of the moderation commands, so a malformed one never reaches the roster lookup. */
+function moderationError(type: string, payload: Record<string, unknown>): ProtocolError | undefined {
+  const isValid = MODERATION_PAYLOADS.get(type);
+  if (!isValid) return undefined;
+  if (!isClientId(payload.clientId)) return { code: "INVALID_CLIENT_ID", message: "Member id is invalid" };
+  return isValid(payload) ? undefined : { code: "INVALID_MODERATION_REQUEST", message: "Moderation request is invalid" };
+}
 
 export function parseClientCommand(raw: string): ClientCommandResult {
   let value: unknown;
@@ -52,6 +85,10 @@ export function parseClientCommand(raw: string): ClientCommandResult {
     "sendServerMessage",
     "sendPrivateMessage",
     "poke",
+    "kickClient",
+    "banClient",
+    "setServerGroup",
+    "setChannelGroup",
     "setAway",
     "setNickname",
     "setWhisperTargets",
@@ -123,6 +160,8 @@ export function parseClientCommand(raw: string): ClientCommandResult {
   if (value.type === "poke" && (typeof value.payload.message !== "string" || value.payload.message.length > 200)) {
     return { error: { code: "INVALID_POKE_MESSAGE", message: "Poke message is invalid" } };
   }
+  const moderation = moderationError(value.type, value.payload);
+  if (moderation) return { error: moderation };
   if (
     value.type === "setAway" &&
     (typeof value.payload.away !== "boolean" ||

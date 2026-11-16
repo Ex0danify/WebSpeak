@@ -53,6 +53,11 @@ export class DirectorySynchronizer {
     return this.clients.get(id)?.channelID;
   }
 
+  /** What group commands address a client by. Undefined while the server has not said (it sends 0 then). */
+  getClientDatabaseId(id: number): bigint | undefined {
+    return this.clients.get(id)?.databaseId || undefined;
+  }
+
   getSnapshot(): TSDirectorySnapshot | null {
     if (!this.snapshot) return null;
     return {

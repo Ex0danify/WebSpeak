@@ -205,3 +205,16 @@ describe("DirectorySynchronizer departed clients", () => {
     expect(ids(sync)).toEqual([4]);
   });
 });
+
+describe("DirectorySynchronizer database ids", () => {
+  it("knows the id a client entered with, and nothing for zero or for a stranger", () => {
+    const sync = new DirectorySynchronizer();
+    sync.applySnapshot(snapshot([client(1, { databaseId: 77n }), client(2, { databaseId: 0n }), client(3)]));
+    sync.applyClientEnter(client(4, { databaseId: 9n }) as ClientInfo);
+    expect(sync.getClientDatabaseId(1)).toBe(77n);
+    expect(sync.getClientDatabaseId(4)).toBe(9n);
+    expect(sync.getClientDatabaseId(2)).toBeUndefined();
+    expect(sync.getClientDatabaseId(3)).toBeUndefined();
+    expect(sync.getClientDatabaseId(99)).toBeUndefined();
+  });
+});
