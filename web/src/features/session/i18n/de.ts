@@ -24,6 +24,8 @@ export const de: Record<string, string> = {
     "Deine Client-Version ist veraltet und der Server hat die Verbindung abgelehnt. Aktualisiere und versuche es erneut",
   err_FLOOD_PROTECTION: "Zu viele Anfragen: Der Flood-Schutz des Servers hat dich vorübergehend abgewiesen. Versuche es gleich erneut",
   err_BANNED: "Du wurdest von diesem Server gebannt und kannst nicht verbinden",
+  bannedUntil: "Du wurdest von diesem Server bis {{until}} gebannt und kannst nicht verbinden",
+  bannedPermanent: "Du wurdest dauerhaft von diesem Server gebannt und kannst nicht verbinden",
   err_KICKED: "Du wurdest vom Server entfernt",
   err_SERVER_SHUTTING_DOWN: "Der TeamSpeak-Server wird heruntergefahren und ist derzeit nicht erreichbar",
   err_CONNECTION_INITIALISATION_FAILED:

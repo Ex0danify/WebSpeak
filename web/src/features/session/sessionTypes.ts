@@ -207,7 +207,7 @@ export type ServerMessage =
   | { type: "reconnecting"; attempt: number; delayMs: number }
   | { type: "reconnected" }
   | { type: "reconnectFailed"; code: string; detail?: string }
-  | { type: "connectionFailed"; code: string; detail?: string }
+  | { type: "connectionFailed"; code: string; detail?: string; banSeconds?: number }
   | { type: "memberEnter"; id: number; nickname: string; uid?: string; avatar?: string; isSelf?: boolean }
   | { type: "memberLeave"; id: number }
   | { type: "memberAvatar"; id: number; uid?: string; avatar?: string }

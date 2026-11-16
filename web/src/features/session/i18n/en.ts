@@ -24,6 +24,8 @@ export const en = {
   err_CLIENT_VERSION_OUTDATED: "Your client version is outdated and the server rejected the connection. Update and try again",
   err_FLOOD_PROTECTION: "Too many requests: the server flood protection rejected you temporarily. Try again shortly",
   err_BANNED: "You are banned from this server, so the connection is refused",
+  bannedUntil: "You are banned from this server until {{until}}, so the connection is refused",
+  bannedPermanent: "You are permanently banned from this server, so the connection is refused",
   err_KICKED: "You were removed from the server",
   err_SERVER_SHUTTING_DOWN: "The TeamSpeak server is shutting down and is unreachable right now",
   err_CONNECTION_INITIALISATION_FAILED:
