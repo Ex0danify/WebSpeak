@@ -70,9 +70,21 @@ test.describe("the moderation of a member", () => {
     for (const name of ["Kick from channel", "Kick from server", "Ban from server"]) await expect(action(menu, name)).toHaveCount(0);
   });
 
-  for (const [item, scope, title, told] of [
-    ["Kick from channel", "channel", "Kick mod-kick-ch-other from the channel", "mod-kick-ch-other was kicked from the channel"],
-    ["Kick from server", "server", "Kick mod-kick-sv-other from the server", "mod-kick-sv-other was kicked from the server"],
+  for (const [item, scope, title, header, body] of [
+    [
+      "Kick from channel",
+      "channel",
+      "Kick mod-kick-ch-other from the channel",
+      "Kicked from channel",
+      "mod-kick-ch-other was moved to the default channel",
+    ],
+    [
+      "Kick from server",
+      "server",
+      "Kick mod-kick-sv-other from the server",
+      "Kicked from server",
+      "mod-kick-sv-other was removed from the server",
+    ],
   ] as const) {
     test(`${item} asks for a reason, kicks, and says it was done`, async ({ page, gateway, script }) => {
       const nickname = title.split(" ")[1]!;
@@ -83,7 +95,10 @@ test.describe("the moderation of a member", () => {
       const dialog = page.getByRole("dialog", { name: title });
       await dialog.getByLabel("Reason (optional)").fill("calm down");
       await dialog.getByRole("button", { name: "Kick", exact: true }).click();
-      await expect(page.getByText(told, { exact: true })).toBeVisible();
+      // A header, what happened to whom, and the reason as the detail, laid out like the toast of a refused channel switch.
+      await expect(page.getByText(header, { exact: true })).toBeVisible();
+      await expect(page.getByText(body, { exact: true })).toBeVisible();
+      await expect(page.getByText("Reason: calm down", { exact: true })).toBeVisible();
       expect(
         await poll(
           () => asked(gateway, `${nickname}-self`),
@@ -113,7 +128,9 @@ test.describe("the moderation of a member", () => {
     await expect(dialog.getByRole("combobox", { name: "Duration" })).toContainText("1 day");
     await dialog.getByLabel("Reason (optional)").fill("spam");
     await dialog.getByRole("button", { name: "Ban", exact: true }).click();
-    await expect(page.getByText("mod-ban-other was banned", { exact: true })).toBeVisible();
+    await expect(page.getByText("Banned from server", { exact: true })).toBeVisible();
+    await expect(page.getByText(/^mod-ban-other is banned until /)).toBeVisible();
+    await expect(page.getByText("Reason: spam", { exact: true })).toBeVisible();
     expect(
       await poll(
         () => asked(gateway, "mod-ban-self"),
@@ -173,7 +190,7 @@ test.describe("the moderation of a member", () => {
       .getByRole("button", { name: "Kick", exact: true })
       .click();
     await expect(page.getByText("You do not have permission to perform this action", { exact: true })).toBeVisible();
-    await expect(page.getByText(/was kicked/)).toBeHidden();
+    await expect(page.getByText("Kicked from server", { exact: true })).toBeHidden();
     expect(asked(gateway, "mod-refused-self")).toEqual([]);
   });
 });
@@ -197,6 +214,7 @@ test.describe("the groups of a member", () => {
     await expect.poll(() => ticked(groupItem(page, menu, "Server Admin"))).toBe("false");
 
     await groupItem(page, menu, "Server Admin").click();
+    await expect(page.getByText("Server group added", { exact: true })).toBeVisible();
     await expect(page.getByText("mod-groups-other was added to Server Admin", { exact: true })).toBeVisible();
     const databaseId = BigInt(target.id) + 1000n;
     expect(
@@ -231,7 +249,9 @@ test.describe("the groups of a member", () => {
     await expect(operator).toHaveAttribute("aria-current", "true");
     await operator.click();
 
-    await expect(page.getByText("mod-channel-other is now Channel Guest in this channel", { exact: true })).toBeVisible();
+    await expect(page.getByText("Channel group changed", { exact: true })).toBeVisible();
+    await expect(page.getByText("mod-channel-other is now Channel Guest", { exact: true })).toBeVisible();
+    await expect(page.getByText(/^In channel /)).toBeVisible();
     expect(
       await poll(
         () => asked(gateway, "mod-channel-self"),

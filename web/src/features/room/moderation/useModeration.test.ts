@@ -30,7 +30,9 @@ function setup(overrides: Partial<Parameters<typeof useModeration>[0]["actions"]
     setChannelGroup: vi.fn(async () => undefined),
     ...overrides,
   };
-  return { actions, moderation: useModeration({ actions }) };
+  // Ana is in the lobby, where the toast of a channel group says it holds.
+  const roster = { channels: [{ id: "1", parentID: "0", name: "Lobby", members: [{ id: 2, nickname: "Ana" }] }] };
+  return { actions, moderation: useModeration({ actions, roster }) };
 }
 
 const lastToast = () => useToast().toasts.value.at(-1);
@@ -42,24 +44,35 @@ beforeEach(() => {
 });
 
 describe("kickMember", () => {
-  it("asks for a reason, kicks with the scope and toasts success", async () => {
+  it("asks for a reason and kicks from the channel, then says what happened, to whom and why", async () => {
     const { actions, moderation } = setup();
     await moderation.kickMember(ana, "channel");
     expect(dialog.prompt).toHaveBeenCalledWith(expect.objectContaining({ title: expect.stringContaining("Ana") }));
     expect(actions.kickClient).toHaveBeenCalledWith(2, "channel", "calm down");
-    expect(lastToast()).toMatchObject({ variant: "success" });
-    await moderation.kickMember(ana, "server");
-    expect(actions.kickClient).toHaveBeenLastCalledWith(2, "server", "calm down");
+    expect(lastToast()).toMatchObject({
+      variant: "success",
+      title: "Kicked from channel",
+      description: "Ana was moved to the default channel",
+      note: "Reason: calm down",
+    });
   });
 
-  it("does nothing when the prompt is cancelled, and kicks without a reason when it is left empty", async () => {
+  it("kicks from the server", async () => {
+    const { actions, moderation } = setup();
+    await moderation.kickMember(ana, "server");
+    expect(actions.kickClient).toHaveBeenCalledWith(2, "server", "calm down");
+    expect(lastToast()).toMatchObject({ title: "Kicked from server", description: "Ana was removed from the server" });
+  });
+
+  it("does nothing when the prompt is cancelled, and kicks without a reason, and without a note, when it is left empty", async () => {
     const { actions, moderation } = setup();
     dialog.prompt.mockResolvedValue(null);
     await moderation.kickMember(ana, "server");
     expect(actions.kickClient).not.toHaveBeenCalled();
-    dialog.prompt.mockResolvedValue("");
+    dialog.prompt.mockResolvedValue("  ");
     await moderation.kickMember(ana, "server");
-    expect(actions.kickClient).toHaveBeenCalledWith(2, "server", "");
+    expect(actions.kickClient).toHaveBeenCalledWith(2, "server", "  ");
+    expect(lastToast()?.note).toBeUndefined();
   });
 
   it("toasts the refusal, with the permission it lacked, and no success", async () => {
@@ -78,7 +91,16 @@ describe("banMember", () => {
     await moderation.confirmBan(3600, "spam");
     expect(actions.banClient).toHaveBeenCalledWith(2, 3600, "spam");
     expect(moderation.banDialog.open).toBe(false);
-    expect(lastToast()).toMatchObject({ variant: "success" });
+    expect(lastToast()).toMatchObject({ variant: "success", title: "Banned from server", note: "Reason: spam" });
+    expect(lastToast()?.description).toMatch(/^Ana is banned until .+/);
+  });
+
+  it("says a ban for good is permanent", async () => {
+    const { moderation } = setup();
+    moderation.banMember(ana);
+    await moderation.confirmBan(0, "");
+    expect(lastToast()).toMatchObject({ title: "Banned from server", description: "Ana is banned permanently" });
+    expect(lastToast()?.note).toBeUndefined();
   });
 
   it("toasts the refusal of a ban", async () => {
@@ -100,8 +122,10 @@ describe("groups", () => {
     const { actions, moderation } = setup();
     await moderation.toggleServerGroup(ana, group(7, "Normal"));
     expect(actions.setServerGroup).toHaveBeenLastCalledWith(2, 7, true);
+    expect(lastToast()).toMatchObject({ title: "Server group added", description: "Ana was added to Normal" });
     await moderation.toggleServerGroup(ana, group(6, "Admin"));
     expect(actions.setServerGroup).toHaveBeenLastCalledWith(2, 6, false);
+    expect(lastToast()).toMatchObject({ title: "Server group removed", description: "Ana was removed from Admin" });
   });
 
   it("treats a member without groups as having none", async () => {
@@ -114,7 +138,19 @@ describe("groups", () => {
     const { actions, moderation } = setup();
     await moderation.assignChannelGroup(ana, group(5, "Mod"));
     expect(actions.setChannelGroup).toHaveBeenCalledWith(2, 5);
-    expect(lastToast()).toMatchObject({ variant: "success" });
+    expect(lastToast()).toMatchObject({
+      variant: "success",
+      title: "Channel group changed",
+      description: "Ana is now Mod",
+      note: "In channel Lobby",
+    });
+  });
+
+  it("leaves the channel out of the toast of a member the room does not place in one", async () => {
+    const { moderation } = setup();
+    await moderation.assignChannelGroup({ id: 3, nickname: "Bo" } as ChannelMember, group(5, "Mod"));
+    expect(lastToast()).toMatchObject({ title: "Channel group changed", description: "Bo is now Mod" });
+    expect(lastToast()?.note).toBeUndefined();
   });
 
   it("takes a channel group away by giving the default one, when the member already has the group", async () => {
@@ -122,7 +158,7 @@ describe("groups", () => {
     const { actions, moderation } = setup();
     await moderation.assignChannelGroup({ ...ana, channelGroupId: 5 }, group(5, "Mod"));
     expect(actions.setChannelGroup).toHaveBeenCalledWith(2, 9);
-    expect(lastToast()?.title).toContain("Guest");
+    expect(lastToast()?.description).toBe("Ana is now Guest");
   });
 
   it("cannot take it away without knowing the default group, and sends nothing", async () => {

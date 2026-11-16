@@ -223,7 +223,10 @@ const {
 const whisper = useWhisper({ roster: session.roster, actions: session.actions });
 const { toggleWhisperTarget } = whisper;
 
-const { banDialog, confirmBan, kickMember, banMember, toggleServerGroup, assignChannelGroup } = useModeration({ actions: session.actions });
+const { banDialog, confirmBan, kickMember, banMember, toggleServerGroup, assignChannelGroup } = useModeration({
+  actions: session.actions,
+  roster: session.roster,
+});
 
 provideContextActions({
   currentChannelId: computed(() => currentChannel.value?.id),
