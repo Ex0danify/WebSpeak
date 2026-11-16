@@ -11,9 +11,10 @@ import type { CommandRequest } from "../../src/lib/teamspeak/command/commandTrac
 import { buildCommand } from "../../src/lib/teamspeak/wire/commandText.js";
 import type { TSClient } from "../../src/modules/teamspeak/teamSpeakClient";
 import { MAX_MODERATION_REASON_LENGTH } from "../../src/modules/voice/messages/voiceProtocol";
+import { normalizeTeamSpeakError } from "../../src/shared/errors";
 import { poll } from "../helpers/poll";
 import { expect, test } from "./fixtures";
-import { GUEST_IDENTITY } from "./identities";
+import { GUEST_IDENTITY, identities } from "./identities";
 import { connectAs, databaseIdOf } from "./provision";
 import type { WebQuery } from "./server";
 
@@ -151,6 +152,38 @@ test("a ban with time 0 is permanent", async ({ server, query }) => {
   const bans = await query.call("banlist");
   expect(bans).toHaveLength(1);
   expect(bans[0]).toMatchObject({ ip: "", duration: "0" });
+});
+
+test("the refusal of a banned identity says how long the ban lasts, timed, long or for good", async ({ server, query }) => {
+  const admin = await connectAs(server, 0, "notice-admin");
+  open.push(admin);
+  const uid = identities.get(GUEST_IDENTITY).uid;
+  // The server's own wording rides along, so a notice we do not read shows what it said.
+  const refusalOf = async (seconds: number) => {
+    await send(admin, banUid(uid, seconds, "notice"));
+    const refusal = await connectAs(server, GUEST_IDENTITY, "notice-guest").then(
+      (client) => {
+        open.push(client);
+        return undefined;
+      },
+      (error: unknown) => normalizeTeamSpeakError(error),
+    );
+    await query.call("bandelall");
+    return { left: refusal?.diagnostics.banSeconds, said: JSON.stringify(refusal?.diagnostics.extraMessage) };
+  };
+  const expectLeft = async (seconds: number) => {
+    const { left, said } = await refusalOf(seconds);
+    expect.soft(typeof left, `${seconds} s, the server said ${said}`).toBe("number");
+    if (left === undefined) return;
+    expect.soft(left, `${seconds} s`).toBeGreaterThan(seconds - 100);
+    expect.soft(left, `${seconds} s`).toBeLessThanOrEqual(seconds);
+  };
+
+  await expectLeft(3600);
+  await expectLeft(25 * 3600);
+  await expectLeft(7 * 86400);
+  const forGood = await refusalOf(0);
+  expect.soft(forGood.left, `for good, the server said ${forGood.said}`).toBe(0);
 });
 
 test("the server takes a kick and a ban reason as long as the gateway allows", async ({ server, query }) => {
