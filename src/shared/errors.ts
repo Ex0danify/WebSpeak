@@ -1,3 +1,4 @@
+import { banSecondsFromNotice } from "./banNotice.js";
 import { collectDiagnostics, diagnosticText, type TeamSpeakErrorDiagnostics } from "./errorDiagnostics.js";
 
 export type WebSpeakErrorCode =
@@ -164,6 +165,10 @@ const LIB_TRANSPORT_ERROR_CODES: Readonly<Record<string, WebSpeakErrorCode>> = {
 };
 
 function createTeamSpeakError(code: WebSpeakErrorCode, cause: unknown, diagnostics: TeamSpeakErrorDiagnostics): WebSpeakError {
+  if (code === "banned" && diagnostics.banSeconds === undefined) {
+    const banSeconds = banSecondsFromNotice(diagnostics.extraMessage);
+    if (banSeconds !== undefined) diagnostics.banSeconds = banSeconds;
+  }
   return new WebSpeakError(code, WEBSPEAK_ERROR_MESSAGES[code], !NON_RETRYABLE_CODES.has(code), cause, diagnostics);
 }
 
@@ -314,7 +319,7 @@ export function clientConnectionFailureCode(error: WebSpeakError, serverPassword
  * A kick from the server arrives as our own clientleftview with reason id 5, a ban with 6, both with the admin's message.
  * A ban text (a retry time) also counts as a ban.
  */
-export function normalizeTeamSpeakKickedReason(reasonMsg: unknown, reasonId?: unknown): WebSpeakError {
+export function normalizeTeamSpeakKickedReason(reasonMsg: unknown, reasonId?: unknown, banSeconds?: number): WebSpeakError {
   const text = typeof reasonMsg === "string" ? reasonMsg.trim() : "";
   const hasReasonId = reasonId !== null && reasonId !== undefined && reasonId !== "";
   const numericReasonId = !hasReasonId ? Number.NaN : typeof reasonId === "number" ? reasonId : Number(reasonId);
@@ -322,6 +327,7 @@ export function normalizeTeamSpeakKickedReason(reasonMsg: unknown, reasonId?: un
   const diagnostics: TeamSpeakErrorDiagnostics = { name: isBan ? "TeamSpeakBan" : "TeamSpeakKick" };
   if (text) diagnostics.serverMessage = text;
   if (Number.isFinite(numericReasonId)) diagnostics.id = String(numericReasonId);
+  if (isBan && banSeconds !== undefined && Number.isInteger(banSeconds) && banSeconds >= 0) diagnostics.banSeconds = banSeconds;
   return createTeamSpeakError(isBan ? "banned" : "kicked", reasonMsg, diagnostics);
 }
 
@@ -333,6 +339,7 @@ export function describeTeamSpeakError(error: WebSpeakError): string {
     details.code,
     details.id ? `id=${details.id}` : "",
     details.serverMessage,
+    details.banSeconds !== undefined ? `banSeconds=${details.banSeconds}` : "",
     details.syscall,
     details.address ? `address=${details.address}` : "",
     details.port !== undefined ? `port=${details.port}` : "",

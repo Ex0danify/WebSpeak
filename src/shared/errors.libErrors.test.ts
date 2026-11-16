@@ -19,6 +19,14 @@ describe("normalizeTeamSpeakError with the lib error classes", () => {
     expect(normalizeTeamSpeakError(new TeamSpeakServerError({ id, serverMessage: "x" })).code).toBe(code);
   });
 
+  it("reads how long a ban lasts from the refusal of a banned identity", () => {
+    const refusal = (extraMessage: string) =>
+      normalizeTeamSpeakError(new TeamSpeakServerError({ id: 3329, serverMessage: "connection failed, you are banned", extraMessage }));
+    expect(refusal('You are banned temporarily. Reason: "spam"\nTry again in 00:59:58').diagnostics.banSeconds).toBe(3598);
+    expect(refusal('You are banned permanently. Reason: "spam"').diagnostics.banSeconds).toBe(0);
+    expect(refusal("a wording we do not know").diagnostics.banSeconds).toBeUndefined();
+  });
+
   it("keeps id and server message in the diagnostics", () => {
     const error = normalizeTeamSpeakError(
       new TeamSpeakServerError({

@@ -105,9 +105,9 @@ export class FakeTeamSpeakServer {
   }
 
   /** The server ends a client's session with a kick (5) or a ban (6). */
-  kick(client: FakeTSClient, reason = "", ban = false): void {
+  kick(client: FakeTSClient, reason = "", ban = false, banSeconds?: number): void {
     if (ban) this.bannedUids.add(client.uid);
-    client.receiveKick(reason, ban);
+    client.receiveKick(reason, ban, banSeconds);
   }
 
   /** The transport of a client dies without a kick. */
@@ -373,10 +373,10 @@ export class FakeTSClient extends EventEmitter {
   }
 
   /** @internal Called by `FakeTeamSpeakServer.kick`. */
-  receiveKick(reason: string, ban: boolean): void {
+  receiveKick(reason: string, ban: boolean, banSeconds?: number): void {
     const id = this.clientId;
     this.emit("clientLeave", { id, reasonID: ban ? 6 : 5, reasonMsg: reason, targetID: 0 });
-    this.emit("kicked", normalizeTeamSpeakKickedReason(reason, ban ? 6 : 5));
+    this.emit("kicked", normalizeTeamSpeakKickedReason(reason, ban ? 6 : 5, banSeconds));
     this.receiveDrop();
   }
 

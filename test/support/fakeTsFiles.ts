@@ -47,7 +47,7 @@ export function fakeModeration(client: FakeTSClient) {
     async ban(uid: string, seconds: number, reason = ""): Promise<void> {
       await act({ action: "ban", uid, seconds, reason });
       const target = [...server.connected.values()].find((connected) => connected.uid === uid);
-      if (target) server.kick(target, reason, true);
+      if (target) server.kick(target, reason, true, seconds);
       else server.bannedUids.add(uid);
     },
     setServerGroup: (groupId: number, databaseId: bigint, assigned: boolean) =>
