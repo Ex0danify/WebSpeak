@@ -1,9 +1,10 @@
-import { reactive } from "vue";
+import { storeToRefs } from "pinia";
+import { computed, reactive } from "vue";
 import { showToast } from "@/shared/composables/useToast";
 import { useDialog } from "@/shared/composables/useDialog";
 import { useI18n } from "@/shared/i18n/useI18n";
 import { notifyEvent } from "@/features/room/shell/roomNotify";
-import type { ChannelGroup, ChannelMember, ServerGroup } from "@/features/session";
+import { useSessionStore, type ChannelGroup, type ChannelMember, type ServerGroup } from "@/features/session";
 import type { RoomSession } from "@/features/room/roomTypes";
 
 export interface UseModerationOptions {
@@ -28,6 +29,9 @@ async function attempt(failure: string, run: () => Promise<void>, success: strin
 export function useModeration({ actions }: UseModerationOptions) {
   const { t } = useI18n();
   const { prompt } = useDialog();
+  const { channelGroups } = storeToRefs(useSessionStore());
+  /** What a channel group is taken away by: there is no revoke, the member gets the default group instead. */
+  const defaultChannel = computed(() => channelGroups.value.find((group) => group.isDefault));
 
   /** The ban dialog, which asks for a length besides the reason. */
   const banDialog = reactive<{ open: boolean; member: ChannelMember | null }>({ open: false, member: null });
@@ -71,12 +75,14 @@ export function useModeration({ actions }: UseModerationOptions) {
     );
   }
 
-  /** Taking a channel group away means giving the default one, so the menu picks from the list and never revokes. */
+  /** Choosing the group a member already has takes it away, which gives them the default group. */
   async function assignChannelGroup(member: ChannelMember, group: ChannelGroup): Promise<void> {
+    const target = member.channelGroupId === group.id ? defaultChannel.value : group;
+    if (!target) return;
     await attempt(
       t("failChannelGroup"),
-      () => actions.setChannelGroup(member.id, group.id),
-      t("channelGroupSet", { nickname: member.nickname, group: group.name }),
+      () => actions.setChannelGroup(member.id, target.id),
+      t("channelGroupSet", { nickname: member.nickname, group: target.name }),
     );
   }
 

@@ -1,14 +1,22 @@
+import { createPinia, setActivePinia } from "pinia";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useToast } from "@/shared/composables/useToast";
 import { LocalizedError, text } from "@/shared/i18n/localizedText";
-import type { ChannelMember, ServerGroup } from "@/features/session";
+import { useSessionStore, type ChannelMember, type ServerGroup } from "@/features/session";
 import { useModeration } from "@/features/room/moderation/useModeration";
 
 const dialog = vi.hoisted(() => ({ prompt: vi.fn(), confirm: vi.fn(), alert: vi.fn() }));
 vi.mock("@/shared/composables/useDialog", () => ({ useDialog: () => dialog }));
 
 const ana = { id: 2, nickname: "Ana", serverGroups: [6] } as ChannelMember;
-const group = (id: number, name: string): ServerGroup => ({ id, name, iconId: 0, isDefault: false, type: 1 });
+const group = (id: number, name: string, extra: Partial<ServerGroup> = {}): ServerGroup => ({
+  id,
+  name,
+  iconId: 0,
+  isDefault: false,
+  type: 1,
+  ...extra,
+});
 
 const refused = async () => {
   throw new LocalizedError(text("err_PERMISSION_DENIED"), "PERMISSION_DENIED");
@@ -28,6 +36,7 @@ function setup(overrides: Partial<Parameters<typeof useModeration>[0]["actions"]
 const lastToast = () => useToast().toasts.value.at(-1);
 
 beforeEach(() => {
+  setActivePinia(createPinia());
   useToast().dismiss();
   dialog.prompt.mockReset().mockResolvedValue("calm down");
 });
@@ -106,6 +115,20 @@ describe("groups", () => {
     await moderation.assignChannelGroup(ana, group(5, "Mod"));
     expect(actions.setChannelGroup).toHaveBeenCalledWith(2, 5);
     expect(lastToast()).toMatchObject({ variant: "success" });
+  });
+
+  it("takes a channel group away by giving the default one, when the member already has the group", async () => {
+    useSessionStore().channelGroups = [group(5, "Mod"), group(9, "Guest", { isDefault: true })];
+    const { actions, moderation } = setup();
+    await moderation.assignChannelGroup({ ...ana, channelGroupId: 5 }, group(5, "Mod"));
+    expect(actions.setChannelGroup).toHaveBeenCalledWith(2, 9);
+    expect(lastToast()?.title).toContain("Guest");
+  });
+
+  it("cannot take it away without knowing the default group, and sends nothing", async () => {
+    const { actions, moderation } = setup();
+    await moderation.assignChannelGroup({ ...ana, channelGroupId: 5 }, group(5, "Mod"));
+    expect(actions.setChannelGroup).not.toHaveBeenCalled();
   });
 
   it("toasts the refusal of a group change", async () => {
