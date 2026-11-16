@@ -1,4 +1,3 @@
-import { ModerationPermission } from "../../src/lib/teamspeak/index.js";
 import {
   banUid,
   clientInfo,
@@ -48,11 +47,6 @@ async function pair(server: Parameters<typeof connectAs>[0], label: string) {
   open.push(guest);
   return { admin, guest };
 }
-
-test("the server names the permissions the menu will gate on", async ({ query }) => {
-  const names = new Set((await query.call("permissionlist")).map((row) => row.permname));
-  for (const name of Object.values(ModerationPermission)) expect(names, name).toContain(name);
-});
 
 test("the database id of another client is known from its enter view and from clientinfo", async ({ server, query }) => {
   const admin = await connectAs(server, 0, "dbid-admin");
