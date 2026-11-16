@@ -28,6 +28,6 @@ export {
   nicknameText,
   privateConversationKey,
 } from "@/features/session/format";
-export { MAX_CHAT_SEND_LENGTH } from "@/features/session/sessionLimits";
+export { MAX_CHAT_SEND_LENGTH, MAX_MODERATION_REASON_LENGTH } from "@/features/session/sessionLimits";
 export { summarizeLatency, type LatencySummary } from "@/features/session/latencySummary";
 export { translations as sessionMessages } from "@/features/session/i18n/index.js";

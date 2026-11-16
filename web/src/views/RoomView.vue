@@ -36,6 +36,8 @@
     @cancel="cancelChannelPassword"
   />
 
+  <BanDialog v-model="banDialog.open" :member="banDialog.member" @confirm="confirmBan" />
+
   <AudioSettingsDialog
     v-model="settingsOpen"
     :audio-settings-error="audioSettingsError"
@@ -76,6 +78,7 @@ import { storeToRefs } from "pinia";
 import { computed, ref } from "vue";
 import {
   AudioSettingsDialog,
+  BanDialog,
   ContextMenuLayer,
   RoomWorkspace,
   useAudioSettingsPanel,
@@ -83,6 +86,7 @@ import {
   useChat,
   useGatewayErrorNotices,
   useContextMenu,
+  useModeration,
   provideContextActions,
   provideContextMenu,
   useRoomContext,
@@ -219,6 +223,8 @@ const {
 const whisper = useWhisper({ roster: session.roster, actions: session.actions });
 const { toggleWhisperTarget } = whisper;
 
+const { banDialog, confirmBan, kickMember, banMember, toggleServerGroup, assignChannelGroup } = useModeration({ actions: session.actions });
+
 provideContextActions({
   currentChannelId: computed(() => currentChannel.value?.id),
   moveCurrentChannel: memberMoveMenuCurrentChannel,
@@ -229,6 +235,10 @@ provideContextActions({
   toggleWhisperTarget,
   copyMemberName,
   moveMemberDirect,
+  kickMember,
+  banMember,
+  toggleServerGroup,
+  assignChannelGroup,
   switchChannel: selectChannel,
   copyChannelName,
 });

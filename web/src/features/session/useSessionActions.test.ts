@@ -167,6 +167,24 @@ describe("channel and roster commands", () => {
       { type: "setAway", payload: { away: true, message: "brb" }, requestId: expect.stringMatching(/^command-/) },
     ]);
   });
+
+  it("sends the moderation commands, with the reason trimmed and capped at 80 characters", () => {
+    const { actions } = setup();
+    const { kickClient, banClient, setServerGroup, setChannelGroup } = actions.moderation;
+    void kickClient(2, "channel", `  ${"x".repeat(120)} `).catch(() => undefined);
+    void kickClient(2, "server").catch(() => undefined);
+    void banClient(2, 3600, " spam ").catch(() => undefined);
+    void setServerGroup(2, 7, false).catch(() => undefined);
+    void setChannelGroup(2, 5).catch(() => undefined);
+    const request = (type: string, payload: Record<string, unknown>) => ({ type, payload, requestId: expect.stringMatching(/^command-/) });
+    expect(socket.sentJson).toEqual([
+      request("kickClient", { clientId: 2, scope: "channel", message: "x".repeat(80) }),
+      request("kickClient", { clientId: 2, scope: "server", message: "" }),
+      request("banClient", { clientId: 2, seconds: 3600, message: "spam" }),
+      request("setServerGroup", { clientId: 2, groupId: 7, assigned: false }),
+      request("setChannelGroup", { clientId: 2, groupId: 5 }),
+    ]);
+  });
 });
 
 describe("chat", () => {

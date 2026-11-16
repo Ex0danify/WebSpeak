@@ -1,5 +1,5 @@
 import { inject, provide, type InjectionKey, type Ref } from "vue";
-import type { ChannelMember } from "@/features/session";
+import type { ChannelGroup, ChannelMember, ServerGroup } from "@/features/session";
 import type { TreeChannel } from "@/features/room/roomTypes";
 
 // What a room element needs to open a context menu and what the menu needs to act. It lives at the room root because the
@@ -43,6 +43,10 @@ export interface ContextMenuActions {
   toggleWhisperTarget: (member: ChannelMember) => void | Promise<void>;
   copyMemberName: (member: ChannelMember) => void;
   moveMemberDirect: (member: ChannelMember, channelId: string) => void | Promise<void>;
+  kickMember: (member: ChannelMember, scope: "channel" | "server") => void | Promise<void>;
+  banMember: (member: ChannelMember) => void;
+  toggleServerGroup: (member: ChannelMember, group: ServerGroup) => void | Promise<void>;
+  assignChannelGroup: (member: ChannelMember, group: ChannelGroup) => void | Promise<void>;
   switchChannel: (channel: TreeChannel) => void;
   copyChannelName: (channel: TreeChannel) => void;
 }
