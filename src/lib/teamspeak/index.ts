@@ -55,20 +55,26 @@ export {
 } from "./command/commandScheduler.js";
 export { FloodBudget, type FloodBudgetOptions } from "./command/floodBudget.js";
 export {
+  banUid,
   channelList,
   channelSubscribeAll,
   clientDisconnect,
   clientInfo,
+  clientKick,
   clientList,
   clientMove,
   clientPoke,
   clientUpdate,
   permissionList,
   sendTextMessage,
+  serverGroupAddClient,
+  serverGroupDelClient,
+  setClientChannelGroup,
   TextMessageTarget,
   version,
   type ClientMoveOptions,
   type ClientUpdateProperties,
+  type KickScope,
   type TextMessageTargetMode,
 } from "./command/clientCommands.js";
 export { type ChannelFields, type SessionChannel } from "./session/channelTree.js";
@@ -83,7 +89,7 @@ export {
 export { type Invoker } from "./session/propertyFields.js";
 export { type ServerFields, type SessionGroup, type SessionServer } from "./session/serverInfo.js";
 export { ReasonId, type SessionEvent, type SessionEventType } from "./session/sessionEvents.js";
-export { TextPermission, type PermissionEntry } from "./session/permissions.js";
+export { ModerationPermission, TextPermission, type PermissionEntry } from "./session/permissions.js";
 export { type SessionSelf, type SessionView } from "./session/sessionState.js";
 export { type ClosedEvent, type ConnectionEvent, type ConnectionEventMap } from "./client/clientEvents.js";
 export {

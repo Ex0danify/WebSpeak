@@ -83,7 +83,13 @@ describe("welcome", () => {
     const { session, feed } = startSession(5);
     for (const text of WELCOME_CHANNELS) feed(text);
     feed(
-      enter(5, 2, "Me", { client_servergroups: "8", client_channel_group_id: 4, client_input_muted: 1, client_is_channel_commander: 1 }),
+      enter(5, 2, "Me", {
+        client_database_id: 77,
+        client_servergroups: "8",
+        client_channel_group_id: 4,
+        client_input_muted: 1,
+        client_is_channel_commander: 1,
+      }),
     );
     feed(cmd("notifychanneledited", { cid: 2, channel_topic: "Topic" }));
     const snapshot = session.snapshot();
@@ -93,6 +99,7 @@ describe("welcome", () => {
         id: 5,
         nickname: "Me",
         uid: "",
+        databaseId: 77n,
         serverGroups: ["8"],
         channelGroupId: 4,
         channelID: 2n,

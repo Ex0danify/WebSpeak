@@ -2,15 +2,20 @@ import { describe, expect, it } from "vitest";
 import { hashPassword } from "../handshake/clientInit.js";
 import { buildCommand } from "../wire/commandText.js";
 import {
+  banUid,
   channelList,
   channelSubscribeAll,
   clientDisconnect,
   clientInfo,
+  clientKick,
   clientList,
   clientMove,
   clientPoke,
   clientUpdate,
   sendTextMessage,
+  serverGroupAddClient,
+  serverGroupDelClient,
+  setClientChannelGroup,
   TextMessageTarget,
   version,
 } from "./clientCommands.js";
@@ -42,6 +47,26 @@ describe("client command builders", () => {
     );
     expect(text(clientUpdate({ away: false, awayMessage: "" }))).toBe("clientupdate client_away=0 client_away_message=");
     expect(() => clientUpdate({})).toThrow(/at least one/);
+  });
+
+  it("builds the moderation commands", () => {
+    expect(text(clientKick(5, "channel"))).toBe("clientkick clid=5 reasonid=4 reasonmsg=");
+    expect(text(clientKick(5, "server", "too loud"))).toBe("clientkick clid=5 reasonid=5 reasonmsg=too\\sloud");
+    expect(text(banUid("e4We/o+=", 3600, "spam | ads"))).toBe("banadd uid=e4We\\/o+= time=3600 banreason=spam\\s\\p\\sads");
+    expect(text(banUid("e4We", 0))).toBe("banadd uid=e4We time=0 banreason=");
+    expect(text(serverGroupAddClient(7, 42n))).toBe("servergroupaddclient sgid=7 cldbid=42");
+    expect(text(serverGroupDelClient(7, 42n))).toBe("servergroupdelclient sgid=7 cldbid=42");
+    expect(text(setClientChannelGroup(8, 12n, 42n))).toBe("setclientchannelgroup cgid=8 cid=12 cldbid=42");
+  });
+
+  it("refuses moderation arguments outside the protocol range", () => {
+    for (const id of [0, 65536, 1.5]) expect(() => clientKick(id, "server")).toThrow(TypeError);
+    for (const seconds of [-1, 1.5, 2 ** 32]) expect(() => banUid("e4We", seconds)).toThrow(/ban time/);
+    expect(() => banUid("", 60)).toThrow(/unique identifier/);
+    for (const id of [-1, 1.5, 2 ** 32]) expect(() => serverGroupAddClient(id, 1n)).toThrow(/group id/);
+    for (const id of [0n, -1n, 1n << 64n]) expect(() => serverGroupDelClient(1, id)).toThrow(/database id/);
+    expect(() => setClientChannelGroup(1, -1n, 1n)).toThrow(/channel id/);
+    expect(() => setClientChannelGroup(1, 1n, 0n)).toThrow(/database id/);
   });
 
   it("refuses ids outside the protocol range", () => {

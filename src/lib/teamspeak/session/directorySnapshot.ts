@@ -17,6 +17,8 @@ export interface DirectoryClient {
   id: number;
   nickname: string;
   uid: string;
+  /** What group commands address a client by, 0n when the server did not send it. */
+  databaseId: bigint;
   serverGroups: string[];
   /** The group the client has in its current channel, 0 when the server did not say. */
   channelGroupId: number;
@@ -48,6 +50,7 @@ export const directoryClient = (client: SessionClient): DirectoryClient => ({
   id: client.id,
   nickname: client.nickname,
   uid: client.uid,
+  databaseId: client.databaseId,
   serverGroups: client.serverGroups.map(String),
   channelGroupId: client.channelGroupId,
   channelID: client.channelId,

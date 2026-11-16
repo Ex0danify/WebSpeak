@@ -7,6 +7,15 @@ export const TextPermission = {
   server: "b_client_server_textmessage_send",
 } as const;
 
+/** The permissions behind the moderation actions. Except the ban one, the value is a power the server compares with the target's. */
+export const ModerationPermission = {
+  kickFromChannel: "i_client_kick_from_channel_power",
+  kickFromServer: "i_client_kick_from_server_power",
+  ban: "b_client_ban_create",
+  addToServerGroup: "i_group_member_add_power",
+  removeFromServerGroup: "i_group_member_remove_power",
+} as const;
+
 /** One of our own permissions with the value the server reported for it. */
 export interface PermissionEntry {
   name: string;
