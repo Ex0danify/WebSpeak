@@ -17,17 +17,18 @@ export const PNG = Buffer.concat([Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0
 export async function startServer(routes: Record<string, Route>): Promise<TestServer> {
   const hits = new Map<string, number>();
   const hosts: string[] = [];
-  const table = new Map(Object.entries(routes));
+  const table = Object.entries(routes);
   const server: Server = createServer((request, response) => {
     const path = request.url ?? "/";
     hits.set(path, (hits.get(path) ?? 0) + 1);
     hosts.push(String(request.headers.host));
-    const route = table.get(path);
-    if (!route) {
+    // Compared, not indexed: the request never picks the function by name.
+    const match = table.find(([key]) => key === path);
+    if (!match) {
       response.writeHead(404).end();
       return;
     }
-    route(request, response);
+    match[1](request, response);
   });
   await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
   return {
