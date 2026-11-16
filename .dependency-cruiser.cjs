@@ -4,7 +4,7 @@ const SEVERITY = "error";
 
 // Inside modules/ the order is relay < teamspeak < join < screenShare < voice < admin; a module may
 // import only modules to its left.
-const MODULE_ORDER = ["relay", "teamspeak", "join", "screenShare", "voice", "admin"];
+const MODULE_ORDER = ["relay", "teamspeak", "linkPreview", "join", "screenShare", "voice", "admin"];
 
 const ROOTS = "^src/(index|relay)\\.ts$";
 

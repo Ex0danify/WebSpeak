@@ -146,6 +146,10 @@ describe("schema snapshot", () => {
                   connection_max_rows INTEGER NOT NULL DEFAULT 10000 CHECK (connection_max_rows BETWEEN 100 AND 100000),
                   privacy_notice_url TEXT NOT NULL DEFAULT '',
                   log_retention_days INTEGER NOT NULL DEFAULT 30 CHECK (log_retention_days BETWEEN 1 AND 365),
+                  link_preview_image_kib INTEGER NOT NULL DEFAULT 1024 CHECK (link_preview_image_kib BETWEEN 64 AND 4096),
+                  link_preview_click_image_kib INTEGER NOT NULL DEFAULT 8192 CHECK (link_preview_click_image_kib BETWEEN 1024 AND 32768),
+                  link_preview_svg_kib INTEGER NOT NULL DEFAULT 128 CHECK (link_preview_svg_kib BETWEEN 16 AND 1024),
+                  link_preview_cache_kib INTEGER NOT NULL DEFAULT 32768 CHECK (link_preview_cache_kib BETWEEN 4096 AND 262144),
                   updated_at TEXT NOT NULL
                 )",
           "type": "table",
@@ -301,7 +305,7 @@ describe("schema snapshot", () => {
                   site_name TEXT NOT NULL,
                   access_mode TEXT NOT NULL CHECK (access_mode IN ('fixed', 'open')),
                   updated_at TEXT NOT NULL
-                , webrtc_enabled INTEGER NOT NULL DEFAULT 0 CHECK (webrtc_enabled IN (0, 1)), webrtc_udp_start INTEGER NOT NULL DEFAULT 40000 CHECK (webrtc_udp_start BETWEEN 1 AND 65535), webrtc_udp_end INTEGER NOT NULL DEFAULT 40099 CHECK (webrtc_udp_end BETWEEN 1 AND 65535), identity_mint_max_level INTEGER NOT NULL DEFAULT 8 CHECK (identity_mint_max_level BETWEEN 1 AND 24), identity_mint_concurrency INTEGER NOT NULL DEFAULT 2 CHECK (identity_mint_concurrency BETWEEN 1 AND 8), identity_mint_queue_depth INTEGER NOT NULL DEFAULT 20 CHECK (identity_mint_queue_depth BETWEEN 0 AND 100), event_log_retention_days INTEGER NOT NULL DEFAULT 90 CHECK (event_log_retention_days BETWEEN 1 AND 365), event_log_max_rows INTEGER NOT NULL DEFAULT 5000 CHECK (event_log_max_rows BETWEEN 100 AND 50000), connection_retention_days INTEGER NOT NULL DEFAULT 30 CHECK (connection_retention_days BETWEEN 1 AND 365), connection_max_rows INTEGER NOT NULL DEFAULT 10000 CHECK (connection_max_rows BETWEEN 100 AND 100000), privacy_notice_url TEXT NOT NULL DEFAULT '', log_retention_days INTEGER NOT NULL DEFAULT 30 CHECK (log_retention_days BETWEEN 1 AND 365))",
+                , webrtc_enabled INTEGER NOT NULL DEFAULT 0 CHECK (webrtc_enabled IN (0, 1)), webrtc_udp_start INTEGER NOT NULL DEFAULT 40000 CHECK (webrtc_udp_start BETWEEN 1 AND 65535), webrtc_udp_end INTEGER NOT NULL DEFAULT 40099 CHECK (webrtc_udp_end BETWEEN 1 AND 65535), identity_mint_max_level INTEGER NOT NULL DEFAULT 8 CHECK (identity_mint_max_level BETWEEN 1 AND 24), identity_mint_concurrency INTEGER NOT NULL DEFAULT 2 CHECK (identity_mint_concurrency BETWEEN 1 AND 8), identity_mint_queue_depth INTEGER NOT NULL DEFAULT 20 CHECK (identity_mint_queue_depth BETWEEN 0 AND 100), event_log_retention_days INTEGER NOT NULL DEFAULT 90 CHECK (event_log_retention_days BETWEEN 1 AND 365), event_log_max_rows INTEGER NOT NULL DEFAULT 5000 CHECK (event_log_max_rows BETWEEN 100 AND 50000), connection_retention_days INTEGER NOT NULL DEFAULT 30 CHECK (connection_retention_days BETWEEN 1 AND 365), connection_max_rows INTEGER NOT NULL DEFAULT 10000 CHECK (connection_max_rows BETWEEN 100 AND 100000), privacy_notice_url TEXT NOT NULL DEFAULT '', log_retention_days INTEGER NOT NULL DEFAULT 30 CHECK (log_retention_days BETWEEN 1 AND 365), link_preview_image_kib INTEGER NOT NULL DEFAULT 1024 CHECK (link_preview_image_kib BETWEEN 64 AND 4096), link_preview_click_image_kib INTEGER NOT NULL DEFAULT 8192 CHECK (link_preview_click_image_kib BETWEEN 1024 AND 32768), link_preview_svg_kib INTEGER NOT NULL DEFAULT 128 CHECK (link_preview_svg_kib BETWEEN 16 AND 1024), link_preview_cache_kib INTEGER NOT NULL DEFAULT 32768 CHECK (link_preview_cache_kib BETWEEN 4096 AND 262144))",
           "type": "table",
         },
         {

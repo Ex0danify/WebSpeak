@@ -270,3 +270,29 @@ test.describe("relay nodes", () => {
     await expect(page.getByText("No relay nodes are configured.")).toBeVisible();
   });
 });
+
+test.describe("link previews", () => {
+  test("the size limits are kept, reach the gateway, and a value out of bounds is held back", async ({ page, ownGateway }) => {
+    const gateway = await ownGateway();
+    await openGatewayPage(page, gateway);
+    const inline = page.getByLabel("Picture sent with the card (KiB)");
+    const onRequest = page.getByLabel("Picture loaded on request (KiB)");
+    await expect(inline).toHaveValue("1024");
+    await expect(onRequest).toHaveValue("8192");
+
+    expect(await saves(page, () => typeInto(inline, "512"))).toBe(200);
+    await expect.poll(() => gateway.database.getSettings().linkPreview.imageKib).toBe(512);
+    await reloadGatewayPage(page, gateway);
+    await expect(inline).toHaveValue("512");
+
+    await typeInto(page.getByLabel("SVG size (KiB)"), "5");
+    await expect(page.getByText("Not saved: enter a whole number from 16 to 1024.")).toBeVisible();
+    expect(gateway.database.getSettings().linkPreview.svgKib).toBe(128);
+
+    // A picture loaded on request cannot be smaller than the one sent with the card: 4096 is fine by itself, 2048 after it is held back.
+    expect(await saves(page, () => typeInto(inline, "4096"))).toBe(200);
+    await typeInto(onRequest, "2048");
+    await expect(page.getByText("Not saved: enter a whole number from 4096 to 32768.")).toBeVisible();
+    expect(gateway.database.getSettings().linkPreview).toMatchObject({ imageKib: 4096, clickImageKib: 8192 });
+  });
+});

@@ -10,9 +10,10 @@ import { type ConfiguredAccelerationRelay } from "../relay/index.js";
 import { type WebRtcAudioOptions } from "../../config/webrtcConfig.js";
 import { type IdentityMintPolicy } from "../../config/identityMintConfig.js";
 import { type RetentionPolicy } from "../../config/retentionConfig.js";
+import { toLinkPreviewLimits, type LinkPreviewLimits } from "../../config/linkPreviewConfig.js";
 import { DEFAULT_WELCOME_TEXTS, resolveWelcomeTexts } from "./siteCopy.js";
 import { AdminInputError } from "./adminErrors.js";
-import { diffFields, relayNodesChanged, sortedEntries } from "./auditChanges.js";
+import { diffFields, relayNodesChanged, settingsFields, sortedEntries } from "./auditChanges.js";
 import { AdminServerService, type ResolvedServer, type ServerInput, type ServerView } from "./adminServerService.js";
 import { AdminInviteService, type ManagedInviteInput, type ManagedInviteQuery, type ManagedInviteView } from "./adminInviteService.js";
 import { AdminBootstrapError, type AdminBootstrap } from "./adminBootstrap.js";
@@ -152,6 +153,10 @@ export class AdminService {
       connectionRetentionDays: settings.retention.connections.days,
       connectionMaxRows: settings.retention.connections.maxRows,
       logRetentionDays: settings.retention.logs.days,
+      linkPreviewImageKib: settings.linkPreview.imageKib,
+      linkPreviewClickImageKib: settings.linkPreview.clickImageKib,
+      linkPreviewSvgKib: settings.linkPreview.svgKib,
+      linkPreviewCacheKib: settings.linkPreview.cacheKib,
       relayNodes: this.getRelayNodeViews(),
       updatedAt: settings.updatedAt,
     };
@@ -172,6 +177,11 @@ export class AdminService {
       concurrency: settings.identityMintConcurrency,
       queueDepth: settings.identityMintQueueDepth,
     };
+  }
+
+  /** Read on every preview, so a saved change applies at once. */
+  getLinkPreviewLimits(): LinkPreviewLimits {
+    return toLinkPreviewLimits(this.database.getSettings().linkPreview);
   }
 
   getAccelerationRelayOptions(): ConfiguredAccelerationRelay[] {
@@ -203,40 +213,7 @@ export class AdminService {
     if (settings.accessMode === "fixed" && this.servers.list().length === 0) {
       throw new AdminInputError("SERVERS_REQUIRED", "Add a server before limiting access to the server list");
     }
-    const changes = diffFields(
-      {
-        siteName: current.siteName,
-        privacyNoticeUrl: current.privacyNoticeUrl,
-        accessMode: current.accessMode,
-        webRtcEnabled: current.webRtcEnabled,
-        webRtcUdpStart: current.webRtcUdpStart,
-        webRtcUdpEnd: current.webRtcUdpEnd,
-        identityMintMaxLevel: current.identityMintMaxLevel,
-        identityMintConcurrency: current.identityMintConcurrency,
-        identityMintQueueDepth: current.identityMintQueueDepth,
-        eventLogRetentionDays: current.retention.eventLog.days,
-        eventLogMaxRows: current.retention.eventLog.maxRows,
-        connectionRetentionDays: current.retention.connections.days,
-        connectionMaxRows: current.retention.connections.maxRows,
-        logRetentionDays: current.retention.logs.days,
-      },
-      {
-        siteName: settings.siteName,
-        privacyNoticeUrl: settings.privacyNoticeUrl,
-        accessMode: settings.accessMode,
-        webRtcEnabled: settings.webRtcEnabled,
-        webRtcUdpStart: settings.webRtcUdpStart,
-        webRtcUdpEnd: settings.webRtcUdpEnd,
-        identityMintMaxLevel: settings.identityMintMaxLevel,
-        identityMintConcurrency: settings.identityMintConcurrency,
-        identityMintQueueDepth: settings.identityMintQueueDepth,
-        eventLogRetentionDays: settings.retention?.eventLog.days,
-        eventLogMaxRows: settings.retention?.eventLog.maxRows,
-        connectionRetentionDays: settings.retention?.connections.days,
-        connectionMaxRows: settings.retention?.connections.maxRows,
-        logRetentionDays: settings.retention?.logs.days,
-      },
-    );
+    const changes = diffFields(settingsFields(current), settingsFields(settings));
     if (
       settings.welcomeTexts !== undefined &&
       JSON.stringify(sortedEntries(settings.welcomeTexts)) !== JSON.stringify(sortedEntries(current.welcomeTexts))

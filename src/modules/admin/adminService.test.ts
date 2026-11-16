@@ -162,6 +162,61 @@ describe("retention", () => {
   });
 });
 
+describe("link preview limits", () => {
+  it("starts with the defaults, in KiB for the admin and in bytes for the fetcher", () => {
+    const service = ctx.create();
+    expect(service.getAdminSettings()).toMatchObject({
+      linkPreviewImageKib: 1024,
+      linkPreviewClickImageKib: 8192,
+      linkPreviewSvgKib: 128,
+      linkPreviewCacheKib: 32768,
+    });
+    expect(service.getLinkPreviewLimits()).toEqual({
+      imageBytes: 1024 * 1024,
+      clickImageBytes: 8 * 1024 * 1024,
+      svgBytes: 128 * 1024,
+      cacheBytes: 32 * 1024 * 1024,
+    });
+  });
+
+  it("applies a saved change to the limits the fetcher reads next, without a restart", () => {
+    const service = ctx.create();
+    const limits = () => service.getLinkPreviewLimits();
+    service.updateSettings(settingsInput({ linkPreviewImageKib: 256, linkPreviewSvgKib: 32 }));
+    expect(limits()).toMatchObject({ imageBytes: 256 * 1024, svgBytes: 32 * 1024, clickImageBytes: 8 * 1024 * 1024 });
+    service.updateSettings(settingsInput());
+    expect(limits()).toMatchObject({ imageBytes: 256 * 1024, svgBytes: 32 * 1024 });
+  });
+
+  it("keeps the limits when an unrelated setting or a server is saved", () => {
+    const service = ctx.create();
+    service.updateSettings(settingsInput({ linkPreviewImageKib: 512, linkPreviewCacheKib: 8192 }));
+    service.updateSettings(settingsInput({ siteName: "Renamed" }));
+    service.updateServer(DEFAULT_SERVER_ID, serverInput({ name: "Other name" }));
+    expect(service.getAdminSettings()).toMatchObject({ linkPreviewImageKib: 512, linkPreviewCacheKib: 8192 });
+  });
+
+  it("refuses an invalid limit and leaves the stored ones alone", () => {
+    const service = ctx.create();
+    service.updateSettings(settingsInput({ linkPreviewImageKib: 512 }));
+    expect(rejection(() => service.updateSettings(settingsInput({ linkPreviewImageKib: 10 }))).code).toBe(
+      "INVALID_LINK_PREVIEW_IMAGE_SIZE",
+    );
+    expect(rejection(() => service.updateSettings(settingsInput({ linkPreviewImageKib: 4096, linkPreviewClickImageKib: 2048 }))).code).toBe(
+      "INVALID_LINK_PREVIEW_CLICK_IMAGE_SIZE",
+    );
+    expect(service.getAdminSettings().linkPreviewImageKib).toBe(512);
+  });
+
+  it("records a change of the limits in the audit trail by field name", () => {
+    const service = ctx.create();
+    service.updateSettings(settingsInput({ linkPreviewSvgKib: 64 }));
+    const [latest] = service.database.listAudit({ limit: 1, offset: 0 }).events;
+    expect(latest?.event).toBe("SETTINGS_CHANGED");
+    expect(JSON.stringify(latest?.details)).toContain("linkPreviewSvgKib");
+  });
+});
+
 describe("updateSettings validation", () => {
   const cases: Array<[string, Parameters<typeof settingsInput>[0], string]> = [
     ["an empty site name", { siteName: "   " }, "INVALID_SITE_NAME"],

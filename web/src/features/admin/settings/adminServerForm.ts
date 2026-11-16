@@ -110,6 +110,10 @@ export function initialServerForm() {
     connectionRetentionDays: 30,
     connectionMaxRows: 10000,
     logRetentionDays: 30,
+    linkPreviewImageKib: 1024,
+    linkPreviewClickImageKib: 8192,
+    linkPreviewSvgKib: 128,
+    linkPreviewCacheKib: 32768,
     relayNodes: [] as RelayNodeForm[],
   };
 }
@@ -147,6 +151,10 @@ export function formFieldsFromSettings(value: Record<string, any>) {
     connectionRetentionDays: Number(value.connectionRetentionDays || 30),
     connectionMaxRows: Number(value.connectionMaxRows || 10000),
     logRetentionDays: Number(value.logRetentionDays || 30),
+    linkPreviewImageKib: Number(value.linkPreviewImageKib || 1024),
+    linkPreviewClickImageKib: Number(value.linkPreviewClickImageKib || 8192),
+    linkPreviewSvgKib: Number(value.linkPreviewSvgKib || 128),
+    linkPreviewCacheKib: Number(value.linkPreviewCacheKib || 32768),
     relayNodes: mapRelayNodes(value.relayNodes),
   };
 }

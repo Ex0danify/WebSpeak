@@ -13,6 +13,7 @@
 import { useI18n } from "@/shared/i18n/useI18n";
 import AdminPage from "@/features/admin/ui/AdminPage.vue";
 import IdentityMintCard from "@/features/admin/gateway/IdentityMintCard.vue";
+import LinkPreviewCard from "@/features/admin/gateway/LinkPreviewCard.vue";
 import RelayNodesCard from "@/features/admin/gateway/RelayNodesCard.vue";
 import ServersAccessCard from "@/features/admin/gateway/ServersAccessCard.vue";
 import WebRtcCard from "@/features/admin/gateway/WebRtcCard.vue";
@@ -29,6 +30,12 @@ const columns: Array<{ id: string; cards: AdminPageCard[] }> = [
       { id: "mint", component: IdentityMintCard },
     ],
   },
-  { id: "relay", cards: [{ id: "relay", component: RelayNodesCard }] },
+  {
+    id: "relay",
+    cards: [
+      { id: "relay", component: RelayNodesCard },
+      { id: "previews", component: LinkPreviewCard },
+    ],
+  },
 ];
 </script>

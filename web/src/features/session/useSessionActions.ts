@@ -5,7 +5,7 @@ import { LocalizedError, text, type LocalizedText } from "@/shared/i18n/localize
 import { normalizedClientErrorCode } from "@/features/session/sessionErrors";
 import { privateConversationKey } from "@/features/session/format";
 import { randomHex } from "@/shared/lib/randomId";
-import type { ChatMessage, LatencyProbeResult } from "@/features/session/sessionTypes";
+import type { ChatMessage, LatencyProbeResult, LinkPreviewData } from "@/features/session/sessionTypes";
 import type { MessageHandlers } from "@/features/session/messageRouter";
 
 /** Outgoing commands and everything that waits on a reply: command completion, latency probes, chat,
@@ -31,6 +31,9 @@ export function useSessionActions(deps: RoomActionsDeps) {
     string,
     { resolve: (value?: string) => void; reject: (error: Error) => void; timer: ReturnType<typeof setTimeout> }
   >();
+
+  type PendingPreview = { resolve: (value: LinkPreviewData) => void; reject: (error: Error) => void; timer: ReturnType<typeof setTimeout> };
+  const pendingPreviews = new Map<string, PendingPreview>();
 
   function sendCmd(type: string, payload: Record<string, unknown> = {}, requestId = ""): void {
     if (ws.value?.readyState === WebSocket.OPEN) ws.value.send(JSON.stringify({ type, payload, ...(requestId ? { requestId } : {}) }));
@@ -67,6 +70,29 @@ export function useSessionActions(deps: RoomActionsDeps) {
       pendingCommands.set(requestId, { resolve: (identity) => resolve(identity ?? ""), reject, timer });
       sendCmd("getIdentity", {}, requestId);
     });
+  }
+
+  /** What the gateway makes of a link. `full` is the click on an image that was too large to come with the card. */
+  function requestLinkPreview(url: string, full = false, timeoutMs = 20_000): Promise<LinkPreviewData> {
+    if (ws.value?.readyState !== WebSocket.OPEN)
+      return Promise.reject(new LocalizedError(text("voiceConnectionNotReady"), "VOICE_CONNECTION_NOT_READY"));
+    const requestId = nextRequestId();
+    return new Promise((resolve, reject) => {
+      const timer = setTimeout(() => {
+        pendingPreviews.delete(requestId);
+        reject(new LocalizedError(text("commandTimeout"), "COMMAND_TIMEOUT"));
+      }, timeoutMs);
+      pendingPreviews.set(requestId, { resolve, reject, timer });
+      sendCmd("getLinkPreview", { url, ...(full ? { full: true } : {}) }, requestId);
+    });
+  }
+
+  function settlePreview(requestId: string | undefined): PendingPreview | undefined {
+    const pending = requestId ? pendingPreviews.get(requestId) : undefined;
+    if (!pending || !requestId) return undefined;
+    clearTimeout(pending.timer);
+    pendingPreviews.delete(requestId);
+    return pending;
   }
 
   function switchChannel(channelId: string, password = ""): void {
@@ -109,6 +135,11 @@ export function useSessionActions(deps: RoomActionsDeps) {
   }
 
   function rejectPendingCommands(error: Error): void {
+    for (const [requestId, pending] of pendingPreviews) {
+      clearTimeout(pending.timer);
+      pendingPreviews.delete(requestId);
+      pending.reject(error);
+    }
     for (const [requestId, pending] of pendingCommands) {
       clearTimeout(pending.timer);
       pendingCommands.delete(requestId);
@@ -272,6 +303,13 @@ export function useSessionActions(deps: RoomActionsDeps) {
       pendingCommands.delete(requestId);
       pending.resolve(typeof msg.identity === "string" ? msg.identity : "");
     },
+    linkPreview: (msg) => {
+      settlePreview(msg.requestId)?.resolve(msg.preview);
+    },
+    linkPreviewError: (msg) => {
+      const code = normalizedClientErrorCode(msg.code, "LINK_PREVIEW_FAILED");
+      settlePreview(msg.requestId)?.reject(new LocalizedError(deps.protocolErrorMessage(code, ""), code));
+    },
     commandCompleted: (msg) => {
       const requestId = typeof msg.requestId === "string" ? msg.requestId : "";
       const pending = requestId ? pendingCommands.get(requestId) : undefined;
@@ -309,6 +347,7 @@ export function useSessionActions(deps: RoomActionsDeps) {
     sendCmd,
     sendCommandAndWait,
     requestIdentity,
+    requestLinkPreview,
     switchChannel,
     moveClient,
     measureLatency,

@@ -140,6 +140,19 @@ export interface ServerEvent {
   timestamp: number;
 }
 
+/** A picture the gateway fetched for a link, ready for an <img>. */
+export interface LinkPreviewImage {
+  mime: string;
+  bytes: number;
+  dataUri: string;
+}
+
+/** What the gateway made of a link: a bare image, an image to load on request, or a page card. */
+export type LinkPreviewData =
+  | { kind: "image"; url: string; image: LinkPreviewImage }
+  | { kind: "image-pending"; url: string; bytes?: number }
+  | { kind: "page"; url: string; siteName: string; title: string; description: string; image?: LinkPreviewImage };
+
 export interface LatencyProbeResult {
   browserRttMs: number;
   teamSpeakLatencyMs: number | null;
@@ -218,6 +231,8 @@ export type ServerMessage =
   | { type: "channelSwitched"; requestId?: string; channelId: string | number }
   | { type: "commandCompleted"; requestId: string }
   | { type: "identity"; requestId?: string; identity: string }
+  | { type: "linkPreview"; requestId?: string; url: string; preview: LinkPreviewData }
+  | { type: "linkPreviewError"; requestId?: string; url: string; code: string }
   | { type: "whisperTargets"; targetIds: number[]; active: boolean }
   | { type: "talkState"; canSpeak: boolean }
   | { type: "chatState"; canWriteChannel: boolean; canWriteServer: boolean }

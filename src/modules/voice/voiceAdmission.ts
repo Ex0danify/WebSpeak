@@ -37,6 +37,7 @@ import { sendProtocolError } from "./session/voiceFailures.js";
 import { AUDIO_RATE_LIMIT_CLOSE_REASON, RATE_LIMIT_CLOSE_CODE, VoiceRateLimits } from "./session/voiceRateLimits.js";
 import { readUserAgent, resolveWebRtcPublicHost } from "./session/voiceRequestInfo.js";
 import { routeTextFrame } from "./messages/voiceMessageRouter.js";
+import { LinkPreviewBudget, type LinkPreviewService } from "../linkPreview/index.js";
 
 export interface ConnectionHooks {
   teardown(entryId: string, reason: SessionTeardownReason): Promise<void>;
@@ -50,6 +51,7 @@ export interface ConnectionHooks {
   directorySyncTimeoutMs(): number;
   discoverExistingTeamSpeakStreams(entry: WebClientEntry): Promise<void>;
   sessionRecorder?: SessionRecorder;
+  linkPreviews?: LinkPreviewService;
 }
 
 export interface AdmissionDeps {
@@ -221,6 +223,7 @@ export function admitConnection(deps: AdmissionDeps, ws: WebSocket, req: Incomin
     audio: createAudioFlowStats(),
     webrtc: null,
     lastLatencyProbeAt: 0,
+    linkPreviewBudget: new LinkPreviewBudget(),
     screenPeerId: entryId,
   };
   const directory = new DirectorySynchronizer();

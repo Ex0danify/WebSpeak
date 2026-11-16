@@ -13,12 +13,16 @@ export const SETTING_LIMITS = {
   connectionRetentionDays: { min: 1, max: 365 },
   connectionMaxRows: { min: 100, max: 100000 },
   logRetentionDays: { min: 1, max: 365 },
+  linkPreviewImageKib: { min: 64, max: 4096 },
+  linkPreviewClickImageKib: { min: 1024, max: 32768 },
+  linkPreviewSvgKib: { min: 16, max: 1024 },
+  linkPreviewCacheKib: { min: 4096, max: 262144 },
   relayNameMax: 80,
   relayTargetMax: 300,
   relayTokenMin: 16,
 } as const;
 
-export type SettingsSection = "access" | "web" | "webrtc" | "mint" | "retention" | "relay";
+export type SettingsSection = "access" | "web" | "webrtc" | "mint" | "previews" | "retention" | "relay";
 
 export type SettingsIssue =
   | { code: "siteName" }
@@ -60,6 +64,10 @@ export interface SettingsDocument {
   connectionRetentionDays: number;
   connectionMaxRows: number;
   logRetentionDays: number;
+  linkPreviewImageKib: number;
+  linkPreviewClickImageKib: number;
+  linkPreviewSvgKib: number;
+  linkPreviewCacheKib: number;
   relayNodes: RelayNodeDocument[];
 }
 
@@ -74,6 +82,10 @@ const NUMBER_FIELDS = [
   "connectionRetentionDays",
   "connectionMaxRows",
   "logRetentionDays",
+  "linkPreviewImageKib",
+  "linkPreviewClickImageKib",
+  "linkPreviewSvgKib",
+  "linkPreviewCacheKib",
 ] as const;
 type NumberField = (typeof NUMBER_FIELDS)[number];
 
@@ -154,7 +166,16 @@ function resolveNumbers(form: ServerForm, confirmed: ServerForm, issues: Setting
     if (!ok) issues[field] = { code: "number", ...limit };
     numbers[field] = ok ? form[field] : confirmed[field];
   }
+  holdBackImageOrder(numbers, confirmed, issues);
   return numbers;
+}
+
+/** The size on request must not be below the inline size. The gateway refuses it otherwise, so the pair goes back to what it confirmed. */
+function holdBackImageOrder(numbers: Record<NumberField, number>, confirmed: ServerForm, issues: SettingsIssues): void {
+  if (numbers.linkPreviewClickImageKib >= numbers.linkPreviewImageKib) return;
+  issues.linkPreviewClickImageKib = { code: "number", min: numbers.linkPreviewImageKib, max: SETTING_LIMITS.linkPreviewClickImageKib.max };
+  numbers.linkPreviewImageKib = confirmed.linkPreviewImageKib;
+  numbers.linkPreviewClickImageKib = confirmed.linkPreviewClickImageKib;
 }
 
 function resolveRelayNodes(form: ServerForm, confirmed: ServerForm, issues: SettingsIssues): RelayNodeDocument[] {

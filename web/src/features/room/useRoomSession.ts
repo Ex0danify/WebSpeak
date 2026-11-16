@@ -95,6 +95,7 @@ export function useRoomSession() {
     sendCmd,
     sendCommandAndWait,
     requestIdentity,
+    requestLinkPreview,
     switchChannel,
     moveClient,
     measureLatency,
@@ -297,6 +298,7 @@ export function useRoomSession() {
       permissions,
       identityMaterial,
       requestIdentity,
+      requestLinkPreview,
       setNickname,
       connect,
       reconnectNow,
@@ -389,12 +391,6 @@ export function useRoomSession() {
       joinScreenShare,
       leaveScreenShare,
     },
-    actions: {
-      switchChannel,
-      moveClient,
-      setAway,
-      setWhisperTargets,
-      setWhisperActive,
-    },
+    actions: { switchChannel, moveClient, setAway, setWhisperTargets, setWhisperActive },
   };
 }

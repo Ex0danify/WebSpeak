@@ -1,3 +1,4 @@
+import type { LinkPreviewKib } from "../../config/linkPreviewConfig.js";
 import type { RetentionPolicy } from "../../config/retentionConfig.js";
 
 /** "fixed" offers the configured server list only, "open" also takes an address typed by the visitor. */
@@ -17,6 +18,7 @@ export interface PersistedSettings {
   identityMintConcurrency: number;
   identityMintQueueDepth: number;
   retention: RetentionPolicy;
+  linkPreview: LinkPreviewKib;
   updatedAt: string;
 }
 
@@ -33,6 +35,7 @@ export interface SettingsUpdate {
   identityMintConcurrency?: number;
   identityMintQueueDepth?: number;
   retention?: RetentionPolicy;
+  linkPreview?: LinkPreviewKib;
 }
 
 export interface PersistedServer {

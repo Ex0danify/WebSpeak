@@ -5,10 +5,14 @@ import { DATABASE_SCHEMA_VERSION } from "./database.js";
 
 const fx = useDatabaseFixture();
 
+/** The columns schema 18 adds, dropped first so the older layout is what the migrations start from. */
+const LATER_COLUMNS = ["link_preview_image_kib", "link_preview_click_image_kib", "link_preview_svg_kib", "link_preview_cache_kib"];
+
 /** A schema 16 file: the current layout without the column schema 17 adds. */
 function createSchema16Database(file: string): void {
   fx.open().close();
   const raw = new DatabaseSync(file);
+  for (const column of LATER_COLUMNS) raw.exec(`ALTER TABLE settings DROP COLUMN ${column}`);
   raw.exec("ALTER TABLE settings DROP COLUMN log_retention_days");
   raw.exec("UPDATE settings SET site_name = 'Eleven', connection_retention_days = 12");
   raw.exec("PRAGMA user_version = 16");

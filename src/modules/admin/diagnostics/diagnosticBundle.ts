@@ -201,6 +201,7 @@ function config(database: WebSpeakDatabase, serverCount: number) {
       queueDepth: settings.identityMintQueueDepth,
     },
     retention: settings.retention,
+    linkPreview: settings.linkPreview,
     updatedAt: settings.updatedAt,
     serverCount,
     relayNodes: database.listRelayNodes().map((node) => ({

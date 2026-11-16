@@ -1,5 +1,6 @@
 import type { VoiceConnection, WebClientEntry } from "../voiceTypes.js";
 import type { WebRtcAudioOptions } from "../../../config/webrtcConfig.js";
+import type { LinkPreviewService } from "../../linkPreview/index.js";
 import { parseScreenShareMessage, type ScreenShareClientMessage } from "../../screenShare/index.js";
 import { handleWebRtcOffer, handleWebRtcStop } from "../webrtc/webrtcOffer.js";
 import { handleCommand } from "./voiceCommands.js";
@@ -9,6 +10,7 @@ import { parseClientCommand } from "./voiceProtocol.js";
 
 export interface VoiceMessageRouterDeps {
   getWebRtcOptions(): WebRtcAudioOptions | undefined;
+  linkPreviews?: LinkPreviewService;
   handleScreenShareMessage(
     entry: WebClientEntry,
     message: ScreenShareClientMessage,
@@ -58,5 +60,5 @@ export function routeTextFrame(ctx: VoiceConnection, data: Buffer | string, deps
     sendProtocolError(ctx.sendJson, "SESSION_NOT_READY", "TeamSpeak session is not ready yet");
     return;
   }
-  void handleCommand(ctx.entry, command, ctx.sendJson);
+  void handleCommand(ctx.entry, command, ctx.sendJson, deps.linkPreviews);
 }

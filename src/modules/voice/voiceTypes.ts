@@ -5,6 +5,7 @@ import type { WebSpeakError } from "../../shared/errors.js";
 import type { TeamSpeakTarget } from "../../shared/teamSpeakTarget.js";
 import type { MessageParams } from "../../shared/messageCodes.js";
 import type { AccelerationRelayOptions } from "../relay/index.js";
+import type { LinkPreviewBudget } from "../linkPreview/index.js";
 import type { ManagedSession } from "./session/voiceSessionManager.js";
 import type { WebRtcAudioSession } from "./webrtc/webrtcAudioSession.js";
 import type { WebRtcIceInfo } from "./iceInfo.js";
@@ -150,6 +151,7 @@ export interface WebClientEntry {
   audio: AudioFlowStats;
   webrtc: WebRtcAudioSession | null;
   lastLatencyProbeAt: number;
+  linkPreviewBudget: LinkPreviewBudget;
   connectionFailureCode?: string;
   connectionFailureDetail?: string;
   screenPeerId: string;
