@@ -6,9 +6,10 @@
 </template>
 
 <script setup lang="ts">
-import type { MemberGroup } from "@/features/room/members/useMemberGroups.js";
+import type { GroupIcon } from "@/shared/lib/builtinGroupIcons";
 import { Icon } from "@/shared/ui/icon";
 
-// The icon of a group. The caller names it for screen readers.
-defineProps<{ group: MemberGroup }>();
+// The icon of a group, an empty square of the same size for one without, so a list of groups lines up. The caller names it for
+// screen readers.
+defineProps<{ group: GroupIcon }>();
 </script>

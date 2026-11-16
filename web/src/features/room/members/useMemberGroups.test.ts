@@ -1,6 +1,6 @@
 import { createPinia, setActivePinia } from "pinia";
 import { beforeEach, describe, expect, it } from "vitest";
-import { builtinGroupIcon } from "@/features/room/members/builtinGroupIcons";
+import { builtinGroupIcon } from "@/shared/lib/builtinGroupIcons";
 import { useMemberGroups } from "@/features/room/members/useMemberGroups";
 import { useSessionStore, type ServerGroup } from "@/features/session";
 

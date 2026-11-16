@@ -15,7 +15,7 @@
 </template>
 
 <script setup lang="ts">
-import GroupGlyph from "@/features/room/members/GroupGlyph.vue";
+import GroupGlyph from "@/shared/components/GroupGlyph.vue";
 import type { MemberGroups } from "@/features/room/members/useMemberGroups.js";
 import { useI18n } from "@/shared/i18n/useI18n.js";
 import { Tooltip } from "@/shared/ui/tooltip";

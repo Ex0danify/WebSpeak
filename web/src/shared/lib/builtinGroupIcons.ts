@@ -6,6 +6,12 @@ export interface BuiltinGroupIcon {
   tone: string;
 }
 
+/** What a group's icon is drawn from: a downloaded image as a data URL, or one of our stand-ins for TeamSpeak's own artwork. */
+export interface GroupIcon {
+  src?: string;
+  builtin?: BuiltinGroupIcon;
+}
+
 // TeamSpeak ships its own artwork for these ids. We draw stand-ins from our icon set. On the default groups 100 is Channel Admin,
 // 200 Operator, 300 Server Admin, 500 Admin Server Query and 600 Voice.
 const BUILTIN: Record<number, BuiltinGroupIcon> = {

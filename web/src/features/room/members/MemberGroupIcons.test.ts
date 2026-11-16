@@ -1,7 +1,7 @@
 import { mount } from "@vue/test-utils";
 import { describe, expect, it } from "vitest";
 import MemberGroupIcons from "@/features/room/members/MemberGroupIcons.vue";
-import { builtinGroupIcon } from "@/features/room/members/builtinGroupIcons";
+import { builtinGroupIcon } from "@/shared/lib/builtinGroupIcons";
 
 const server = [
   { id: 6, name: "Server Admin", builtin: builtinGroupIcon(300) },
