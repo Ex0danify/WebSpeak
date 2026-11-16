@@ -22,6 +22,19 @@
         <MenuLabel>{{ menuSamples[lang].kick }}</MenuLabel>
         <MenuItem tone="danger" @select="menuPicked = 'kick'"><Icon name="close" :size="15" />{{ menuSamples[lang].kick }}</MenuItem>
       </Menu>
+      <!-- Options that are on or off together, ticked at the right. Its own menu, so the walk through the one above is unchanged. -->
+      <Menu :label="menuSamples[lang].groups" :close-label="closeLabel[lang]">
+        <template #trigger>
+          <Button variant="outline"><Icon name="shield" />{{ menuSamples[lang].groups }}</Button>
+        </template>
+        <MenuCheckItem
+          v-for="group in menuSamples[lang].groupNames"
+          :key="group"
+          :checked="menuGroups.has(group)"
+          @select="toggleGroup(group)"
+          >{{ group }}</MenuCheckItem
+        >
+      </Menu>
       <Button variant="outline" @click="menuDialog = true">{{ menuSamples[lang].inDialog }}</Button>
       <span class="text-fg-muted"
         >{{ menuSamples[lang].picked }}: <span class="font-mono text-fg">{{ menuPicked || menuSamples[lang].none }}</span></span
@@ -48,7 +61,7 @@
 import { ref } from "vue";
 import { Button } from "@/shared/ui/button";
 import { Dialog } from "@/shared/ui/dialog";
-import { Menu, MenuItem, MenuSlider, MenuSub, MenuSeparator, MenuLabel } from "@/shared/ui/menu";
+import { Menu, MenuCheckItem, MenuItem, MenuSlider, MenuSub, MenuSeparator, MenuLabel } from "@/shared/ui/menu";
 import { Icon } from "@/shared/ui/icon";
 import GallerySection from "@/views/gallery/GallerySection.vue";
 import { type Lang, useGalleryLang, closeLabel } from "@/views/gallery/galleryLang";
@@ -67,6 +80,8 @@ const menuSamples: Record<
     profile: string;
     disabled: string;
     kick: string;
+    groups: string;
+    groupNames: string[];
     channels: string[];
     last: string;
     inDialog: string;
@@ -84,6 +99,8 @@ const menuSamples: Record<
     profile: "View profile",
     disabled: "Send poke (no permission)",
     kick: "Kick from channel",
+    groups: "Server groups",
+    groupNames: ["Moderator", "Friend"],
     channels: ["Lobby", "Raid Night", "AFK"],
     last: "Last action",
     inDialog: "Menu inside a dialog",
@@ -100,6 +117,8 @@ const menuSamples: Record<
     profile: "Profil anzeigen",
     disabled: "Anstupsen senden (keine Berechtigung)",
     kick: "Aus dem Kanal werfen",
+    groups: "Servergruppen",
+    groupNames: ["Moderator", "Freund"],
     channels: ["Empfang", "Raid-Nacht", "Abwesend"],
     last: "Letzte Aktion",
     inDialog: "Menü in einem Dialog",
@@ -108,6 +127,13 @@ const menuSamples: Record<
   },
 };
 const menuPicked = ref("");
+// The sample ticks the first group of either language, to show a ticked and an unticked item.
+const menuGroups = ref(new Set<string>(["Moderator"]));
+function toggleGroup(group: string): void {
+  const next = new Set(menuGroups.value);
+  if (!next.delete(group)) next.add(group);
+  menuGroups.value = next;
+}
 const menuVolume = ref(100);
 const menuDialog = ref(false);
 </script>
