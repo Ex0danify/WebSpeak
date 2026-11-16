@@ -10,6 +10,7 @@ import {
 import type { CommandRequest } from "../../src/lib/teamspeak/command/commandTracker.js";
 import { buildCommand } from "../../src/lib/teamspeak/wire/commandText.js";
 import type { TSClient } from "../../src/modules/teamspeak/teamSpeakClient";
+import { MAX_MODERATION_REASON_LENGTH } from "../../src/modules/voice/messages/voiceProtocol";
 import { poll } from "../helpers/poll";
 import { expect, test } from "./fixtures";
 import { GUEST_IDENTITY } from "./identities";
@@ -150,6 +151,19 @@ test("a ban with time 0 is permanent", async ({ server, query }) => {
   const bans = await query.call("banlist");
   expect(bans).toHaveLength(1);
   expect(bans[0]).toMatchObject({ ip: "", duration: "0" });
+});
+
+test("the server takes a kick and a ban reason as long as the gateway allows", async ({ server, query }) => {
+  const reason = "r".repeat(MAX_MODERATION_REASON_LENGTH);
+  const { admin, guest } = await pair(server, "reason-length");
+  const uid = await uidOf(query, guest);
+
+  await send(admin, banUid(uid, 3600, reason));
+  expect((await query.call("banlist"))[0]!.reason).toBe(reason);
+
+  const other = await connectAs(server, 1, "reason-length-other");
+  open.push(other);
+  await send(admin, clientKick(other.getClientId(), "server", reason));
 });
 
 test("a server group is added to and taken from a client by database id", async ({ server, query }) => {
