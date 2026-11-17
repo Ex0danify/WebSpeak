@@ -1,4 +1,4 @@
-import type { TSGroup } from "../../teamspeak/index.js";
+import type { TSGroup, TSGroupChange } from "../../teamspeak/index.js";
 import type { VoiceConnection } from "../voiceTypes.js";
 import { avatarDataUrl } from "./voiceDirectoryView.js";
 
@@ -15,8 +15,23 @@ export function syncGroups(ctx: VoiceConnection): void {
   );
 }
 
+/** Tells the browser who gave or took one of our own groups, ahead of the member update that shows the new list. */
+export function announceGroupChange(ctx: VoiceConnection, change: TSGroupChange): void {
+  if (change.clientId !== ctx.tsClient.getClientId()) return;
+  const { kind, groupId, assigned, invokerId, invokerName } = change;
+  ctx.sendJson({ type: "groupChange", kind, groupId, assigned, invokerId, invokerName });
+}
+
 const summarize = (groups: readonly TSGroup[]) =>
-  groups.map(({ id, name, iconId, isDefault, type }) => ({ id, name, iconId, isDefault, type }));
+  groups.map(({ id, name, iconId, isDefault, type, memberAddPower, memberRemovePower }) => ({
+    id,
+    name,
+    iconId,
+    isDefault,
+    type,
+    addPower: memberAddPower,
+    removePower: memberRemovePower,
+  }));
 
 function changed(ctx: VoiceConnection, kind: "serverGroups" | "channelGroups", groups: unknown): boolean {
   const signature = JSON.stringify(groups);

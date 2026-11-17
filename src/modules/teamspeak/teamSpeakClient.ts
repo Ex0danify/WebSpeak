@@ -64,6 +64,7 @@ const FORWARDED_EVENTS = [
   "kicked",
   "permissionsChanged",
   "groupsChanged",
+  "groupChanged",
 ] as const satisfies readonly (keyof TeamSpeakBackendEvents)[];
 
 const TEXT_TARGET_MODES = { private: TextMessageTarget.client, channel: TextMessageTarget.channel, server: TextMessageTarget.server };

@@ -47,9 +47,20 @@ async function resolveTarget(host: string, port: number): Promise<UdpAddress> {
   return { host: address.address, port: candidate?.port ?? port };
 }
 
+const power = (value: string | undefined): number => Number.parseInt(value ?? "", 10) || 0;
+
 function displayOrder(groups: ReadonlyMap<number, SessionGroup> | undefined, defaultId: number | undefined): TSGroup[] {
   return [...(groups?.values() ?? [])]
-    .map(({ id, name, type, sortId, iconId }) => ({ id, name, isDefault: id === defaultId, type, sortId, iconId }))
+    .map(({ id, name, type, sortId, iconId, properties }) => ({
+      id,
+      name,
+      isDefault: id === defaultId,
+      type,
+      sortId,
+      iconId,
+      memberAddPower: power(properties.n_member_addp),
+      memberRemovePower: power(properties.n_member_removep),
+    }))
     .sort((a, b) => a.sortId - b.sortId || a.id - b.id);
 }
 

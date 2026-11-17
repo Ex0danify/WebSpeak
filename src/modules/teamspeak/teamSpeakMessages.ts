@@ -29,6 +29,9 @@ export interface TSGroup {
   type: number;
   sortId: number;
   iconId: number;
+  /** Power needed to put a member in, or take one out of, this group. */
+  memberAddPower: number;
+  memberRemovePower: number;
 }
 
 export interface TSClientInfo {
@@ -70,6 +73,16 @@ export interface TSPoke {
   invokerName: string;
   invokerUID: string;
   message: string;
+}
+
+/** A client was given or lost a group. The invoker id is 0 when the server did it itself. */
+export interface TSGroupChange {
+  kind: "server" | "channel";
+  groupId: number;
+  clientId: number;
+  assigned: boolean;
+  invokerId: number;
+  invokerName: string;
 }
 
 export interface TSRawNotification {

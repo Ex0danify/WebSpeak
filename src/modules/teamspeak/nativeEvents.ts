@@ -23,6 +23,16 @@ export function forwardConnectionEvents(source: EventSource, target: EventEmitte
   source.on("welcomeComplete", snapshot);
   source.on("permissionsUpdated", () => target.emit("permissionsChanged"));
   source.on("groupsUpdated", () => target.emit("groupsChanged"));
+  source.on("groupChanged", (event) =>
+    target.emit("groupChanged", {
+      kind: event.kind,
+      groupId: event.groupId,
+      clientId: event.clientId,
+      assigned: event.assigned,
+      invokerId: event.invoker?.id ?? 0,
+      invokerName: event.invoker?.name ?? "",
+    }),
+  );
   source.on("clientEnter", (event) => target.emit("clientEnter", directoryClient(event.client)));
   source.on("clientLeave", (event) =>
     target.emit("clientLeave", {

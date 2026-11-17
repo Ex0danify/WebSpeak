@@ -13,7 +13,16 @@ const newServer = () =>
       { id: 2n, name: "Room A" },
     ],
   });
-const group = (id: number, name: string) => ({ id, name, isDefault: false, type: 1, sortId: id, iconId: 0 });
+const group = (id: number, name: string) => ({
+  id,
+  name,
+  isDefault: false,
+  type: 1,
+  sortId: id,
+  iconId: 0,
+  memberAddPower: 0,
+  memberRemovePower: 0,
+});
 
 /** A session with the rights to moderate, a member bob in Room A, and one server and one channel group. */
 async function admin(setup: (gateway: Gateway, bobId: number) => void = () => {}) {

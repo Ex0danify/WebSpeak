@@ -22,7 +22,7 @@ import {
   type FakeServerOptions,
 } from "./fakeTsClientScript.js";
 import { deliverChat, deliverVoice } from "./fakeTsChat.js";
-import { FakeGroups, fakeAvatar, fakeGroupIcon, fakeModeration } from "./fakeTsFiles.js";
+import { FakeGroups, fakeAvatar, fakeGroupIcon, fakeGroupPowers, fakeModeration } from "./fakeTsFiles.js";
 
 const refused = (id: number, serverMessage: string) => new TeamSpeakServerError({ id, serverMessage });
 export { DEFAULT_FAKE_CHANNELS, FakeRemoteMember, type FakeChannel, type FakeOperation, type FakeServerOptions };
@@ -346,7 +346,7 @@ export class FakeTSClient extends EventEmitter {
   textAllowed = { channel: true, server: true };
   canSendText = (scope: "channel" | "server"): boolean => this.textAllowed[scope];
   permissionEntries: PermissionEntry[] = [];
-  permissions = (): PermissionEntry[] => this.permissionEntries;
+  permissions = (): PermissionEntry[] => [...this.permissionEntries, ...fakeGroupPowers(this.server.canMove(this.uid))];
   serverGroups = () => this.server.groups.server;
   channelGroups = () => this.server.groups.channel;
   getGroupIcon = (iconId: number): Promise<Buffer | null> => fakeGroupIcon(this, iconId);

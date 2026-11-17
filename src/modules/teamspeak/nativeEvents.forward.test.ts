@@ -10,7 +10,15 @@ function forward() {
   const source = Object.assign(new EventEmitter<ConnectionEventMap>(), { session: { snapshot: () => SNAPSHOT } as unknown as SessionView });
   const target = new EventEmitter<TeamSpeakBackendEvents>();
   const seen: [string, unknown][] = [];
-  const types = ["directorySnapshot", "clientLeave", "kicked", "disconnected", "permissionsChanged", "groupsChanged"] as const;
+  const types = [
+    "directorySnapshot",
+    "clientLeave",
+    "kicked",
+    "disconnected",
+    "permissionsChanged",
+    "groupsChanged",
+    "groupChanged",
+  ] as const;
   for (const type of types) target.on(type, (payload: unknown) => seen.push([type, payload]));
   forwardConnectionEvents(source, target);
   return { source, seen };
@@ -67,6 +75,17 @@ describe("forwardConnectionEvents", () => {
     expect(seen).toEqual([
       ["groupsChanged", undefined],
       ["groupsChanged", undefined],
+    ]);
+  });
+
+  it("tells who gave or took a group, and 0 with no name when the server did it", () => {
+    const { source, seen } = forward();
+    const base = { type: "groupChanged", kind: "server", groupId: 7, clientId: 6, assigned: true } as const;
+    source.emit("groupChanged", { ...base, invoker: { id: 9, name: "Admin", uid: "admin=" } });
+    source.emit("groupChanged", { ...base, invoker: undefined });
+    expect(seen).toEqual([
+      ["groupChanged", { kind: "server", groupId: 7, clientId: 6, assigned: true, invokerId: 9, invokerName: "Admin" }],
+      ["groupChanged", { kind: "server", groupId: 7, clientId: 6, assigned: true, invokerId: 0, invokerName: "" }],
     ]);
   });
 
