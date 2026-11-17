@@ -16,6 +16,15 @@ async function joinRoom(page: Page) {
   await expectInRoom(page, "Snapshot Tester");
 }
 
+/** Like `joinRoom`, but hands back the scripted gateway to drive and to read the commands from. */
+async function joinRoomScripted(page: Page) {
+  await useCannedApi(page, { lang: "en", theme: "light" });
+  const scripted = await installVoiceFixture(page.context());
+  await submitJoin(page, "Snapshot Tester");
+  await expectInRoom(page, "Snapshot Tester");
+  return scripted;
+}
+
 async function guestPage(page: Page) {
   await useCannedApi(page, { lang: "en", theme: "light" });
   await page.goto("/", { waitUntil: "networkidle" });
@@ -101,6 +110,27 @@ test.describe("dialogs", () => {
     expect(await describeFocus(page), "the focus is lost when the dialog closes").not.toBeNull();
   });
 
+  for (const [action, title] of [
+    ["Kick from channel", "Kick Alex Rivera from the channel"],
+    ["Ban from server", "Ban Alex Rivera"],
+  ] as const) {
+    test(`the ${action.toLowerCase()} dialog keeps the focus, and Esc closes it without acting`, async ({ page }) => {
+      test.fail(true, "the focus is lost to the document when the dialog closes, the menu it came from is gone and nothing takes it");
+      const scripted = await joinRoomScripted(page);
+      const menu = await openMemberMenu(page, "Alex Rivera");
+      await menu
+        .getByRole("menuitem", { name: action })
+        .or(menu.getByRole("button", { name: action }))
+        .click();
+      await expect(page.getByRole("dialog", { name: title })).toBeVisible();
+      await expectFocusTrapped(page);
+      await page.keyboard.press("Escape");
+      await expect(page.getByRole("dialog")).toBeHidden();
+      expect(await describeFocus(page), "the focus is lost when the dialog closes").not.toBeNull();
+      expect(scripted.commands.map((command) => command.type)).not.toContain(action.startsWith("Kick") ? "kickClient" : "banClient");
+    });
+  }
+
   test("the audio settings dialog keeps the focus, and Esc gives it back to its button", async ({ page }) => {
     await joinRoom(page);
     const { opener } = await openSettings(page);
@@ -133,6 +163,38 @@ test.describe("menus", () => {
     await page.keyboard.press("Escape");
     await expect(menu).toBeHidden();
     await expect(row).toBeFocused();
+  });
+
+  test("the group submenu opens with ArrowRight, ArrowLeft closes it, and ticking a group keeps the menu open", async ({ page }, {
+    project,
+  }) => {
+    test.skip(project.name !== "desktop", "the phone's sheet expands the groups in place");
+    const scripted = await joinRoomScripted(page);
+    scripted.apply("moderation");
+    const menu = await openMemberMenu(page, "Alex Rivera");
+    const trigger = menu.getByRole("menuitem", { name: "Server groups", exact: true });
+    await trigger.focus();
+    await page.keyboard.press("ArrowRight");
+    // The first group takes the focus, the next one is an ArrowDown away.
+    await expect(page.getByRole("menuitemcheckbox", { name: "Server Admin", exact: true })).toBeFocused();
+    await page.keyboard.press("ArrowDown");
+    const normal = page.getByRole("menuitemcheckbox", { name: "Normal", exact: true });
+    await expect(normal).toBeFocused();
+
+    await page.keyboard.press("Enter");
+    await expect(normal).toBeVisible();
+    expect(scripted.commands.map((command) => command.type)).toContain("setServerGroup");
+
+    await page.keyboard.press("ArrowLeft");
+    await expect(normal).toBeHidden();
+    await expect(trigger).toBeFocused();
+    await expect(menu).toBeVisible();
+
+    // Esc leaves the whole menu, not just the submenu.
+    await page.keyboard.press("ArrowRight");
+    await expect(normal).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(menu).toBeHidden();
   });
 
   test("Esc closes the language menu and gives the focus back to its button", async ({ page }) => {

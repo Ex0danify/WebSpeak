@@ -17,14 +17,14 @@ export const knownViolations: KnownViolation[] = [
     source: "reka-ui toast viewport",
     reason:
       "The toast viewport's two focus-proxy spans are aria-hidden and focusable (tabindex 0) by reka-ui's own ToastViewport/FocusProxy, at the latest version, with no slot or prop to change either attribute; kept as library markup. The member row's slider behind an open menu is fixed.",
-    at: { desktop: ["room-poke"] },
+    at: { desktop: ["room-poke", "room-group-toast"], mobile: ["room-group-toast"] },
   },
   {
     rule: "region",
     source: "reka-ui menu portal",
     reason:
       "The member and About menus' popups is a reka-ui portal that renders outside the app-shell's landmarks; kept as library markup. The join page's header and footer are fixed.",
-    at: { desktop: ["room-member-menu", "join-about-menu"] },
+    at: { desktop: ["room-member-menu", "room-member-menu-groups", "join-about-menu"] },
   },
 ];
 

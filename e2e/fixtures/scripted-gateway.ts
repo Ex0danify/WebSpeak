@@ -83,17 +83,17 @@ const GROUP_ICON = {
   dataUrl:
     "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAAh0lEQVR4nO3UwQ2AMAxD0Q7KRuzLFSaAxI5dqiqReoT/GgnG6AHnPK776/wWtkHQsBRSjZcQqjiFUMchROZFbyNBMGEEYo+XEKp4hLDfntqCOg5voQENWBYw7TN0bEH2J2QQ8O2VCDoeASJI5tkQkEUwJxV3IaC4GkHFVYhSvAKRhVGILbztPOTPy8pJVsSrAAAAAElFTkSuQmCC",
 };
-const serverGroups = [
-  { id: 6, name: "Server Admin", iconId: 300, isDefault: false },
-  { id: 7, name: "Normal", iconId: GROUP_ICON.id, isDefault: false },
-  { id: 8, name: "Guest", iconId: 0, isDefault: true },
-];
-const channelGroups = [
-  { id: 5, name: "Channel Admin", iconId: 100, isDefault: false },
-  { id: 6, name: "Operator", iconId: 200, isDefault: false },
-  { id: 7, name: "Voice", iconId: 600, isDefault: false },
-  { id: 8, name: "Guest", iconId: 0, isDefault: true },
-];
+const group = (id: number, name: string, iconId: number, isDefault = false) => ({
+  id,
+  name,
+  iconId,
+  isDefault,
+  type: 1,
+  addPower: 0,
+  removePower: 0,
+});
+const serverGroups = [group(6, "Server Admin", 300), group(7, "Normal", GROUP_ICON.id), group(8, "Guest", 0, true)];
+const channelGroups = [group(5, "Channel Admin", 100), group(6, "Operator", 200), group(7, "Voice", 600), group(8, "Guest", 0, true)];
 const memberGroups: Record<number, { serverGroups: number[]; channelGroupId: number }> = {
   1: { serverGroups: [8], channelGroupId: 8 },
   2: { serverGroups: [6, 8], channelGroupId: 6 },
@@ -106,7 +106,15 @@ const memberGroups: Record<number, { serverGroups: number[]; channelGroupId: num
 export const connectedScenarios = ["connected", "poke", "reconnecting", "reconnect-failed", "audio-notice"] as const;
 
 /** Every scenario `apply` knows: the snapshot ones plus the states only the specs look at. */
-export type ScriptedScenario = (typeof connectedScenarios)[number] | "groups" | "pokes" | "reconnected";
+export type ScriptedScenario = (typeof connectedScenarios)[number] | "groups" | "moderation" | "group-change" | "pokes" | "reconnected";
+
+/** The room's channels with each member's groups, `own` replacing the ones of members it names. */
+function withGroups(own: Partial<typeof memberGroups> = {}) {
+  return channels.map((channel) => ({
+    ...channel,
+    members: channel.members.map((member) => ({ ...member, ...memberGroups[member.id], ...own[member.id] })),
+  }));
+}
 
 /**
  * Install the fixture on a browser context before the first navigation. Returns a handle to drive a scenario once the page
@@ -204,18 +212,26 @@ export async function installVoiceFixture(context: BrowserContext, options: Scri
     startSpeaking,
     apply(scenario) {
       if (scenario === "connected") startSpeaking([2]);
-      else if (scenario === "groups") {
+      else if (scenario === "groups" || scenario === "moderation") {
         send({ type: "serverGroups", groups: serverGroups });
         send({ type: "channelGroups", groups: channelGroups });
         send({ type: "serverGroupIcon", iconId: GROUP_ICON.id, icon: GROUP_ICON.dataUrl });
-        send({
-          type: "channelList",
-          channels: channels.map((channel) => ({
-            ...channel,
-            members: channel.members.map((member) => ({ ...member, ...memberGroups[member.id] })),
-          })),
-        });
+        // Without the member powers the menu offers no group to give or take.
+        if (scenario === "moderation") {
+          send({
+            type: "permissions",
+            entries: [
+              { name: "i_group_member_add_power", value: 75 },
+              { name: "i_group_member_remove_power", value: 75 },
+            ],
+          });
+        }
+        send({ type: "channelList", channels: withGroups() });
         startSpeaking([2]);
+      } else if (scenario === "group-change") {
+        send({ type: "serverGroups", groups: serverGroups });
+        send({ type: "groupChange", kind: "server", groupId: 7, assigned: true, invokerId: 2, invokerName: "Alex Rivera" });
+        send({ type: "channelList", channels: withGroups({ [SELF_ID]: { serverGroups: [7, 8], channelGroupId: 8 } }) });
       } else if (scenario === "poke") {
         startSpeaking([2]);
         send({
