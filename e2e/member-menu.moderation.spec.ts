@@ -8,14 +8,15 @@ import type { Gateway } from "../test/support/gateway";
 // moderating share one right in the fake server, `script.allowMoves()` gives it to the session.
 
 const SERVER_GROUPS = [
-  { id: 6, name: "Server Admin", isDefault: false, type: 1, sortId: 0, iconId: 300 },
-  { id: 7, name: "Normal", isDefault: false, type: 1, sortId: 1, iconId: 600 },
-  { id: 8, name: "Guest", isDefault: true, type: 1, sortId: 2, iconId: 0 },
-  { id: 2, name: "Query", isDefault: false, type: 2, sortId: 3, iconId: 0 },
+  { id: 6, name: "Server Admin", isDefault: false, type: 1, sortId: 0, iconId: 300, memberAddPower: 70, memberRemovePower: 70 },
+  { id: 7, name: "Normal", isDefault: false, type: 1, sortId: 1, iconId: 600, memberAddPower: 60, memberRemovePower: 60 },
+  { id: 8, name: "Guest", isDefault: true, type: 1, sortId: 2, iconId: 0, memberAddPower: 0, memberRemovePower: 0 },
+  { id: 2, name: "Query", isDefault: false, type: 2, sortId: 3, iconId: 0, memberAddPower: 100, memberRemovePower: 100 },
+  { id: 9, name: "Head Admin", isDefault: false, type: 1, sortId: 4, iconId: 0, memberAddPower: 100, memberRemovePower: 100 },
 ];
 const CHANNEL_GROUPS = [
-  { id: 6, name: "Operator", isDefault: false, type: 1, sortId: 0, iconId: 200 },
-  { id: 8, name: "Channel Guest", isDefault: true, type: 1, sortId: 1, iconId: 0 },
+  { id: 6, name: "Operator", isDefault: false, type: 1, sortId: 0, iconId: 200, memberAddPower: 50, memberRemovePower: 50 },
+  { id: 8, name: "Channel Guest", isDefault: true, type: 1, sortId: 1, iconId: 0, memberAddPower: 0, memberRemovePower: 0 },
 ];
 
 function provideGroups(gateway: Gateway) {
@@ -44,7 +45,9 @@ const asked = (gateway: Gateway, nickname: string) =>
   moderationLog(gateway.ts.created.find((client) => client.options.nickname === nickname)!);
 
 test.describe("the moderation of a member", () => {
-  test("offers the groups as two submenus and kick and ban at the very bottom", async ({ page, script }) => {
+  test("offers the groups as two submenus and kick and ban at the very bottom", async ({ page, gateway, script }) => {
+    provideGroups(gateway);
+    script.allowMoves();
     script.member("mod-list-other");
     await join(page, "mod-list-self");
     const menu = await openMemberMenu(page, "mod-list-other");
@@ -59,7 +62,9 @@ test.describe("the moderation of a member", () => {
     expect(names.indexOf("Channel group")).toBeLessThan(names.indexOf("Kick from channel"));
   });
 
-  test("your own menu has the group submenus and nothing to kick or ban", async ({ page, isMobile }) => {
+  test("your own menu has the group submenus and nothing to kick or ban", async ({ page, gateway, script, isMobile }) => {
+    provideGroups(gateway);
+    script.allowMoves();
     await join(page, "mod-own");
     const row = memberRow(page, "mod-own");
     if (isMobile) await row.dispatchEvent("contextmenu");
@@ -208,6 +213,8 @@ test.describe("the groups of a member", () => {
     // The default and the query group are not ones to hand out.
     await expect(groupItem(page, menu, "Guest")).toHaveCount(0);
     await expect(groupItem(page, menu, "Query")).toHaveCount(0);
+    // Head Admin asks for more power than the 75 of this session.
+    await expect(groupItem(page, menu, "Head Admin")).toHaveCount(0);
     const normal = groupItem(page, menu, "Normal");
     await expect(normal).toBeVisible();
     await expect.poll(() => ticked(normal)).toBe("true");
@@ -224,9 +231,8 @@ test.describe("the groups of a member", () => {
       ),
     ).toEqual([{ action: "serverGroup", groupId: 6, databaseId, assigned: true }]);
 
-    const again = await openMemberMenu(page, "mod-groups-other");
-    await action(again, "Server groups").click();
-    await groupItem(page, again, "Normal").click();
+    // The menu stays open for the next group.
+    await groupItem(page, menu, "Normal").click();
     await expect(page.getByText("mod-groups-other was removed from Normal", { exact: true })).toBeVisible();
     expect(asked(gateway, "mod-groups-self").at(-1)).toEqual({ action: "serverGroup", groupId: 7, databaseId, assigned: false });
   });
@@ -260,15 +266,51 @@ test.describe("the groups of a member", () => {
     ).toMatchObject([{ action: "channelGroup", groupId: 8, channelId: expect.anything() }]);
   });
 
-  test("a guest is refused a group change, and told why", async ({ page, gateway, script }) => {
+  test("a guest has no group submenus, but still kick and ban", async ({ page, gateway, script }) => {
     provideGroups(gateway);
-    script.member("mod-groups-refused-other");
-    await join(page, "mod-groups-refused-self");
-    const menu = await openMemberMenu(page, "mod-groups-refused-other");
+    script.member("mod-groups-guest-other");
+    await join(page, "mod-groups-guest-self");
+    const menu = await openMemberMenu(page, "mod-groups-guest-other");
+    await expect(action(menu, "Kick from server")).toBeVisible();
+    await expect(action(menu, "Ban from server")).toBeVisible();
+    await expect(action(menu, "Server groups")).toHaveCount(0);
+    await expect(action(menu, "Channel group")).toHaveCount(0);
+  });
+
+  test("keeps the menu open while several server groups are given and taken", async ({ page, gateway, script }) => {
+    provideGroups(gateway);
+    script.allowMoves();
+    const target = script.member("mod-groups-multi-other");
+    gateway.ts.updateMember(target.id, { serverGroups: ["7", "8"] });
+    await join(page, "mod-groups-multi-self");
+    const menu = await openMemberMenu(page, "mod-groups-multi-other");
     await action(menu, "Server groups").click();
+
+    await groupItem(page, menu, "Server Admin").click();
+    await expect.poll(() => ticked(groupItem(page, menu, "Server Admin"))).toBe("true");
     await groupItem(page, menu, "Normal").click();
-    await expect(page.getByText("You do not have permission to perform this action", { exact: true })).toBeVisible();
-    expect(asked(gateway, "mod-groups-refused-self")).toEqual([]);
+    await expect.poll(() => ticked(groupItem(page, menu, "Normal"))).toBe("false");
+    expect(
+      await poll(
+        () => asked(gateway, "mod-groups-multi-self"),
+        (log) => log.length > 1,
+      ),
+    ).toMatchObject([
+      { action: "serverGroup", groupId: 6, assigned: true },
+      { action: "serverGroup", groupId: 7, assigned: false },
+    ]);
+  });
+
+  test("leaves out a group the member has when your remove power does not reach it", async ({ page, gateway, script }) => {
+    provideGroups(gateway);
+    script.allowMoves();
+    const target = script.member("mod-groups-reach-other");
+    gateway.ts.updateMember(target.id, { serverGroups: ["9", "8"] });
+    await join(page, "mod-groups-reach-self");
+    const menu = await openMemberMenu(page, "mod-groups-reach-other");
+    await action(menu, "Server groups").click();
+    await expect(groupItem(page, menu, "Head Admin")).toHaveCount(0);
+    await expect(groupItem(page, menu, "Normal")).toBeVisible();
   });
 
   test("your own menu changes your own groups", async ({ page, gateway, script, isMobile }) => {
@@ -282,6 +324,9 @@ test.describe("the groups of a member", () => {
     await action(menu, "Server groups").click();
     await groupItem(page, menu, "Normal").click();
     await expect(page.getByText("mod-groups-own was added to Normal", { exact: true })).toBeVisible();
+    // Your own groups changing tells you who did it, and that was you.
+    await expect(page.getByText("Server group assigned: Normal", { exact: true })).toBeVisible();
+    await expect(page.getByText("By you", { exact: true })).toBeVisible();
     expect(asked(gateway, "mod-groups-own")).toMatchObject([{ action: "serverGroup", groupId: 7, assigned: true }]);
   });
 });

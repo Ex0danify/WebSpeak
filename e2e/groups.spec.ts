@@ -6,13 +6,13 @@ import type { Gateway } from "../test/support/gateway";
 // when one of your own groups changes. Built-in icon ids (300, 600, 200) need no file, so no transfer is faked.
 
 const SERVER_GROUPS = [
-  { id: 6, name: "Server Admin", isDefault: false, type: 1, sortId: 0, iconId: 300 },
-  { id: 7, name: "Normal", isDefault: false, type: 1, sortId: 1, iconId: 600 },
-  { id: 8, name: "Guest", isDefault: true, type: 1, sortId: 2, iconId: 0 },
+  { id: 6, name: "Server Admin", isDefault: false, type: 1, sortId: 0, iconId: 300, memberAddPower: 0, memberRemovePower: 0 },
+  { id: 7, name: "Normal", isDefault: false, type: 1, sortId: 1, iconId: 600, memberAddPower: 0, memberRemovePower: 0 },
+  { id: 8, name: "Guest", isDefault: true, type: 1, sortId: 2, iconId: 0, memberAddPower: 0, memberRemovePower: 0 },
 ];
 const CHANNEL_GROUPS = [
-  { id: 6, name: "Operator", isDefault: false, type: 1, sortId: 0, iconId: 200 },
-  { id: 8, name: "Guest", isDefault: true, type: 1, sortId: 1, iconId: 0 },
+  { id: 6, name: "Operator", isDefault: false, type: 1, sortId: 0, iconId: 200, memberAddPower: 0, memberRemovePower: 0 },
+  { id: 8, name: "Guest", isDefault: true, type: 1, sortId: 1, iconId: 0, memberAddPower: 0, memberRemovePower: 0 },
 ];
 
 function provide(gateway: Gateway) {
@@ -60,6 +60,31 @@ test.describe("server and channel groups", () => {
 
     gateway.ts.updateMember(id, { serverGroups: ["8"] });
     await expect(page.getByText("Server group revoked: Normal", { exact: true })).toBeVisible();
+  });
+
+  test("says who gave or took your server group, and by you when it was yourself", async ({ page, gateway }) => {
+    provide(gateway);
+    await join(page, "groups-own-by");
+    const id = ownId(gateway, "groups-own-by");
+    const notice = (assigned: boolean) =>
+      gateway.ts.broadcast("groupChanged", { kind: "server", groupId: 7, clientId: id, assigned, invokerId: 400, invokerName: "Admin" });
+
+    notice(true);
+    gateway.ts.updateMember(id, { serverGroups: ["8", "7"] });
+    await expect(page.getByText("Server group assigned: Normal", { exact: true })).toBeVisible();
+    await expect(page.getByText("By Admin", { exact: true })).toBeVisible();
+
+    gateway.ts.broadcast("groupChanged", {
+      kind: "server",
+      groupId: 7,
+      clientId: id,
+      assigned: false,
+      invokerId: id,
+      invokerName: "groups-own-by",
+    });
+    gateway.ts.updateMember(id, { serverGroups: ["8"] });
+    await expect(page.getByText("Server group revoked: Normal", { exact: true })).toBeVisible();
+    await expect(page.getByText("By you", { exact: true })).toBeVisible();
   });
 
   test("tells you about your channel group, falling back to the default being a revoke", async ({ page, gateway }) => {

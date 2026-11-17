@@ -224,3 +224,27 @@ test("a channel group is set per channel, and the default group takes it back", 
   await send(admin, setClientChannelGroup(Number(defaultId), BigInt(room.id), cldbid));
   expect(await groupIn()).not.toBe(regular.cgid);
 });
+
+test("the powers of the welcome decide the channel groups an admin may give or take, and a guest has none", async ({
+  server,
+  testChannel,
+}) => {
+  const room = await testChannel("real-group-power");
+  const { admin, guest } = await pair(server, "group-power");
+  const power = (client: TSClient, name: string) => client.permissions().find((entry) => entry.name === name)?.value ?? 0;
+  const regular = admin.channelGroups().find((group) => group.type === 1 && !group.isDefault)!;
+
+  // The same two powers that govern server groups cover the channel groups.
+  expect(regular.memberAddPower).toBeGreaterThan(0);
+  expect(power(admin, "i_group_member_add_power")).toBeGreaterThanOrEqual(regular.memberAddPower);
+  expect(power(admin, "i_group_member_remove_power")).toBeGreaterThanOrEqual(regular.memberRemovePower);
+  expect(power(guest, "i_group_member_add_power")).toBe(0);
+  expect(power(guest, "i_group_member_remove_power")).toBe(0);
+
+  const [info] = await send(admin, clientInfo(admin.getClientId()));
+  const refused = await send(guest, setClientChannelGroup(Number(regular.id), BigInt(room.id), BigInt(info!.client_database_id!))).then(
+    () => null,
+    (error: unknown) => normalizeTeamSpeakError(error),
+  );
+  expect(refused).not.toBeNull();
+});
