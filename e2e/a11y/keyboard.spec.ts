@@ -115,7 +115,6 @@ test.describe("dialogs", () => {
     ["Ban from server", "Ban Alex Rivera"],
   ] as const) {
     test(`the ${action.toLowerCase()} dialog keeps the focus, and Esc closes it without acting`, async ({ page }) => {
-      test.fail(true, "the focus is lost to the document when the dialog closes, the menu it came from is gone and nothing takes it");
       const scripted = await joinRoomScripted(page);
       const menu = await openMemberMenu(page, "Alex Rivera");
       await menu

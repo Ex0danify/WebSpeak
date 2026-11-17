@@ -1,4 +1,5 @@
 import { computed, ref } from "vue";
+import { setFocusReturn } from "@/shared/lib/focusReturn";
 import type { ChannelMember } from "@/features/session";
 import type { ContextKind, ContextOrigin, ContextPayloads, ContextTarget } from "@/features/room/contextMenuApi";
 
@@ -38,6 +39,7 @@ export function useContextMenu() {
   function open<K extends ContextKind>(kind: K, payload: ContextPayloads[K], origin: ContextOrigin): void {
     const element = origin instanceof Event ? origin.currentTarget : origin;
     opener = element instanceof HTMLElement ? element : null;
+    setFocusReturn(opener);
     target.value = { kind, ...payload, ...pointOf(origin) } as ContextTarget;
   }
 

@@ -2,6 +2,7 @@
 import { computed, useSlots } from "vue";
 import { DialogContent, DialogDescription, DialogOverlay, DialogPortal, DialogRoot, DialogTitle } from "reka-ui";
 import { cn } from "@/shared/lib/cn";
+import { takeFocusReturn } from "@/shared/lib/focusReturn";
 import { Button } from "@/shared/ui/button";
 import { Icon } from "@/shared/ui/icon";
 import {
@@ -49,6 +50,7 @@ const FOCUSABLE =
 // Reka would focus the first tabbable element, which is the X button. Prefer
 // the body's first control unless the caller marked one with `autofocus`.
 function onOpenAutoFocus(event: Event) {
+  rememberFocus();
   event.preventDefault();
   const panel = event.target as HTMLElement;
   const target =
@@ -57,6 +59,20 @@ function onOpenAutoFocus(event: Event) {
     panel.querySelector<HTMLElement>("[data-dialog-close]") ??
     panel;
   target.focus({ preventScroll: true });
+}
+
+// Raised from a menu item, the dialog would return to an element that left with the menu.
+let before: Element | null = null;
+function rememberFocus() {
+  before = document.activeElement;
+}
+function onCloseAutoFocus(event: Event) {
+  const gone = !before || before === document.body || !before.isConnected;
+  before = null;
+  const target = gone ? takeFocusReturn() : null;
+  if (!target) return;
+  event.preventDefault();
+  target.focus();
 }
 
 // A locked dialog ignores Esc and outside presses. Reka only starts an outside press when it begins there, so selecting
@@ -74,6 +90,7 @@ function keepOpen(event: Event) {
           v-bind="description ? {} : { 'aria-describedby': undefined }"
           :class="cn(dialogPanelVariants({ size }), sheet && dialogSheetPanelClass, 'outline-none', props.class)"
           @open-auto-focus="onOpenAutoFocus"
+          @close-auto-focus="onCloseAutoFocus"
           @escape-key-down="keepOpen"
           @pointer-down-outside="keepOpen"
           @interact-outside="keepOpen"

@@ -190,9 +190,11 @@ describe("MemberRow context menu", () => {
     expect(open).toHaveBeenCalledWith("self", { member: { ...member, isSelf: true } }, expect.any(Event));
   });
 
-  it("opens the menu anchored to the row from the mobile more button", async () => {
+  // The row cannot take the focus on a phone, the button that opened the menu is where it returns to.
+  it("opens the menu anchored to the mobile more button", async () => {
     const { wrapper, open } = mountWithMenu({}, true);
-    await wrapper.get('button[aria-label="More member options"]').trigger("click");
-    expect(open).toHaveBeenCalledWith("member", { member }, wrapper.get("[data-member-id]").element);
+    const button = wrapper.get('button[aria-label="More member options"]');
+    await button.trigger("click");
+    expect(open).toHaveBeenCalledWith("member", { member }, button.element);
   });
 });

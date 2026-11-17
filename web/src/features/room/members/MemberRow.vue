@@ -1,6 +1,5 @@
 <template>
   <div
-    ref="row"
     :data-member-id="member.id"
     :tabindex="isMobileViewport ? undefined : 0"
     :class="[
@@ -87,7 +86,7 @@
         icon-only
         class="flex-none"
         :aria-label="t('moreMemberOptions')"
-        @click.stop="row && openMenu(row)"
+        @click.stop="openMenu($event.currentTarget as HTMLElement)"
         ><Icon name="more" :size="18" /></Button
     ></Tooltip>
   </div>
@@ -133,7 +132,6 @@ defineEmits<{
 
 const { t } = useI18n();
 const openContextMenu = useContextMenuOpener();
-const row = ref<HTMLElement | null>(null);
 const openMenu = (origin: Event | HTMLElement) =>
   openContextMenu(props.member.isSelf ? "self" : "member", { member: props.member }, origin);
 
