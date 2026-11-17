@@ -10,6 +10,7 @@ export type {
   ChannelInfo,
   ChannelMember,
   ChatMessage,
+  GroupNotice,
   LatencyProbeResult,
   LinkPreviewData,
   LinkPreviewImage,

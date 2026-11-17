@@ -59,6 +59,7 @@ describe("roster handlers", () => {
       "channelGroups",
       "channelList",
       "chatMessage",
+      "groupChange",
       "memberAvatar",
       "memberEnter",
       "memberUpdate",
@@ -67,6 +68,24 @@ describe("roster handlers", () => {
       "serverGroupIcon",
       "serverGroups",
     ]);
+  });
+
+  it("groupChange keeps who changed one of our groups, drops a malformed one and lets an old one lapse", () => {
+    vi.useFakeTimers();
+    try {
+      const { handlers, session } = setup();
+      handlers.groupChange!({ kind: "server", groupId: 6, assigned: true, invokerId: 9, invokerName: "Admin" });
+      handlers.groupChange!({ kind: "other", groupId: 6, assigned: true });
+      handlers.groupChange!({ kind: "channel", groupId: "x", assigned: true });
+      expect(session.groupNotices).toEqual([
+        { kind: "server", groupId: 6, assigned: true, invokerId: 9, invokerName: "Admin", at: Date.now() },
+      ]);
+      vi.advanceTimersByTime(11_000);
+      handlers.groupChange!({ kind: "channel", groupId: 5, assigned: true, invokerId: 0, invokerName: "" });
+      expect(session.groupNotices.map((notice) => notice.groupId)).toEqual([5]);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("memberEnter adds a member once and re-syncs volumes", () => {
@@ -91,7 +110,7 @@ describe("roster handlers", () => {
     const { handlers, session } = setup();
     handlers.serverGroups!({
       groups: [
-        { id: 7, name: "Normal", iconId: 600, type: 2 },
+        { id: 7, name: "Normal", iconId: 600, type: 2, addPower: 60, removePower: "50" },
         { id: "7", name: "Bad id", iconId: 1 },
         { id: 8, name: 5, iconId: 1 },
         { id: 8, name: "Guest" },
@@ -100,8 +119,8 @@ describe("roster handlers", () => {
     });
     // A group without a type counts as a regular one.
     expect(session.serverGroups).toEqual([
-      { id: 7, name: "Normal", iconId: 600, isDefault: false, type: 2 },
-      { id: 8, name: "Guest", iconId: 0, isDefault: false, type: 1 },
+      { id: 7, name: "Normal", iconId: 600, isDefault: false, type: 2, addPower: 60, removePower: 50 },
+      { id: 8, name: "Guest", iconId: 0, isDefault: false, type: 1, addPower: 0, removePower: 0 },
     ]);
     handlers.serverGroups!({});
     expect(session.serverGroups).toEqual([]);
@@ -116,8 +135,12 @@ describe("roster handlers", () => {
         { id: "x", name: "Bad" },
       ],
     });
-    expect(session.channelGroups).toEqual([{ id: 5, name: "Channel Admin", iconId: 100, isDefault: true, type: 1 }]);
-    expect(session.serverGroups).toEqual([{ id: 6, name: "Server Admin", iconId: 300, isDefault: false, type: 1 }]);
+    expect(session.channelGroups).toEqual([
+      { id: 5, name: "Channel Admin", iconId: 100, isDefault: true, type: 1, addPower: 0, removePower: 0 },
+    ]);
+    expect(session.serverGroups).toEqual([
+      { id: 6, name: "Server Admin", iconId: 300, isDefault: false, type: 1, addPower: 0, removePower: 0 },
+    ]);
   });
 
   it("serverGroupIcon keeps the icons by id and ignores a frame that is not a usable image", () => {

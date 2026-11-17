@@ -31,11 +31,13 @@ const { language, setThemeMode } = useAppearance();
 
 // Connection lifecycle: owned here so it survives the join page being replaced by the room.
 const { state: voiceState } = room.session;
-const { serverGroups, channelGroups } = storeToRefs(useSessionStore());
+const sessionStore = useSessionStore();
+const { serverGroups, channelGroups } = storeToRefs(sessionStore);
 useRoomSounds({
   voiceState,
   channels: room.roster.channels,
   roomNotices: room.session.roomNotices,
+  groupNotices: sessionStore.groupNotices,
   chatMessages: room.chat.chatMessages,
   pokeNotifications: room.roster.pokeNotifications,
   serverGroups,

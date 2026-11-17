@@ -13,6 +13,8 @@ const group = (id: number, name: string, extra: Partial<ServerGroup> = {}): Serv
   iconId: 0,
   isDefault: false,
   type: 1,
+  addPower: 0,
+  removePower: 0,
   ...extra,
 });
 
@@ -25,8 +27,10 @@ const actions = {
 } as unknown as ContextMenuActions;
 
 let wrapper: VueWrapper | undefined;
+let isOpen = true;
 
 beforeEach(() => {
+  isOpen = true;
   setActivePinia(createPinia());
   vi.mocked(actions.toggleServerGroup).mockClear();
   vi.mocked(actions.assignChannelGroup).mockClear();
@@ -43,7 +47,9 @@ async function openGroupMenus(member: Partial<ChannelMember>) {
     setup() {
       provideContextActions(actions);
       return () =>
-        h(Menu, { open: true, label: "Ana" }, () => h(GroupMenus, { member: { id: 2, nickname: "Ana", ...member } as ChannelMember }));
+        h(Menu, { open: isOpen, "onUpdate:open": (value: boolean) => (isOpen = value), label: "Ana" }, () =>
+          h(GroupMenus, { member: { id: 2, nickname: "Ana", ...member } as ChannelMember }),
+        );
     },
   });
   wrapper = mount(Host, { attachTo: document.body });
@@ -60,8 +66,16 @@ async function expand(name: string) {
   await nextTick();
 }
 
+const grantPowers = (add: number, remove: number) => {
+  useSessionStore().permissions = [
+    { name: "i_group_member_add_power", value: add },
+    { name: "i_group_member_remove_power", value: remove },
+  ];
+};
+
 function fillLists() {
   const store = useSessionStore();
+  grantPowers(75, 75);
   store.serverGroups = [normal, group(8, "Guest", { isDefault: true }), group(1, "Template", { type: 0 }), group(2, "Query", { type: 2 })];
   store.channelGroups = [moderator, group(9, "Channel Guest", { isDefault: true }), group(3, "Channel Template", { type: 0 })];
 }
@@ -95,6 +109,20 @@ describe("GroupMenus", () => {
     expect(actions.toggleServerGroup).toHaveBeenCalledWith(expect.objectContaining({ id: 2 }), normal);
   });
 
+  it("keeps the menu open after a server group is toggled, and closes it after a channel group", async () => {
+    fillLists();
+    await openGroupMenus({ serverGroups: [] });
+    await expand("Server groups");
+    button("Normal").click();
+    await nextTick();
+    expect(actions.toggleServerGroup).toHaveBeenCalledTimes(1);
+    expect(isOpen).toBe(true);
+    await expand("Channel group");
+    button("Channel Mod").click();
+    await nextTick();
+    expect(isOpen).toBe(false);
+  });
+
   it("marks the member's channel group as the one in effect, and hands the choice on", async () => {
     fillLists();
     await openGroupMenus({ channelGroupId: 5 });
@@ -108,6 +136,7 @@ describe("GroupMenus", () => {
 
   it("shows the icon of a group in front of its name: ours for a built-in id, the download for the rest, an empty square for none", async () => {
     const store = useSessionStore();
+    grantPowers(75, 75);
     store.serverGroups = [group(6, "Admin", { iconId: 300 }), group(7, "Normal", { iconId: 5000 }), group(9, "Plain", { iconId: 0 })];
     store.groupIcons = { 5000: "data:image/png;base64,AAAA" };
     await openGroupMenus({});
@@ -120,10 +149,39 @@ describe("GroupMenus", () => {
     expect(button("Plain").firstElementChild).toBe(glyph("Plain"));
   });
 
-  it("says there is nothing to assign while the server has sent no groups", async () => {
-    await openGroupMenus({});
+  it("leaves both submenus out for someone without the powers", async () => {
+    fillLists();
+    useSessionStore().permissions = [];
+    await openGroupMenus({ serverGroups: [6], channelGroupId: 5 });
+    expect(text()).not.toMatch(/Server groups|Channel group/);
+  });
+
+  it("offers a group the member lacks only up to your add power, and one the member has up to your remove power", async () => {
+    fillLists();
+    useSessionStore().serverGroups = [
+      group(6, "Normal", { addPower: 60, removePower: 60 }),
+      group(3, "Admin", { addPower: 100, removePower: 50 }),
+    ];
+    grantPowers(75, 55);
+    await openGroupMenus({ serverGroups: [3] });
     await expand("Server groups");
-    await expand("Channel group");
-    expect(text().match(/No groups to assign/g)).toHaveLength(2);
+    const items = buttons().filter((candidate) => candidate.hasAttribute("aria-pressed"));
+    // Normal can be added (75 reaches 60), Admin is had and removing it needs 50 (55 reaches it).
+    expect(items.map((item) => item.textContent?.trim())).toEqual(["Normal", "Admin"]);
+    grantPowers(75, 40);
+    await nextTick();
+    expect(
+      buttons()
+        .filter((candidate) => candidate.hasAttribute("aria-pressed"))
+        .map((item) => item.textContent?.trim()),
+    ).toEqual(["Normal"]);
+  });
+
+  it("offers the channel group the member has only with a remove power that reaches it", async () => {
+    fillLists();
+    useSessionStore().channelGroups = [group(5, "Channel Mod", { addPower: 10, removePower: 90 })];
+    grantPowers(75, 75);
+    await openGroupMenus({ channelGroupId: 5 });
+    expect(buttons().map((candidate) => candidate.textContent?.trim())).not.toContain("Channel group");
   });
 });

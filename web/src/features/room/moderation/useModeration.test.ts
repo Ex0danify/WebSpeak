@@ -15,6 +15,8 @@ const group = (id: number, name: string, extra: Partial<ServerGroup> = {}): Serv
   iconId: 0,
   isDefault: false,
   type: 1,
+  addPower: 0,
+  removePower: 0,
   ...extra,
 });
 

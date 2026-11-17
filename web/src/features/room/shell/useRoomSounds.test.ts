@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { nextTick, reactive, ref } from "vue";
 import { useRoomSounds } from "@/features/room/shell/useRoomSounds";
 import { dismissToast, toast, useToast } from "@/shared/composables/useToast";
-import type { ChannelGroup, ChannelInfo, RoomNotice, ServerGroup } from "@/features/session";
+import type { ChannelGroup, ChannelInfo, GroupNotice, RoomNotice, ServerGroup } from "@/features/session";
 
 afterEach(() => dismissToast());
 
@@ -11,19 +11,21 @@ function setup(channels: ChannelInfo[], groups: { server?: ServerGroup[]; channe
   const voiceState = reactive({ connected: true, reconnecting: false, reconnectFailed: false, tsClientId: 1 });
   const reactiveChannels = reactive(channels);
   const roomNotices = reactive<RoomNotice[]>([]);
+  const groupNotices = reactive<GroupNotice[]>([]);
   const serverGroups = ref(groups.server ?? []);
   const channelGroups = ref(groups.channel ?? []);
   useRoomSounds({
     voiceState,
     channels: reactiveChannels,
     roomNotices,
+    groupNotices,
     chatMessages: reactive([]),
     pokeNotifications: reactive([]),
     serverGroups,
     channelGroups,
     playNotification,
   });
-  return { playNotification, channels: reactiveChannels, roomNotices, serverGroups, channelGroups };
+  return { playNotification, channels: reactiveChannels, roomNotices, groupNotices, serverGroups, channelGroups };
 }
 
 const member = (id: number) => ({ id, nickname: `user${id}` });
@@ -100,12 +102,12 @@ describe("group sounds", () => {
   const setupGroups = (channelId = "a") => {
     const started = setup([{ ...channel(channelId, []), members: [own([8], 8)] }, channel("b", [3])], {
       server: [
-        { id: 6, name: "Server Admin", iconId: 0, isDefault: false, type: 1 },
-        { id: 8, name: "Guest", iconId: 0, isDefault: true, type: 1 },
+        { id: 6, name: "Server Admin", iconId: 0, isDefault: false, type: 1, addPower: 0, removePower: 0 },
+        { id: 8, name: "Guest", iconId: 0, isDefault: true, type: 1, addPower: 0, removePower: 0 },
       ],
       channel: [
-        { id: 6, name: "Operator", iconId: 0, isDefault: false, type: 1 },
-        { id: 8, name: "Guest", iconId: 0, isDefault: true, type: 1 },
+        { id: 6, name: "Operator", iconId: 0, isDefault: false, type: 1, addPower: 0, removePower: 0 },
+        { id: 8, name: "Guest", iconId: 0, isDefault: true, type: 1, addPower: 0, removePower: 0 },
       ],
     });
     return { ...started, me: () => started.channels[0]!.members![0]! };
@@ -160,6 +162,60 @@ describe("group sounds", () => {
       "Server group revoked: Server Admin",
       "Channel group assigned: Operator",
     ]);
+  });
+
+  describe("who made the change", () => {
+    const notice = (extra: Partial<GroupNotice>): GroupNotice => ({
+      kind: "server",
+      groupId: 6,
+      assigned: true,
+      invokerId: 9,
+      invokerName: "Admin",
+      at: Date.now(),
+      ...extra,
+    });
+
+    it("names the one who gave or took a server group", async () => {
+      const { groupNotices, me } = setupGroups();
+      groupNotices.push(notice({}));
+      me().serverGroups = [8, 6];
+      await nextTick();
+      expect(lastToast()).toMatchObject({ title: "Server group assigned: Server Admin", description: "By Admin" });
+      groupNotices.push(notice({ assigned: false }));
+      me().serverGroups = [8];
+      await nextTick();
+      expect(lastToast()).toMatchObject({ title: "Server group revoked: Server Admin", description: "By Admin" });
+    });
+
+    it("says by you when you made the change yourself", async () => {
+      const { groupNotices, me } = setupGroups();
+      groupNotices.push(notice({ invokerId: 1, invokerName: "me" }));
+      me().serverGroups = [8, 6];
+      await nextTick();
+      expect(lastToast()).toMatchObject({ description: "By you" });
+    });
+
+    it("names the one who set a channel group, also when it falls back to the default", async () => {
+      const { groupNotices, me } = setupGroups();
+      groupNotices.push(notice({ kind: "channel" }));
+      me().channelGroupId = 6;
+      await nextTick();
+      expect(lastToast()).toMatchObject({ title: "Channel group assigned: Operator", description: "By Admin" });
+      groupNotices.push(notice({ kind: "channel", groupId: 8, invokerName: "Moderator" }));
+      me().channelGroupId = 8;
+      await nextTick();
+      expect(lastToast()).toMatchObject({ title: "Channel group revoked: Operator", description: "By Moderator" });
+    });
+
+    it("leaves the toast as it was without a notice, for another group or from a nameless server, and uses a notice once", async () => {
+      const { groupNotices, me } = setupGroups();
+      groupNotices.push(notice({ groupId: 7 }), notice({ kind: "channel" }), notice({ invokerId: 0, invokerName: "" }));
+      me().serverGroups = [8, 6];
+      await nextTick();
+      expect(lastToast()?.description).toBeUndefined();
+      expect(groupNotices.map((entry) => entry.groupId)).toEqual([7, 6]);
+      expect(groupNotices.map((entry) => entry.kind)).toEqual(["server", "channel"]);
+    });
   });
 
   it("stays quiet about the groups of others", async () => {

@@ -7,14 +7,14 @@ import { useSessionStore, type ServerGroup } from "@/features/session";
 beforeEach(() => setActivePinia(createPinia()));
 
 const GROUPS: ServerGroup[] = [
-  { id: 6, name: "Server Admin", iconId: 300, isDefault: false, type: 1 },
-  { id: 7, name: "Normal", iconId: 5000, isDefault: false, type: 1 },
-  { id: 8, name: "Guest", iconId: 0, isDefault: true, type: 1 },
+  { id: 6, name: "Server Admin", iconId: 300, isDefault: false, type: 1, addPower: 0, removePower: 0 },
+  { id: 7, name: "Normal", iconId: 5000, isDefault: false, type: 1, addPower: 0, removePower: 0 },
+  { id: 8, name: "Guest", iconId: 0, isDefault: true, type: 1, addPower: 0, removePower: 0 },
 ];
 const CHANNEL_GROUPS: ServerGroup[] = [
-  { id: 5, name: "Channel Admin", iconId: 100, isDefault: false, type: 1 },
-  { id: 7, name: "Voice", iconId: 6000, isDefault: false, type: 1 },
-  { id: 8, name: "Guest", iconId: 0, isDefault: true, type: 1 },
+  { id: 5, name: "Channel Admin", iconId: 100, isDefault: false, type: 1, addPower: 0, removePower: 0 },
+  { id: 7, name: "Voice", iconId: 6000, isDefault: false, type: 1, addPower: 0, removePower: 0 },
+  { id: 8, name: "Guest", iconId: 0, isDefault: true, type: 1, addPower: 0, removePower: 0 },
 ];
 
 function setup(icons: Record<number, string>) {

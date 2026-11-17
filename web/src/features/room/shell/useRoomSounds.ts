@@ -3,12 +3,23 @@ import { showToast, useToast } from "@/shared/composables/useToast";
 import { notifyEvent } from "@/features/room/shell/roomNotify";
 import { useI18n } from "@/shared/i18n/useI18n";
 import type { NotificationSound } from "@/features/voice";
-import type { ChannelGroup, ChannelInfo, ChatMessage, PokeNotification, RoomNotice, ServerGroup, VoiceState } from "@/features/session";
+import type {
+  ChannelGroup,
+  ChannelInfo,
+  ChatMessage,
+  GroupNotice,
+  PokeNotification,
+  RoomNotice,
+  ServerGroup,
+  VoiceState,
+} from "@/features/session";
 
 export interface UseRoomSoundsOptions {
   voiceState: Pick<VoiceState, "connected" | "reconnecting" | "reconnectFailed" | "tsClientId">;
   channels: ChannelInfo[];
   roomNotices: RoomNotice[];
+  /** Who changed our groups, used up by the toast of the change. */
+  groupNotices: GroupNotice[];
   chatMessages: ChatMessage[];
   pokeNotifications: PokeNotification[];
   serverGroups: Readonly<Ref<readonly ServerGroup[]>>;
@@ -20,6 +31,9 @@ interface GroupChange {
   kind: "server" | "channel";
   assigned: boolean;
   group: string;
+  /** What the gateway's notice about this change names: the group gained or lost, and for a channel group always a set. */
+  noticeGroupId: number;
+  noticeAssigned: boolean;
 }
 
 /**
@@ -30,7 +44,7 @@ function serverGroupChanges(groups: readonly ServerGroup[], before: readonly num
   const named = (id: number) => groups.find((group) => group.id === id);
   const change = (assigned: boolean, id: number): GroupChange[] => {
     const group = named(id);
-    return group && !group.isDefault ? [{ kind: "server", assigned, group: group.name }] : [];
+    return group && !group.isDefault ? [{ kind: "server", assigned, group: group.name, noticeGroupId: id, noticeAssigned: assigned }] : [];
   };
   return [
     ...after.filter((id) => !before.includes(id)).flatMap((id) => change(true, id)),
@@ -44,7 +58,15 @@ function channelGroupChanges(groups: readonly ChannelGroup[], before: number, af
   const previous = groups.find((group) => group.id === before);
   const next = groups.find((group) => group.id === after);
   if (!previous || !next) return [];
-  return [{ kind: "channel", assigned: !next.isDefault, group: next.isDefault ? previous.name : next.name }];
+  return [
+    {
+      kind: "channel",
+      assigned: !next.isDefault,
+      group: next.isDefault ? previous.name : next.name,
+      noticeGroupId: after,
+      noticeAssigned: true,
+    },
+  ];
 }
 
 interface OwnGroups {
@@ -75,6 +97,7 @@ export function useRoomSounds({
   voiceState,
   channels,
   roomNotices,
+  groupNotices,
   chatMessages,
   pokeNotifications,
   serverGroups,
@@ -87,6 +110,18 @@ export function useRoomSounds({
   const groupTitle = ({ kind, assigned, group }: GroupChange): string => {
     if (kind === "server") return assigned ? t("serverGroupAssigned", { group }) : t("serverGroupRevoked", { group });
     return assigned ? t("channelGroupAssigned", { group }) : t("channelGroupRevoked", { group });
+  };
+
+  // The notice that names who made a change is taken out, so it cannot be claimed twice.
+  const byWhom = (change: GroupChange): string | undefined => {
+    const matches = (notice: GroupNotice) =>
+      notice.kind === change.kind && notice.groupId === change.noticeGroupId && notice.assigned === change.noticeAssigned;
+    // The latest one wins.
+    const index = groupNotices.map(matches).lastIndexOf(true);
+    const [notice] = index < 0 ? [] : groupNotices.splice(index, 1);
+    if (!notice) return undefined;
+    if (notice.invokerId === voiceState.tsClientId) return t("groupByYou");
+    return notice.invokerName ? t("groupByName", { name: notice.invokerName }) : undefined;
   };
 
   const findOwn = () => {
@@ -161,7 +196,10 @@ export function useRoomSounds({
     },
     (next, previous) => {
       const changes = ownGroupChanges({ server: serverGroups.value, channel: channelGroups.value }, previous, next);
-      for (const change of changes) notifyEvent(groupTitle(change), { variant: change.assigned ? "success" : "warning" });
+      for (const change of changes) {
+        const reason = byWhom(change);
+        notifyEvent(groupTitle(change), { variant: change.assigned ? "success" : "warning", ...(reason ? { reason } : {}) });
+      }
       if (changes.length) playNotification(changes.some((change) => change.assigned) ? "groupAssigned" : "groupRevoked");
     },
   );

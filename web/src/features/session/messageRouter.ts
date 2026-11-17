@@ -14,6 +14,9 @@ import {
 } from "@/features/session/sessionLimits";
 import type { ServerEvent, ServerGroup, ServerMessage, ServerMessageType } from "@/features/session/sessionTypes";
 
+const GROUP_NOTICE_MS = 10_000;
+const MAX_GROUP_NOTICES = 16;
+
 /** Group lists replace the one before. Entries without an id or a name are dropped. */
 function readGroups(groups: unknown): ServerGroup[] {
   if (!Array.isArray(groups)) return [];
@@ -26,6 +29,8 @@ function readGroups(groups: unknown): ServerGroup[] {
             iconId: Number(group.iconId) || 0,
             isDefault: group.isDefault === true,
             type: Number.isInteger(group.type) ? group.type : 1,
+            addPower: Number(group.addPower) || 0,
+            removePower: Number(group.removePower) || 0,
           },
         ]
       : [],
@@ -42,7 +47,7 @@ export type MessageHandlers = {
  *  audio or transport module. */
 export function createRosterHandlers(deps: { syncKnownMemberVolumes: () => void }): MessageHandlers {
   const store = useSessionStore();
-  const { state, members, channels, chatMessages, serverEvents, pokeNotifications } = store;
+  const { state, members, channels, chatMessages, serverEvents, pokeNotifications, groupNotices } = store;
   const { syncKnownMemberVolumes } = deps;
 
   return {
@@ -67,6 +72,20 @@ export function createRosterHandlers(deps: { syncKnownMemberVolumes: () => void 
     },
     serverGroups: (msg) => {
       store.serverGroups = readGroups(msg.groups);
+    },
+    groupChange: (msg) => {
+      const now = Date.now();
+      // One that no change claimed, like the channel group of a join, lapses.
+      groupNotices.splice(0, groupNotices.length, ...groupNotices.filter((notice) => now - notice.at < GROUP_NOTICE_MS));
+      if (!Number.isSafeInteger(msg.groupId) || (msg.kind !== "server" && msg.kind !== "channel")) return;
+      pushBounded(groupNotices, MAX_GROUP_NOTICES, {
+        kind: msg.kind,
+        groupId: msg.groupId,
+        assigned: msg.assigned === true,
+        invokerId: Number(msg.invokerId) || 0,
+        invokerName: clampText(String(msg.invokerName ?? ""), MAX_NICKNAME_LENGTH),
+        at: now,
+      });
     },
     channelGroups: (msg) => {
       store.channelGroups = readGroups(msg.groups);
