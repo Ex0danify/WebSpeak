@@ -67,12 +67,31 @@ const clientUpdated: Apply = (parts, rows) =>
     return result ? [{ type: "clientUpdated", ...result }] : [];
   });
 
-// Comes on every channel join, with the group the client has in its new channel.
+// Comes on every channel join, with the group the client has in its new channel. The invoker is the server then.
 const channelGroupChanged: Apply = (parts, rows) =>
   rows.flatMap((row): SessionEvent[] => {
-    const result = row.cgid === undefined ? undefined : parts.clients.update({ clid: row.clid, client_channel_group_id: row.cgid });
-    return result?.changed.length ? [{ type: "clientUpdated", ...result }] : [];
+    if (row.cgid === undefined) return [];
+    const result = parts.clients.update({ clid: row.clid, client_channel_group_id: row.cgid });
+    const groupId = parseI32(row.cgid);
+    const clientId = parseU16(row.clid);
+    const events: SessionEvent[] = [];
+    if (groupId !== undefined && clientId !== undefined) {
+      events.push({ type: "groupChanged", kind: "channel", groupId, clientId, assigned: true, invoker: invokerOf(row) });
+    }
+    if (result?.changed.length) events.push({ type: "clientUpdated", ...result });
+    return events;
   });
+
+/** Comes just before the `notifyclientupdated` that carries the new group list. */
+const serverGroupChanged =
+  (assigned: boolean): Apply =>
+  (_parts, rows) =>
+    rows.flatMap((row): SessionEvent[] => {
+      const groupId = parseI32(row.sgid);
+      const clientId = parseU16(row.clid);
+      if (groupId === undefined || clientId === undefined) return [];
+      return [{ type: "groupChanged", kind: "server", groupId, clientId, assigned, invoker: invokerOf(row) }];
+    });
 
 const channelCreated: Apply = (parts, rows) =>
   rows.flatMap((row): SessionEvent[] => {
@@ -142,6 +161,8 @@ const APPLY: Readonly<Record<string, Apply>> = {
   notifyclientmoved: clientMoved,
   notifyclientupdated: clientUpdated,
   notifyclientchannelgroupchanged: channelGroupChanged,
+  notifyservergroupclientadded: serverGroupChanged(true),
+  notifyservergroupclientdeleted: serverGroupChanged(false),
   notifychannelcreated: channelCreated,
   notifychanneledited: channelEdited,
   notifychannelmoved: channelMoved,

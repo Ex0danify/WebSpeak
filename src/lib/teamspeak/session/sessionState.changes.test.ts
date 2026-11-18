@@ -82,11 +82,36 @@ describe("clients", () => {
     const { session, feed } = welcomed();
     const changed = { invokerid: 0, invokername: "Server", cgid: 8, cid: 2, clid: 6, cgi: 2 };
     expect(feed(cmd("notifyclientchannelgroupchanged", changed))).toMatchObject([
+      { type: "groupChanged", kind: "channel", groupId: 8, clientId: 6, invoker: { id: 0, name: "Server" } },
       { type: "clientUpdated", client: { id: 6, channelGroupId: 8 }, changed: ["channelGroupId"] },
     ]);
-    expect(feed(cmd("notifyclientchannelgroupchanged", changed))).toEqual([]);
+    // Said again without a change, only the notice comes.
+    expect(feed(cmd("notifyclientchannelgroupchanged", changed))).toMatchObject([{ type: "groupChanged" }]);
     expect(feed(cmd("notifyclientchannelgroupchanged", { clid: 6 }))).toEqual([]);
     expect(session.client(6)!.channelGroupId).toBe(8);
+  });
+
+  it("names who gave or took a server group, then follows with the update of the list", () => {
+    const { session, feed } = welcomed();
+    expect(feed(cmd("notifyservergroupclientadded", { ...admin, sgid: 7, clid: 6, name: "Bob", cluid: "bob=" }))).toEqual([
+      { type: "groupChanged", kind: "server", groupId: 7, clientId: 6, assigned: true, invoker: { id: 9, name: "Admin", uid: "admin=" } },
+    ]);
+    expect(feed(cmd("notifyservergroupclientdeleted", { ...admin, sgid: 7, clid: 6 }))).toMatchObject([
+      { type: "groupChanged", kind: "server", groupId: 7, clientId: 6, assigned: false },
+    ]);
+    expect(feed(cmd("notifyservergroupclientadded", { sgid: 7 }))).toEqual([]);
+    expect(session.client(6)).toBeDefined();
+  });
+
+  it("names who set a channel group, before the update of the client", () => {
+    const { feed } = welcomed();
+    expect(feed(cmd("notifyclientchannelgroupchanged", { ...admin, cgid: 5, cid: 2, clid: 6, cgi: 2 }))).toMatchObject([
+      { type: "groupChanged", kind: "channel", groupId: 5, clientId: 6, assigned: true, invoker: { id: 9, name: "Admin" } },
+      { type: "clientUpdated", changed: ["channelGroupId"] },
+    ]);
+    expect(feed(cmd("notifyclientchannelgroupchanged", { ...admin, cgid: 5, cid: 2, clid: 6, cgi: 2 }))).toMatchObject([
+      { type: "groupChanged", groupId: 5 },
+    ]);
   });
 
   it("removes a client that leaves", () => {

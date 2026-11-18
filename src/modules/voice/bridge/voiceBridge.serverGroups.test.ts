@@ -7,9 +7,9 @@ const gateways = useGateway();
 
 const PNG = Buffer.concat([Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]), Buffer.from("pixels")]);
 const GROUPS = [
-  { id: 7, name: "Normal", isDefault: false, type: 1, sortId: 0, iconId: 600 },
-  { id: 3, name: "Server Admin", isDefault: false, type: 0, sortId: 1, iconId: 300 },
-  { id: 8, name: "Guest", isDefault: true, type: 1, sortId: 2, iconId: 0 },
+  { id: 7, name: "Normal", isDefault: false, type: 1, sortId: 0, iconId: 600, memberAddPower: 60, memberRemovePower: 50 },
+  { id: 3, name: "Server Admin", isDefault: false, type: 0, sortId: 1, iconId: 300, memberAddPower: 0, memberRemovePower: 0 },
+  { id: 8, name: "Guest", isDefault: true, type: 1, sortId: 2, iconId: 0, memberAddPower: 0, memberRemovePower: 0 },
 ];
 
 type Member = { id: number; serverGroups?: number[]; channelGroupId?: number };
@@ -28,9 +28,9 @@ describe("server groups", () => {
       {
         type: "serverGroups",
         groups: [
-          { id: 7, name: "Normal", iconId: 600, isDefault: false },
-          { id: 3, name: "Server Admin", iconId: 300, isDefault: false },
-          { id: 8, name: "Guest", iconId: 0, isDefault: true },
+          { id: 7, name: "Normal", iconId: 600, isDefault: false, type: 1, addPower: 60, removePower: 50 },
+          { id: 3, name: "Server Admin", iconId: 300, isDefault: false, type: 0, addPower: 0, removePower: 0 },
+          { id: 8, name: "Guest", iconId: 0, isDefault: true, type: 1, addPower: 0, removePower: 0 },
         ],
       },
     ]);
@@ -42,8 +42,8 @@ describe("server groups", () => {
   it("sends the channel group list and each member's channel group, and follows a change", async () => {
     const gateway = await gateways.start();
     gateway.ts.groups.channel = [
-      { id: 5, name: "Channel Admin", isDefault: false, type: 1, sortId: 0, iconId: 100 },
-      { id: 8, name: "Guest", isDefault: true, type: 1, sortId: 1, iconId: 0 },
+      { id: 5, name: "Channel Admin", isDefault: false, type: 1, sortId: 0, iconId: 100, memberAddPower: 0, memberRemovePower: 0 },
+      { id: 8, name: "Guest", isDefault: true, type: 1, sortId: 1, iconId: 0, memberAddPower: 0, memberRemovePower: 0 },
     ];
     const bob = gateway.ts.addMember("bob", 2n);
     gateway.ts.updateMember(bob.id, { channelGroupId: 5 });
@@ -52,8 +52,8 @@ describe("server groups", () => {
       {
         type: "channelGroups",
         groups: [
-          { id: 5, name: "Channel Admin", iconId: 100, isDefault: false },
-          { id: 8, name: "Guest", iconId: 0, isDefault: true },
+          { id: 5, name: "Channel Admin", iconId: 100, isDefault: false, type: 1, addPower: 0, removePower: 0 },
+          { id: 8, name: "Guest", iconId: 0, isDefault: true, type: 1, addPower: 0, removePower: 0 },
         ],
       },
     ]);
@@ -71,9 +71,9 @@ describe("server groups", () => {
     const gateway = await gateways.start();
     gateway.ts.groups.server = [
       ...GROUPS,
-      { id: 4, name: "Normal", isDefault: false, type: 0, sortId: 3, iconId: 5000 },
-      { id: 5, name: "Guest", isDefault: false, type: 0, sortId: 4, iconId: 6000 },
-      { id: 2, name: "Admin Server Query", isDefault: false, type: 2, sortId: 5, iconId: 5000 },
+      { id: 4, name: "Normal", isDefault: false, type: 0, sortId: 3, iconId: 5000, memberAddPower: 0, memberRemovePower: 0 },
+      { id: 5, name: "Guest", isDefault: false, type: 0, sortId: 4, iconId: 6000, memberAddPower: 0, memberRemovePower: 0 },
+      { id: 2, name: "Admin Server Query", isDefault: false, type: 2, sortId: 5, iconId: 5000, memberAddPower: 0, memberRemovePower: 0 },
     ];
     gateway.ts.groups.icons.set(5000, PNG);
     const step = vi.spyOn(gateway.ts, "step");
@@ -83,6 +83,16 @@ describe("server groups", () => {
     expect(socket.messagesOfType("serverGroupIcon")).toEqual([
       { type: "serverGroupIcon", iconId: 5000, icon: `data:image/png;base64,${PNG.toString("base64")}` },
     ]);
+  });
+
+  it("tells the browser who changed one of its own groups, and nobody else's", async () => {
+    const gateway = await gateways.start();
+    const { client, socket } = await joinVoice(gateway, { nickname: "alice" });
+    const change = { kind: "server", groupId: 7, assigned: true, invokerId: 9, invokerName: "Admin" } as const;
+    client.emit("groupChanged", { ...change, clientId: client.getClientId() + 1 });
+    client.emit("groupChanged", { ...change, clientId: client.getClientId() });
+    await socket.waitForMessage("groupChange");
+    expect(socket.messagesOfType("groupChange")).toEqual([{ type: "groupChange", ...change }]);
   });
 
   it("sends the list again when the server edits it, and only then", async () => {

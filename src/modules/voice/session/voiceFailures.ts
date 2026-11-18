@@ -15,6 +15,12 @@ export function publicFailureDetail(error: ReturnType<typeof normalizeTeamSpeakE
   return safe || undefined;
 }
 
+/** How long a ban lasts, for the banner of someone it removed or refuses. Only a ban has it. */
+export function banFields(error: ReturnType<typeof normalizeTeamSpeakError>): { banSeconds?: number } {
+  const { banSeconds } = error.diagnostics;
+  return banSeconds === undefined ? {} : { banSeconds };
+}
+
 /** A refusal for a missing permission names it when the server gave its id and we know the name. */
 export function classifyOperationError(
   error: unknown,

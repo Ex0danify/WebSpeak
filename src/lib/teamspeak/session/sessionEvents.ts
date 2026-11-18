@@ -54,6 +54,8 @@ export type SessionEvent =
   | { type: "channelsUnsubscribed"; channels: readonly SessionChannel[]; clients: readonly SessionClient[] }
   | { type: "serverUpdated"; server: SessionServer; changed: readonly (keyof ServerFields)[]; invoker: Invoker | undefined }
   | { type: "groupsUpdated"; kind: "server" | "channel" }
+  /** A client was given or lost a group, and by whom. `invoker` is the server itself for the channel group of a join. A channel group is always a set. */
+  | { type: "groupChanged"; kind: "server" | "channel"; groupId: number; clientId: number; assigned: boolean; invoker: Invoker | undefined }
   /** Our own permissions changed, or their names arrived. */
   | { type: "permissionsUpdated" }
   /** `targetMode` 1 private, 2 channel, 3 server. */

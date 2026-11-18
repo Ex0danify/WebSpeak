@@ -1,6 +1,6 @@
 import { storeToRefs } from "pinia";
 import { useSessionStore } from "@/features/session/sessionStore";
-import { MAX_CHAT_MESSAGES, MAX_CHAT_SEND_LENGTH, pushBounded } from "@/features/session/sessionLimits";
+import { MAX_CHAT_MESSAGES, MAX_CHAT_SEND_LENGTH, MAX_MODERATION_REASON_LENGTH, pushBounded } from "@/features/session/sessionLimits";
 import { LocalizedError, text, type LocalizedText } from "@/shared/i18n/localizedText";
 import { normalizedClientErrorCode } from "@/features/session/sessionErrors";
 import { privateConversationKey } from "@/features/session/format";
@@ -208,6 +208,25 @@ export function useSessionActions(deps: RoomActionsDeps) {
     return sendCommandAndWait("poke", { clientId, message: message.trim().slice(0, 200) });
   }
 
+  // What an administrator does to another member. Whether the session may is the server's call, its refusal rejects.
+  function kickClient(clientId: number, scope: "channel" | "server", message = ""): Promise<void> {
+    return sendCommandAndWait("kickClient", { clientId, scope, message: message.trim().slice(0, MAX_MODERATION_REASON_LENGTH) });
+  }
+
+  /** The ban is for the member's identity and ends their session. Zero seconds bans for good. */
+  function banClient(clientId: number, seconds: number, message = ""): Promise<void> {
+    return sendCommandAndWait("banClient", { clientId, seconds, message: message.trim().slice(0, MAX_MODERATION_REASON_LENGTH) });
+  }
+
+  function setServerGroup(clientId: number, groupId: number, assigned: boolean): Promise<void> {
+    return sendCommandAndWait("setServerGroup", { clientId, groupId, assigned });
+  }
+
+  /** There is no taking a channel group away, the default group is given instead. */
+  function setChannelGroup(clientId: number, groupId: number): Promise<void> {
+    return sendCommandAndWait("setChannelGroup", { clientId, groupId });
+  }
+
   /** Renames the own client on the TeamSpeak server, rejects with the server's refusal (name taken, invalid). */
   function setNickname(nickname: string): Promise<void> {
     return sendCommandAndWait("setNickname", { nickname });
@@ -357,6 +376,7 @@ export function useSessionActions(deps: RoomActionsDeps) {
     sendServerMessage,
     sendPrivateMessage,
     sendPoke,
+    moderation: { kickClient, banClient, setServerGroup, setChannelGroup },
     setAway,
     setNickname,
     setWhisperTargets,

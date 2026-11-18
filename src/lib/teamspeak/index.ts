@@ -55,20 +55,26 @@ export {
 } from "./command/commandScheduler.js";
 export { FloodBudget, type FloodBudgetOptions } from "./command/floodBudget.js";
 export {
+  banUid,
   channelList,
   channelSubscribeAll,
   clientDisconnect,
   clientInfo,
+  clientKick,
   clientList,
   clientMove,
   clientPoke,
   clientUpdate,
   permissionList,
   sendTextMessage,
+  serverGroupAddClient,
+  serverGroupDelClient,
+  setClientChannelGroup,
   TextMessageTarget,
   version,
   type ClientMoveOptions,
   type ClientUpdateProperties,
+  type KickScope,
   type TextMessageTargetMode,
 } from "./command/clientCommands.js";
 export { type ChannelFields, type SessionChannel } from "./session/channelTree.js";

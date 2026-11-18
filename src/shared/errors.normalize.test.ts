@@ -195,6 +195,14 @@ describe("normalizeTeamSpeakError: odd inputs and diagnostics", () => {
 
 describe("normalizeTeamSpeakKickedReason", () => {
   // Seen on TeamSpeak 6: clientkick reasonid=5 leaves with 5, banclient with 6.
+  it("carries the time of a ban, and nothing for a kick or a time that makes no sense", () => {
+    expect(normalizeTeamSpeakKickedReason("bye", 6, 3600).diagnostics.banSeconds).toBe(3600);
+    expect(normalizeTeamSpeakKickedReason("bye", 6, 0).diagnostics.banSeconds).toBe(0);
+    expect(normalizeTeamSpeakKickedReason("bye", 6).diagnostics.banSeconds).toBeUndefined();
+    expect(normalizeTeamSpeakKickedReason("bye", 6, -1).diagnostics.banSeconds).toBeUndefined();
+    expect(normalizeTeamSpeakKickedReason("bye", 5, 3600).diagnostics.banSeconds).toBeUndefined();
+  });
+
   it("treats reason id 5 as a kick and 6 as a ban", () => {
     const kick = normalizeTeamSpeakKickedReason("Slow down!", 5);
     expect(kick).toMatchObject({ code: "kicked", retryable: false, message: WEBSPEAK_ERROR_MESSAGES.kicked });

@@ -1,4 +1,5 @@
 import { text, type LocalizedText } from "@/shared/i18n/localizedText";
+import { useFormat } from "@/shared/i18n/useFormat";
 import {
   CONNECTION_FAILURE_CODES,
   NICKNAME_LENGTH_SIGNATURE,
@@ -30,6 +31,7 @@ export const OPERATION_ERROR_CODES: ReadonlySet<string> = new Set([
   "INVALID_CLIENT_ID",
   "INVALID_TEXT_MESSAGE",
   "INVALID_POKE_MESSAGE",
+  "INVALID_MODERATION_REQUEST",
   "INVALID_AWAY_STATUS",
   "INVALID_NICKNAME",
   "INVALID_MICROPHONE_STATE",
@@ -55,6 +57,8 @@ export const OPERATION_ERROR_CODES: ReadonlySet<string> = new Set([
   "CHANNEL_FULL",
   "ALREADY_IN_CHANNEL",
   "CANNOT_MOVE_SELF",
+  "CANNOT_MODERATE_SELF",
+  "GROUP_NOT_FOUND",
   "CHANNEL_NOT_FOUND",
   "NICKNAME_IN_USE",
   "CLIENT_VERSION_OUTDATED",
@@ -104,8 +108,19 @@ export function closeErrorCode(code: number, reason = ""): string {
   return GATEWAY_CLOSE_CODE_CODES[code] ?? "CONNECTION_FAILED";
 }
 
-export function connectionFailureMessage(code: string, detail?: unknown): LocalizedText {
+/**
+ * A ban with the moment it ends. The gateway gives the seconds it lasts, the end is worked out on arrival from this browser's
+ * own clock, which is the one the person reads it against. The date is written in the language of that moment.
+ */
+function bannedMessage(banSeconds: number | undefined): LocalizedText {
+  if (banSeconds === undefined) return text(errorKey("BANNED"));
+  if (banSeconds === 0) return text("bannedPermanent");
+  return text("bannedUntil", { until: useFormat().dateTime(Date.now() + banSeconds * 1000) });
+}
+
+export function connectionFailureMessage(code: string, detail?: unknown, banSeconds?: number): LocalizedText {
   const normalized = normalizedClientErrorCode(code);
+  if (normalized === "BANNED") return bannedMessage(banSeconds);
   if (CONNECTION_FAILURE_CODES.has(normalized)) return text(errorKey(normalized));
   const safeCode = safeClientErrorCode(normalized);
   const safeDetail = safeClientErrorDetail(detail);

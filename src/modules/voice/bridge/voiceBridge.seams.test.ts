@@ -250,6 +250,7 @@ describe("the TeamSpeak listener order", () => {
         "on:textMessage",
         "on:permissionsChanged",
         "on:groupsChanged",
+        "on:groupChanged",
         "on:poked",
         // registerVoiceConnection
         "on:kicked",

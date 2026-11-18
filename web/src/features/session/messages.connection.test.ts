@@ -340,6 +340,16 @@ describe("disconnected / reconnecting / reconnected / reconnectFailed / connecti
     expect(harness.voice.session.state.error).toBe("");
   });
 
+  it("connectionFailed of a ban shows when the ban ends", async () => {
+    harness = await createVoiceHarness();
+    const socket = await harness.join();
+    await push(socket, { type: "connectionFailed", code: "BANNED", banSeconds: 0 });
+    expect(harness.voice.session.state).toMatchObject({ errorCode: "BANNED", error: { key: "bannedPermanent" } });
+    harness.voice.session.clearError();
+    await push(socket, { type: "connectionFailed", code: "BANNED", banSeconds: 3600 });
+    expect(harness.voice.session.state.error).toMatchObject({ key: "bannedUntil" });
+  });
+
   it("without a prior connectionFailed, a non-1000 close raises the code-derived error", async () => {
     const socket = await connected();
     socket.serverClose(4004, "");

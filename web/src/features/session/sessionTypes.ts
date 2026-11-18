@@ -87,10 +87,28 @@ export interface ServerGroup {
   iconId: number;
   /** The group the server gives everyone, losing the last other one hands it back. */
   isDefault: boolean;
+  /** 0 template, 1 regular, 2 query. Only a regular group is one to give or take. */
+  type: number;
+  /** Own power needed to give this group to a member, or to take it away. */
+  addPower: number;
+  removePower: number;
 }
 
 /** Channel groups come in the same shape, but hold per channel and one per member. */
 export type ChannelGroup = ServerGroup;
+
+/** Who gave or took one of our own groups. It comes ahead of the member update that shows the change and is used up by it. */
+export interface GroupNotice {
+  kind: "server" | "channel";
+  groupId: number;
+  /** A channel group is always a set, the default group coming back included. */
+  assigned: boolean;
+  /** 0 and no name when the server did it itself. */
+  invokerId: number;
+  invokerName: string;
+  /** `Date.now()` at arrival, a notice that no change claimed lapses. */
+  at: number;
+}
 
 /** One of our own permissions as the server reported it, by its TeamSpeak name. */
 export interface PermissionEntry {
@@ -207,13 +225,14 @@ export type ServerMessage =
   | { type: "reconnecting"; attempt: number; delayMs: number }
   | { type: "reconnected" }
   | { type: "reconnectFailed"; code: string; detail?: string }
-  | { type: "connectionFailed"; code: string; detail?: string }
+  | { type: "connectionFailed"; code: string; detail?: string; banSeconds?: number }
   | { type: "memberEnter"; id: number; nickname: string; uid?: string; avatar?: string; isSelf?: boolean }
   | { type: "memberLeave"; id: number }
   | { type: "memberAvatar"; id: number; uid?: string; avatar?: string }
   | { type: "memberUpdate"; id: number; uid?: string; nickname: string; unnamed?: boolean }
   | { type: "channelList"; channels: ChannelInfo[] }
   | { type: "serverGroups"; groups: ServerGroup[] }
+  | { type: "groupChange"; kind: "server" | "channel"; groupId: number; assigned: boolean; invokerId: number; invokerName: string }
   | { type: "channelGroups"; groups: ChannelGroup[] }
   | { type: "serverGroupIcon"; iconId: number; icon: string }
   | {

@@ -19,6 +19,7 @@ import type {
   TSClientMoved,
   TSDirectoryClient,
   TSDirectorySnapshot,
+  TSGroupChange,
   TSPoke,
   TSRawNotification,
   TSGroup,
@@ -53,6 +54,7 @@ export interface TeamSpeakBackendEvents {
   permissionsChanged: [];
   /** The server sent a server or channel group list, again after an edit. */
   groupsChanged: [];
+  groupChanged: [TSGroupChange];
   disconnected: [Error | undefined];
 }
 

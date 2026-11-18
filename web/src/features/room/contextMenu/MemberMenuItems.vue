@@ -49,6 +49,12 @@
       {{ t("moveMemberNoChannels") }}
     </p>
   </MenuSub>
+  <MenuSeparator />
+  <GroupMenus :member="member" />
+  <MenuSeparator />
+  <MenuItem tone="danger" @select="kickMember(member, 'channel')"><Icon name="door" :size="15" />{{ t("kickFromChannel") }}</MenuItem>
+  <MenuItem tone="danger" @select="kickMember(member, 'server')"><Icon name="door" :size="15" />{{ t("kickFromServer") }}</MenuItem>
+  <MenuItem tone="danger" @select="banMember(member)"><Icon name="alert" :size="15" />{{ t("banFromServer") }}</MenuItem>
 </template>
 
 <script setup lang="ts">
@@ -58,6 +64,7 @@ import { MenuItem, MenuSeparator, MenuSlider, MenuSub } from "@/shared/ui/menu";
 import { useI18n } from "@/shared/i18n/useI18n.js";
 import { channelNameText, type ChannelMember } from "@/features/session";
 import { formatVolumeDb } from "@/features/room/contextMenu/volumeDb.js";
+import GroupMenus from "@/features/room/contextMenu/GroupMenus.vue";
 import { useContextActions } from "@/features/room/contextMenuApi.js";
 import { useRoomContext } from "@/features/room/useRoomContext.js";
 
@@ -73,6 +80,8 @@ const {
   toggleWhisperTarget,
   copyMemberName,
   moveMemberDirect,
+  kickMember,
+  banMember,
 } = useContextActions();
 const { roster, audio } = useRoomContext();
 const { volumes, mutedMembers, whisperTargetIds } = roster;

@@ -1,15 +1,13 @@
 import { storeToRefs } from "pinia";
 import { computed } from "vue";
-import { builtinGroupIcon, type BuiltinGroupIcon } from "@/features/room/members/builtinGroupIcons.js";
+import { useGroupIcons } from "@/features/room/useGroupIcons.js";
 import { useSessionStore, type ChannelMember, type ServerGroup } from "@/features/session";
+import type { GroupIcon } from "@/shared/lib/builtinGroupIcons.js";
 
 /** A group that has an icon to show. */
-export interface MemberGroup {
+export interface MemberGroup extends GroupIcon {
   id: number;
   name: string;
-  /** A downloaded icon, as a data URL. */
-  src?: string;
-  builtin?: BuiltinGroupIcon;
 }
 
 export interface MemberGroups {
@@ -24,14 +22,9 @@ export interface MemberGroups {
  * or whose icon is still downloading or failed to load, is left out, there is nothing to show for it.
  */
 export function useMemberGroups() {
-  const { serverGroups, channelGroups, groupIcons } = storeToRefs(useSessionStore());
+  const { serverGroups, channelGroups } = storeToRefs(useSessionStore());
+  const { iconOf } = useGroupIcons();
 
-  const iconOf = (iconId: number): Pick<MemberGroup, "src" | "builtin"> | undefined => {
-    const builtin = builtinGroupIcon(iconId);
-    if (builtin) return { builtin };
-    const src = groupIcons.value[iconId];
-    return src ? { src } : undefined;
-  };
   const resolve = (groups: readonly ServerGroup[]): Map<number, MemberGroup> =>
     new Map(
       groups.flatMap((group) => {

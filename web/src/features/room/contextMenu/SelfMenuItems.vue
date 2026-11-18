@@ -21,11 +21,13 @@
     :neutral="100"
     @update:model-value="setOutputVolume($event / 100)"
   />
+  <MenuSeparator />
+  <GroupMenus :member="member" />
 </template>
 
 <script setup lang="ts">
 import { computed, ref, watch } from "vue";
-import { MenuSlider } from "@/shared/ui/menu";
+import { MenuSeparator, MenuSlider } from "@/shared/ui/menu";
 import { useI18n } from "@/shared/i18n/useI18n.js";
 import type { ChannelMember } from "@/features/session";
 import {
@@ -39,6 +41,7 @@ import {
   releaseLevel,
   voxToDb,
 } from "@/features/voice";
+import GroupMenus from "@/features/room/contextMenu/GroupMenus.vue";
 import { useRoomContext } from "@/features/room/useRoomContext.js";
 
 defineProps<{ member: ChannelMember }>();

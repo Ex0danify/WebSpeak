@@ -89,6 +89,54 @@ const states: State[] = [
     },
   },
   {
+    id: "room-member-menu-groups",
+    async prepare(page) {
+      const scripted = await inRoom(page);
+      scripted.apply("moderation");
+      const menu = await openMemberMenu(page, "Alex Rivera");
+      await menu
+        .getByRole("menuitem", { name: "Server groups", exact: true })
+        .or(menu.getByRole("button", { name: "Server groups" }))
+        .click();
+      await expect(
+        page.getByRole("menuitemcheckbox", { name: "Normal", exact: true }).or(menu.getByRole("button", { name: "Normal" })),
+      ).toBeVisible();
+    },
+  },
+  {
+    id: "room-kick-dialog",
+    async prepare(page) {
+      await inRoom(page);
+      const menu = await openMemberMenu(page, "Alex Rivera");
+      await menu
+        .getByRole("menuitem", { name: "Kick from channel" })
+        .or(menu.getByRole("button", { name: "Kick from channel" }))
+        .click();
+      await expect(page.getByRole("dialog", { name: "Kick Alex Rivera from the channel" })).toBeVisible();
+    },
+  },
+  {
+    id: "room-ban-dialog",
+    async prepare(page) {
+      await inRoom(page);
+      const menu = await openMemberMenu(page, "Alex Rivera");
+      await menu
+        .getByRole("menuitem", { name: "Ban from server" })
+        .or(menu.getByRole("button", { name: "Ban from server" }))
+        .click();
+      await expect(page.getByRole("dialog", { name: "Ban Alex Rivera" })).toBeVisible();
+    },
+  },
+  {
+    id: "room-group-toast",
+    async prepare(page) {
+      const scripted = await inRoom(page);
+      scripted.apply("groups");
+      scripted.apply("group-change");
+      await expect(page.getByText("By Alex Rivera", { exact: true })).toBeVisible();
+    },
+  },
+  {
     id: "room-channel-password-dialog",
     async prepare(page) {
       await inRoom(page, { channelPasswords: { "3": "right" } });

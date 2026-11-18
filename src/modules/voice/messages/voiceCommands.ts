@@ -4,6 +4,7 @@ import { handleLinkPreview } from "./voiceLinkPreview.js";
 import type { WebClientEntry } from "../voiceTypes.js";
 import { isRecord } from "../../../shared/typeGuards.js";
 import { classifyOperationError } from "../session/voiceFailures.js";
+import { isModerationCommand, runModeration } from "./voiceModeration.js";
 import type { ClientCommand } from "./voiceProtocol.js";
 
 export async function handleCommand(
@@ -140,6 +141,8 @@ export async function handleCommand(
         return;
       }
       await entry.tsClient.poke(clientId, (command.payload.message as string).trim());
+    } else if (isModerationCommand(command)) {
+      if (!(await runModeration(entry, command, sendJson))) return;
     } else if (command.type === "setAway") {
       await entry.tsClient.setAway(
         command.payload.away as boolean,

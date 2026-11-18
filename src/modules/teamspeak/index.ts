@@ -14,6 +14,7 @@ export {
   type TSDirectoryClient,
   type TSDirectorySnapshot,
   type TSGroup,
+  type TSGroupChange,
   type TSPoke,
   type TSRawNotification,
   type TSVoiceData,

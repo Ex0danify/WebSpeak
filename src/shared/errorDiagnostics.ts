@@ -4,6 +4,10 @@ export interface TeamSpeakErrorDiagnostics {
   code?: string;
   id?: string;
   serverMessage?: string;
+  /** The server's longer explanation of a refusal (`extra_msg`), for a ban it names the reason and the time left. */
+  extraMessage?: string;
+  /** For a ban: how long it lasts in seconds as the server announced it, 0 for good. */
+  banSeconds?: number;
   message?: string;
   syscall?: string;
   address?: string;
@@ -41,6 +45,7 @@ export function collectDiagnostics(error: unknown): TeamSpeakErrorDiagnostics {
       if (typeof errorRecord.code === "string" || typeof errorRecord.code === "number") result.code ??= String(errorRecord.code);
       if (typeof errorRecord.id === "string" || typeof errorRecord.id === "number") result.id ??= String(errorRecord.id);
       if (typeof errorRecord.serverMessage === "string") result.serverMessage ??= errorRecord.serverMessage;
+      if (typeof errorRecord.extraMessage === "string") result.extraMessage ??= errorRecord.extraMessage;
       if (typeof errorRecord.syscall === "string") result.syscall ??= errorRecord.syscall;
       if (typeof errorRecord.address === "string") result.address ??= errorRecord.address;
       if (typeof errorRecord.port === "string" || typeof errorRecord.port === "number") result.port ??= errorRecord.port;

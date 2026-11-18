@@ -6,6 +6,7 @@ import { isMessageCode, MESSAGE_CODES } from "./messageCodes.js";
 const SEND_SITES = [
   "../modules/voice/messages/voiceProtocol.ts",
   "../modules/voice/messages/voiceCommands.ts",
+  "../modules/voice/messages/voiceModeration.ts",
   "../modules/voice/messages/voiceMessageRouter.ts",
   "../modules/voice/messages/voiceLinkPreview.ts",
   "../modules/linkPreview/previewErrorCode.ts",
@@ -24,6 +25,7 @@ function codesIn(source: string): string[] {
   const patterns = [
     /\bcode:\s*"([A-Z][A-Z_]+)"/g,
     /\binvalid\(\s*"([A-Z][A-Z_]+)"/g,
+    /\brefuse\(\s*"([A-Z][A-Z_]+)"/g,
     /sendProtocolError\([^,]+,\s*"([A-Z][A-Z_]+)"/g,
     /classifyOperationError\([^,]+,\s*"([A-Z][A-Z_]+)"/g,
     /failureFrame\(\s*"([A-Z][A-Z_]+)"/g,

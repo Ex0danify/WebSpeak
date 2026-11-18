@@ -14,6 +14,8 @@ export { default as MobileNav } from "@/features/room/shell/MobileNav.vue";
 export { default as PokeStack } from "@/features/room/whisper/PokeStack.vue";
 export { default as WhisperStrip } from "@/features/room/whisper/WhisperStrip.vue";
 export { useWhisper } from "@/features/room/whisper/useWhisper";
+export { default as BanDialog } from "@/features/room/moderation/BanDialog.vue";
+export { useModeration } from "@/features/room/moderation/useModeration";
 export { default as AudioDock } from "@/features/room/dock/AudioDock.vue";
 export { default as AudioSettingsDialog } from "@/features/room/audioSettings/AudioSettingsDialog.vue";
 export { useAudioSettingsPanel } from "@/features/room/audioSettings/useAudioSettingsPanel";

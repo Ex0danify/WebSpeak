@@ -14,7 +14,7 @@ import type { ScreenShareIceServer } from "../../screenShare/index.js";
 import type { SessionTeardownReason } from "./voiceSessionManager.js";
 import type { VoiceConnection, WebClientEntry } from "../voiceTypes.js";
 import { refreshDirectory, scheduleMemberAvatarRefresh } from "../directory/voiceDirectory.js";
-import { publicFailureDetail } from "./voiceFailures.js";
+import { banFields, publicFailureDetail } from "./voiceFailures.js";
 import { syncPermissions } from "../selfActivity.js";
 import { syncGroups } from "../directory/voiceGroups.js";
 
@@ -52,7 +52,7 @@ export function registerVoiceConnection(ctx: VoiceConnection, hooks: VoiceConnec
       { entryId: ctx.entry.id, code: failureCode, normalizedCode: kick.code, failureDetail: describeTeamSpeakError(kick) },
       "TeamSpeak session ended by kick/ban",
     );
-    ctx.sendJson({ type: "connectionFailed", code: failureCode, ...(failureDetail ? { detail: failureDetail } : {}) });
+    ctx.sendJson({ type: "connectionFailed", code: failureCode, ...(failureDetail ? { detail: failureDetail } : {}), ...banFields(kick) });
     void hooks.teardown(ctx.entry.id, "teamSpeak-kicked");
   });
 
@@ -169,7 +169,12 @@ function handleConnectFailure(ctx: VoiceConnection, hooks: VoiceConnectionDeps, 
     }
     // Send the structured failure before closing, some browsers and proxies drop the close reason
     // and everything would collapse into a generic message.
-    ctx.sendJson({ type: "connectionFailed", code: failureCode, ...(failureDetail ? { detail: failureDetail } : {}) });
+    ctx.sendJson({
+      type: "connectionFailed",
+      code: failureCode,
+      ...(failureDetail ? { detail: failureDetail } : {}),
+      ...banFields(normalized),
+    });
     if (ctx.ws.readyState === WebSocket.OPEN) ctx.ws.close(4003, failureCode);
     void hooks.teardown(ctx.entry.id, "teamSpeak-connect-failed");
     return;

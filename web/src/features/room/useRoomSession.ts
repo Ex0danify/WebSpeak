@@ -105,6 +105,7 @@ export function useRoomSession() {
     sendServerMessage,
     sendPrivateMessage,
     sendPoke,
+    moderation,
     setAway,
     setNickname,
     setWhisperTargets,
@@ -391,6 +392,6 @@ export function useRoomSession() {
       joinScreenShare,
       leaveScreenShare,
     },
-    actions: { switchChannel, moveClient, setAway, setWhisperTargets, setWhisperActive },
+    actions: { switchChannel, moveClient, ...moderation, setAway, setWhisperTargets, setWhisperActive },
   };
 }

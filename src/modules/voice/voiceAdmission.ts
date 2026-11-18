@@ -228,6 +228,7 @@ export function admitConnection(deps: AdmissionDeps, ws: WebSocket, req: Incomin
   };
   const directory = new DirectorySynchronizer();
   entry.clientChannelId = (clientId) => directory.getClientChannelId(clientId);
+  entry.clientDatabaseId = (clientId) => directory.getClientDatabaseId(clientId);
   const ctx: VoiceConnection = {
     entry,
     session,

@@ -14,6 +14,7 @@ export type FakeOperation =
   | "moveClient"
   | "sendTextMessage"
   | "poke"
+  | "moderation"
   | "setAway"
   | "setNickname"
   | "setInputMuted"

@@ -22,6 +22,7 @@ import { InputMuteSync } from "./inputMuteSync.js";
 import { OutputMuteSync } from "./outputMuteSync.js";
 import { sendStreamCommand } from "./teamSpeakStreamCommand.js";
 import { NativeBackend } from "./nativeBackend.js";
+import { TeamSpeakModeration } from "./teamSpeakModeration.js";
 import type { SendOptions, TeamSpeakBackend, TeamSpeakBackendEvents, TeamSpeakBackendFactory, TSClientAvatar } from "./teamSpeakBackend.js";
 import type { TeamSpeakProtocol } from "../../shared/teamSpeakProtocol.js";
 import type { TeamSpeakTarget } from "../../shared/teamSpeakTarget.js";
@@ -63,6 +64,7 @@ const FORWARDED_EVENTS = [
   "kicked",
   "permissionsChanged",
   "groupsChanged",
+  "groupChanged",
 ] as const satisfies readonly (keyof TeamSpeakBackendEvents)[];
 
 const TEXT_TARGET_MODES = { private: TextMessageTarget.client, channel: TextMessageTarget.channel, server: TextMessageTarget.server };
@@ -181,16 +183,20 @@ export class TSClient extends EventEmitter {
     this.emit("connected", this.clientId);
   }
 
-  async getClientAvatar(clientId: number, expectedUid = ""): Promise<TSClientAvatar | null> {
+  /** A reconnect replaces the backend, whatever the old one still returns belongs to another session. */
+  private async whileCurrent<T>(load: (backend: TeamSpeakBackend) => Promise<T | null>): Promise<T | null> {
     const backend = this.readyBackend();
-    // A reconnect replaces the backend, whatever the old one still returns belongs to another session.
     try {
-      const avatar = await backend.loadAvatar(clientId, expectedUid);
-      return this.backend === backend ? avatar : null;
+      const result = await load(backend);
+      return this.backend === backend ? result : null;
     } catch (error: unknown) {
       if (this.backend !== backend) return null;
       throw error;
     }
+  }
+
+  async getClientAvatar(clientId: number, expectedUid = ""): Promise<TSClientAvatar | null> {
+    return this.whileCurrent((backend) => backend.loadAvatar(clientId, expectedUid));
   }
 
   serverGroups(): TSGroup[] {
@@ -202,14 +208,7 @@ export class TSClient extends EventEmitter {
   }
 
   async getGroupIcon(iconId: number): Promise<Buffer | null> {
-    const backend = this.readyBackend();
-    try {
-      const icon = await backend.loadGroupIcon(iconId);
-      return this.backend === backend ? icon : null;
-    } catch (error: unknown) {
-      if (this.backend !== backend) return null;
-      throw error;
-    }
+    return this.whileCurrent((backend) => backend.loadGroupIcon(iconId));
   }
 
   private attachBackendListeners(backend: TeamSpeakBackend): void {
@@ -263,6 +262,8 @@ export class TSClient extends EventEmitter {
   async poke(clientId: number, message: string): Promise<void> {
     await this.readyBackend().command(clientPoke(clientId, message));
   }
+
+  moderation = (): TeamSpeakModeration => new TeamSpeakModeration(this.readyBackend());
 
   async setAway(away: boolean, message = ""): Promise<void> {
     const backend = this.readyBackend();

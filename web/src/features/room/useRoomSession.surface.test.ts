@@ -146,8 +146,12 @@ const EXPECTED_SURFACE: Record<string, Record<string, string>> = {
     stopScreenShare: "function",
   },
   actions: {
+    banClient: "function",
+    kickClient: "function",
     moveClient: "function",
     setAway: "function",
+    setChannelGroup: "function",
+    setServerGroup: "function",
     setWhisperActive: "function",
     setWhisperTargets: "function",
     switchChannel: "function",

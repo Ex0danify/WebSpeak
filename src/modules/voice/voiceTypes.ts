@@ -126,6 +126,8 @@ export interface WebClientEntry {
   channelTree: unknown[];
   members: Map<number, ChannelMember>;
   clientChannelId?(clientId: number): bigint | undefined;
+  /** The database id the directory knows a client by, kept here because the browser never gets it. */
+  clientDatabaseId?(clientId: number): bigint | undefined;
   avatarCache: Map<string, string | null>;
   /** Server group icons by icon id, null for one that could not be loaded. */
   groupIconCache: Map<number, string | null>;

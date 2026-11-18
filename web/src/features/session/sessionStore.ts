@@ -5,6 +5,7 @@ import type {
   ChannelInfo,
   ChannelMember,
   ChatMessage,
+  GroupNotice,
   PermissionEntry,
   RoomNotice,
   ServerEvent,
@@ -49,6 +50,7 @@ export const useSessionStore = defineStore("voiceSession", () => {
   const serverEvents = reactive<ServerEvent[]>([]);
   const pokeNotifications = reactive<PokeNotification[]>([]);
   const roomNotices = reactive<RoomNotice[]>([]);
+  const groupNotices = reactive<GroupNotice[]>([]);
   const speakingIds = reactive(new Set<number>());
   const whisperTargetIds = reactive(new Set<number>());
   const whisperActive = ref(false);
@@ -98,6 +100,7 @@ export const useSessionStore = defineStore("voiceSession", () => {
     serverEvents.splice(0);
     pokeNotifications.splice(0);
     roomNotices.splice(0);
+    groupNotices.splice(0);
     speakingIds.clear();
     whisperTargetIds.clear();
     whisperActive.value = false;
@@ -121,6 +124,7 @@ export const useSessionStore = defineStore("voiceSession", () => {
     serverEvents,
     pokeNotifications,
     roomNotices,
+    groupNotices,
     setRoomNotice,
     clearRoomNotice,
     hasRoomNotice,

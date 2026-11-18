@@ -1,4 +1,6 @@
+import { TeamSpeakServerError } from "../../src/lib/teamspeak/index.js";
 import type { TSClientAvatar, TSGroup } from "../../src/modules/teamspeak/teamSpeakClient.js";
+import type { PermissionEntry } from "../../src/lib/teamspeak/index.js";
 import type { FakeTSClient } from "./fakeTsClient.js";
 
 /** The avatar the fake server holds for a client, null for an unknown one or one that is not `expectedUid` any more. */
@@ -15,6 +17,76 @@ export class FakeGroups {
   server: TSGroup[] = [];
   channel: TSGroup[] = [];
   readonly icons = new Map<number, Buffer>();
+}
+
+/** The group powers the fake server reports to whoever may moderate, like an admin's 75. A guest gets none. */
+export const fakeGroupPowers = (allowed: boolean): PermissionEntry[] =>
+  allowed
+    ? [
+        { name: "i_group_member_add_power", value: 75 },
+        { name: "i_group_member_remove_power", value: 75 },
+      ]
+    : [];
+
+const moderationLogs = new WeakMap<FakeTSClient, Record<string, unknown>[]>();
+
+/** What a client asked the server to do to others, in order. */
+export const moderationLog = (client: FakeTSClient): Record<string, unknown>[] => {
+  if (!moderationLogs.has(client)) moderationLogs.set(client, []);
+  return moderationLogs.get(client)!;
+};
+
+/**
+ * The moderation of a fake client. It needs the rights of moving others, so a guest is refused like on a real server.
+ * The fake server has no database: an id is the client id plus 1000, so a mix-up with the client id shows.
+ */
+export function fakeModeration(client: FakeTSClient) {
+  const { server } = client;
+  const act = async (entry: Record<string, unknown>) => {
+    client.ready();
+    await server.step("moderation");
+    if (!server.canMove(client.uid)) throw new TeamSpeakServerError({ id: 2568, serverMessage: "insufficient client permissions" });
+    moderationLog(client).push(entry);
+  };
+  // The server names the invoker ahead of the update of the member, like the real one.
+  const tell = (kind: "server" | "channel", groupId: number, clientId: number, assigned: boolean) =>
+    server.broadcast("groupChanged", {
+      kind,
+      groupId,
+      clientId,
+      assigned,
+      invokerId: client.getClientId(),
+      invokerName: client.options.nickname,
+    });
+  return {
+    async kick(clientId: number, scope: "channel" | "server", reason = ""): Promise<void> {
+      await act({ action: "kick", clientId, scope, reason });
+      const target = server.connected.get(clientId);
+      if (scope === "server" && target) server.kick(target, reason);
+    },
+    async ban(uid: string, seconds: number, reason = ""): Promise<void> {
+      await act({ action: "ban", uid, seconds, reason });
+      const target = [...server.connected.values()].find((connected) => connected.uid === uid);
+      if (target) server.kick(target, reason, true, seconds);
+      else server.bannedUids.add(uid);
+    },
+    async setServerGroup(groupId: number, databaseId: bigint, assigned: boolean): Promise<void> {
+      await act({ action: "serverGroup", groupId, databaseId, assigned });
+      const id = Number(databaseId - 1000n);
+      tell("server", groupId, id, assigned);
+      const others = (server.members.get(id)?.serverGroups ?? []).filter((group) => group !== String(groupId));
+      server.updateMember(id, { serverGroups: assigned ? [...others, String(groupId)] : others });
+    },
+    async setChannelGroup(groupId: number, channelId: bigint, databaseId: bigint): Promise<void> {
+      await act({ action: "channelGroup", groupId, channelId, databaseId });
+      const id = Number(databaseId - 1000n);
+      tell("channel", groupId, id, true);
+      server.updateMember(id, { channelGroupId: groupId });
+    },
+    async databaseId(clientId: number): Promise<bigint | undefined> {
+      return server.members.has(clientId) ? BigInt(clientId) + 1000n : undefined;
+    },
+  };
 }
 
 export async function fakeGroupIcon(client: FakeTSClient, iconId: number): Promise<Buffer | null> {

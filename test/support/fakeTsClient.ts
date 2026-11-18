@@ -22,7 +22,7 @@ import {
   type FakeServerOptions,
 } from "./fakeTsClientScript.js";
 import { deliverChat, deliverVoice } from "./fakeTsChat.js";
-import { FakeGroups, fakeAvatar, fakeGroupIcon } from "./fakeTsFiles.js";
+import { FakeGroups, fakeAvatar, fakeGroupIcon, fakeGroupPowers, fakeModeration } from "./fakeTsFiles.js";
 
 const refused = (id: number, serverMessage: string) => new TeamSpeakServerError({ id, serverMessage });
 export { DEFAULT_FAKE_CHANNELS, FakeRemoteMember, type FakeChannel, type FakeOperation, type FakeServerOptions };
@@ -105,9 +105,9 @@ export class FakeTeamSpeakServer {
   }
 
   /** The server ends a client's session with a kick (5) or a ban (6). */
-  kick(client: FakeTSClient, reason = "", ban = false): void {
+  kick(client: FakeTSClient, reason = "", ban = false, banSeconds?: number): void {
     if (ban) this.bannedUids.add(client.uid);
-    client.receiveKick(reason, ban);
+    client.receiveKick(reason, ban, banSeconds);
   }
 
   /** The transport of a client dies without a kick. */
@@ -329,9 +329,8 @@ export class FakeTSClient extends EventEmitter {
     if (moved) moved.preferredChannelId = channelId;
   }
 
-  getClientId(): number {
-    return this.clientId;
-  }
+  getClientId = (): number => this.clientId;
+  moderation = () => fakeModeration(this);
   getProtocol(): TeamSpeakProtocol | null {
     return this.isUp ? this.server.protocol : null;
   }
@@ -347,7 +346,7 @@ export class FakeTSClient extends EventEmitter {
   textAllowed = { channel: true, server: true };
   canSendText = (scope: "channel" | "server"): boolean => this.textAllowed[scope];
   permissionEntries: PermissionEntry[] = [];
-  permissions = (): PermissionEntry[] => this.permissionEntries;
+  permissions = (): PermissionEntry[] => [...this.permissionEntries, ...fakeGroupPowers(this.server.canMove(this.uid))];
   serverGroups = () => this.server.groups.server;
   channelGroups = () => this.server.groups.channel;
   getGroupIcon = (iconId: number): Promise<Buffer | null> => fakeGroupIcon(this, iconId);
@@ -374,10 +373,10 @@ export class FakeTSClient extends EventEmitter {
   }
 
   /** @internal Called by `FakeTeamSpeakServer.kick`. */
-  receiveKick(reason: string, ban: boolean): void {
+  receiveKick(reason: string, ban: boolean, banSeconds?: number): void {
     const id = this.clientId;
     this.emit("clientLeave", { id, reasonID: ban ? 6 : 5, reasonMsg: reason, targetID: 0 });
-    this.emit("kicked", normalizeTeamSpeakKickedReason(reason, ban ? 6 : 5));
+    this.emit("kicked", normalizeTeamSpeakKickedReason(reason, ban ? 6 : 5, banSeconds));
     this.receiveDrop();
   }
 

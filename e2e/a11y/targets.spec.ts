@@ -20,7 +20,7 @@ type Measured = Map<string, Map<string, { count: number; min: number }>>;
 async function measure(page: Page, lang: string): Promise<Measured> {
   const text = (key: string) => translations[lang]![key]!;
   await useCannedApi(page, { lang, theme: "light" });
-  await installVoiceFixture(page.context());
+  const scripted = await installVoiceFixture(page.context());
   await page.addInitScript((code) => localStorage.setItem("webspeak:language", code), lang);
 
   async function joined(tab?: string) {
@@ -51,6 +51,17 @@ async function measure(page: Page, lang: string): Promise<Measured> {
         .first()
         .click();
       await page.getByRole("dialog").last().waitFor();
+    },
+    "member sheet groups": async () => {
+      await joined();
+      scripted.apply("moderation");
+      await page
+        .getByRole("button", { name: text("moreMemberOptions") })
+        .first()
+        .click();
+      const sheet = page.getByRole("dialog").last();
+      await sheet.getByRole("button", { name: text("serverGroups") }).click();
+      await sheet.getByRole("button", { name: "Normal" }).waitFor();
     },
   };
 

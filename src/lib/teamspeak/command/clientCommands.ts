@@ -8,13 +8,30 @@ export type TextMessageTargetMode = (typeof TextMessageTarget)[keyof typeof Text
 /** `clientdisconnect` and the server's leave notification use 8 for leaving on purpose. */
 const REASON_LEAVING = 8;
 
+/** The server moves a client kicked from its channel to the default channel. */
+const KICK_REASON = { channel: 4, server: 5 } as const;
+export type KickScope = keyof typeof KICK_REASON;
+
+const MAX_U32 = 2 ** 32 - 1;
+const MAX_U64 = (1n << 64n) - 1n;
+
 function clientId(value: number): number {
   if (!Number.isInteger(value) || value < 1 || value > 0xffff) throw new TypeError(`Invalid TeamSpeak client id: ${value}`);
   return value;
 }
 
 function channelId(value: bigint): bigint {
-  if (value < 0n || value > 0xffff_ffff_ffff_ffffn) throw new TypeError(`Invalid TeamSpeak channel id: ${value}`);
+  if (value < 0n || value > MAX_U64) throw new TypeError(`Invalid TeamSpeak channel id: ${value}`);
+  return value;
+}
+
+function groupId(value: number): number {
+  if (!Number.isInteger(value) || value < 0 || value > MAX_U32) throw new TypeError(`Invalid TeamSpeak group id: ${value}`);
+  return value;
+}
+
+function databaseId(value: bigint): bigint {
+  if (value < 1n || value > MAX_U64) throw new TypeError(`Invalid TeamSpeak client database id: ${value}`);
   return value;
 }
 
@@ -42,6 +59,66 @@ export function clientPoke(target: number, message: string): CommandRequest {
     params: [
       ["clid", clientId(target)],
       ["msg", message],
+    ],
+  };
+}
+
+export function clientKick(target: number, scope: KickScope, reasonMessage = ""): CommandRequest {
+  return {
+    name: "clientkick",
+    params: [
+      ["clid", clientId(target)],
+      ["reasonid", KICK_REASON[scope]],
+      ["reasonmsg", reasonMessage],
+    ],
+  };
+}
+
+/**
+ * Bans an identity and nothing else. `banclient` also bans the address, and every browser reaches the server through the
+ * gateway's, so that would lock out everyone. Zero seconds bans for good. TS6 disconnects the client with the ban.
+ */
+export function banUid(uid: string, seconds: number, reason = ""): CommandRequest {
+  if (!uid) throw new TypeError("A ban needs a unique identifier");
+  if (!Number.isInteger(seconds) || seconds < 0 || seconds > MAX_U32) throw new TypeError(`Invalid TeamSpeak ban time: ${seconds}`);
+  return {
+    name: "banadd",
+    params: [
+      ["uid", uid],
+      ["time", seconds],
+      ["banreason", reason],
+    ],
+  };
+}
+
+export function serverGroupAddClient(serverGroupId: number, clientDatabaseId: bigint): CommandRequest {
+  return {
+    name: "servergroupaddclient",
+    params: [
+      ["sgid", groupId(serverGroupId)],
+      ["cldbid", databaseId(clientDatabaseId)],
+    ],
+  };
+}
+
+export function serverGroupDelClient(serverGroupId: number, clientDatabaseId: bigint): CommandRequest {
+  return {
+    name: "servergroupdelclient",
+    params: [
+      ["sgid", groupId(serverGroupId)],
+      ["cldbid", databaseId(clientDatabaseId)],
+    ],
+  };
+}
+
+/** A channel group has no revoke, hand out the server's default channel group instead. */
+export function setClientChannelGroup(channelGroupId: number, target: bigint, clientDatabaseId: bigint): CommandRequest {
+  return {
+    name: "setclientchannelgroup",
+    params: [
+      ["cgid", groupId(channelGroupId)],
+      ["cid", channelId(target)],
+      ["cldbid", databaseId(clientDatabaseId)],
     ],
   };
 }

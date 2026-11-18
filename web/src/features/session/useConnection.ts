@@ -379,7 +379,7 @@ export function useConnection(deps: ConnectionDeps) {
       state.reconnectFailed = false;
       failureAlreadyReported = true;
       state.errorCode = normalizedClientErrorCode(msg.code);
-      state.error = connectionFailureMessage(state.errorCode, msg.detail);
+      state.error = connectionFailureMessage(state.errorCode, msg.detail, msg.banSeconds);
       deps.stopScreenShareTransport(false);
       whisperTargetIds.clear();
       whisperActive.value = false;
